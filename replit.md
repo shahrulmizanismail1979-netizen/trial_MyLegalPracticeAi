@@ -1,8 +1,8 @@
-# Workspace
+# AI Web Books Landing Page & Admin Dashboard
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo with a landing page for AI Web Books (6 AI-powered legal reference web books for Malaysian professionals) and an admin dashboard for managing subscriptions, kohorts, pricing, and discount vouchers.
 
 ## Stack
 
@@ -10,11 +10,34 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
+- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+
+## Structure
+
+- `/` — Landing page showcasing all 6 AI Web Book apps with pricing and payment info
+- `/admin` — Admin dashboard (Overview, Subscribers, Kohorts, Pricing, Vouchers)
+
+## Apps
+
+1. MyLitAI (mylitai.life) — Litigation
+2. MySyalitAI (mysyalitai.life) — Syariah Litigation
+3. MyCorpAI (mycorpai.life) — Corporate Secretary
+4. MyConveyAI (myconveyai.life) — Conveyancing
+5. MyCrimAI (mycrimai.replit.app) — Criminal Law
+6. MyCCBLitAI (my-ccb-lit-ai.replit.app) — Construction Law (CCB)
+
+## Database Tables
+
+- `subscribers` — Track buyers/subscribers with payment status
+- `kohorts` — Manage subscription batches (slots, pricing)
+- `pricing` — Standard per-app pricing
+- `vouchers` — Discount voucher codes
+- `activity` — Activity log for audit trail
 
 ## Key Commands
 

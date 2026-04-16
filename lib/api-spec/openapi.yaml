@@ -10,6 +10,16 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: subscribers
+    description: Subscriber management
+  - name: kohorts
+    description: Kohort management
+  - name: pricing
+    description: Price management
+  - name: vouchers
+    description: Discount voucher management
+  - name: dashboard
+    description: Dashboard summary
 paths:
   /healthz:
     get:
@@ -24,6 +34,406 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /admin/dashboard:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /admin/subscribers:
+    get:
+      operationId: listSubscribers
+      tags: [subscribers]
+      summary: List all subscribers
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, rejected]
+        - name: app
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of subscribers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscriber"
+    post:
+      operationId: createSubscriber
+      tags: [subscribers]
+      summary: Add a new subscriber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriberBody"
+      responses:
+        "201":
+          description: Subscriber created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+
+  /admin/subscribers/{id}:
+    get:
+      operationId: getSubscriber
+      tags: [subscribers]
+      summary: Get a subscriber by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscriber details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateSubscriber
+      tags: [subscribers]
+      summary: Update a subscriber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriberBody"
+      responses:
+        "200":
+          description: Subscriber updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteSubscriber
+      tags: [subscribers]
+      summary: Delete a subscriber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/kohorts:
+    get:
+      operationId: listKohorts
+      tags: [kohorts]
+      summary: List all kohorts
+      responses:
+        "200":
+          description: List of kohorts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Kohort"
+    post:
+      operationId: createKohort
+      tags: [kohorts]
+      summary: Create a new kohort
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateKohortBody"
+      responses:
+        "201":
+          description: Kohort created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kohort"
+
+  /admin/kohorts/{id}:
+    patch:
+      operationId: updateKohort
+      tags: [kohorts]
+      summary: Update a kohort
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateKohortBody"
+      responses:
+        "200":
+          description: Kohort updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Kohort"
+        "404":
+          description: Not found
+
+  /admin/pricing:
+    get:
+      operationId: listPricing
+      tags: [pricing]
+      summary: List all pricing entries
+      responses:
+        "200":
+          description: List of pricing
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PricingEntry"
+    post:
+      operationId: createPricing
+      tags: [pricing]
+      summary: Create a new pricing entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePricingBody"
+      responses:
+        "201":
+          description: Pricing created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingEntry"
+
+  /admin/pricing/{id}:
+    patch:
+      operationId: updatePricing
+      tags: [pricing]
+      summary: Update a pricing entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePricingBody"
+      responses:
+        "200":
+          description: Pricing updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingEntry"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePricing
+      tags: [pricing]
+      summary: Delete a pricing entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/vouchers:
+    get:
+      operationId: listVouchers
+      tags: [vouchers]
+      summary: List all vouchers
+      responses:
+        "200":
+          description: List of vouchers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Voucher"
+    post:
+      operationId: createVoucher
+      tags: [vouchers]
+      summary: Create a new voucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVoucherBody"
+      responses:
+        "201":
+          description: Voucher created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
+
+  /admin/vouchers/{id}:
+    patch:
+      operationId: updateVoucher
+      tags: [vouchers]
+      summary: Update a voucher
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVoucherBody"
+      responses:
+        "200":
+          description: Voucher updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteVoucher
+      tags: [vouchers]
+      summary: Delete a voucher
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/subscribers/{id}/confirm:
+    patch:
+      operationId: confirmSubscriber
+      tags: [subscribers]
+      summary: Confirm a subscriber's payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscriber confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "404":
+          description: Not found
+
+  /admin/subscribers/{id}/reject:
+    patch:
+      operationId: rejectSubscriber
+      tags: [subscribers]
+      summary: Reject a subscriber's payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscriber rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "404":
+          description: Not found
+
+  /admin/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEntry"
+
+  /admin/revenue-by-app:
+    get:
+      operationId: getRevenueByApp
+      tags: [dashboard]
+      summary: Get revenue breakdown by app
+      responses:
+        "200":
+          description: Revenue by app
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevenueByApp"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +444,397 @@ components:
       required:
         - status
 
+    Subscriber:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        apps:
+          type: array
+          items:
+            type: string
+        kohortId:
+          type: ["integer", "null"]
+        paymentStatus:
+          type: string
+          enum: [pending, confirmed, rejected]
+        paymentAmount:
+          type: string
+        paymentDate:
+          type: ["string", "null"]
+          format: date-time
+        voucherCode:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        subscriptionExpiry:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - phone
+        - apps
+        - paymentStatus
+        - paymentAmount
+        - createdAt
+        - updatedAt
+
+    CreateSubscriberBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        apps:
+          type: array
+          items:
+            type: string
+        kohortId:
+          type: ["integer", "null"]
+        paymentAmount:
+          type: string
+        voucherCode:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+      required:
+        - name
+        - email
+        - phone
+        - apps
+        - paymentAmount
+
+    UpdateSubscriberBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        apps:
+          type: array
+          items:
+            type: string
+        kohortId:
+          type: ["integer", "null"]
+        paymentStatus:
+          type: string
+          enum: [pending, confirmed, rejected]
+        paymentAmount:
+          type: string
+        voucherCode:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        subscriptionExpiry:
+          type: ["string", "null"]
+          format: date-time
+
+    Kohort:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        maxSlots:
+          type: integer
+        filledSlots:
+          type: integer
+        pricePerApp:
+          type: string
+        bundlePrice:
+          type: string
+        subscriptionYears:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - maxSlots
+        - filledSlots
+        - pricePerApp
+        - bundlePrice
+        - subscriptionYears
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateKohortBody:
+      type: object
+      properties:
+        name:
+          type: string
+        maxSlots:
+          type: integer
+        pricePerApp:
+          type: string
+        bundlePrice:
+          type: string
+        subscriptionYears:
+          type: integer
+      required:
+        - name
+        - maxSlots
+        - pricePerApp
+        - bundlePrice
+        - subscriptionYears
+
+    UpdateKohortBody:
+      type: object
+      properties:
+        name:
+          type: string
+        maxSlots:
+          type: integer
+        pricePerApp:
+          type: string
+        bundlePrice:
+          type: string
+        subscriptionYears:
+          type: integer
+        isActive:
+          type: boolean
+
+    PricingEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        appName:
+          type: string
+        appSlug:
+          type: string
+        standardPrice:
+          type: string
+        standardDurationYears:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - appName
+        - appSlug
+        - standardPrice
+        - standardDurationYears
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreatePricingBody:
+      type: object
+      properties:
+        appName:
+          type: string
+        appSlug:
+          type: string
+        standardPrice:
+          type: string
+        standardDurationYears:
+          type: integer
+      required:
+        - appName
+        - appSlug
+        - standardPrice
+        - standardDurationYears
+
+    UpdatePricingBody:
+      type: object
+      properties:
+        appName:
+          type: string
+        appSlug:
+          type: string
+        standardPrice:
+          type: string
+        standardDurationYears:
+          type: integer
+        isActive:
+          type: boolean
+
+    Voucher:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        discountType:
+          type: string
+          enum: [percentage, fixed]
+        discountValue:
+          type: string
+        maxUses:
+          type: integer
+        usedCount:
+          type: integer
+        appFilter:
+          type: ["string", "null"]
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: ["string", "null"]
+          format: date-time
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - code
+        - discountType
+        - discountValue
+        - maxUses
+        - usedCount
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CreateVoucherBody:
+      type: object
+      properties:
+        code:
+          type: string
+        discountType:
+          type: string
+          enum: [percentage, fixed]
+        discountValue:
+          type: string
+        maxUses:
+          type: integer
+        appFilter:
+          type: ["string", "null"]
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - code
+        - discountType
+        - discountValue
+        - maxUses
+
+    UpdateVoucherBody:
+      type: object
+      properties:
+        code:
+          type: string
+        discountType:
+          type: string
+          enum: [percentage, fixed]
+        discountValue:
+          type: string
+        maxUses:
+          type: integer
+        appFilter:
+          type: ["string", "null"]
+        validFrom:
+          type: ["string", "null"]
+          format: date-time
+        validUntil:
+          type: ["string", "null"]
+          format: date-time
+        isActive:
+          type: boolean
+
+    DashboardStats:
+      type: object
+      properties:
+        totalSubscribers:
+          type: integer
+        confirmedSubscribers:
+          type: integer
+        pendingSubscribers:
+          type: integer
+        totalRevenue:
+          type: string
+        kohortSlotsRemaining:
+          type: integer
+        activeVouchers:
+          type: integer
+        subscribersByApp:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+        - totalSubscribers
+        - confirmedSubscribers
+        - pendingSubscribers
+        - totalRevenue
+        - kohortSlotsRemaining
+        - activeVouchers
+        - subscribersByApp
+
+    ActivityEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [subscriber_added, payment_confirmed, payment_rejected, voucher_created, kohort_updated, price_changed]
+        description:
+          type: string
+        metadata:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - createdAt
+
+    RevenueByApp:
+      type: object
+      properties:
+        appName:
+          type: string
+        totalRevenue:
+          type: string
+        subscriberCount:
+          type: integer
+      required:
+        - appName
+        - totalRevenue
+        - subscriberCount

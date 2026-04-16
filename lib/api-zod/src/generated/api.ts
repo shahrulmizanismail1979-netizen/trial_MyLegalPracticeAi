@@ -14,3 +14,397 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary Get dashboard statistics
+ */
+export const GetDashboardStatsResponse = zod.object({
+  totalSubscribers: zod.number(),
+  confirmedSubscribers: zod.number(),
+  pendingSubscribers: zod.number(),
+  totalRevenue: zod.string(),
+  kohortSlotsRemaining: zod.number(),
+  activeVouchers: zod.number(),
+  subscribersByApp: zod.record(zod.string(), zod.number()),
+});
+
+/**
+ * @summary List all subscribers
+ */
+export const ListSubscribersQueryParams = zod.object({
+  status: zod.enum(["pending", "confirmed", "rejected"]).optional(),
+  app: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListSubscribersResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentAmount: zod.string(),
+  paymentDate: zod.coerce.date().nullish(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListSubscribersResponse = zod.array(ListSubscribersResponseItem);
+
+/**
+ * @summary Add a new subscriber
+ */
+export const CreateSubscriberBody = zod.object({
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentAmount: zod.string(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a subscriber by ID
+ */
+export const GetSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetSubscriberResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentAmount: zod.string(),
+  paymentDate: zod.coerce.date().nullish(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a subscriber
+ */
+export const UpdateSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSubscriberBody = zod.object({
+  name: zod.string().optional(),
+  email: zod.string().optional(),
+  phone: zod.string().optional(),
+  apps: zod.array(zod.string()).optional(),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]).optional(),
+  paymentAmount: zod.string().optional(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+});
+
+export const UpdateSubscriberResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentAmount: zod.string(),
+  paymentDate: zod.coerce.date().nullish(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a subscriber
+ */
+export const DeleteSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all kohorts
+ */
+export const ListKohortsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  maxSlots: zod.number(),
+  filledSlots: zod.number(),
+  pricePerApp: zod.string(),
+  bundlePrice: zod.string(),
+  subscriptionYears: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListKohortsResponse = zod.array(ListKohortsResponseItem);
+
+/**
+ * @summary Create a new kohort
+ */
+export const CreateKohortBody = zod.object({
+  name: zod.string(),
+  maxSlots: zod.number(),
+  pricePerApp: zod.string(),
+  bundlePrice: zod.string(),
+  subscriptionYears: zod.number(),
+});
+
+/**
+ * @summary Update a kohort
+ */
+export const UpdateKohortParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateKohortBody = zod.object({
+  name: zod.string().optional(),
+  maxSlots: zod.number().optional(),
+  pricePerApp: zod.string().optional(),
+  bundlePrice: zod.string().optional(),
+  subscriptionYears: zod.number().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateKohortResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  maxSlots: zod.number(),
+  filledSlots: zod.number(),
+  pricePerApp: zod.string(),
+  bundlePrice: zod.string(),
+  subscriptionYears: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all pricing entries
+ */
+export const ListPricingResponseItem = zod.object({
+  id: zod.number(),
+  appName: zod.string(),
+  appSlug: zod.string(),
+  standardPrice: zod.string(),
+  standardDurationYears: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListPricingResponse = zod.array(ListPricingResponseItem);
+
+/**
+ * @summary Create a new pricing entry
+ */
+export const CreatePricingBody = zod.object({
+  appName: zod.string(),
+  appSlug: zod.string(),
+  standardPrice: zod.string(),
+  standardDurationYears: zod.number(),
+});
+
+/**
+ * @summary Update a pricing entry
+ */
+export const UpdatePricingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdatePricingBody = zod.object({
+  appName: zod.string().optional(),
+  appSlug: zod.string().optional(),
+  standardPrice: zod.string().optional(),
+  standardDurationYears: zod.number().optional(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdatePricingResponse = zod.object({
+  id: zod.number(),
+  appName: zod.string(),
+  appSlug: zod.string(),
+  standardPrice: zod.string(),
+  standardDurationYears: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a pricing entry
+ */
+export const DeletePricingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all vouchers
+ */
+export const ListVouchersResponseItem = zod.object({
+  id: zod.number(),
+  code: zod.string(),
+  discountType: zod.enum(["percentage", "fixed"]),
+  discountValue: zod.string(),
+  maxUses: zod.number(),
+  usedCount: zod.number(),
+  appFilter: zod.string().nullish(),
+  validFrom: zod.coerce.date().optional(),
+  validUntil: zod.coerce.date().nullish(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListVouchersResponse = zod.array(ListVouchersResponseItem);
+
+/**
+ * @summary Create a new voucher
+ */
+export const CreateVoucherBody = zod.object({
+  code: zod.string(),
+  discountType: zod.enum(["percentage", "fixed"]),
+  discountValue: zod.string(),
+  maxUses: zod.number(),
+  appFilter: zod.string().nullish(),
+  validFrom: zod.coerce.date().optional(),
+  validUntil: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Update a voucher
+ */
+export const UpdateVoucherParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateVoucherBody = zod.object({
+  code: zod.string().optional(),
+  discountType: zod.enum(["percentage", "fixed"]).optional(),
+  discountValue: zod.string().optional(),
+  maxUses: zod.number().optional(),
+  appFilter: zod.string().nullish(),
+  validFrom: zod.coerce.date().nullish(),
+  validUntil: zod.coerce.date().nullish(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateVoucherResponse = zod.object({
+  id: zod.number(),
+  code: zod.string(),
+  discountType: zod.enum(["percentage", "fixed"]),
+  discountValue: zod.string(),
+  maxUses: zod.number(),
+  usedCount: zod.number(),
+  appFilter: zod.string().nullish(),
+  validFrom: zod.coerce.date().optional(),
+  validUntil: zod.coerce.date().nullish(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a voucher
+ */
+export const DeleteVoucherParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Confirm a subscriber's payment
+ */
+export const ConfirmSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ConfirmSubscriberResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentAmount: zod.string(),
+  paymentDate: zod.coerce.date().nullish(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Reject a subscriber's payment
+ */
+export const RejectSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RejectSubscriberResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string(),
+  phone: zod.string(),
+  apps: zod.array(zod.string()),
+  kohortId: zod.number().nullish(),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentAmount: zod.string(),
+  paymentDate: zod.coerce.date().nullish(),
+  voucherCode: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get recent activity feed
+ */
+export const getRecentActivityQueryLimitDefault = 10;
+
+export const GetRecentActivityQueryParams = zod.object({
+  limit: zod.coerce.number().default(getRecentActivityQueryLimitDefault),
+});
+
+export const GetRecentActivityResponseItem = zod.object({
+  id: zod.number(),
+  type: zod.enum([
+    "subscriber_added",
+    "payment_confirmed",
+    "payment_rejected",
+    "voucher_created",
+    "kohort_updated",
+    "price_changed",
+  ]),
+  description: zod.string(),
+  metadata: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetRecentActivityResponse = zod.array(
+  GetRecentActivityResponseItem,
+);
+
+/**
+ * @summary Get revenue breakdown by app
+ */
+export const GetRevenueByAppResponseItem = zod.object({
+  appName: zod.string(),
+  totalRevenue: zod.string(),
+  subscriberCount: zod.number(),
+});
+export const GetRevenueByAppResponse = zod.array(GetRevenueByAppResponseItem);

@@ -8,3 +8,255 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type SubscriberPaymentStatus =
+  (typeof SubscriberPaymentStatus)[keyof typeof SubscriberPaymentStatus];
+
+export const SubscriberPaymentStatus = {
+  pending: "pending",
+  confirmed: "confirmed",
+  rejected: "rejected",
+} as const;
+
+export interface Subscriber {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  apps: string[];
+  /** @nullable */
+  kohortId?: number | null;
+  paymentStatus: SubscriberPaymentStatus;
+  paymentAmount: string;
+  /** @nullable */
+  paymentDate?: string | null;
+  /** @nullable */
+  voucherCode?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  subscriptionExpiry?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSubscriberBody {
+  name: string;
+  email: string;
+  phone: string;
+  apps: string[];
+  /** @nullable */
+  kohortId?: number | null;
+  paymentAmount: string;
+  /** @nullable */
+  voucherCode?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
+export type UpdateSubscriberBodyPaymentStatus =
+  (typeof UpdateSubscriberBodyPaymentStatus)[keyof typeof UpdateSubscriberBodyPaymentStatus];
+
+export const UpdateSubscriberBodyPaymentStatus = {
+  pending: "pending",
+  confirmed: "confirmed",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateSubscriberBody {
+  name?: string;
+  email?: string;
+  phone?: string;
+  apps?: string[];
+  /** @nullable */
+  kohortId?: number | null;
+  paymentStatus?: UpdateSubscriberBodyPaymentStatus;
+  paymentAmount?: string;
+  /** @nullable */
+  voucherCode?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  subscriptionExpiry?: string | null;
+}
+
+export interface Kohort {
+  id: number;
+  name: string;
+  maxSlots: number;
+  filledSlots: number;
+  pricePerApp: string;
+  bundlePrice: string;
+  subscriptionYears: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateKohortBody {
+  name: string;
+  maxSlots: number;
+  pricePerApp: string;
+  bundlePrice: string;
+  subscriptionYears: number;
+}
+
+export interface UpdateKohortBody {
+  name?: string;
+  maxSlots?: number;
+  pricePerApp?: string;
+  bundlePrice?: string;
+  subscriptionYears?: number;
+  isActive?: boolean;
+}
+
+export interface PricingEntry {
+  id: number;
+  appName: string;
+  appSlug: string;
+  standardPrice: string;
+  standardDurationYears: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePricingBody {
+  appName: string;
+  appSlug: string;
+  standardPrice: string;
+  standardDurationYears: number;
+}
+
+export interface UpdatePricingBody {
+  appName?: string;
+  appSlug?: string;
+  standardPrice?: string;
+  standardDurationYears?: number;
+  isActive?: boolean;
+}
+
+export type VoucherDiscountType =
+  (typeof VoucherDiscountType)[keyof typeof VoucherDiscountType];
+
+export const VoucherDiscountType = {
+  percentage: "percentage",
+  fixed: "fixed",
+} as const;
+
+export interface Voucher {
+  id: number;
+  code: string;
+  discountType: VoucherDiscountType;
+  discountValue: string;
+  maxUses: number;
+  usedCount: number;
+  /** @nullable */
+  appFilter?: string | null;
+  validFrom?: string;
+  /** @nullable */
+  validUntil?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateVoucherBodyDiscountType =
+  (typeof CreateVoucherBodyDiscountType)[keyof typeof CreateVoucherBodyDiscountType];
+
+export const CreateVoucherBodyDiscountType = {
+  percentage: "percentage",
+  fixed: "fixed",
+} as const;
+
+export interface CreateVoucherBody {
+  code: string;
+  discountType: CreateVoucherBodyDiscountType;
+  discountValue: string;
+  maxUses: number;
+  /** @nullable */
+  appFilter?: string | null;
+  validFrom?: string;
+  /** @nullable */
+  validUntil?: string | null;
+}
+
+export type UpdateVoucherBodyDiscountType =
+  (typeof UpdateVoucherBodyDiscountType)[keyof typeof UpdateVoucherBodyDiscountType];
+
+export const UpdateVoucherBodyDiscountType = {
+  percentage: "percentage",
+  fixed: "fixed",
+} as const;
+
+export interface UpdateVoucherBody {
+  code?: string;
+  discountType?: UpdateVoucherBodyDiscountType;
+  discountValue?: string;
+  maxUses?: number;
+  /** @nullable */
+  appFilter?: string | null;
+  /** @nullable */
+  validFrom?: string | null;
+  /** @nullable */
+  validUntil?: string | null;
+  isActive?: boolean;
+}
+
+export type DashboardStatsSubscribersByApp = { [key: string]: number };
+
+export interface DashboardStats {
+  totalSubscribers: number;
+  confirmedSubscribers: number;
+  pendingSubscribers: number;
+  totalRevenue: string;
+  kohortSlotsRemaining: number;
+  activeVouchers: number;
+  subscribersByApp: DashboardStatsSubscribersByApp;
+}
+
+export type ActivityEntryType =
+  (typeof ActivityEntryType)[keyof typeof ActivityEntryType];
+
+export const ActivityEntryType = {
+  subscriber_added: "subscriber_added",
+  payment_confirmed: "payment_confirmed",
+  payment_rejected: "payment_rejected",
+  voucher_created: "voucher_created",
+  kohort_updated: "kohort_updated",
+  price_changed: "price_changed",
+} as const;
+
+export interface ActivityEntry {
+  id: number;
+  type: ActivityEntryType;
+  description: string;
+  /** @nullable */
+  metadata?: string | null;
+  createdAt: string;
+}
+
+export interface RevenueByApp {
+  appName: string;
+  totalRevenue: string;
+  subscriberCount: number;
+}
+
+export type ListSubscribersParams = {
+  status?: ListSubscribersStatus;
+  app?: string;
+  search?: string;
+};
+
+export type ListSubscribersStatus =
+  (typeof ListSubscribersStatus)[keyof typeof ListSubscribersStatus];
+
+export const ListSubscribersStatus = {
+  pending: "pending",
+  confirmed: "confirmed",
+  rejected: "rejected",
+} as const;
+
+export type GetRecentActivityParams = {
+  limit?: number;
+};
