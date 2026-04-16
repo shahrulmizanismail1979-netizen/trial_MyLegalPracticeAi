@@ -23,7 +23,7 @@ export function Hero() {
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-          Six AI-powered interactive reference web books for Malaysian professionals. 
+          Seven AI-powered interactive reference web books for Malaysian professionals. 
           Instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners.
         </p>
 

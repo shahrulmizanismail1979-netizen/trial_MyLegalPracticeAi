@@ -34,7 +34,7 @@ export function Pricing() {
                 2nd Kohort Special: Limited to First 100 People
               </div>
               <CardTitle className="font-serif text-4xl mb-2">The Complete Bundle</CardTitle>
-              <CardDescription className="text-lg">All 6 AI Web Books</CardDescription>
+              <CardDescription className="text-lg">All 7 AI Web Books</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
@@ -48,7 +48,7 @@ export function Pricing() {
               </div>
               <ul className="space-y-4">
                 {[
-                  "Access to all 6 AI Web Books",
+                  "Access to all 7 AI Web Books",
                   "3-year subscription included",
                   "1 user license",
                   "Free platform updates",

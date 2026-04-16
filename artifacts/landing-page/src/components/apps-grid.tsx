@@ -37,6 +37,12 @@ const apps = [
     description: "AI-powered Construction Law (CCB) reference web book for construction law practitioners",
     url: "https://my-ccb-lit-ai.replit.app/",
     tag: "Construction"
+  },
+  {
+    title: "MyAPIRDAI",
+    description: "AI-powered Accident, Personal Injury & Running Down Litigation reference web book",
+    url: "https://legal-ai-explore.replit.app/",
+    tag: "PI & Running Down"
   }
 ];
 
@@ -48,7 +54,7 @@ export function AppsGrid() {
           The <span className="text-primary">AI Web Books</span> Collection
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl">
-          Six specialized intelligence platforms tailored for the diverse needs of the Malaysian legal ecosystem. Click on any preview to explore the live application.
+          Seven specialized intelligence platforms tailored for the diverse needs of the Malaysian legal ecosystem. Click on any preview to explore the live application.
         </p>
       </div>
 
