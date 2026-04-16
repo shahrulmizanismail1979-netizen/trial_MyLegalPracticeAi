@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AI Web Books Landing Page"
+version = "1.0.0"
+id = "artifacts/landing-page"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18083
+
+[services.development]
+run = "pnpm --filter @workspace/landing-page run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/landing-page", "run", "build" ]
+publicDir = "artifacts/landing-page/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18083"
+BASE_PATH = "/"
