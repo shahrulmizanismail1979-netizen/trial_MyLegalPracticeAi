@@ -36,7 +36,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 
 const ALL_APPS = [
-  "MyLitAI", "MySyalitAI", "MyCorpAI", "MyConveyAI", "MyCrimAI", "MyCCBLitAI", "MyAPIRDAI"
+  "MyLitAI", "MySyalitAI", "MyCorpAI", "MyConveyAI", "MyCrimAI", "MyCorpCommBankLitAi", "MyAccidentAi"
 ];
 
 const slugify = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');

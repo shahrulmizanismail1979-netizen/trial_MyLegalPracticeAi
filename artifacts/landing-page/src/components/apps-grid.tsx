@@ -33,16 +33,16 @@ const apps = [
     tag: "Criminal"
   },
   {
-    title: "MyCCBLitAI",
-    description: "AI-powered Construction Law (CCB) reference web book for construction law practitioners",
+    title: "MyCorpCommBankLitAi",
+    description: "AI-powered Corporate, Commercial & Banking Litigation reference web book for Malaysian legal practice",
     url: "https://my-ccb-lit-ai.replit.app/",
-    tag: "Construction"
+    tag: "Corp/Comm/Banking"
   },
   {
-    title: "MyAPIRDAI",
+    title: "MyAccidentAi",
     description: "AI-powered Accident, Personal Injury & Running Down Litigation reference web book",
     url: "https://legal-ai-explore.replit.app/",
-    tag: "PI & Running Down"
+    tag: "Accident & PI"
   }
 ];
 
