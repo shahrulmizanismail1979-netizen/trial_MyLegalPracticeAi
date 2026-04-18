@@ -1,7 +1,27 @@
-import { QrCode, MessageCircle, Wallet } from "lucide-react";
+import { useEffect } from "react";
+import { QrCode, MessageCircle, Wallet, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PayOnlineDialog } from "./pay-online-dialog";
+import { toast } from "sonner";
 
 export function Payment() {
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const status = url.searchParams.get("payment");
+    if (status === "success") {
+      toast.success("Payment received! We'll activate your access shortly.");
+    } else if (status === "failed") {
+      toast.error("Payment was not completed. You can try again.");
+    } else if (status === "error") {
+      toast.error("There was a problem confirming your payment. Please contact us on WhatsApp.");
+    }
+    if (status) {
+      url.searchParams.delete("payment");
+      url.searchParams.delete("bill");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
   return (
     <section id="payment" className="py-24 px-6 lg:px-8 max-w-4xl mx-auto">
       <div className="text-center mb-16">
@@ -9,8 +29,36 @@ export function Payment() {
           Secure Your <span className="text-primary">Access</span>
         </h2>
         <p className="text-muted-foreground text-lg">
-          Follow these simple steps to activate your subscription.
+          Pay securely online, or use Touch 'n Go QR with WhatsApp confirmation.
         </p>
+      </div>
+
+      {/* Online Payment Card */}
+      <div className="bg-card p-8 rounded-2xl border border-primary/40 shadow-[0_0_30px_rgba(212,175,55,0.15)] mb-12">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <CreditCard className="h-7 w-7" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="font-serif text-2xl font-medium mb-2">Pay Online (Recommended)</h3>
+            <p className="text-muted-foreground mb-4">
+              FPX online banking, credit/debit card, or e-wallet (incl. Touch n Go). Instant
+              confirmation — no WhatsApp follow-up needed.
+            </p>
+          </div>
+          <PayOnlineDialog />
+        </div>
+      </div>
+
+      <div className="relative my-12">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border/50" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-4 text-sm text-muted-foreground uppercase tracking-wider">
+            or pay manually
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
