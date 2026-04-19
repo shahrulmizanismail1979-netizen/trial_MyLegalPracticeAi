@@ -41,7 +41,7 @@ const apps = [
   {
     title: "MyAccidentAi",
     description: "AI-powered Accident, Personal Injury & Running Down Litigation reference web book",
-    url: "https://legal-ai-explore.replit.app/",
+    url: "https://myaccidentai.life/",
     tag: "Accident & PI"
   }
 ];
