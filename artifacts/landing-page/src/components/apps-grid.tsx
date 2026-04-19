@@ -35,7 +35,7 @@ const apps = [
   {
     title: "MyCorpCommBankLitAi",
     description: "AI-powered Corporate, Commercial & Banking Litigation reference web book for Malaysian legal practice",
-    url: "https://my-ccb-lit-ai.replit.app/",
+    url: "https://myccblitai.life/",
     tag: "Corp/Comm/Banking"
   },
   {
