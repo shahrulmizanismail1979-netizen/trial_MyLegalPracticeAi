@@ -2,6 +2,7 @@ import { Hero } from "@/components/hero";
 import { AppsGrid } from "@/components/apps-grid";
 import { Pricing } from "@/components/pricing";
 import { FirmBundles } from "@/components/firm-bundles";
+import { CorporateBundles } from "@/components/corporate-bundles";
 import { EducationBundles } from "@/components/education-bundles";
 import { Payment } from "@/components/payment";
 import { Footer } from "@/components/footer";
@@ -19,6 +20,7 @@ export default function Home() {
         <AppsGrid />
         <Pricing />
         <FirmBundles />
+        <CorporateBundles />
         <EducationBundles />
         <Payment />
         <Footer />
