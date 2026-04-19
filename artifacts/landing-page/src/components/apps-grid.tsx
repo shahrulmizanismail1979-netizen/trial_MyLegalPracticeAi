@@ -29,7 +29,7 @@ const apps = [
   {
     title: "MyCrimAI",
     description: "AI-powered Criminal Law reference web book for criminal law practitioners",
-    url: "https://mycrimai.replit.app/",
+    url: "https://mycrimai.life/",
     tag: "Criminal"
   },
   {
