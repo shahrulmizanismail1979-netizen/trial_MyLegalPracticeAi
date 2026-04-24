@@ -13,6 +13,8 @@ const tiers = [
     savings: "Save RM600 vs individual",
     features: [
       "Access to all 7 AI Web Books",
+      "Corporate advisory AI assistant add-on",
+      "Contract review & drafting templates",
       "3 user licenses",
       "3-year subscription",
       "Centralised billing",
@@ -30,6 +32,9 @@ const tiers = [
     featured: true,
     features: [
       "Access to all 7 AI Web Books",
+      "Corporate advisory AI assistant add-on",
+      "Contract review & drafting templates",
+      "Regulatory compliance tracker (Bursa, SC, BNM)",
       "8 user licenses",
       "3-year subscription",
       "Centralised billing & admin",
@@ -47,6 +52,11 @@ const tiers = [
     savings: "Save RM8,000 vs individual",
     features: [
       "Access to all 7 AI Web Books",
+      "Corporate advisory AI assistant add-on",
+      "Contract review & drafting templates",
+      "Regulatory compliance tracker (Bursa, SC, BNM)",
+      "Board & directors' duties advisory module",
+      "M&A and due diligence playbooks",
       "20 user licenses",
       "3-year subscription",
       "Dedicated account manager",
@@ -65,6 +75,10 @@ const tiers = [
     savings: "Tailored to your group",
     features: [
       "Access to all 7 AI Web Books",
+      "Full corporate advisory AI suite",
+      "Contract, compliance, M&A & board modules",
+      "Group governance & ESG advisory module",
+      "Cross-border regulatory mapping",
       "30+ user licenses",
       "Multi-entity / subsidiary access",
       "Flexible subscription terms",

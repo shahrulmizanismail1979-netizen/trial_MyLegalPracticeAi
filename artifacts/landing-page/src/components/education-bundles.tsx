@@ -13,6 +13,7 @@ const tiers = [
     savings: "Save RM13,200 vs individual",
     features: [
       "Access to all 7 AI Web Books",
+      "MyLawSimEduAi simulation platform included",
       "20 user licenses",
       "1-year academic subscription",
       "For students & lecturers",
@@ -30,6 +31,7 @@ const tiers = [
     featured: true,
     features: [
       "Access to all 7 AI Web Books",
+      "MyLawSimEduAi simulation platform included",
       "50 user licenses",
       "1-year academic subscription",
       "For students & lecturers",
@@ -47,6 +49,7 @@ const tiers = [
     savings: "Save RM111,000 vs individual",
     features: [
       "Access to all 7 AI Web Books",
+      "MyLawSimEduAi simulation platform included",
       "150 user licenses",
       "1-year academic subscription",
       "Library & faculty-wide access",
@@ -64,6 +67,7 @@ const tiers = [
     savings: "Tailored to your institution",
     features: [
       "Access to all 7 AI Web Books",
+      "MyLawSimEduAi simulation platform included",
       "Unlimited or custom seat count",
       "Multi-year academic terms",
       "Multi-campus deployment",
@@ -98,8 +102,10 @@ export function EducationBundles() {
           Academic <span className="text-primary">Bundles</span> for Law Faculties
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Empower the next generation of Malaysian legal practitioners. Special academic pricing
-          for law schools, faculties, and tertiary institutions — for both students and lecturers.
+          Empower the next generation of Malaysian legal practitioners. Every academic bundle
+          comes with <span className="text-primary font-medium">MyLawSimEduAi</span> — our AI-powered
+          legal simulation platform — bundled together with all 7 AI Web Books for both students
+          and lecturers.
         </p>
       </div>
 
