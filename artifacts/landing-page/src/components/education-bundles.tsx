@@ -1,4 +1,4 @@
-import { Check, GraduationCap, BookOpen, School, Library } from "lucide-react";
+import { Check, GraduationCap, BookOpen, School, Library, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +11,8 @@ const tiers = [
     price: "RM4,800",
     perUser: "RM240 per user",
     savings: "Save RM13,200 vs individual",
+    headline: "Foundational classroom access for small cohorts",
+    includes: null,
     features: [
       "Access to all 7 AI Web Books",
       "MyLawSimEduAi simulation platform included",
@@ -29,13 +31,12 @@ const tiers = [
     perUser: "RM200 per user",
     savings: "Save RM35,000 vs individual",
     featured: true,
+    headline: "Adds lecturer onboarding & priority support",
+    includes: "Faculty Starter",
     features: [
-      "Access to all 7 AI Web Books",
-      "MyLawSimEduAi simulation platform included",
-      "50 user licenses",
-      "1-year academic subscription",
-      "For students & lecturers",
+      "Upgraded to 50 user licenses",
       "Lecturer onboarding session",
+      "Lecturer-only teaching resources",
       "Priority support",
     ],
   },
@@ -47,14 +48,14 @@ const tiers = [
     price: "RM24,000",
     perUser: "RM160 per user",
     savings: "Save RM111,000 vs individual",
+    headline: "Adds library-wide access & dedicated training",
+    includes: "Faculty Plus",
     features: [
-      "Access to all 7 AI Web Books",
-      "MyLawSimEduAi simulation platform included",
-      "150 user licenses",
-      "1-year academic subscription",
+      "Upgraded to 150 user licenses",
       "Library & faculty-wide access",
-      "Lecturer training session",
+      "Lecturer training session (full faculty)",
       "Dedicated account manager",
+      "LMS integration support",
     ],
   },
   {
@@ -65,14 +66,14 @@ const tiers = [
     price: "Custom",
     perUser: "Volume academic pricing",
     savings: "Tailored to your institution",
+    headline: "Adds multi-campus deployment, SSO & API access",
+    includes: "Campus",
     features: [
-      "Access to all 7 AI Web Books",
-      "MyLawSimEduAi simulation platform included",
       "Unlimited or custom seat count",
       "Multi-year academic terms",
       "Multi-campus deployment",
+      "SSO & API integration",
       "Custom onboarding & training",
-      "Dedicated account manager",
     ],
   },
 ];
@@ -139,7 +140,22 @@ export function EducationBundles() {
                   <span className="text-3xl font-bold text-foreground">{tier.price}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
-                <p className="text-xs text-primary mb-6">{tier.savings}</p>
+                <p className="text-xs text-primary mb-4">{tier.savings}</p>
+
+                <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-xs font-semibold text-primary leading-snug">
+                      {tier.headline}
+                    </span>
+                  </div>
+                </div>
+
+                {tier.includes && (
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                    Everything in <span className="text-foreground font-semibold">{tier.includes}</span>, plus:
+                  </p>
+                )}
 
                 <ul className="space-y-3 mb-6 flex-1">
                   {tier.features.map((feature, i) => (

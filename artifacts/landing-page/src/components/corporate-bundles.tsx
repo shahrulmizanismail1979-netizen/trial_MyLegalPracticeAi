@@ -1,4 +1,4 @@
-import { Check, Building2, Factory, Briefcase, Crown } from "lucide-react";
+import { Check, Building2, Factory, Briefcase, Crown, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -11,9 +11,10 @@ const tiers = [
     price: "RM2,100",
     perUser: "RM700 per user",
     savings: "Save RM600 vs individual",
+    headline: "Foundational corporate-advisory toolkit",
+    includes: null,
     features: [
       "Access to all 7 AI Web Books",
-      "Corporate advisory AI assistant add-on",
       "Contract review & drafting templates",
       "3 user licenses",
       "3-year subscription",
@@ -30,13 +31,12 @@ const tiers = [
     perUser: "RM600 per user",
     savings: "Save RM2,400 vs individual",
     featured: true,
+    headline: "Adds compliance + AI advisory assistant",
+    includes: "Startup Legal",
     features: [
-      "Access to all 7 AI Web Books",
-      "Corporate advisory AI assistant add-on",
-      "Contract review & drafting templates",
+      "Corporate advisory AI assistant",
       "Regulatory compliance tracker (Bursa, SC, BNM)",
-      "8 user licenses",
-      "3-year subscription",
+      "Upgraded to 8 user licenses",
       "Centralised billing & admin",
       "Priority support",
       "Onboarding session included",
@@ -50,17 +50,13 @@ const tiers = [
     price: "RM10,000",
     perUser: "RM500 per user",
     savings: "Save RM8,000 vs individual",
+    headline: "Adds board, M&A & due diligence modules",
+    includes: "Growth",
     features: [
-      "Access to all 7 AI Web Books",
-      "Corporate advisory AI assistant add-on",
-      "Contract review & drafting templates",
-      "Regulatory compliance tracker (Bursa, SC, BNM)",
       "Board & directors' duties advisory module",
       "M&A and due diligence playbooks",
-      "20 user licenses",
-      "3-year subscription",
+      "Upgraded to 20 user licenses",
       "Dedicated account manager",
-      "Priority support",
       "Onboarding & training session",
       "Quarterly check-ins",
     ],
@@ -73,16 +69,13 @@ const tiers = [
     price: "Custom",
     perUser: "Volume pricing",
     savings: "Tailored to your group",
+    headline: "Adds ESG, group governance & cross-border mapping",
+    includes: "Corporate",
     features: [
-      "Access to all 7 AI Web Books",
-      "Full corporate advisory AI suite",
-      "Contract, compliance, M&A & board modules",
       "Group governance & ESG advisory module",
       "Cross-border regulatory mapping",
-      "30+ user licenses",
-      "Multi-entity / subsidiary access",
+      "30+ user licenses, multi-entity / subsidiary access",
       "Flexible subscription terms",
-      "Dedicated account manager",
       "Custom onboarding & training",
       "SLA & white-glove support",
     ],
@@ -112,8 +105,9 @@ export function CorporateBundles() {
           Equip Your <span className="text-primary">In-house Legal Team</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Purpose-built bundles for company secretaries, in-house counsel and compliance teams.
-          Centralised billing, volume pricing, and priority support across your organisation.
+          Tiered for corporate legal advisory work — each level adds advisory depth on top of
+          the previous one. Centralised billing, volume pricing, and priority support across
+          your organisation.
         </p>
       </div>
 
@@ -147,7 +141,22 @@ export function CorporateBundles() {
                   <span className="text-3xl font-bold text-foreground">{tier.price}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
-                <p className="text-xs text-primary mb-6">{tier.savings}</p>
+                <p className="text-xs text-primary mb-4">{tier.savings}</p>
+
+                <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-xs font-semibold text-primary leading-snug">
+                      {tier.headline}
+                    </span>
+                  </div>
+                </div>
+
+                {tier.includes && (
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                    Everything in <span className="text-foreground font-semibold">{tier.includes}</span>, plus:
+                  </p>
+                )}
 
                 <ul className="space-y-3 mb-6 flex-1">
                   {tier.features.map((feature, i) => (
