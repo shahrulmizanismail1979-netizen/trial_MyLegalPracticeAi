@@ -65,6 +65,20 @@ const apps = [
     tag: "Client Mgmt",
     comingSoon: true,
   },
+  {
+    title: "MyLawAcad",
+    description: "AI-powered legal academic learning & study companion reference web book",
+    url: "#",
+    tag: "Academic",
+    comingSoon: true,
+  },
+  {
+    title: "MyLawResearch",
+    description: "AI-powered legal research & case analysis reference web book",
+    url: "#",
+    tag: "Research",
+    comingSoon: true,
+  },
 ];
 
 export function AppsGrid() {
