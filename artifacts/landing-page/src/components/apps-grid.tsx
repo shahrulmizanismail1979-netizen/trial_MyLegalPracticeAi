@@ -53,9 +53,9 @@ const apps = [
   },
   {
     title: "MyJudicialAi",
-    description: "AI-powered judicial precedents & bench reference web book",
+    description: "AI-powered work management platform for judges & judicial officers — case scheduling, judgment drafting, bench notes and chambers admin",
     url: "#",
-    tag: "Judicial",
+    tag: "Judiciary",
     comingSoon: true,
   },
   {
