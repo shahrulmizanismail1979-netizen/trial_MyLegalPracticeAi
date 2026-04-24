@@ -67,16 +67,16 @@ const apps = [
   },
   {
     title: "MyLawAcad",
-    description: "AI-powered legal academic learning & study companion reference web book",
+    description: "AI-powered work management platform for law teachers & lecturers — lesson planning, marking, supervision and academic admin",
     url: "#",
-    tag: "Academic",
+    tag: "Lecturers",
     comingSoon: true,
   },
   {
     title: "MyLawResearch",
-    description: "AI-powered legal research & case analysis reference web book",
+    description: "AI-powered legal research assistant for academic publications — drafting, citations, literature review & journal submission",
     url: "#",
-    tag: "Research",
+    tag: "Publications",
     comingSoon: true,
   },
 ];
