@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MoreVertical, Plus, CheckCircle, XCircle, Trash2, Edit } from "lucide-react";
+import { Search, MoreVertical, Plus, CheckCircle, XCircle, Trash2, Edit, Ticket } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";

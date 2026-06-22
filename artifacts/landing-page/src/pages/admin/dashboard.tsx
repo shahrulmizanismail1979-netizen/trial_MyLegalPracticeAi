@@ -42,19 +42,19 @@ export default function AdminDashboard() {
           />
           <StatCard 
             title="Total Subscribers" 
-            value={statsLoading ? null : stats?.totalSubscribers.toString()}
+            value={statsLoading ? null : stats?.totalSubscribers.toString() ?? null}
             icon={<Users className="h-5 w-5 text-muted-foreground" />}
             loading={statsLoading}
           />
           <StatCard 
             title="Confirmed Payments" 
-            value={statsLoading ? null : stats?.confirmedSubscribers.toString()}
+            value={statsLoading ? null : stats?.confirmedSubscribers.toString() ?? null}
             icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
             loading={statsLoading}
           />
           <StatCard 
             title="Pending Payments" 
-            value={statsLoading ? null : stats?.pendingSubscribers.toString()}
+            value={statsLoading ? null : stats?.pendingSubscribers.toString() ?? null}
             icon={<Clock className="h-5 w-5 text-yellow-500" />}
             loading={statsLoading}
           />
