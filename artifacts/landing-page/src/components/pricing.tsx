@@ -34,7 +34,7 @@ export function Pricing() {
                 2nd Kohort Special: Limited to First 100 People
               </div>
               <CardTitle className="font-serif text-4xl mb-2">The Complete Bundle</CardTitle>
-              <CardDescription className="text-lg">All 7 AI Web Books</CardDescription>
+              <CardDescription className="text-lg">All 7 AI Portals</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
@@ -48,7 +48,7 @@ export function Pricing() {
               </div>
               <ul className="space-y-4">
                 {[
-                  "Access to all 7 AI Web Books",
+                  "Access to all 7 AI Portals",
                   "1-year subscription included",
                   "1 user license",
                   "Free platform updates",
@@ -68,7 +68,7 @@ export function Pricing() {
             <div>
               <CardHeader className="pb-8 pt-10">
                 <CardTitle className="font-serif text-3xl mb-2">Single App</CardTitle>
-                <CardDescription className="text-lg">Choose 1 AI Web Book</CardDescription>
+                <CardDescription className="text-lg">Choose 1 AI Portal</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -78,7 +78,7 @@ export function Pricing() {
                 
                 <ul className="space-y-4 mb-8">
                   {[
-                    "Access to 1 AI Web Book of choice",
+                    "Access to 1 AI Portal of choice",
                     "1-year subscription included",
                     "1 user license"
                   ].map((feature, i) => (
@@ -111,7 +111,7 @@ export function Pricing() {
                 <h4 className="font-bold text-primary mb-1">All prices are for the Starter Package</h4>
                 <p className="text-sm text-muted-foreground">
                   Every package above is a <span className="text-foreground font-medium">1-year starter subscription</span> covering
-                  the current AI Web Books and features. As we roll out more advanced AI features over time, those
+                  the current AI Portals and features. As we roll out more advanced AI features over time, those
                   will be offered on a <span className="text-foreground font-medium">pay-as-you-go basis</span> — charged
                   according to actual usage, so you only pay for what you use.
                 </p>

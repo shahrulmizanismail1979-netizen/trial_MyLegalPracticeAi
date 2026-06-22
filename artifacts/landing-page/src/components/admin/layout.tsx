@@ -24,7 +24,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-full md:w-64 border-r border-border bg-card flex flex-col">
         <div className="p-6 border-b border-border">
-          <h1 className="text-xl font-serif font-bold text-foreground">AI Web Books</h1>
+          <h1 className="text-xl font-serif font-bold text-foreground">AI Portals</h1>
           <p className="text-sm text-muted-foreground mt-1 tracking-wider uppercase font-mono">Command Center</p>
         </div>
         

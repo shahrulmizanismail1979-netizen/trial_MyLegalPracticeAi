@@ -4,7 +4,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="text-center md:text-left">
           <p className="font-serif text-xl font-bold text-foreground mb-2">
-            AI Web Books
+            AI Portals
           </p>
           <p className="text-sm text-muted-foreground">
             by Shahrul Mizan
@@ -12,7 +12,7 @@ export function Footer() {
         </div>
         
         <div className="text-center md:text-right text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} AI Web Books. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} AI Portals. All rights reserved.</p>
           <p className="mt-1">Malaysia's First AI-Enhanced Legal Reference Platform</p>
         </div>
       </div>

@@ -14,7 +14,7 @@ const tiers = [
     headline: "Foundational classroom access for small cohorts",
     includes: null,
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "MyLawSimEduAi simulation platform included",
       "20 user licenses",
       "1-year academic subscription",
@@ -87,7 +87,7 @@ export function EducationBundles() {
     const message = encodeURIComponent(
       tierName
         ? `Hi, I'm enquiring about the ${tierName} academic bundle for my institution.`
-        : "Hi, I'd like to discuss academic licensing for the AI Web Books for my college/university."
+        : "Hi, I'd like to discuss academic licensing for the AI Portals for my college/university."
     );
     window.open(`https://wa.me/60173678484?text=${message}`, "_blank");
   };
@@ -105,7 +105,7 @@ export function EducationBundles() {
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Empower the next generation of Malaysian legal practitioners. Every academic bundle
           comes with <span className="text-primary font-medium">MyLawSimEduAi</span> — our AI-powered
-          legal simulation platform — bundled together with all 7 AI Web Books for both students
+          legal simulation platform — bundled together with all 7 AI Portals for both students
           and lecturers.
         </p>
       </div>

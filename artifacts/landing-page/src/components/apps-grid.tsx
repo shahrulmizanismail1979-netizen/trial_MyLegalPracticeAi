@@ -5,49 +5,49 @@ import { Button } from "@/components/ui/button";
 const apps = [
   {
     title: "MyLitAI",
-    description: "AI-powered Litigation reference web book for litigators",
+    description: "AI-powered Litigation reference AI Portal for litigators",
     url: "https://mylitai.life",
     tag: "Litigation"
   },
   {
     title: "MySyalitAI",
-    description: "AI-powered Syariah Litigation reference web book for syarie lawyers",
+    description: "AI-powered Syariah Litigation reference AI Portal for syarie lawyers",
     url: "https://mysyalitai.life",
     tag: "Syariah"
   },
   {
     title: "MyCorpAI",
-    description: "AI-powered Corporate Secretary reference web book for corporate secretaries",
+    description: "AI-powered Corporate Secretary reference AI Portal for corporate secretaries",
     url: "https://mycorpai.life",
     tag: "Corporate"
   },
   {
     title: "MyConveyAI",
-    description: "AI-powered Conveyancing reference web book for conveyancers",
+    description: "AI-powered Conveyancing reference AI Portal for conveyancers",
     url: "https://myconveyai.life",
     tag: "Conveyancing"
   },
   {
     title: "MyCrimAI",
-    description: "AI-powered Criminal Law reference web book for criminal law practitioners",
+    description: "AI-powered Criminal Law reference AI Portal for criminal law practitioners",
     url: "https://mycrimai.life/",
     tag: "Criminal"
   },
   {
     title: "MyCorpCommBankLitAi",
-    description: "AI-powered Corporate, Commercial & Banking Litigation reference web book for Malaysian legal practice",
+    description: "AI-powered Corporate, Commercial & Banking Litigation reference AI Portal for Malaysian legal practice",
     url: "https://myccblitai.life/",
     tag: "Corp/Comm/Banking"
   },
   {
     title: "MyAccidentAi",
-    description: "AI-powered Accident, Personal Injury & Running Down Litigation reference web book",
+    description: "AI-powered Accident, Personal Injury & Running Down Litigation reference AI Portal",
     url: "https://myaccidentai.life/",
     tag: "Accident & PI"
   },
   {
     title: "MyLawFirmAi",
-    description: "AI-powered law firm management & operations reference web book",
+    description: "AI-powered law firm management & operations reference AI Portal",
     url: "#",
     tag: "Firm Management",
     comingSoon: true,
@@ -63,7 +63,7 @@ const apps = [
   },
   {
     title: "MyClientAi",
-    description: "AI-powered client intake, advisory & relationship management reference web book",
+    description: "AI-powered client intake, advisory & relationship management reference AI Portal",
     url: "#",
     tag: "Client Mgmt",
     comingSoon: true,
@@ -96,7 +96,7 @@ export function AppsGrid() {
     <section id="apps" className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="mb-12">
         <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6">
-          The <span className="text-primary">AI Web Books</span> Collection
+          The <span className="text-primary">AI Portals</span> Collection
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl">
           Specialized intelligence platforms tailored for the diverse needs of the Malaysian legal ecosystem. Click on any live preview to explore the application — or pre-order an upcoming app to lock in today's price.

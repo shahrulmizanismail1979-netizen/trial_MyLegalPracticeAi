@@ -14,7 +14,7 @@ const tiers = [
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "Contract review & drafting templates",
       "3 user licenses",
       "1-year subscription",
@@ -89,7 +89,7 @@ export function CorporateBundles() {
 
   const whatsappEnterprise = () => {
     const message = encodeURIComponent(
-      "Hi, I'd like to discuss group/enterprise licensing of the AI Web Books for our company."
+      "Hi, I'd like to discuss group/enterprise licensing of the AI Portals for our company."
     );
     window.open(`https://wa.me/60173678484?text=${message}`, "_blank");
   };

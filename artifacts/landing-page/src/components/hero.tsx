@@ -23,7 +23,7 @@ export function Hero() {
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-          Seven AI-powered interactive reference web books for Malaysian professionals. 
+          Seven AI-powered interactive reference AI Portals for Malaysian professionals. 
           Instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners.
         </p>
 
@@ -42,7 +42,7 @@ export function Hero() {
             className="w-full sm:w-auto h-14 px-8 text-lg border-border hover:bg-secondary rounded-full"
             onClick={() => document.getElementById("apps")?.scrollIntoView({ behavior: "smooth" })}
           >
-            Explore the Web Books
+            Explore the AI Portals
           </Button>
         </div>
       </div>

@@ -12,7 +12,7 @@ const tiers = [
     perUser: "RM296 per user",
     savings: "Save RM3,020 vs individual",
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "5 user licenses",
       "1-year subscription",
       "Centralised billing",
@@ -29,7 +29,7 @@ const tiers = [
     savings: "Save RM9,700 vs individual",
     featured: true,
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "15 user licenses",
       "1-year subscription",
       "Centralised billing & admin",
@@ -46,7 +46,7 @@ const tiers = [
     perUser: "RM226 per user",
     savings: "Save RM20,200 vs individual",
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "30 user licenses",
       "1-year subscription",
       "Dedicated account manager",
@@ -64,7 +64,7 @@ const tiers = [
     perUser: "Volume pricing",
     savings: "Tailored to your needs",
     features: [
-      "Access to all 7 AI Web Books",
+      "Access to all 7 AI Portals",
       "50+ user licenses",
       "Flexible subscription terms",
       "Dedicated account manager",
@@ -82,7 +82,7 @@ export function FirmBundles() {
 
   const whatsappEnterprise = () => {
     const message = encodeURIComponent(
-      "Hi, I'd like to discuss enterprise licensing for the AI Web Books for my organisation."
+      "Hi, I'd like to discuss enterprise licensing for the AI Portals for my organisation."
     );
     window.open(`https://wa.me/60173678484?text=${message}`, "_blank");
   };
@@ -98,7 +98,7 @@ export function FirmBundles() {
           Bundles for <span className="text-primary">Teams of Every Size</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Equip your entire firm or legal department with all 7 AI Web Books. Volume pricing,
+          Equip your entire firm or legal department with all 7 AI Portals. Volume pricing,
           centralised billing, and priority support — scaled to fit your team.
         </p>
       </div>
