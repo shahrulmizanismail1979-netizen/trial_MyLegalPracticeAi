@@ -14,7 +14,7 @@ const tiers = [
     features: [
       "Access to all 7 AI Web Books",
       "5 user licenses",
-      "3-year subscription",
+      "1-year subscription",
       "Centralised billing",
       "Email support",
     ],
@@ -31,7 +31,7 @@ const tiers = [
     features: [
       "Access to all 7 AI Web Books",
       "15 user licenses",
-      "3-year subscription",
+      "1-year subscription",
       "Centralised billing & admin",
       "Priority support",
       "Onboarding session included",
@@ -48,7 +48,7 @@ const tiers = [
     features: [
       "Access to all 7 AI Web Books",
       "30 user licenses",
-      "3-year subscription",
+      "1-year subscription",
       "Dedicated account manager",
       "Priority support",
       "Onboarding & training session",
@@ -162,7 +162,8 @@ export function FirmBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All firm bundles include centralised billing and admin access. Need a different seat
+          All firm bundles are 1-year starter packages — new advanced AI features added later are
+          charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a different seat
           count or custom terms?{" "}
           <button onClick={whatsappEnterprise} className="text-primary hover:underline">
             Talk to us on WhatsApp

@@ -17,7 +17,7 @@ const tiers = [
       "Access to all 7 AI Web Books",
       "Contract review & drafting templates",
       "3 user licenses",
-      "3-year subscription",
+      "1-year subscription",
       "Centralised billing",
       "Email support",
     ],
@@ -185,7 +185,8 @@ export function CorporateBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All corporate bundles include centralised billing and admin access. Need a custom seat
+          All corporate bundles are 1-year starter packages — new advanced AI features added later are
+          charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a custom seat
           count, multi-entity setup or procurement terms?{" "}
           <button onClick={whatsappEnterprise} className="text-primary hover:underline">
             Talk to us on WhatsApp

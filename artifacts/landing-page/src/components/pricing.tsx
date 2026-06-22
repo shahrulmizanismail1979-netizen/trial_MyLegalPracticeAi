@@ -1,4 +1,4 @@
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -49,7 +49,7 @@ export function Pricing() {
               <ul className="space-y-4">
                 {[
                   "Access to all 7 AI Web Books",
-                  "3-year subscription included",
+                  "1-year subscription included",
                   "1 user license",
                   "Free platform updates",
                   "Priority support"
@@ -79,7 +79,7 @@ export function Pricing() {
                 <ul className="space-y-4 mb-8">
                   {[
                     "Access to 1 AI Web Book of choice",
-                    "3-year subscription included",
+                    "1-year subscription included",
                     "1 user license"
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
@@ -103,6 +103,20 @@ export function Pricing() {
           <div className="p-4 rounded-lg bg-secondary/50 border border-border">
             <h4 className="font-bold text-foreground mb-1">Standard Price (101st buyer onwards)</h4>
             <p className="text-muted-foreground">RM280 per app (1-year subscription, 1 user)</p>
+          </div>
+          <div className="p-5 rounded-lg bg-primary/5 border border-primary/20 text-left">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-primary mb-1">All prices are for the Starter Package</h4>
+                <p className="text-sm text-muted-foreground">
+                  Every package above is a <span className="text-foreground font-medium">1-year starter subscription</span> covering
+                  the current AI Web Books and features. As we roll out more advanced AI features over time, those
+                  will be offered on a <span className="text-foreground font-medium">pay-as-you-go basis</span> — charged
+                  according to actual usage, so you only pay for what you use.
+                </p>
+              </div>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground italic">
             Note: 1st Kohort prices of RM68 and RM98 are completely SOLD OUT. Secure the 2nd Kohort pricing before it's gone.

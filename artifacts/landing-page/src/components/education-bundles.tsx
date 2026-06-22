@@ -184,7 +184,8 @@ export function EducationBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          Academic bundles require verification of institutional status. Need a different seat
+          All academic bundles are 1-year starter packages — new advanced AI features added later are
+          charged pay-as-you-go based on usage. Academic bundles require verification of institutional status. Need a different seat
           count or longer term?{" "}
           <button onClick={() => whatsappEducation()} className="text-primary hover:underline">
             Talk to us on WhatsApp
