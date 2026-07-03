@@ -33,3 +33,8 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+ADMIN_ALLOWED_EMAILS = "shahrulmizanismail1979@gmail.com,mahmudhamdi80@gmail.com,shahrulmizan@ukm.edu.my"

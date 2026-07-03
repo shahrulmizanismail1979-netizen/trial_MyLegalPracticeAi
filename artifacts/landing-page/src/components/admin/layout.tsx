@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useClerk, useUser } from "@clerk/react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -6,11 +7,16 @@ import {
   CreditCard, 
   Ticket,
   FileText,
-  LogOut
+  LogOut,
+  ArrowLeft
 } from "lucide-react";
+import { basePath } from "@/lib/clerk";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+  const email = user?.primaryEmailAddress?.emailAddress ?? "";
 
   const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Overview" },
@@ -52,14 +58,27 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-1">
+          {email && (
+            <p className="px-3 pb-1 text-xs text-muted-foreground truncate" title={email}>
+              {email}
+            </p>
+          )}
           <Link 
             href="/"
             className="flex items-center gap-3 px-3 py-2.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
-            <LogOut size={18} />
+            <ArrowLeft size={18} />
             Back to Site
           </Link>
+          <button
+            type="button"
+            onClick={() => signOut({ redirectUrl: basePath || "/" })}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            <LogOut size={18} />
+            Sign out
+          </button>
         </div>
       </aside>
 

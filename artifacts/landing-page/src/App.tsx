@@ -1,45 +1,126 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
+import { ClerkProvider, useClerk } from "@clerk/react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import ContributePage from "@/pages/contribute";
+import { SignInPage, SignUpPage } from "@/pages/auth";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import AdminDashboard from "@/pages/admin/dashboard";
 import SubscribersPage from "@/pages/admin/subscribers";
 import KohortsPage from "@/pages/admin/kohorts";
 import PricingPage from "@/pages/admin/pricing";
 import VouchersPage from "@/pages/admin/vouchers";
 import ContributionsPage from "@/pages/admin/contributions";
+import {
+  clerkPubKey,
+  clerkProxyUrl,
+  clerkAppearance,
+  clerkLocalization,
+  basePath,
+  stripBase,
+} from "@/lib/clerk";
 
 const queryClient = new QueryClient();
+
+// Keeps the webview cache fresh when the signed-in user changes.
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const qc = useQueryClient();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const unsubscribe = addListener(({ user }) => {
+      const userId = user?.id ?? null;
+      if (
+        prevUserIdRef.current !== undefined &&
+        prevUserIdRef.current !== userId
+      ) {
+        qc.clear();
+      }
+      prevUserIdRef.current = userId;
+    });
+    return unsubscribe;
+  }, [addListener, qc]);
+
+  return null;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/contribute" component={ContributePage} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/subscribers" component={SubscribersPage} />
-      <Route path="/admin/contributions" component={ContributionsPage} />
-      <Route path="/admin/kohorts" component={KohortsPage} />
-      <Route path="/admin/pricing" component={PricingPage} />
-      <Route path="/admin/vouchers" component={VouchersPage} />
+      <Route path="/sign-in/*?" component={SignInPage} />
+      <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/admin">
+        <AdminGuard>
+          <AdminDashboard />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/subscribers">
+        <AdminGuard>
+          <SubscribersPage />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/contributions">
+        <AdminGuard>
+          <ContributionsPage />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/kohorts">
+        <AdminGuard>
+          <KohortsPage />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/pricing">
+        <AdminGuard>
+          <PricingPage />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/vouchers">
+        <AdminGuard>
+          <VouchersPage />
+        </AdminGuard>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
 }
 
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+
+  return (
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      localization={clerkLocalization}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ClerkQueryClientCacheInvalidator />
+        <TooltipProvider>
+          <Router />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
+  );
+}
+
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <WouterRouter base={basePath}>
+      <ClerkProviderWithRoutes />
+    </WouterRouter>
   );
 }
 
