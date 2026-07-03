@@ -20,6 +20,10 @@ tags:
     description: Discount voucher management
   - name: dashboard
     description: Dashboard summary
+  - name: Storage
+    description: Object storage upload and serving endpoints.
+  - name: contributions
+    description: Document contribution portal and knowledge base
 paths:
   /healthz:
     get:
@@ -434,6 +438,256 @@ paths:
                 items:
                   $ref: "#/components/schemas/RevenueByApp"
 
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      description: |
+        Returns a presigned GCS URL for direct upload. The client sends JSON
+        metadata here, then uploads the file directly to the returned URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [Storage]
+      operationId: getPublicObject
+      summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relative file path within the public search paths.
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to serve public object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Object path within the private object dir (e.g. `uploads/some-uuid`).
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to serve object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /contributions:
+    post:
+      operationId: createContribution
+      tags: [contributions]
+      summary: Submit a document contribution (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContributionBody"
+      responses:
+        "201":
+          description: Contribution submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contribution"
+
+  /knowledge-base:
+    get:
+      operationId: listKnowledgeBase
+      tags: [contributions]
+      summary: List approved contributions (read-only knowledge base)
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approved knowledge base entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KnowledgeBaseEntry"
+
+  /knowledge-base/{id}:
+    get:
+      operationId: getKnowledgeBaseEntry
+      tags: [contributions]
+      summary: Get a single approved knowledge base entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Knowledge base entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeBaseEntry"
+        "404":
+          description: Not found
+
+  /admin/contributions:
+    get:
+      operationId: listContributions
+      tags: [contributions]
+      summary: List all contributions (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of contributions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contribution"
+
+  /admin/contributions/{id}:
+    get:
+      operationId: getContribution
+      tags: [contributions]
+      summary: Get a contribution by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contribution details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contribution"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateContribution
+      tags: [contributions]
+      summary: Update a contribution (status, category, notes)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContributionBody"
+      responses:
+        "200":
+          description: Contribution updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contribution"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteContribution
+      tags: [contributions]
+      summary: Delete a contribution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -768,7 +1022,7 @@ components:
         appFilter:
           type: ["string", "null"]
         validFrom:
-          type: ["string", "null"]
+          type: string
           format: date-time
         validUntil:
           type: ["string", "null"]
@@ -838,3 +1092,183 @@ components:
         - appName
         - totalRevenue
         - subscriberCount
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file (e.g. `image/jpeg`).
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. `/objects/uploads/uuid`). Store this in your database.
+        metadata:
+          $ref: '#/components/schemas/UploadUrlRequest'
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    Contribution:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        contributorName:
+          type: string
+        contributorEmail:
+          type: string
+        contributorPhone:
+          type: ["string", "null"]
+        fileName:
+          type: string
+        objectPath:
+          type: string
+        fileSize:
+          type: ["integer", "null"]
+        contentType:
+          type: ["string", "null"]
+        extractedText:
+          type: ["string", "null"]
+        extractionStatus:
+          type: string
+          enum: [pending, extracted, unsupported, failed]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        adminNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - category
+        - contributorName
+        - contributorEmail
+        - fileName
+        - objectPath
+        - extractionStatus
+        - status
+        - createdAt
+        - updatedAt
+
+    KnowledgeBaseEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        fileName:
+          type: string
+        objectPath:
+          type: string
+        contentType:
+          type: ["string", "null"]
+        extractedText:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - category
+        - fileName
+        - objectPath
+        - createdAt
+
+    CreateContributionBody:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+          enum:
+            - Litigation
+            - Syariah
+            - Corporate Secretary
+            - Conveyancing
+            - Criminal
+            - Corporate/Commercial/Banking
+            - Accident & Personal Injury
+            - General/Other
+        contributorName:
+          type: string
+          minLength: 1
+        contributorEmail:
+          type: string
+          minLength: 1
+        contributorPhone:
+          type: ["string", "null"]
+        fileName:
+          type: string
+          minLength: 1
+        objectPath:
+          type: string
+          minLength: 1
+        fileSize:
+          type: ["integer", "null"]
+        contentType:
+          type: ["string", "null"]
+      required:
+        - title
+        - category
+        - contributorName
+        - contributorEmail
+        - fileName
+        - objectPath
+
+    UpdateContributionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: ["string", "null"]
+        category:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        adminNotes:
+          type: ["string", "null"]

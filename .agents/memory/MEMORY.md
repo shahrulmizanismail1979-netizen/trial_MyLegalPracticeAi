@@ -1,0 +1,1 @@
+- [Orval api-zod barrel collision](orval-api-zod-barrel.md) — orval regenerates `lib/api-zod/src/index.ts`; its default barrel collides zod values vs TS types (TS2308). Keep `indexFiles: false`.

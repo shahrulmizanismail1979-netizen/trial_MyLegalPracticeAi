@@ -297,7 +297,7 @@ export const UpdateVoucherBody = zod.object({
   discountValue: zod.string().optional(),
   maxUses: zod.number().optional(),
   appFilter: zod.string().nullish(),
-  validFrom: zod.coerce.date().nullish(),
+  validFrom: zod.coerce.date().optional(),
   validUntil: zod.coerce.date().nullish(),
   isActive: zod.boolean().optional(),
 });
@@ -408,3 +408,227 @@ export const GetRevenueByAppResponseItem = zod.object({
   subscriberCount: zod.number(),
 });
 export const GetRevenueByAppResponse = zod.array(GetRevenueByAppResponseItem);
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+
+ * @summary Request a presigned URL for file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1).describe("Original file name."),
+  size: zod.number().min(1).describe("File size in bytes."),
+  contentType: zod
+    .string()
+    .min(1)
+    .describe("MIME type of the file (e.g. `image\/jpeg`)."),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
+  objectPath: zod
+    .string()
+    .describe(
+      "Normalized object path (e.g. `\/objects\/uploads\/uuid`). Store this in your database.",
+    ),
+  metadata: zod
+    .object({
+      name: zod.string().min(1).describe("Original file name."),
+      size: zod.number().min(1).describe("File size in bytes."),
+      contentType: zod
+        .string()
+        .min(1)
+        .describe("MIME type of the file (e.g. `image\/jpeg`)."),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  filePath: zod.coerce
+    .string()
+    .describe("Relative file path within the public search paths."),
+});
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  objectPath: zod.coerce
+    .string()
+    .describe(
+      "Object path within the private object dir (e.g. `uploads\/some-uuid`).",
+    ),
+});
+
+/**
+ * @summary Submit a document contribution (public)
+ */
+
+export const CreateContributionBody = zod.object({
+  title: zod.string().min(1),
+  description: zod.string().nullish(),
+  category: zod.enum([
+    "Litigation",
+    "Syariah",
+    "Corporate Secretary",
+    "Conveyancing",
+    "Criminal",
+    "Corporate/Commercial/Banking",
+    "Accident & Personal Injury",
+    "General/Other",
+  ]),
+  contributorName: zod.string().min(1),
+  contributorEmail: zod.string().min(1),
+  contributorPhone: zod.string().nullish(),
+  fileName: zod.string().min(1),
+  objectPath: zod.string().min(1),
+  fileSize: zod.number().nullish(),
+  contentType: zod.string().nullish(),
+});
+
+/**
+ * @summary List approved contributions (read-only knowledge base)
+ */
+export const ListKnowledgeBaseQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListKnowledgeBaseResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string(),
+  fileName: zod.string(),
+  objectPath: zod.string(),
+  contentType: zod.string().nullish(),
+  extractedText: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListKnowledgeBaseResponse = zod.array(
+  ListKnowledgeBaseResponseItem,
+);
+
+/**
+ * @summary Get a single approved knowledge base entry
+ */
+export const GetKnowledgeBaseEntryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetKnowledgeBaseEntryResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string(),
+  fileName: zod.string(),
+  objectPath: zod.string(),
+  contentType: zod.string().nullish(),
+  extractedText: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all contributions (admin)
+ */
+export const ListContributionsQueryParams = zod.object({
+  status: zod.enum(["pending", "approved", "rejected"]).optional(),
+  category: zod.coerce.string().optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListContributionsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string(),
+  contributorName: zod.string(),
+  contributorEmail: zod.string(),
+  contributorPhone: zod.string().nullish(),
+  fileName: zod.string(),
+  objectPath: zod.string(),
+  fileSize: zod.number().nullish(),
+  contentType: zod.string().nullish(),
+  extractedText: zod.string().nullish(),
+  extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
+  status: zod.enum(["pending", "approved", "rejected"]),
+  adminNotes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListContributionsResponse = zod.array(
+  ListContributionsResponseItem,
+);
+
+/**
+ * @summary Get a contribution by ID
+ */
+export const GetContributionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetContributionResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string(),
+  contributorName: zod.string(),
+  contributorEmail: zod.string(),
+  contributorPhone: zod.string().nullish(),
+  fileName: zod.string(),
+  objectPath: zod.string(),
+  fileSize: zod.number().nullish(),
+  contentType: zod.string().nullish(),
+  extractedText: zod.string().nullish(),
+  extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
+  status: zod.enum(["pending", "approved", "rejected"]),
+  adminNotes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a contribution (status, category, notes)
+ */
+export const UpdateContributionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateContributionBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().nullish(),
+  category: zod.string().optional(),
+  status: zod.enum(["pending", "approved", "rejected"]).optional(),
+  adminNotes: zod.string().nullish(),
+});
+
+export const UpdateContributionResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  category: zod.string(),
+  contributorName: zod.string(),
+  contributorEmail: zod.string(),
+  contributorPhone: zod.string().nullish(),
+  fileName: zod.string(),
+  objectPath: zod.string(),
+  fileSize: zod.number().nullish(),
+  contentType: zod.string().nullish(),
+  extractedText: zod.string().nullish(),
+  extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
+  status: zod.enum(["pending", "approved", "rejected"]),
+  adminNotes: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a contribution
+ */
+export const DeleteContributionParams = zod.object({
+  id: zod.coerce.number(),
+});

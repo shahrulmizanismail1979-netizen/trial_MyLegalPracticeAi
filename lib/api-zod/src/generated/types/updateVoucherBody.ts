@@ -14,8 +14,7 @@ export interface UpdateVoucherBody {
   maxUses?: number;
   /** @nullable */
   appFilter?: string | null;
-  /** @nullable */
-  validFrom?: Date | null;
+  validFrom?: Date;
   /** @nullable */
   validUntil?: Date | null;
   isActive?: boolean;

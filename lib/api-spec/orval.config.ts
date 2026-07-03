@@ -55,6 +55,12 @@ export default defineConfig({
       mode: "split",
       clean: true,
       prettier: true,
+      // Do not let orval (re)generate the root src/index.ts barrel. Its default
+      // barrel re-exports both the zod schema values (generated/api) and the TS
+      // model interfaces (generated/types), which collide on shared names like
+      // `CreateSubscriberBody` (value vs. type) → TS2308. We hand-maintain
+      // src/index.ts to export only the zod schema values, which is all consumers use.
+      indexFiles: false,
       override: {
         zod: {
           coerce: {

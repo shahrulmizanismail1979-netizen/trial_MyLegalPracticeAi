@@ -196,8 +196,7 @@ export interface UpdateVoucherBody {
   maxUses?: number;
   /** @nullable */
   appFilter?: string | null;
-  /** @nullable */
-  validFrom?: string | null;
+  validFrom?: string;
   /** @nullable */
   validUntil?: string | null;
   isActive?: boolean;
@@ -242,6 +241,151 @@ export interface RevenueByApp {
   subscriberCount: number;
 }
 
+export interface UploadUrlRequest {
+  /**
+   * Original file name.
+   * @minLength 1
+   */
+  name: string;
+  /**
+   * File size in bytes.
+   * @minimum 1
+   */
+  size: number;
+  /**
+   * MIME type of the file (e.g. `image/jpeg`).
+   * @minLength 1
+   */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path (e.g. `/objects/uploads/uuid`). Store this in your database. */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
+export type ContributionExtractionStatus =
+  (typeof ContributionExtractionStatus)[keyof typeof ContributionExtractionStatus];
+
+export const ContributionExtractionStatus = {
+  pending: "pending",
+  extracted: "extracted",
+  unsupported: "unsupported",
+  failed: "failed",
+} as const;
+
+export type ContributionStatus =
+  (typeof ContributionStatus)[keyof typeof ContributionStatus];
+
+export const ContributionStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface Contribution {
+  id: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  category: string;
+  contributorName: string;
+  contributorEmail: string;
+  /** @nullable */
+  contributorPhone?: string | null;
+  fileName: string;
+  objectPath: string;
+  /** @nullable */
+  fileSize?: number | null;
+  /** @nullable */
+  contentType?: string | null;
+  /** @nullable */
+  extractedText?: string | null;
+  extractionStatus: ContributionExtractionStatus;
+  status: ContributionStatus;
+  /** @nullable */
+  adminNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeBaseEntry {
+  id: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  category: string;
+  fileName: string;
+  objectPath: string;
+  /** @nullable */
+  contentType?: string | null;
+  /** @nullable */
+  extractedText?: string | null;
+  createdAt: string;
+}
+
+export type CreateContributionBodyCategory =
+  (typeof CreateContributionBodyCategory)[keyof typeof CreateContributionBodyCategory];
+
+export const CreateContributionBodyCategory = {
+  Litigation: "Litigation",
+  Syariah: "Syariah",
+  Corporate_Secretary: "Corporate Secretary",
+  Conveyancing: "Conveyancing",
+  Criminal: "Criminal",
+  "Corporate/Commercial/Banking": "Corporate/Commercial/Banking",
+  "Accident_&_Personal_Injury": "Accident & Personal Injury",
+  "General/Other": "General/Other",
+} as const;
+
+export interface CreateContributionBody {
+  /** @minLength 1 */
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  category: CreateContributionBodyCategory;
+  /** @minLength 1 */
+  contributorName: string;
+  /** @minLength 1 */
+  contributorEmail: string;
+  /** @nullable */
+  contributorPhone?: string | null;
+  /** @minLength 1 */
+  fileName: string;
+  /** @minLength 1 */
+  objectPath: string;
+  /** @nullable */
+  fileSize?: number | null;
+  /** @nullable */
+  contentType?: string | null;
+}
+
+export type UpdateContributionBodyStatus =
+  (typeof UpdateContributionBodyStatus)[keyof typeof UpdateContributionBodyStatus];
+
+export const UpdateContributionBodyStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface UpdateContributionBody {
+  title?: string;
+  /** @nullable */
+  description?: string | null;
+  category?: string;
+  status?: UpdateContributionBodyStatus;
+  /** @nullable */
+  adminNotes?: string | null;
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;
@@ -260,3 +404,23 @@ export const ListSubscribersStatus = {
 export type GetRecentActivityParams = {
   limit?: number;
 };
+
+export type ListKnowledgeBaseParams = {
+  category?: string;
+  search?: string;
+};
+
+export type ListContributionsParams = {
+  status?: ListContributionsStatus;
+  category?: string;
+  search?: string;
+};
+
+export type ListContributionsStatus =
+  (typeof ListContributionsStatus)[keyof typeof ListContributionsStatus];
+
+export const ListContributionsStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;

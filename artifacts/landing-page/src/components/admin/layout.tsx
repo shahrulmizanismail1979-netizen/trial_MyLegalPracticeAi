@@ -5,6 +5,7 @@ import {
   Layers, 
   CreditCard, 
   Ticket,
+  FileText,
   LogOut
 } from "lucide-react";
 
@@ -14,6 +15,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Overview" },
     { href: "/admin/subscribers", icon: Users, label: "Subscribers" },
+    { href: "/admin/contributions", icon: FileText, label: "Contributions" },
     { href: "/admin/kohorts", icon: Layers, label: "Kohorts" },
     { href: "/admin/pricing", icon: CreditCard, label: "Pricing" },
     { href: "/admin/vouchers", icon: Ticket, label: "Vouchers" },

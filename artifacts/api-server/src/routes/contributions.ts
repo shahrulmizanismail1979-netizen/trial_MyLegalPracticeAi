@@ -1,0 +1,160 @@
+import { Router, type IRouter } from "express";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { db, contributionsTable, activityTable } from "@workspace/db";
+import {
+  CreateContributionBody,
+  GetContributionResponse,
+  ListKnowledgeBaseQueryParams,
+  ListKnowledgeBaseResponse,
+  GetKnowledgeBaseEntryParams,
+  GetKnowledgeBaseEntryResponse,
+} from "@workspace/api-zod";
+import { ObjectStorageService } from "../lib/objectStorage";
+import { extractTextFromObject } from "../lib/textExtraction";
+
+const router: IRouter = Router();
+const objectStorageService = new ObjectStorageService();
+
+/**
+ * POST /contributions
+ *
+ * Public endpoint. Called after a file has been uploaded to object storage.
+ * Records the contribution and attempts server-side text extraction.
+ */
+router.post("/contributions", async (req, res): Promise<void> => {
+  const parsed = CreateContributionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const data = parsed.data;
+
+  let extractionStatus: "pending" | "extracted" | "unsupported" | "failed" =
+    "pending";
+  let extractedText: string | null = null;
+
+  try {
+    const result = await extractTextFromObject({
+      objectPath: data.objectPath,
+      fileName: data.fileName,
+      contentType: data.contentType,
+      storage: objectStorageService,
+    });
+    extractionStatus = result.status;
+    extractedText = result.text;
+  } catch (error) {
+    req.log.error({ err: error }, "Text extraction failed");
+    extractionStatus = "failed";
+  }
+
+  const [contribution] = await db
+    .insert(contributionsTable)
+    .values({
+      title: data.title,
+      description: data.description ?? null,
+      category: data.category,
+      contributorName: data.contributorName,
+      contributorEmail: data.contributorEmail,
+      contributorPhone: data.contributorPhone ?? null,
+      fileName: data.fileName,
+      objectPath: data.objectPath,
+      fileSize: data.fileSize ?? null,
+      contentType: data.contentType ?? null,
+      extractedText,
+      extractionStatus,
+      status: "pending",
+    })
+    .returning();
+
+  await db.insert(activityTable).values({
+    type: "contribution_added",
+    description: `New contribution "${data.title}" (${data.category}) from ${data.contributorName}`,
+  });
+
+  res.status(201).json(GetContributionResponse.parse(contribution));
+});
+
+/**
+ * GET /knowledge-base
+ *
+ * Read-only corpus of approved contributions for downstream app consumption.
+ */
+router.get("/knowledge-base", async (req, res): Promise<void> => {
+  const query = ListKnowledgeBaseQueryParams.safeParse(req.query);
+  const conditions = [eq(contributionsTable.status, "approved")];
+
+  if (query.success && query.data.category) {
+    conditions.push(eq(contributionsTable.category, query.data.category));
+  }
+
+  if (query.success && query.data.search) {
+    const term = `%${query.data.search}%`;
+    conditions.push(
+      sql`(${or(
+        ilike(contributionsTable.title, term),
+        ilike(contributionsTable.extractedText, term),
+      )})`,
+    );
+  }
+
+  const entries = await db
+    .select({
+      id: contributionsTable.id,
+      title: contributionsTable.title,
+      description: contributionsTable.description,
+      category: contributionsTable.category,
+      fileName: contributionsTable.fileName,
+      objectPath: contributionsTable.objectPath,
+      contentType: contributionsTable.contentType,
+      extractedText: contributionsTable.extractedText,
+      createdAt: contributionsTable.createdAt,
+    })
+    .from(contributionsTable)
+    .where(and(...conditions))
+    .orderBy(desc(contributionsTable.createdAt));
+
+  res.json(ListKnowledgeBaseResponse.parse(entries));
+});
+
+/**
+ * GET /knowledge-base/:id
+ *
+ * Single approved corpus entry.
+ */
+router.get("/knowledge-base/:id", async (req, res): Promise<void> => {
+  const params = GetKnowledgeBaseEntryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [entry] = await db
+    .select({
+      id: contributionsTable.id,
+      title: contributionsTable.title,
+      description: contributionsTable.description,
+      category: contributionsTable.category,
+      fileName: contributionsTable.fileName,
+      objectPath: contributionsTable.objectPath,
+      contentType: contributionsTable.contentType,
+      extractedText: contributionsTable.extractedText,
+      createdAt: contributionsTable.createdAt,
+    })
+    .from(contributionsTable)
+    .where(
+      and(
+        eq(contributionsTable.id, params.data.id),
+        eq(contributionsTable.status, "approved"),
+      ),
+    );
+
+  if (!entry) {
+    res.status(404).json({ error: "Knowledge base entry not found" });
+    return;
+  }
+
+  res.json(GetKnowledgeBaseEntryResponse.parse(entry));
+});
+
+export default router;
