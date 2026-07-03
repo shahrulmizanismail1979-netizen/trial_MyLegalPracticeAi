@@ -1,4 +1,3 @@
-import { Link } from "wouter";
 import { UploadCloud, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,12 +19,12 @@ export function ContributeCTA() {
             soft-copy documents in any format — our team reviews each contribution before
             adopting it into the shared knowledge base.
           </p>
-          <Link href="/contribute">
-            <Button size="lg" className="group">
+          <Button size="lg" className="group" asChild>
+            <a href={`${import.meta.env.BASE_URL}contribute`}>
               Contribute documents
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
+            </a>
+          </Button>
         </div>
       </div>
     </section>

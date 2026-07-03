@@ -77,14 +77,17 @@ export async function extractTextFromObject(params: {
       : { status: "unsupported", text: null };
   }
 
-  // pdf: import the library implementation directly to avoid the package's
-  // index.js debug branch that reads a bundled test file at import time.
-  const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default as (
-    data: Buffer,
-  ) => Promise<{ text: string }>;
-  const { text: rawText } = await pdfParse(buffer);
-  const text = normalizeText(rawText);
-  return text.length > 0
-    ? { status: "extracted", text }
-    : { status: "unsupported", text: null };
+  // pdf: pdf-parse v2 exposes a class-based API. It is externalized in the
+  // esbuild config (it depends on native @napi-rs/canvas) and loaded lazily.
+  const { PDFParse } = await import("pdf-parse");
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const { text: rawText } = await parser.getText();
+    const text = normalizeText(rawText);
+    return text.length > 0
+      ? { status: "extracted", text }
+      : { status: "unsupported", text: null };
+  } finally {
+    await parser.destroy();
+  }
 }
