@@ -78,18 +78,12 @@ const tiers = [
   },
 ];
 
+const INSTITUTION_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'm enquiring about the Institution academic bundle for my institution.")}`;
+const EDUCATION_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'd like to discuss academic licensing for the AI Portals for my college/university.")}`;
+
 export function EducationBundles() {
   const scrollToPayment = () => {
     document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const whatsappEducation = (tierName?: string) => {
-    const message = encodeURIComponent(
-      tierName
-        ? `Hi, I'm enquiring about the ${tierName} academic bundle for my institution.`
-        : "Hi, I'd like to discuss academic licensing for the AI Portals for my college/university."
-    );
-    window.open(`https://wa.me/60173678484?text=${message}`, "_blank");
   };
 
   return (
@@ -167,15 +161,28 @@ export function EducationBundles() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button
-                  variant={tier.featured ? "default" : "outline"}
-                  className={`w-full ${
-                    tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
-                  }`}
-                  onClick={isInstitution ? () => whatsappEducation(tier.name) : scrollToPayment}
-                >
-                  {isInstitution ? "Contact Us" : "Get This Bundle"}
-                </Button>
+                {isInstitution ? (
+                  <a
+                    href={INSTITUTION_WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
+                  >
+                    <Button variant="outline" className="w-full">
+                      Contact Us
+                    </Button>
+                  </a>
+                ) : (
+                  <Button
+                    variant={tier.featured ? "default" : "outline"}
+                    className={`w-full ${
+                      tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+                    }`}
+                    onClick={scrollToPayment}
+                  >
+                    Get This Bundle
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           );
@@ -187,9 +194,9 @@ export function EducationBundles() {
           All academic bundles are 1-year starter packages — new advanced AI features added later are
           charged pay-as-you-go based on usage. Academic bundles require verification of institutional status. Need a different seat
           count or longer term?{" "}
-          <button onClick={() => whatsappEducation()} className="text-primary hover:underline">
+          <a href={EDUCATION_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Talk to us on WhatsApp
-          </button>
+          </a>
           .
         </p>
       </div>

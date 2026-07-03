@@ -18,13 +18,13 @@ export function Hero() {
         </div>
         
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold tracking-tight mb-8 leading-[1.1]">
-          The Future of <br className="hidden md:block" />
-          <span className="text-gradient-gold">Legal Practice</span>
+          AI Legal Reference <br className="hidden md:block" />
+          <span className="text-gradient-gold">Portals for Malaysian</span>
+          <br className="hidden md:block" /> Lawyers &amp; Practitioners
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-          Seven AI-powered interactive reference AI Portals for Malaysian professionals. 
-          Instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners.
+          The future of Malaysian legal practice is here. Seven AI-powered interactive reference portals delivering instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners — curated by Shahrul Mizan.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

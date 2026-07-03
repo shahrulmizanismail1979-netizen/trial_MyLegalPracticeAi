@@ -82,16 +82,11 @@ const tiers = [
   },
 ];
 
+const ENTERPRISE_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'd like to discuss group/enterprise licensing of the AI Portals for our company.")}`;
+
 export function CorporateBundles() {
   const scrollToPayment = () => {
     document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const whatsappEnterprise = () => {
-    const message = encodeURIComponent(
-      "Hi, I'd like to discuss group/enterprise licensing of the AI Portals for our company."
-    );
-    window.open(`https://wa.me/60173678484?text=${message}`, "_blank");
   };
 
   return (
@@ -168,15 +163,28 @@ export function CorporateBundles() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button
-                  variant={tier.featured ? "default" : "outline"}
-                  className={`w-full ${
-                    tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
-                  }`}
-                  onClick={isEnterprise ? whatsappEnterprise : scrollToPayment}
-                >
-                  {isEnterprise ? "Contact Sales" : "Get This Bundle"}
-                </Button>
+                {isEnterprise ? (
+                  <a
+                    href={ENTERPRISE_WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
+                  >
+                    <Button variant="outline" className="w-full">
+                      Contact Sales
+                    </Button>
+                  </a>
+                ) : (
+                  <Button
+                    variant={tier.featured ? "default" : "outline"}
+                    className={`w-full ${
+                      tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+                    }`}
+                    onClick={scrollToPayment}
+                  >
+                    Get This Bundle
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           );
@@ -188,9 +196,9 @@ export function CorporateBundles() {
           All corporate bundles are 1-year starter packages — new advanced AI features added later are
           charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a custom seat
           count, multi-entity setup or procurement terms?{" "}
-          <button onClick={whatsappEnterprise} className="text-primary hover:underline">
+          <a href={ENTERPRISE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Talk to us on WhatsApp
-          </button>
+          </a>
           .
         </p>
       </div>

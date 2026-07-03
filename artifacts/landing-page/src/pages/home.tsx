@@ -5,6 +5,8 @@ import { FirmBundles } from "@/components/firm-bundles";
 import { CorporateBundles } from "@/components/corporate-bundles";
 import { EducationBundles } from "@/components/education-bundles";
 import { Payment } from "@/components/payment";
+import { Trust } from "@/components/trust";
+import { TermsPrivacy } from "@/components/terms-privacy";
 import { Footer } from "@/components/footer";
 
 export default function Home() {
@@ -23,6 +25,8 @@ export default function Home() {
         <CorporateBundles />
         <EducationBundles />
         <Payment />
+        <Trust />
+        <TermsPrivacy />
         <Footer />
       </div>
     </main>

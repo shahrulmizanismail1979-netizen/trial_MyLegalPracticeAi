@@ -1,19 +1,93 @@
 export function Footer() {
   return (
     <footer className="border-t border-border/50 bg-card py-12 px-6 lg:px-8 mt-12">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="text-center md:text-left">
-          <p className="font-serif text-xl font-bold text-foreground mb-2">
-            AI Portals
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
+          <div>
+            <p className="font-serif text-xl font-bold text-foreground mb-1">
+              AI Portals
+            </p>
+            <p className="text-sm text-muted-foreground mb-3">
+              by Shahrul Mizan Ismail
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Malaysia's First AI-Enhanced Legal Reference Platform for lawyers, corporate secretaries, and legal practitioners.
+            </p>
+          </div>
+
+          <nav aria-label="Footer navigation" className="flex flex-col sm:flex-row gap-8">
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Platform</p>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#apps" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    AI Portals
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <a href="#payment" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    How to Subscribe
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    About
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://wa.me/60173678484"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Contact
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:support@aiportals.my" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Support
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Legal</p>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="#privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </div>
+
+        <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} AI Portals by Shahrul Mizan Ismail. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
-            by Shahrul Mizan
+            Malaysia's First AI-Enhanced Legal Reference Platform
           </p>
-        </div>
-        
-        <div className="text-center md:text-right text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} AI Portals. All rights reserved.</p>
-          <p className="mt-1">Malaysia's First AI-Enhanced Legal Reference Platform</p>
         </div>
       </div>
     </footer>
