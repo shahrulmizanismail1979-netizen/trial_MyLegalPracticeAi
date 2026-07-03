@@ -1,0 +1,43 @@
+# AI Portals — AI Web Books for Malaysian Legal Professionals
+
+AI Portals (by Shahrul Mizan) is Malaysia's first AI-enhanced legal reference platform.
+It offers seven interactive AI-powered web books designed for Malaysian lawyers, corporate
+secretaries, conveyancers, and legal practitioners.
+
+## What this site is
+
+A marketing and subscription portal for AI Web Books — subscription-based AI-powered
+legal reference tools covering Malaysian law. Each book is a standalone web application
+that combines curated primary sources with AI search and summarisation.
+
+## Target audience
+
+Malaysian legal professionals:
+- Litigators (civil and Syariah)
+- Corporate secretaries
+- Conveyancers
+- Criminal law practitioners
+- Construction law / CCB practitioners
+
+## Available AI Web Books
+
+1. MyLitAI (https://mylitai.life) — Civil Litigation
+2. MySyalitAI (https://mysyalitai.life) — Syariah Litigation
+3. MyCorpAI (https://mycorpai.life) — Corporate Secretary
+4. MyConveyAI (https://myconveyai.life) — Conveyancing
+5. MyCrimAI (https://mycrimai.replit.app) — Criminal Law
+6. MyCCBLitAI (https://my-ccb-lit-ai.replit.app) — Construction Law (CCB)
+
+## Preferred canonical homepage
+
+https://aiportals.my/
+
+## Subscription model
+
+Access is sold as individual-app subscriptions or firm/corporate/education bundles
+through a cohort-based (kohort) model with limited slots per intake. Payment is via
+bank transfer or online banking in Malaysian Ringgit (MYR).
+
+## Do not index
+
+/admin — internal admin dashboard, not public content
