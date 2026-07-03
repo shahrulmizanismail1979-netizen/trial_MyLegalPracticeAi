@@ -1,1 +1,2 @@
 - [Orval api-zod barrel collision](orval-api-zod-barrel.md) — orval regenerates `lib/api-zod/src/index.ts`; its default barrel collides zod values vs TS types (TS2308). Keep `indexFiles: false`.
+- [api-server testing pattern](api-server-testing.md) — mock object storage, keep pdf-parse real, use live DB with per-run UUID cleanup; vitest+supertest as `api-tests` validation.
