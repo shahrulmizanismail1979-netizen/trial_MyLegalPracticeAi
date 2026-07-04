@@ -1,11 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
+import { eq } from "drizzle-orm";
+import { db, contributionsTable } from "@workspace/db";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
+import { checkStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -80,32 +82,41 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 /**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Serve object entities from PRIVATE_OBJECT_DIR under a status-based policy:
+ * - Files belonging to an APPROVED contribution are part of the public
+ *   knowledge-base corpus and may be downloaded by anyone (e.g. downstream apps).
+ * - Every other object (files of pending/rejected contributions, or objects not
+ *   tied to any contribution) is private and requires an authenticated staff
+ *   member. This prevents anonymous download of legal documents still under
+ *   review. Staff access works over the browser because the web app carries the
+ *   Clerk session as a cookie, which is sent on ordinary navigations too.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
+
+    const [row] = await db
+      .select({ status: contributionsTable.status })
+      .from(contributionsTable)
+      .where(eq(contributionsTable.objectPath, objectPath))
+      .limit(1);
+
+    const isPublicCorpus = row?.status === "approved";
+    if (!isPublicCorpus) {
+      const access = await checkStaff(req);
+      if (access === "anonymous") {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (access !== "staff") {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    }
+
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
     const response = await objectStorageService.downloadObject(objectFile);
 
     res.status(response.status);

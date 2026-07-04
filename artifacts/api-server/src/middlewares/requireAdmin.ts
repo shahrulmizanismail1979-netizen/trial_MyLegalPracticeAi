@@ -61,6 +61,30 @@ export function requireAuth(
   next();
 }
 
+export type StaffCheck = "anonymous" | "forbidden" | "staff";
+
+/**
+ * Non-throwing staff check for handlers that need conditional (rather than
+ * gated) authorization — e.g. a route that is public for some resources but
+ * staff-only for others. Never writes to the response.
+ *
+ * Returns:
+ * - "anonymous" when there is no authenticated Clerk session,
+ * - "forbidden" when authenticated but not an allowlisted staff member,
+ * - "staff" when authenticated and allowlisted.
+ */
+export async function checkStaff(req: Request): Promise<StaffCheck> {
+  const userId = getAuth(req)?.userId;
+  if (!userId) return "anonymous";
+  try {
+    const email = await resolveUserEmail(userId);
+    return isStaffEmail(email) ? "staff" : "forbidden";
+  } catch (error) {
+    req.log.error({ err: error, userId }, "Failed to verify staff access");
+    return "forbidden";
+  }
+}
+
 /**
  * Require the authenticated user to be an allowlisted staff member.
  * Responds 401 when unauthenticated, 403 when authenticated but not staff.

@@ -1,1 +1,2 @@
 - [SSR prerender for interactive/noindex routes](ssr-prerender-noindex-routes.md) — landing-page build must not let noindex/interactive route SSR crash the build; only indexed routes (`/`) fail hard.
+- [Private object download access control](object-storage-access-control.md) — /api/storage/objects/* is staff-only unless the file belongs to an approved contribution; web auth is a Clerk cookie, so it works on plain navigations too.
