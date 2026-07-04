@@ -3,6 +3,7 @@
 ## In scope
 - Public landing page at `/`
 - Public brand and product discovery content for the AI Web Books / AI Portals offering
+- Public contribution form at `/contribute` as a utility page with lower SEO priority than the homepage
 
 ## Out of scope
 - Authenticated or operational admin dashboard routes under `/admin/**`
@@ -21,8 +22,9 @@
 - AI-powered legal reference for litigators
 
 ## Notes
-- The public site is currently implemented as a React + Vite SPA served from a static hosting artifact.
-- Social bots and AI crawlers will only see the initial HTML shell unless public pages are server-rendered or pre-rendered.
+- The public site is deployed as a static artifact with a prerendered homepage at `/`.
+- Secondary public routes such as `/contribute` still rely on the shared HTML shell unless they are explicitly prerendered or given route-specific metadata.
+- Social bots and AI crawlers only see the initial HTML response; route-specific Open Graph and canonical tags must exist in that HTML to be reliable.
 
 ## Dismissed categories
 - (None yet)
