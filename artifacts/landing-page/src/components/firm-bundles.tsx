@@ -8,9 +8,9 @@ const tiers = [
     icon: Briefcase,
     description: "Small firms & chambers",
     licenses: "5 user licenses",
-    price: "RM1,480",
-    perUser: "RM296 per user",
-    savings: "Save RM3,020 vs individual",
+    price: "$315",
+    perUser: "$63 per user / year",
+    savings: "Save $643 vs individual",
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
@@ -24,9 +24,9 @@ const tiers = [
     icon: Building,
     description: "Mid-sized law firms",
     licenses: "15 user licenses",
-    price: "RM3,800",
-    perUser: "RM253 per user",
-    savings: "Save RM9,700 vs individual",
+    price: "$809",
+    perUser: "$54 per user / year",
+    savings: "Save $2,064 vs individual",
     featured: true,
     features: [
       "Access to all 7 AI Portals",
@@ -42,9 +42,9 @@ const tiers = [
     icon: Building2,
     description: "Large firms & legal departments",
     licenses: "30 user licenses",
-    price: "RM6,800",
-    perUser: "RM226 per user",
-    savings: "Save RM20,200 vs individual",
+    price: "$1,447",
+    perUser: "$48 per user / year",
+    savings: "Save $4,298 vs individual",
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",
@@ -124,8 +124,11 @@ export function FirmBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2">
+                <div className="mb-2 flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                  {tier.price !== "Custom" && (
+                    <span className="text-sm text-muted-foreground">/year</span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
                 <p className="text-xs text-primary mb-6">{tier.savings}</p>

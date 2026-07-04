@@ -8,9 +8,9 @@ const tiers = [
     icon: Briefcase,
     description: "SMEs & startup in-house teams",
     licenses: "3 user licenses",
-    price: "RM2,100",
-    perUser: "RM700 per user",
-    savings: "Save RM600 vs individual",
+    price: "$447",
+    perUser: "$149 per user / year",
+    savings: "Save $128 vs individual",
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
     features: [
@@ -27,9 +27,9 @@ const tiers = [
     icon: Building2,
     description: "Growing companies & in-house counsel",
     licenses: "8 user licenses",
-    price: "RM4,800",
-    perUser: "RM600 per user",
-    savings: "Save RM2,400 vs individual",
+    price: "$1,021",
+    perUser: "$128 per user / year",
+    savings: "Save $511 vs individual",
     featured: true,
     headline: "Adds compliance + AI advisory assistant",
     includes: "Startup Legal",
@@ -47,9 +47,9 @@ const tiers = [
     icon: Factory,
     description: "GLCs & large corporations",
     licenses: "20 user licenses",
-    price: "RM10,000",
-    perUser: "RM500 per user",
-    savings: "Save RM8,000 vs individual",
+    price: "$2,128",
+    perUser: "$106 per user / year",
+    savings: "Save $1,702 vs individual",
     headline: "Adds board, M&A & due diligence modules",
     includes: "Growth",
     features: [
@@ -132,8 +132,11 @@ export function CorporateBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2">
+                <div className="mb-2 flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                  {tier.price !== "Custom" && (
+                    <span className="text-sm text-muted-foreground">/year</span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
                 <p className="text-xs text-primary mb-4">{tier.savings}</p>

@@ -8,9 +8,9 @@ const tiers = [
     icon: BookOpen,
     description: "Small law faculties & departments",
     licenses: "20 student/lecturer licenses",
-    price: "RM4,800",
-    perUser: "RM240 per user",
-    savings: "Save RM13,200 vs individual",
+    price: "$1,021",
+    perUser: "$51 per user / year",
+    savings: "Save $2,809 vs individual",
     headline: "Foundational classroom access for small cohorts",
     includes: null,
     features: [
@@ -27,9 +27,9 @@ const tiers = [
     icon: School,
     description: "Mid-sized law schools",
     licenses: "50 student/lecturer licenses",
-    price: "RM10,000",
-    perUser: "RM200 per user",
-    savings: "Save RM35,000 vs individual",
+    price: "$2,128",
+    perUser: "$43 per user / year",
+    savings: "Save $7,447 vs individual",
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
     includes: "Faculty Starter",
@@ -45,9 +45,9 @@ const tiers = [
     icon: Library,
     description: "Large universities & colleges",
     licenses: "150 user licenses",
-    price: "RM24,000",
-    perUser: "RM160 per user",
-    savings: "Save RM111,000 vs individual",
+    price: "$5,106",
+    perUser: "$34 per user / year",
+    savings: "Save $23,617 vs individual",
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
     features: [
@@ -130,8 +130,11 @@ export function EducationBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2">
+                <div className="mb-2 flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                  {tier.price !== "Custom" && (
+                    <span className="text-sm text-muted-foreground">/year</span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
                 <p className="text-xs text-primary mb-4">{tier.savings}</p>

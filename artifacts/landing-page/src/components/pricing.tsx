@@ -63,7 +63,7 @@ export function Pricing() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-5xl font-bold text-foreground">RM249</span>
+                  <span className="text-5xl font-bold text-foreground">$53</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
                 <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
@@ -107,7 +107,7 @@ export function Pricing() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">RM79</span>
+                  <span className="text-4xl font-bold text-foreground">$17</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
                 <p className="text-muted-foreground mb-8">Billed monthly (2nd Kohort)</p>
@@ -156,7 +156,7 @@ export function Pricing() {
         <div className="mt-12 text-center max-w-2xl mx-auto space-y-4">
           <div className="p-4 rounded-lg bg-secondary/50 border border-border">
             <h4 className="font-bold text-foreground mb-1">Standard Price (101st buyer onwards)</h4>
-            <p className="text-muted-foreground">RM109 per app / month (1 user) — includes Prudential Takaful life insurance + 1 free legal-skills course / year at Commonwealth Law University (clui.life)</p>
+            <p className="text-muted-foreground">$23 per app / month (1 user) — includes Prudential Takaful life insurance + 1 free legal-skills course / year at Commonwealth Law University (clui.life)</p>
           </div>
           <div className="p-5 rounded-lg bg-primary/5 border border-primary/20 text-left">
             <div className="flex items-start gap-3">
@@ -194,7 +194,7 @@ export function Pricing() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground italic">
-            Note: 1st Kohort prices of RM68 and RM98 are completely SOLD OUT. Secure the 2nd Kohort pricing before it's gone.
+            Note: 1st Kohort prices of $14 and $21 are completely SOLD OUT. Secure the 2nd Kohort pricing before it's gone.
           </p>
         </div>
       </div>

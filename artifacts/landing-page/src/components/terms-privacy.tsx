@@ -11,14 +11,14 @@ export function TermsPrivacy() {
           <div>
             <h3 className="font-semibold text-foreground mb-2">1. Subscriptions and Access</h3>
             <p>
-              Each subscription grants one (1) named user access to the specified AI Portal(s) for a period of one (1) year from the date of activation. Subscriptions are non-transferable. Bundle subscriptions cover all portals listed at the time of purchase and any updates released during the subscription period. Pre-order subscriptions will be activated upon portal launch; the subscription term begins on the activation date.
+              Each subscription grants one (1) named user access to the specified AI Portal(s). Individual plans (Bundle, Single, and Standard) are billed monthly on a recurring basis and continue until cancelled. Firm, corporate, and academic bundles are supplied as one (1) year subscriptions from the date of activation. Subscriptions are non-transferable. Bundle subscriptions cover all portals listed at the time of purchase and any updates released during the subscription period. Pre-order subscriptions will be activated upon portal launch; the subscription term begins on the activation date.
             </p>
           </div>
 
           <div>
             <h3 className="font-semibold text-foreground mb-2">2. Payment</h3>
             <p>
-              Payment is accepted via Touch &lsquo;n Go (TNG) eWallet transfer to the account displayed on the payment page. Subscriptions are activated after payment is confirmed. We reserve the right to refuse or cancel a subscription order at our sole discretion. All prices are in Malaysian Ringgit (MYR) and are inclusive of applicable taxes unless stated otherwise.
+              Payment for individual subscriptions is processed securely by card through Stripe, our third-party payment processor; your subscription activates automatically once payment is confirmed and is billed on a recurring basis until cancelled. Firm, corporate, and academic bundles may be arranged directly with us. We reserve the right to refuse or cancel a subscription order at our sole discretion. All prices are in US Dollars (USD) and are inclusive of applicable taxes unless stated otherwise.
             </p>
           </div>
 

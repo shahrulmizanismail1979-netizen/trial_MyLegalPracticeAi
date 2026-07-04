@@ -1,7 +1,15 @@
-import { QrCode, MessageCircle, Wallet } from "lucide-react";
+import { MessageCircle, CreditCard, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent(
+  "Hi, I'd like to subscribe to the AI Portals. Please help me get set up.",
+)}`;
+
 export function Payment() {
+  const scrollToPricing = () => {
+    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <section id="payment" className="py-24 px-6 lg:px-8 max-w-4xl mx-auto">
       <div className="text-center mb-16">
@@ -9,71 +17,50 @@ export function Payment() {
           Secure Your <span className="text-primary">Access</span>
         </h2>
         <p className="text-muted-foreground text-lg">
-          Follow these simple steps to activate your subscription.
+          Subscribe online by card in seconds, or talk to us directly for firm,
+          corporate, and academic bundles.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-        {/* QR Code Column */}
-        <div className="bg-card p-8 rounded-2xl border border-border shadow-2xl flex flex-col items-center text-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Card checkout */}
+        <div className="bg-card p-8 rounded-2xl border border-border shadow-2xl flex flex-col text-center items-center">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-6">
-            <QrCode className="h-6 w-6" />
+            <CreditCard className="h-6 w-6" />
           </div>
-          <h3 className="font-serif text-2xl font-medium mb-2">Scan to Pay</h3>
-          <p className="text-muted-foreground mb-6">
-            Touch 'n Go eWallet transfer to<br />
-            <strong className="text-foreground">Shahrul Mizan Ismail</strong>
+          <h3 className="font-serif text-2xl font-medium mb-3">Subscribe online</h3>
+          <p className="text-muted-foreground mb-6 flex-1">
+            Choose a plan in the pricing section and check out securely by card.
+            Your subscription activates instantly — billed monthly, cancel anytime.
           </p>
-
-          <div className="p-4 bg-white rounded-xl mb-4 w-full max-w-[280px] aspect-square flex items-center justify-center overflow-hidden">
-            <img
-              src={import.meta.env.BASE_URL + "qr-code.jpeg"}
-              alt="TNG eWallet QR Code"
-              className="w-full h-full object-cover rounded-lg"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.parentElement!.innerHTML = '<div class="text-black text-center p-4 border-2 border-dashed border-gray-300 rounded-lg w-full h-full flex flex-col items-center justify-center"><QrCode size={48} class="mb-2 text-gray-400" /><p class="font-medium text-gray-500">QR Code Image</p></div>';
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4" />
-            <span>Secure TNG Transfer</span>
+          <Button
+            className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
+            onClick={scrollToPricing}
+          >
+            View Plans &amp; Subscribe
+          </Button>
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <span>Payments secured by Stripe</span>
           </div>
         </div>
 
-        {/* Instructions Column */}
-        <div className="space-y-8">
-          <div className="relative pl-8 pb-8 border-l border-border/50 last:pb-0 last:border-0">
-            <div className="absolute left-0 top-0 -translate-x-1/2 bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center font-bold">1</div>
-            <h4 className="font-serif text-xl font-medium mb-2">Make Payment</h4>
-            <p className="text-muted-foreground">
-              Scan the QR code and transfer the exact amount based on your chosen package.
-            </p>
+        {/* WhatsApp */}
+        <div className="bg-card p-8 rounded-2xl border border-border shadow-2xl flex flex-col text-center items-center">
+          <div className="h-12 w-12 rounded-full bg-[#25D366]/10 flex items-center justify-center text-[#25D366] mb-6">
+            <MessageCircle className="h-6 w-6" />
           </div>
-
-          <div className="relative pl-8 pb-8 border-l border-border/50 last:pb-0 last:border-0">
-            <div className="absolute left-0 top-0 -translate-x-1/2 bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center font-bold">2</div>
-            <h4 className="font-serif text-xl font-medium mb-2">Save Receipt</h4>
-            <p className="text-muted-foreground">
-              Take a screenshot or save the payment receipt from your TNG eWallet app.
-            </p>
-          </div>
-
-          <div className="relative pl-8">
-            <div className="absolute left-0 top-0 -translate-x-1/2 bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center font-bold">3</div>
-            <h4 className="font-serif text-xl font-medium mb-2">Send Proof</h4>
-            <p className="text-muted-foreground mb-6">
-              WhatsApp the proof of payment along with your name, email, and the app(s) you wish to access.
-            </p>
-            <a href="https://wa.me/60173678484" target="_blank" rel="noopener noreferrer">
-              <Button className="w-full sm:w-auto h-12 bg-[#25D366] text-white hover:bg-[#20bd5a] border-none font-medium gap-2">
-                <MessageCircle className="h-5 w-5" />
-                WhatsApp 017-3678484
-              </Button>
-            </a>
-          </div>
+          <h3 className="font-serif text-2xl font-medium mb-3">Talk to us</h3>
+          <p className="text-muted-foreground mb-6 flex-1">
+            Have a question, or arranging a firm, corporate, or academic bundle?
+            Message us on WhatsApp and we'll help you get set up.
+          </p>
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="w-full">
+            <Button className="w-full h-14 text-lg px-8 bg-[#25D366] text-white hover:bg-[#20bd5a] border-none font-semibold gap-2.5">
+              <MessageCircle className="h-6 w-6" />
+              Talk to us via WhatsApp
+            </Button>
+          </a>
         </div>
       </div>
     </section>
