@@ -12,23 +12,32 @@ await build({
   logLevel: "warn",
 });
 
-console.log("Prerender: rendering / to string...");
-
 const serverEntry = resolve(__dirname, "dist/server/entry-server.js");
 const { render } = await import(serverEntry);
 
-let appHtml;
-try {
-  appHtml = render();
-} catch (err) {
-  console.error("Prerender: renderToString failed —", err.message);
-  process.exit(1);
+function injectInto(distHtmlPath, renderedHtml, label) {
+  const template = readFileSync(distHtmlPath, "utf-8");
+  const html = template.replace("<!--ssr-outlet-->", renderedHtml);
+  writeFileSync(distHtmlPath, html);
+  console.log(`Prerender: ${label} injected into ${distHtmlPath}`);
 }
 
-const templatePath = resolve(__dirname, "dist/public/index.html");
-const template = readFileSync(templatePath, "utf-8");
+console.log("Prerender: rendering / to string...");
+let homeHtml;
+try {
+  homeHtml = render("/");
+} catch (err) {
+  console.error("Prerender: renderToString failed for / —", err.message);
+  process.exit(1);
+}
+injectInto(resolve(__dirname, "dist/public/index.html"), homeHtml, "/");
 
-const html = template.replace("<!--ssr-outlet-->", appHtml);
-writeFileSync(templatePath, html);
-
-console.log("Prerender: / injected into dist/public/index.html");
+console.log("Prerender: rendering /contribute to string...");
+let contributeHtml;
+try {
+  contributeHtml = render("/contribute");
+} catch (err) {
+  console.error("Prerender: renderToString failed for /contribute —", err.message);
+  process.exit(1);
+}
+injectInto(resolve(__dirname, "dist/public/contribute.html"), contributeHtml, "/contribute");

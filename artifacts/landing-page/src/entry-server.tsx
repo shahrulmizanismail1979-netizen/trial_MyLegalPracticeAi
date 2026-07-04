@@ -5,16 +5,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/home";
+import ContributePage from "@/pages/contribute";
 
-export function render(): string {
-  const { hook } = memoryLocation({ path: "/", static: true });
+export function render(path: string = "/"): string {
+  const { hook } = memoryLocation({ path, static: true });
   const queryClient = new QueryClient();
+
+  let PageComponent: () => React.ReactNode;
+  if (path === "/contribute") {
+    PageComponent = ContributePage;
+  } else {
+    PageComponent = Home;
+  }
 
   return renderToString(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter hook={hook} base="">
-          <Home />
+          <PageComponent />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
