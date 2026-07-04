@@ -9,6 +9,19 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * @nullable
+ */
+export type SubscriberTier =
+  | (typeof SubscriberTier)[keyof typeof SubscriberTier]
+  | null;
+
+export const SubscriberTier = {
+  bundle: "bundle",
+  single: "single",
+  standard: "standard",
+} as const;
+
 export type SubscriberPaymentStatus =
   (typeof SubscriberPaymentStatus)[keyof typeof SubscriberPaymentStatus];
 
@@ -16,6 +29,19 @@ export const SubscriberPaymentStatus = {
   pending: "pending",
   confirmed: "confirmed",
   rejected: "rejected",
+} as const;
+
+/**
+ * @nullable
+ */
+export type SubscriberPaymentProvider =
+  | (typeof SubscriberPaymentProvider)[keyof typeof SubscriberPaymentProvider]
+  | null;
+
+export const SubscriberPaymentProvider = {
+  stripe: "stripe",
+  toyyibpay: "toyyibpay",
+  manual: "manual",
 } as const;
 
 export interface Subscriber {
@@ -26,10 +52,23 @@ export interface Subscriber {
   apps: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: SubscriberTier;
   paymentStatus: SubscriberPaymentStatus;
   paymentAmount: string;
   /** @nullable */
   paymentDate?: string | null;
+  /** @nullable */
+  paymentProvider?: SubscriberPaymentProvider;
+  /** @nullable */
+  stripeCustomerId?: string | null;
+  /** @nullable */
+  stripeSubscriptionId?: string | null;
+  /** @nullable */
+  toyyibpayBillCode?: string | null;
+  insuranceEntitled: boolean;
+  coursesPerYear: number;
+  coursesUsed: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */
@@ -40,6 +79,32 @@ export interface Subscriber {
   updatedAt: string;
 }
 
+/**
+ * @nullable
+ */
+export type CreateSubscriberBodyTier =
+  | (typeof CreateSubscriberBodyTier)[keyof typeof CreateSubscriberBodyTier]
+  | null;
+
+export const CreateSubscriberBodyTier = {
+  bundle: "bundle",
+  single: "single",
+  standard: "standard",
+} as const;
+
+/**
+ * @nullable
+ */
+export type CreateSubscriberBodyPaymentProvider =
+  | (typeof CreateSubscriberBodyPaymentProvider)[keyof typeof CreateSubscriberBodyPaymentProvider]
+  | null;
+
+export const CreateSubscriberBodyPaymentProvider = {
+  stripe: "stripe",
+  toyyibpay: "toyyibpay",
+  manual: "manual",
+} as const;
+
 export interface CreateSubscriberBody {
   name: string;
   email: string;
@@ -47,12 +112,32 @@ export interface CreateSubscriberBody {
   apps: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: CreateSubscriberBodyTier;
   paymentAmount: string;
+  /** @nullable */
+  paymentProvider?: CreateSubscriberBodyPaymentProvider;
+  insuranceEntitled?: boolean;
+  coursesPerYear?: number;
+  coursesUsed?: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */
   notes?: string | null;
 }
+
+/**
+ * @nullable
+ */
+export type UpdateSubscriberBodyTier =
+  | (typeof UpdateSubscriberBodyTier)[keyof typeof UpdateSubscriberBodyTier]
+  | null;
+
+export const UpdateSubscriberBodyTier = {
+  bundle: "bundle",
+  single: "single",
+  standard: "standard",
+} as const;
 
 export type UpdateSubscriberBodyPaymentStatus =
   (typeof UpdateSubscriberBodyPaymentStatus)[keyof typeof UpdateSubscriberBodyPaymentStatus];
@@ -63,6 +148,19 @@ export const UpdateSubscriberBodyPaymentStatus = {
   rejected: "rejected",
 } as const;
 
+/**
+ * @nullable
+ */
+export type UpdateSubscriberBodyPaymentProvider =
+  | (typeof UpdateSubscriberBodyPaymentProvider)[keyof typeof UpdateSubscriberBodyPaymentProvider]
+  | null;
+
+export const UpdateSubscriberBodyPaymentProvider = {
+  stripe: "stripe",
+  toyyibpay: "toyyibpay",
+  manual: "manual",
+} as const;
+
 export interface UpdateSubscriberBody {
   name?: string;
   email?: string;
@@ -70,8 +168,15 @@ export interface UpdateSubscriberBody {
   apps?: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: UpdateSubscriberBodyTier;
   paymentStatus?: UpdateSubscriberBodyPaymentStatus;
   paymentAmount?: string;
+  /** @nullable */
+  paymentProvider?: UpdateSubscriberBodyPaymentProvider;
+  insuranceEntitled?: boolean;
+  coursesPerYear?: number;
+  coursesUsed?: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */

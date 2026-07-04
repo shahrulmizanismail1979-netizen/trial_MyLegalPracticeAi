@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MoreVertical, Plus, CheckCircle, XCircle, Trash2, Edit, Ticket } from "lucide-react";
+import { Search, MoreVertical, Plus, CheckCircle, XCircle, Trash2, Edit, Ticket, ShieldCheck, GraduationCap } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -51,7 +51,11 @@ const subscriberSchema = z.object({
   email: z.string().email("Invalid email"),
   phone: z.string().min(1, "Phone is required"),
   apps: z.array(z.string()).min(1, "Select at least one app"),
+  tier: z.enum(["bundle", "single", "standard"]).nullable().optional(),
   paymentAmount: z.string().min(1, "Amount is required"),
+  insuranceEntitled: z.boolean(),
+  coursesPerYear: z.coerce.number().int().min(0),
+  coursesUsed: z.coerce.number().int().min(0),
   voucherCode: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
@@ -150,6 +154,7 @@ export default function SubscribersPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead>Subscriber</TableHead>
                 <TableHead>Apps</TableHead>
+                <TableHead>Benefits</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
@@ -159,11 +164,11 @@ export default function SubscribersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : subscribers?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No subscribers found</TableCell>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No subscribers found</TableCell>
                 </TableRow>
               ) : (
                 subscribers?.map((sub) => (
@@ -178,6 +183,21 @@ export default function SubscribersPage() {
                         {sub.apps.map(app => (
                           <Badge key={app} variant="secondary" className="text-[10px] px-1 py-0">{app}</Badge>
                         ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 text-xs">
+                        {sub.tier && (
+                          <Badge variant="outline" className="w-fit text-[10px] px-1 py-0 capitalize">{sub.tier}</Badge>
+                        )}
+                        <div className={`flex items-center gap-1 ${sub.insuranceEntitled ? "text-green-500" : "text-muted-foreground"}`}>
+                          <ShieldCheck className="w-3 h-3 shrink-0" />
+                          {sub.insuranceEntitled ? "Takaful insured" : "No insurance"}
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <GraduationCap className="w-3 h-3 shrink-0" />
+                          {sub.coursesUsed}/{sub.coursesPerYear} courses used
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -251,7 +271,11 @@ function SubscriberDialog({ mode, subscriber, asDropdownItem }: { mode: "add" | 
       email: subscriber?.email || "",
       phone: subscriber?.phone || "",
       apps: subscriber?.apps || [],
+      tier: subscriber?.tier ?? null,
       paymentAmount: subscriber?.paymentAmount || "",
+      insuranceEntitled: subscriber?.insuranceEntitled ?? false,
+      coursesPerYear: subscriber?.coursesPerYear ?? 0,
+      coursesUsed: subscriber?.coursesUsed ?? 0,
       voucherCode: subscriber?.voucherCode || "",
       notes: subscriber?.notes || "",
     }
@@ -345,13 +369,51 @@ function SubscriberDialog({ mode, subscriber, asDropdownItem }: { mode: "add" | 
             )} />
 
             <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="tier" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tier</FormLabel>
+                  <Select value={field.value ?? "none"} onValueChange={(v) => field.onChange(v === "none" ? null : v)}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="bundle">Bundle</SelectItem>
+                      <SelectItem value="single">Single</SelectItem>
+                      <SelectItem value="standard">Standard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="paymentAmount" render={({ field }) => (
                 <FormItem><FormLabel>Payment Amount (RM)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="voucherCode" render={({ field }) => (
-                <FormItem><FormLabel>Voucher Code (Optional)</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
-              )} />
             </div>
+
+            <div className="rounded-md border border-border p-4 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Membership Benefits
+              </div>
+              <FormField control={form.control} name="insuranceEntitled" render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-3 space-y-0">
+                  <FormControl>
+                    <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(!!checked)} />
+                  </FormControl>
+                  <FormLabel className="font-normal text-sm">Entitled to Prudential Takaful life insurance</FormLabel>
+                </FormItem>
+              )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="coursesPerYear" render={({ field }) => (
+                  <FormItem><FormLabel>Courses / year</FormLabel><FormControl><Input type="number" min={0} {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="coursesUsed" render={({ field }) => (
+                  <FormItem><FormLabel>Courses used</FormLabel><FormControl><Input type="number" min={0} {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+            </div>
+
+            <FormField control={form.control} name="voucherCode" render={({ field }) => (
+              <FormItem><FormLabel>Voucher Code (Optional)</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+            )} />
             <FormField control={form.control} name="notes" render={({ field }) => (
               <FormItem><FormLabel>Notes (Optional)</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
             )} />

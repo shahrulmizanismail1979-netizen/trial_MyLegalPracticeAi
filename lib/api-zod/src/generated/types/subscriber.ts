@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { SubscriberPaymentProvider } from "./subscriberPaymentProvider";
 import type { SubscriberPaymentStatus } from "./subscriberPaymentStatus";
+import type { SubscriberTier } from "./subscriberTier";
 
 export interface Subscriber {
   id: number;
@@ -15,10 +17,23 @@ export interface Subscriber {
   apps: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: SubscriberTier;
   paymentStatus: SubscriberPaymentStatus;
   paymentAmount: string;
   /** @nullable */
   paymentDate?: Date | null;
+  /** @nullable */
+  paymentProvider?: SubscriberPaymentProvider;
+  /** @nullable */
+  stripeCustomerId?: string | null;
+  /** @nullable */
+  stripeSubscriptionId?: string | null;
+  /** @nullable */
+  toyyibpayBillCode?: string | null;
+  insuranceEntitled: boolean;
+  coursesPerYear: number;
+  coursesUsed: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */

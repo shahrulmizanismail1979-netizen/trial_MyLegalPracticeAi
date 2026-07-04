@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateSubscriberBodyPaymentProvider } from "./createSubscriberBodyPaymentProvider";
+import type { CreateSubscriberBodyTier } from "./createSubscriberBodyTier";
 
 export interface CreateSubscriberBody {
   name: string;
@@ -13,7 +15,14 @@ export interface CreateSubscriberBody {
   apps: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: CreateSubscriberBodyTier;
   paymentAmount: string;
+  /** @nullable */
+  paymentProvider?: CreateSubscriberBodyPaymentProvider;
+  insuranceEntitled?: boolean;
+  coursesPerYear?: number;
+  coursesUsed?: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */

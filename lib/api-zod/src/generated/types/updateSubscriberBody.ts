@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateSubscriberBodyPaymentProvider } from "./updateSubscriberBodyPaymentProvider";
 import type { UpdateSubscriberBodyPaymentStatus } from "./updateSubscriberBodyPaymentStatus";
+import type { UpdateSubscriberBodyTier } from "./updateSubscriberBodyTier";
 
 export interface UpdateSubscriberBody {
   name?: string;
@@ -14,8 +16,15 @@ export interface UpdateSubscriberBody {
   apps?: string[];
   /** @nullable */
   kohortId?: number | null;
+  /** @nullable */
+  tier?: UpdateSubscriberBodyTier;
   paymentStatus?: UpdateSubscriberBodyPaymentStatus;
   paymentAmount?: string;
+  /** @nullable */
+  paymentProvider?: UpdateSubscriberBodyPaymentProvider;
+  insuranceEntitled?: boolean;
+  coursesPerYear?: number;
+  coursesUsed?: number;
   /** @nullable */
   voucherCode?: string | null;
   /** @nullable */

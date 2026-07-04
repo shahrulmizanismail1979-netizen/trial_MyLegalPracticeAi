@@ -44,9 +44,31 @@ export const ListSubscribersResponseItem = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  stripeCustomerId: zod.string().nullish(),
+  stripeSubscriptionId: zod.string().nullish(),
+  toyyibpayBillCode: zod.string().nullish(),
+  insuranceEntitled: zod.boolean(),
+  coursesPerYear: zod.number(),
+  coursesUsed: zod.number(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),
@@ -64,7 +86,26 @@ export const CreateSubscriberBody = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentAmount: zod.string(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  insuranceEntitled: zod.boolean().optional(),
+  coursesPerYear: zod.number().optional(),
+  coursesUsed: zod.number().optional(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
 });
@@ -83,9 +124,31 @@ export const GetSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  stripeCustomerId: zod.string().nullish(),
+  stripeSubscriptionId: zod.string().nullish(),
+  toyyibpayBillCode: zod.string().nullish(),
+  insuranceEntitled: zod.boolean(),
+  coursesPerYear: zod.number(),
+  coursesUsed: zod.number(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),
@@ -106,8 +169,27 @@ export const UpdateSubscriberBody = zod.object({
   phone: zod.string().optional(),
   apps: zod.array(zod.string()).optional(),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]).optional(),
   paymentAmount: zod.string().optional(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  insuranceEntitled: zod.boolean().optional(),
+  coursesPerYear: zod.number().optional(),
+  coursesUsed: zod.number().optional(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),
@@ -120,9 +202,31 @@ export const UpdateSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  stripeCustomerId: zod.string().nullish(),
+  stripeSubscriptionId: zod.string().nullish(),
+  toyyibpayBillCode: zod.string().nullish(),
+  insuranceEntitled: zod.boolean(),
+  coursesPerYear: zod.number(),
+  coursesUsed: zod.number(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),
@@ -338,9 +442,31 @@ export const ConfirmSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  stripeCustomerId: zod.string().nullish(),
+  stripeSubscriptionId: zod.string().nullish(),
+  toyyibpayBillCode: zod.string().nullish(),
+  insuranceEntitled: zod.boolean(),
+  coursesPerYear: zod.number(),
+  coursesUsed: zod.number(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),
@@ -362,9 +488,31 @@ export const RejectSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
+  tier: zod
+    .union([
+      zod.literal("bundle"),
+      zod.literal("single"),
+      zod.literal("standard"),
+      zod.literal(null),
+    ])
+    .nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
+  paymentProvider: zod
+    .union([
+      zod.literal("stripe"),
+      zod.literal("toyyibpay"),
+      zod.literal("manual"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  stripeCustomerId: zod.string().nullish(),
+  stripeSubscriptionId: zod.string().nullish(),
+  toyyibpayBillCode: zod.string().nullish(),
+  insuranceEntitled: zod.boolean(),
+  coursesPerYear: zod.number(),
+  coursesUsed: zod.number(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
   subscriptionExpiry: zod.coerce.date().nullish(),

@@ -715,6 +715,9 @@ components:
             type: string
         kohortId:
           type: ["integer", "null"]
+        tier:
+          type: ["string", "null"]
+          enum: [bundle, single, standard, null]
         paymentStatus:
           type: string
           enum: [pending, confirmed, rejected]
@@ -723,6 +726,21 @@ components:
         paymentDate:
           type: ["string", "null"]
           format: date-time
+        paymentProvider:
+          type: ["string", "null"]
+          enum: [stripe, toyyibpay, manual, null]
+        stripeCustomerId:
+          type: ["string", "null"]
+        stripeSubscriptionId:
+          type: ["string", "null"]
+        toyyibpayBillCode:
+          type: ["string", "null"]
+        insuranceEntitled:
+          type: boolean
+        coursesPerYear:
+          type: integer
+        coursesUsed:
+          type: integer
         voucherCode:
           type: ["string", "null"]
         notes:
@@ -744,6 +762,9 @@ components:
         - apps
         - paymentStatus
         - paymentAmount
+        - insuranceEntitled
+        - coursesPerYear
+        - coursesUsed
         - createdAt
         - updatedAt
 
@@ -762,8 +783,20 @@ components:
             type: string
         kohortId:
           type: ["integer", "null"]
+        tier:
+          type: ["string", "null"]
+          enum: [bundle, single, standard, null]
         paymentAmount:
           type: string
+        paymentProvider:
+          type: ["string", "null"]
+          enum: [stripe, toyyibpay, manual, null]
+        insuranceEntitled:
+          type: boolean
+        coursesPerYear:
+          type: integer
+        coursesUsed:
+          type: integer
         voucherCode:
           type: ["string", "null"]
         notes:
@@ -790,11 +823,23 @@ components:
             type: string
         kohortId:
           type: ["integer", "null"]
+        tier:
+          type: ["string", "null"]
+          enum: [bundle, single, standard, null]
         paymentStatus:
           type: string
           enum: [pending, confirmed, rejected]
         paymentAmount:
           type: string
+        paymentProvider:
+          type: ["string", "null"]
+          enum: [stripe, toyyibpay, manual, null]
+        insuranceEntitled:
+          type: boolean
+        coursesPerYear:
+          type: integer
+        coursesUsed:
+          type: integer
         voucherCode:
           type: ["string", "null"]
         notes:
