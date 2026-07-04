@@ -20,13 +20,13 @@ export default function Home() {
       
       <div className="relative z-10">
         <Hero />
+        <ContributeCTA />
         <AppsGrid />
         <Pricing />
         <FirmBundles />
         <CorporateBundles />
         <EducationBundles />
         <Payment />
-        <ContributeCTA />
         <Trust />
         <TermsPrivacy />
         <Footer />
