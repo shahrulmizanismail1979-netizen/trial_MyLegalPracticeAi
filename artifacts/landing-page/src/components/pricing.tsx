@@ -1,10 +1,34 @@
-import { Check, AlertCircle, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Check, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+type CheckoutTier = "bundle" | "single" | "standard";
+
 export function Pricing() {
-  const scrollToPayment = () => {
-    document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
+  const [loadingTier, setLoadingTier] = useState<CheckoutTier | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const startCheckout = async (tier: CheckoutTier) => {
+    setCheckoutError(null);
+    setLoadingTier(tier);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Could not start checkout. Please try again.");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setCheckoutError(
+        err instanceof Error ? err.message : "Could not start checkout. Please try again.",
+      );
+      setLoadingTier(null);
+    }
   };
 
   return (
@@ -43,8 +67,16 @@ export function Pricing() {
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
                 <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" onClick={scrollToPayment}>
-                  Get the Bundle
+                <Button
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12"
+                  onClick={() => startCheckout("bundle")}
+                  disabled={loadingTier !== null}
+                >
+                  {loadingTier === "bundle" ? (
+                    <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
+                  ) : (
+                    "Get the Bundle"
+                  )}
                 </Button>
               </div>
               <ul className="space-y-4">
@@ -97,13 +129,29 @@ export function Pricing() {
               </CardContent>
             </div>
             <CardFooter>
-              <Button variant="outline" className="w-full text-lg h-12" onClick={scrollToPayment}>
-                Select an App
+              <Button
+                variant="outline"
+                className="w-full text-lg h-12"
+                onClick={() => startCheckout("single")}
+                disabled={loadingTier !== null}
+              >
+                {loadingTier === "single" ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
+                ) : (
+                  "Select an App"
+                )}
               </Button>
             </CardFooter>
           </Card>
 
         </div>
+
+        {checkoutError && (
+          <div className="mt-8 max-w-2xl mx-auto flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{checkoutError}</span>
+          </div>
+        )}
 
         <div className="mt-12 text-center max-w-2xl mx-auto space-y-4">
           <div className="p-4 rounded-lg bg-secondary/50 border border-border">

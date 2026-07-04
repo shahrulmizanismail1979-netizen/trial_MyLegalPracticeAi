@@ -29,6 +29,9 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // Uses __dirname path traversal to locate its own SQL migrations folder,
+      // which breaks when bundled. Keep external so Node resolves it from node_modules.
+      "stripe-replit-sync",
       "pdf-parse",
       "@napi-rs/canvas",
       "sharp",
