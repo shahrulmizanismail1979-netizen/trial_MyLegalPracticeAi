@@ -51,7 +51,7 @@ const apps = [
     url: "#",
     tag: "Firm Management",
     comingSoon: true,
-    price: "RM148",
+    price: "RM59",
   },
   {
     title: "MyJudicialAi",
@@ -59,7 +59,7 @@ const apps = [
     url: "#",
     tag: "Judiciary",
     comingSoon: true,
-    price: "RM148",
+    price: "RM59",
   },
   {
     title: "MyClientAi",
@@ -67,7 +67,7 @@ const apps = [
     url: "#",
     tag: "Client Mgmt",
     comingSoon: true,
-    price: "RM148",
+    price: "RM59",
   },
   {
     title: "MyLawAcad",
@@ -75,7 +75,7 @@ const apps = [
     url: "#",
     tag: "Lecturers",
     comingSoon: true,
-    price: "RM148",
+    price: "RM59",
   },
   {
     title: "MyLawResearch",
@@ -83,7 +83,7 @@ const apps = [
     url: "#",
     tag: "Publications",
     comingSoon: true,
-    price: "RM148",
+    price: "RM59",
   },
 ];
 
@@ -169,7 +169,7 @@ export function AppsGrid() {
                     <div className="mt-auto space-y-4">
                       <div className="flex items-baseline gap-2">
                         <span className="text-3xl font-bold text-foreground">{app.price}</span>
-                        <span className="text-sm text-muted-foreground">pre-order price</span>
+                        <span className="text-sm text-muted-foreground">/month pre-order price</span>
                       </div>
 
                       <div className="flex items-start gap-2 rounded-lg bg-amber-400/5 border border-amber-400/20 p-3">

@@ -39,9 +39,10 @@ export function Pricing() {
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-5xl font-bold text-foreground">RM900</span>
+                  <span className="text-5xl font-bold text-foreground">RM199</span>
+                  <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <p className="text-muted-foreground mb-6">One-off payment</p>
+                <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
                 <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" onClick={scrollToPayment}>
                   Get the Bundle
                 </Button>
@@ -49,7 +50,7 @@ export function Pricing() {
               <ul className="space-y-4">
                 {[
                   "Access to all 7 AI Portals",
-                  "1-year subscription included",
+                  "Monthly subscription — cancel anytime",
                   "1 user license",
                   "Free platform updates",
                   "Priority support"
@@ -72,14 +73,15 @@ export function Pricing() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">RM148</span>
+                  <span className="text-4xl font-bold text-foreground">RM59</span>
+                  <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <p className="text-muted-foreground mb-8">One-off payment (2nd Kohort)</p>
+                <p className="text-muted-foreground mb-8">Billed monthly (2nd Kohort)</p>
                 
                 <ul className="space-y-4 mb-8">
                   {[
                     "Access to 1 AI Portal of choice",
-                    "1-year subscription included",
+                    "Monthly subscription — cancel anytime",
                     "1 user license"
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
@@ -102,7 +104,7 @@ export function Pricing() {
         <div className="mt-12 text-center max-w-2xl mx-auto space-y-4">
           <div className="p-4 rounded-lg bg-secondary/50 border border-border">
             <h4 className="font-bold text-foreground mb-1">Standard Price (101st buyer onwards)</h4>
-            <p className="text-muted-foreground">RM280 per app (1-year subscription, 1 user)</p>
+            <p className="text-muted-foreground">RM89 per app / month (1 user)</p>
           </div>
           <div className="p-5 rounded-lg bg-primary/5 border border-primary/20 text-left">
             <div className="flex items-start gap-3">
@@ -110,10 +112,10 @@ export function Pricing() {
               <div>
                 <h4 className="font-bold text-primary mb-1">All prices are for the Starter Package</h4>
                 <p className="text-sm text-muted-foreground">
-                  Every package above is a <span className="text-foreground font-medium">1-year starter subscription</span> covering
-                  the current AI Portals and features. As we roll out more advanced AI features over time, those
-                  will be offered on a <span className="text-foreground font-medium">pay-as-you-go basis</span> — charged
-                  according to actual usage, so you only pay for what you use.
+                  Every package above is a <span className="text-foreground font-medium">monthly starter subscription</span> covering
+                  the current AI Portals and features — billed each month, cancel anytime. As we roll out more advanced
+                  AI features over time, those will be offered on a <span className="text-foreground font-medium">pay-as-you-go basis</span> —
+                  charged according to actual usage, so you only pay for what you use.
                 </p>
               </div>
             </div>

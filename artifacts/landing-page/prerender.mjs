@@ -32,12 +32,18 @@ try {
 }
 injectInto(resolve(__dirname, "dist/public/index.html"), homeHtml, "/");
 
+// /contribute is an interactive, noindex form page. SSR of its body carries no
+// SEO value (the metadata lives in the static contribute.html template and the
+// app client-renders via createRoot). If prerender fails — e.g. a hook that
+// relies on browser-only APIs / useSyncExternalStore without a server snapshot —
+// fall back to client rendering instead of failing the whole build.
 console.log("Prerender: rendering /contribute to string...");
-let contributeHtml;
 try {
-  contributeHtml = render("/contribute");
+  const contributeHtml = render("/contribute");
+  injectInto(resolve(__dirname, "dist/public/contribute.html"), contributeHtml, "/contribute");
 } catch (err) {
-  console.error("Prerender: renderToString failed for /contribute —", err.message);
-  process.exit(1);
+  console.warn(
+    "Prerender: skipping SSR for /contribute (will client-render) —",
+    err.message,
+  );
 }
-injectInto(resolve(__dirname, "dist/public/contribute.html"), contributeHtml, "/contribute");
