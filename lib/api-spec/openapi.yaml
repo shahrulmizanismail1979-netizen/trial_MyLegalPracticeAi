@@ -728,12 +728,10 @@ components:
           format: date-time
         paymentProvider:
           type: ["string", "null"]
-          enum: [stripe, toyyibpay, manual, null]
+          enum: [stripe, manual, null]
         stripeCustomerId:
           type: ["string", "null"]
         stripeSubscriptionId:
-          type: ["string", "null"]
-        toyyibpayBillCode:
           type: ["string", "null"]
         insuranceEntitled:
           type: boolean
@@ -790,7 +788,7 @@ components:
           type: string
         paymentProvider:
           type: ["string", "null"]
-          enum: [stripe, toyyibpay, manual, null]
+          enum: [stripe, manual, null]
         insuranceEntitled:
           type: boolean
         coursesPerYear:
@@ -833,7 +831,7 @@ components:
           type: string
         paymentProvider:
           type: ["string", "null"]
-          enum: [stripe, toyyibpay, manual, null]
+          enum: [stripe, manual, null]
         insuranceEntitled:
           type: boolean
         coursesPerYear:

@@ -15,6 +15,5 @@ export type SubscriberPaymentProvider =
 
 export const SubscriberPaymentProvider = {
   stripe: "stripe",
-  toyyibpay: "toyyibpay",
   manual: "manual",
 } as const;

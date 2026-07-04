@@ -40,7 +40,6 @@ export type SubscriberPaymentProvider =
 
 export const SubscriberPaymentProvider = {
   stripe: "stripe",
-  toyyibpay: "toyyibpay",
   manual: "manual",
 } as const;
 
@@ -64,8 +63,6 @@ export interface Subscriber {
   stripeCustomerId?: string | null;
   /** @nullable */
   stripeSubscriptionId?: string | null;
-  /** @nullable */
-  toyyibpayBillCode?: string | null;
   insuranceEntitled: boolean;
   coursesPerYear: number;
   coursesUsed: number;
@@ -101,7 +98,6 @@ export type CreateSubscriberBodyPaymentProvider =
 
 export const CreateSubscriberBodyPaymentProvider = {
   stripe: "stripe",
-  toyyibpay: "toyyibpay",
   manual: "manual",
 } as const;
 
@@ -157,7 +153,6 @@ export type UpdateSubscriberBodyPaymentProvider =
 
 export const UpdateSubscriberBodyPaymentProvider = {
   stripe: "stripe",
-  toyyibpay: "toyyibpay",
   manual: "manual",
 } as const;
 

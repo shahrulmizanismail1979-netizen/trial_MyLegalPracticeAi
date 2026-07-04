@@ -56,16 +56,10 @@ export const ListSubscribersResponseItem = zod.object({
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   stripeCustomerId: zod.string().nullish(),
   stripeSubscriptionId: zod.string().nullish(),
-  toyyibpayBillCode: zod.string().nullish(),
   insuranceEntitled: zod.boolean(),
   coursesPerYear: zod.number(),
   coursesUsed: zod.number(),
@@ -96,12 +90,7 @@ export const CreateSubscriberBody = zod.object({
     .nullish(),
   paymentAmount: zod.string(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   insuranceEntitled: zod.boolean().optional(),
   coursesPerYear: zod.number().optional(),
@@ -136,16 +125,10 @@ export const GetSubscriberResponse = zod.object({
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   stripeCustomerId: zod.string().nullish(),
   stripeSubscriptionId: zod.string().nullish(),
-  toyyibpayBillCode: zod.string().nullish(),
   insuranceEntitled: zod.boolean(),
   coursesPerYear: zod.number(),
   coursesUsed: zod.number(),
@@ -180,12 +163,7 @@ export const UpdateSubscriberBody = zod.object({
   paymentStatus: zod.enum(["pending", "confirmed", "rejected"]).optional(),
   paymentAmount: zod.string().optional(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   insuranceEntitled: zod.boolean().optional(),
   coursesPerYear: zod.number().optional(),
@@ -214,16 +192,10 @@ export const UpdateSubscriberResponse = zod.object({
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   stripeCustomerId: zod.string().nullish(),
   stripeSubscriptionId: zod.string().nullish(),
-  toyyibpayBillCode: zod.string().nullish(),
   insuranceEntitled: zod.boolean(),
   coursesPerYear: zod.number(),
   coursesUsed: zod.number(),
@@ -454,16 +426,10 @@ export const ConfirmSubscriberResponse = zod.object({
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   stripeCustomerId: zod.string().nullish(),
   stripeSubscriptionId: zod.string().nullish(),
-  toyyibpayBillCode: zod.string().nullish(),
   insuranceEntitled: zod.boolean(),
   coursesPerYear: zod.number(),
   coursesUsed: zod.number(),
@@ -500,16 +466,10 @@ export const RejectSubscriberResponse = zod.object({
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
-    .union([
-      zod.literal("stripe"),
-      zod.literal("toyyibpay"),
-      zod.literal("manual"),
-      zod.literal(null),
-    ])
+    .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
     .nullish(),
   stripeCustomerId: zod.string().nullish(),
   stripeSubscriptionId: zod.string().nullish(),
-  toyyibpayBillCode: zod.string().nullish(),
   insuranceEntitled: zod.boolean(),
   coursesPerYear: zod.number(),
   coursesUsed: zod.number(),

@@ -29,8 +29,6 @@ export interface Subscriber {
   stripeCustomerId?: string | null;
   /** @nullable */
   stripeSubscriptionId?: string | null;
-  /** @nullable */
-  toyyibpayBillCode?: string | null;
   insuranceEntitled: boolean;
   coursesPerYear: number;
   coursesUsed: number;
