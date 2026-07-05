@@ -39,6 +39,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /stats/subscribers-by-app:
+    get:
+      operationId: getAppSubscriberStats
+      tags: [dashboard]
+      summary: Public subscriber counts per app
+      description: Returns confirmed subscriber counts for each AI Portal. Public endpoint — no authentication required.
+      responses:
+        "200":
+          description: Per-app subscriber counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppSubscriberStat"
+
   /admin/dashboard:
     get:
       operationId: getDashboardStats
@@ -1263,6 +1279,17 @@ components:
         - fileName
         - objectPath
         - createdAt
+
+    AppSubscriberStat:
+      type: object
+      properties:
+        appName:
+          type: string
+        count:
+          type: integer
+      required:
+        - appName
+        - count
 
     CreateContributionBody:
       type: object

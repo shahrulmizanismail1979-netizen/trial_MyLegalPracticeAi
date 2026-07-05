@@ -16,6 +16,18 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * Returns confirmed subscriber counts for each AI Portal. Public endpoint — no authentication required.
+ * @summary Public subscriber counts per app
+ */
+export const GetAppSubscriberStatsResponseItem = zod.object({
+  appName: zod.string(),
+  count: zod.number(),
+});
+export const GetAppSubscriberStatsResponse = zod.array(
+  GetAppSubscriberStatsResponseItem,
+);
+
+/**
  * @summary Get dashboard statistics
  */
 export const GetDashboardStatsResponse = zod.object({

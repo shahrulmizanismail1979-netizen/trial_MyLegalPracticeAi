@@ -1,5 +1,6 @@
 import { Hero } from "@/components/hero";
 import { AppsGrid } from "@/components/apps-grid";
+import { SubscriberStats } from "@/components/subscriber-stats";
 import { Pricing } from "@/components/pricing";
 import { FirmBundles } from "@/components/firm-bundles";
 import { CorporateBundles } from "@/components/corporate-bundles";
@@ -23,6 +24,7 @@ export default function Home() {
         <Hero />
         <ContributeCTA />
         <AppsGrid />
+        <SubscriberStats />
         <Pricing />
         <FirmBundles />
         <CorporateBundles />

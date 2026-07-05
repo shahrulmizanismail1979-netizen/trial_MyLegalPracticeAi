@@ -18,6 +18,7 @@ import type {
 
 import type {
   ActivityEntry,
+  AppSubscriberStat,
   Contribution,
   CreateContributionBody,
   CreateKohortBody,
@@ -123,6 +124,82 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns confirmed subscriber counts for each AI Portal. Public endpoint — no authentication required.
+ * @summary Public subscriber counts per app
+ */
+export const getGetAppSubscriberStatsUrl = () => {
+  return `/api/stats/subscribers-by-app`;
+};
+
+export const getAppSubscriberStats = async (
+  options?: RequestInit,
+): Promise<AppSubscriberStat[]> => {
+  return customFetch<AppSubscriberStat[]>(getGetAppSubscriberStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAppSubscriberStatsQueryKey = () => {
+  return [`/api/stats/subscribers-by-app`] as const;
+};
+
+export const getGetAppSubscriberStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAppSubscriberStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAppSubscriberStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAppSubscriberStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAppSubscriberStats>>
+  > = ({ signal }) => getAppSubscriberStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAppSubscriberStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAppSubscriberStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAppSubscriberStats>>
+>;
+export type GetAppSubscriberStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Public subscriber counts per app
+ */
+
+export function useGetAppSubscriberStats<
+  TData = Awaited<ReturnType<typeof getAppSubscriberStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAppSubscriberStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAppSubscriberStatsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

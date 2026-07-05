@@ -437,6 +437,11 @@ export interface KnowledgeBaseEntry {
   createdAt: string;
 }
 
+export interface AppSubscriberStat {
+  appName: string;
+  count: number;
+}
+
 export type CreateContributionBodyCategoriesItem =
   (typeof CreateContributionBodyCategoriesItem)[keyof typeof CreateContributionBodyCategoriesItem];
 
