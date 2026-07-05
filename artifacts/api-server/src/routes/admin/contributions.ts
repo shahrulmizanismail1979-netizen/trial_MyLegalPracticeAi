@@ -107,23 +107,46 @@ router.patch("/contributions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  // Contribution credits: first approval earns a single-use "1 free month"
-  // promotion code, created in Stripe and mirrored in the vouchers table.
+  // Commit the status/field update unconditionally — approval must always succeed.
+  const [contribution] = await db
+    .update(contributionsTable)
+    .set(updates)
+    .where(eq(contributionsTable.id, params.data.id))
+    .returning();
+
+  if (!contribution) {
+    res.status(404).json({ error: "Contribution not found" });
+    return;
+  }
+
+  if (parsed.data.status) {
+    await db.insert(activityTable).values({
+      type: "contribution_status_changed",
+      description: `Contribution "${contribution.title}" marked ${parsed.data.status}`,
+    });
+  }
+
+  // Respond immediately with the approved contribution — reward issuance is
+  // best-effort and must not gate the status transition.
+  res.json(UpdateContributionResponse.parse(contribution));
+
+  // Best-effort reward: first approval of a contribution earns a single-use
+  // "1 free month" promo code created in Stripe and mirrored to vouchers.
   if (
     parsed.data.status === "approved" &&
     existing.status !== "approved" &&
     !existing.rewardVoucherCode
   ) {
-    // Deterministic per contribution so retries reuse the same code and the
-    // Stripe idempotency keys below stay consistent across attempts.
+    // Deterministic code per contribution so retries produce the same value and
+    // Stripe idempotency keys stay consistent across attempts.
     const code = `THANKS-${createHash("sha256")
       .update(`contribution-reward-${existing.id}`)
       .digest("hex")
       .slice(0, 8)
       .toUpperCase()}`;
 
-    // Atomically claim issuance: only one request can set the code while it is
-    // still NULL, so concurrent approvals cannot double-issue rewards.
+    // Atomically claim issuance so concurrent approval requests cannot
+    // double-issue rewards.
     const [claimed] = await db
       .update(contributionsTable)
       .set({ rewardVoucherCode: code })
@@ -163,8 +186,27 @@ router.patch("/contributions/:id", async (req, res): Promise<void> => {
           },
           { idempotencyKey: `contrib-reward-promo-${existing.id}` },
         );
+
+        await db
+          .insert(vouchersTable)
+          .values({
+            code,
+            discountType: "percentage",
+            discountValue: "100",
+            maxUses: 1,
+            appFilter: null,
+            validFrom: new Date(),
+            validUntil: null,
+            isActive: true,
+          })
+          .onConflictDoNothing({ target: vouchersTable.code });
+
+        await db.insert(activityTable).values({
+          type: "voucher_created",
+          description: `Reward voucher ${code} (1 free month) issued to ${existing.contributorName} for contribution "${existing.title}"`,
+        });
       } catch (err) {
-        // Release the claim so a later approval attempt can retry issuance.
+        // Release the claim so a later retry can re-attempt issuance.
         await db
           .update(contributionsTable)
           .set({ rewardVoucherCode: null })
@@ -176,55 +218,15 @@ router.patch("/contributions/:id", async (req, res): Promise<void> => {
           );
         req.log.error(
           { err, contributionId: existing.id },
-          "Failed to create reward voucher in Stripe",
+          "Reward voucher issuance failed — approval committed but voucher not created; re-approve to retry",
         );
-        res.status(502).json({
-          error:
-            "Approval not completed: the reward voucher could not be created in Stripe. Please try again.",
+        await db.insert(activityTable).values({
+          type: "voucher_created",
+          description: `⚠ Reward voucher issuance failed for "${existing.title}" (contributor: ${existing.contributorEmail}) — re-approve to retry`,
         });
-        return;
       }
-
-      await db
-        .insert(vouchersTable)
-        .values({
-          code,
-          discountType: "percentage",
-          discountValue: "100",
-          maxUses: 1,
-          appFilter: null,
-          validFrom: new Date(),
-          validUntil: null,
-          isActive: true,
-        })
-        .onConflictDoNothing({ target: vouchersTable.code });
-
-      await db.insert(activityTable).values({
-        type: "voucher_created",
-        description: `Reward voucher ${code} (1 free month) issued to ${existing.contributorName} for contribution "${existing.title}"`,
-      });
     }
   }
-
-  const [contribution] = await db
-    .update(contributionsTable)
-    .set(updates)
-    .where(eq(contributionsTable.id, params.data.id))
-    .returning();
-
-  if (!contribution) {
-    res.status(404).json({ error: "Contribution not found" });
-    return;
-  }
-
-  if (parsed.data.status) {
-    await db.insert(activityTable).values({
-      type: "contribution_status_changed",
-      description: `Contribution "${contribution.title}" marked ${parsed.data.status}`,
-    });
-  }
-
-  res.json(UpdateContributionResponse.parse(contribution));
 });
 
 router.delete("/contributions/:id", async (req, res): Promise<void> => {
