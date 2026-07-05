@@ -1,12 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { useClerk, useUser } from "@clerk/react";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Layers, 
-  CreditCard, 
+import {
+  LayoutDashboard,
+  Users,
+  Layers,
+  CreditCard,
   Ticket,
   FileText,
+  BarChart3,
   LogOut,
   ArrowLeft
 } from "lucide-react";
@@ -20,6 +21,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Overview" },
+    { href: "/admin/app-stats", icon: BarChart3, label: "App Stats" },
     { href: "/admin/subscribers", icon: Users, label: "Subscribers" },
     { href: "/admin/contributions", icon: FileText, label: "Contributions" },
     { href: "/admin/kohorts", icon: Layers, label: "Kohorts" },

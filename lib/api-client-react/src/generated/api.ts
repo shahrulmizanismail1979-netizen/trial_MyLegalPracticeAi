@@ -18,6 +18,7 @@ import type {
 
 import type {
   ActivityEntry,
+  AppStat,
   AppSubscriberStat,
   Contribution,
   CreateContributionBody,
@@ -37,6 +38,7 @@ import type {
   PricingEntry,
   RevenueByApp,
   Subscriber,
+  UpdateAppStatBody,
   UpdateContributionBody,
   UpdateKohortBody,
   UpdatePricingBody,
@@ -1970,6 +1972,168 @@ export function useGetRevenueByApp<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all app subscriber counts
+ */
+export const getListAppStatsUrl = () => {
+  return `/api/admin/app-stats`;
+};
+
+export const listAppStats = async (
+  options?: RequestInit,
+): Promise<AppStat[]> => {
+  return customFetch<AppStat[]>(getListAppStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAppStatsQueryKey = () => {
+  return [`/api/admin/app-stats`] as const;
+};
+
+export const getListAppStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAppStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAppStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAppStatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppStats>>> = ({
+    signal,
+  }) => listAppStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAppStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAppStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAppStats>>
+>;
+export type ListAppStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all app subscriber counts
+ */
+
+export function useListAppStats<
+  TData = Awaited<ReturnType<typeof listAppStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAppStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAppStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update subscriber count for an app
+ */
+export const getUpdateAppStatUrl = (appName: string) => {
+  return `/api/admin/app-stats/${appName}`;
+};
+
+export const updateAppStat = async (
+  appName: string,
+  updateAppStatBody: UpdateAppStatBody,
+  options?: RequestInit,
+): Promise<AppStat> => {
+  return customFetch<AppStat>(getUpdateAppStatUrl(appName), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateAppStatBody),
+  });
+};
+
+export const getUpdateAppStatMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppStat>>,
+    TError,
+    { appName: string; data: BodyType<UpdateAppStatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAppStat>>,
+  TError,
+  { appName: string; data: BodyType<UpdateAppStatBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAppStat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAppStat>>,
+    { appName: string; data: BodyType<UpdateAppStatBody> }
+  > = (props) => {
+    const { appName, data } = props ?? {};
+
+    return updateAppStat(appName, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAppStatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAppStat>>
+>;
+export type UpdateAppStatMutationBody = BodyType<UpdateAppStatBody>;
+export type UpdateAppStatMutationError = ErrorType<void>;
+
+/**
+ * @summary Update subscriber count for an app
+ */
+export const useUpdateAppStat = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAppStat>>,
+    TError,
+    { appName: string; data: BodyType<UpdateAppStatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAppStat>>,
+  TError,
+  { appName: string; data: BodyType<UpdateAppStatBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAppStatMutationOptions(options));
+};
 
 /**
  * Returns a presigned GCS URL for direct upload. The client sends JSON

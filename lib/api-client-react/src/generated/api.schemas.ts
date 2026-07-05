@@ -442,6 +442,17 @@ export interface AppSubscriberStat {
   count: number;
 }
 
+export interface AppStat {
+  appName: string;
+  subscriberCount: number;
+  updatedAt: string;
+}
+
+export interface UpdateAppStatBody {
+  /** @minimum 0 */
+  subscriberCount: number;
+}
+
 export type CreateContributionBodyCategoriesItem =
   (typeof CreateContributionBodyCategoriesItem)[keyof typeof CreateContributionBodyCategoriesItem];
 

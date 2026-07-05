@@ -532,6 +532,35 @@ export const GetRevenueByAppResponseItem = zod.object({
 export const GetRevenueByAppResponse = zod.array(GetRevenueByAppResponseItem);
 
 /**
+ * @summary List all app subscriber counts
+ */
+export const ListAppStatsResponseItem = zod.object({
+  appName: zod.string(),
+  subscriberCount: zod.number(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListAppStatsResponse = zod.array(ListAppStatsResponseItem);
+
+/**
+ * @summary Update subscriber count for an app
+ */
+export const UpdateAppStatParams = zod.object({
+  appName: zod.coerce.string(),
+});
+
+export const updateAppStatBodySubscriberCountMin = 0;
+
+export const UpdateAppStatBody = zod.object({
+  subscriberCount: zod.number().min(updateAppStatBodySubscriberCountMin),
+});
+
+export const UpdateAppStatResponse = zod.object({
+  appName: zod.string(),
+  subscriberCount: zod.number(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * Returns a presigned GCS URL for direct upload. The client sends JSON
 metadata here, then uploads the file directly to the returned URL.
 

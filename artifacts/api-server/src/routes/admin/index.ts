@@ -5,6 +5,7 @@ import pricingRouter from "./pricing";
 import vouchersRouter from "./vouchers";
 import dashboardRouter from "./dashboard";
 import contributionsRouter from "./contributions";
+import appStatsRouter from "./app-stats";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(pricingRouter);
 router.use(vouchersRouter);
 router.use(dashboardRouter);
 router.use(contributionsRouter);
+router.use(appStatsRouter);
 
 export default router;

@@ -10,6 +10,7 @@ import ContributePage from "@/pages/contribute";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AppStatsPage from "@/pages/admin/app-stats";
 import SubscribersPage from "@/pages/admin/subscribers";
 import KohortsPage from "@/pages/admin/kohorts";
 import PricingPage from "@/pages/admin/pricing";
@@ -59,6 +60,11 @@ function Router() {
       <Route path="/admin">
         <AdminGuard>
           <AdminDashboard />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/app-stats">
+        <AdminGuard>
+          <AppStatsPage />
         </AdminGuard>
       </Route>
       <Route path="/admin/subscribers">
