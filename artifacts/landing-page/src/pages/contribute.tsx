@@ -74,6 +74,9 @@ function formatSize(bytes: number): string {
 }
 
 export default function ContributePage() {
+  const isJudgment =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("type") === "judgment";
   const [files, setFiles] = useState<TrackedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submittedCount, setSubmittedCount] = useState<number | null>(null);
@@ -88,7 +91,7 @@ export default function ContributePage() {
       contributorName: "",
       contributorEmail: "",
       contributorPhone: "",
-      title: "",
+      title: isJudgment ? "Case Judgment" : "",
       description: "",
     },
   });
@@ -216,13 +219,15 @@ export default function ContributePage() {
 
         <div className="mb-10">
           <Badge variant="secondary" className="mb-4 font-mono uppercase tracking-wider">
-            Contribute
+            {isJudgment ? "Case Repository" : "Contribute"}
           </Badge>
-          <h1 className="text-4xl font-serif font-bold">Strengthen the corpus</h1>
+          <h1 className="text-4xl font-serif font-bold">
+            {isJudgment ? "Contribute a case judgment" : "Strengthen the corpus"}
+          </h1>
           <p className="text-muted-foreground mt-3 max-w-2xl">
-            Share soft-copy cause papers and legal documents to help every AI Portals app
-            learn from real Malaysian legal practice. Upload documents in any format — PDF,
-            Word, scans, or archives. Text is extracted automatically where possible.
+            {isJudgment
+              ? "Share written judgments and grounds of judgment from cases handled in your own legal practice. They are stored in the shared case repository used by all AI Portals apps. Upload in any format — PDF, Word, scans, or archives. Text is extracted automatically where possible."
+              : "Share soft-copy cause papers and legal documents to help every AI Portals app learn from real Malaysian legal practice. Upload documents in any format — PDF, Word, scans, or archives. Text is extracted automatically where possible."}
           </p>
         </div>
 
