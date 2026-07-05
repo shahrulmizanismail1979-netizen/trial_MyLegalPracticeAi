@@ -30,6 +30,8 @@ export interface Contribution {
   status: ContributionStatus;
   /** @nullable */
   adminNotes?: string | null;
+  /** @nullable */
+  rewardVoucherCode?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

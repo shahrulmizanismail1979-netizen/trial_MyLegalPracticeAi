@@ -324,6 +324,8 @@ export const ActivityEntryType = {
   voucher_created: "voucher_created",
   kohort_updated: "kohort_updated",
   price_changed: "price_changed",
+  contribution_added: "contribution_added",
+  contribution_status_changed: "contribution_status_changed",
 } as const;
 
 export interface ActivityEntry {
@@ -412,6 +414,8 @@ export interface Contribution {
   status: ContributionStatus;
   /** @nullable */
   adminNotes?: string | null;
+  /** @nullable */
+  rewardVoucherCode?: string | null;
   createdAt: string;
   updatedAt: string;
 }

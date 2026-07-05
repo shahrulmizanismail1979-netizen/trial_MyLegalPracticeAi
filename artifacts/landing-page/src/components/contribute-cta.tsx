@@ -23,7 +23,11 @@ export function ContributeCTA() {
               train and improve the AI Portals, so the apps become smarter, more accurate,
               and more useful to every lawyer who subscribes. Our team carefully reviews
               every contribution before it joins the knowledge base, so only accurate,
-              relevant, and appropriately anonymised materials are adopted.
+              relevant, and appropriately anonymised materials are adopted.{" "}
+              <span className="text-foreground font-medium">
+                And it pays you back: every approved contribution earns you a voucher for
+                1 month free on any subscription.
+              </span>
             </p>
             <Button size="lg" className="group self-start" asChild>
               <a href={`${import.meta.env.BASE_URL}contribute`}>
@@ -51,7 +55,11 @@ export function ContributeCTA() {
               apps, giving every portal a growing library of real Malaysian case outcomes to
               draw on. Judgments are reviewed before they are added, and the richer the case
               repository becomes, the better every app can assist the lawyers who subscribe
-              to it.
+              to it.{" "}
+              <span className="text-foreground font-medium">
+                Every approved judgment also earns you a voucher for 1 month free on any
+                subscription.
+              </span>
             </p>
             <Button size="lg" className="group self-start" asChild>
               <a href={`${import.meta.env.BASE_URL}contribute?type=judgment`}>

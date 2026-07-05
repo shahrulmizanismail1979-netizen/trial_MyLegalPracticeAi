@@ -38,6 +38,7 @@ export const contributionsTable = pgTable("contributions", {
   extractionStatus: text("extraction_status").notNull().default("pending"),
   status: text("status").notNull().default("pending"),
   adminNotes: text("admin_notes"),
+  rewardVoucherCode: text("reward_voucher_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

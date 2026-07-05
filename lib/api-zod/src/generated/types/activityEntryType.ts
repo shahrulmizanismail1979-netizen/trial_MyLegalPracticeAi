@@ -16,4 +16,6 @@ export const ActivityEntryType = {
   voucher_created: "voucher_created",
   kohort_updated: "kohort_updated",
   price_changed: "price_changed",
+  contribution_added: "contribution_added",
+  contribution_status_changed: "contribution_status_changed",
 } as const;

@@ -1,3 +1,4 @@
 - [SSR prerender for interactive/noindex routes](ssr-prerender-noindex-routes.md) — landing-page build must not let noindex/interactive route SSR crash the build; only indexed routes (`/`) fail hard.
 - [Private object download access control](object-storage-access-control.md) — /api/storage/objects/* is staff-only unless the file belongs to an approved contribution; web auth is a Clerk cookie, so it works on plain navigations too.
 - [stripe-replit-sync bundling & credentials](stripe-replit-sync-bundling.md) — externalize stripe-replit-sync in esbuild (migrations use __dirname); connector field is `secret` not `secret_key`; return URLs must come from server env, not Origin header.
+- [Stripe promo codes for one-off rewards](stripe-reward-promo-codes.md) — v22 needs `promotion: {type:"coupon"}`; issue reward codes via atomic DB claim + deterministic code + idempotency keys.

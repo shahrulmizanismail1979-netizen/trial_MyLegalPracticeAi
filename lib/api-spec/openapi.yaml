@@ -1108,7 +1108,7 @@ components:
           type: integer
         type:
           type: string
-          enum: [subscriber_added, payment_confirmed, payment_rejected, voucher_created, kohort_updated, price_changed]
+          enum: [subscriber_added, payment_confirmed, payment_rejected, voucher_created, kohort_updated, price_changed, contribution_added, contribution_status_changed]
         description:
           type: string
         metadata:
@@ -1206,6 +1206,8 @@ components:
           type: string
           enum: [pending, approved, rejected]
         adminNotes:
+          type: ["string", "null"]
+        rewardVoucherCode:
           type: ["string", "null"]
         createdAt:
           type: string

@@ -498,6 +498,8 @@ export const GetRecentActivityResponseItem = zod.object({
     "voucher_created",
     "kohort_updated",
     "price_changed",
+    "contribution_added",
+    "contribution_status_changed",
   ]),
   description: zod.string(),
   metadata: zod.string().nullish(),
@@ -665,6 +667,7 @@ export const ListContributionsResponseItem = zod.object({
   extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
   status: zod.enum(["pending", "approved", "rejected"]),
   adminNotes: zod.string().nullish(),
+  rewardVoucherCode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -695,6 +698,7 @@ export const GetContributionResponse = zod.object({
   extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
   status: zod.enum(["pending", "approved", "rejected"]),
   adminNotes: zod.string().nullish(),
+  rewardVoucherCode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -730,6 +734,7 @@ export const UpdateContributionResponse = zod.object({
   extractionStatus: zod.enum(["pending", "extracted", "unsupported", "failed"]),
   status: zod.enum(["pending", "approved", "rejected"]),
   adminNotes: zod.string().nullish(),
+  rewardVoucherCode: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

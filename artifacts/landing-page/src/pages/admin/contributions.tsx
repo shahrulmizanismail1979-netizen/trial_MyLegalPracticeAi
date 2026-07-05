@@ -89,6 +89,7 @@ type Contribution = {
   extractionStatus: string;
   status: string;
   adminNotes?: string | null;
+  rewardVoucherCode?: string | null;
   createdAt: string | Date;
 };
 
@@ -121,12 +122,19 @@ export default function ContributionsPage() {
     updateContribution.mutate(
       { id, data: { status } },
       {
-        onSuccess: () => {
-          toast.success(
-            status === "approved"
-              ? "Adopted into knowledge base"
-              : `Marked ${status}`,
-          );
+        onSuccess: (updated) => {
+          if (status === "approved" && updated?.rewardVoucherCode) {
+            toast.success(
+              `Adopted into knowledge base — reward voucher ${updated.rewardVoucherCode} (1 free month) issued. Share it with the contributor.`,
+              { duration: 10000 },
+            );
+          } else {
+            toast.success(
+              status === "approved"
+                ? "Adopted into knowledge base"
+                : `Marked ${status}`,
+            );
+          }
           invalidate();
         },
         onError: () => toast.error("Failed to update status"),
@@ -341,6 +349,32 @@ export default function ContributionsPage() {
                   }
                 />
               </div>
+              {viewing.rewardVoucherCode && (
+                <div className="rounded-md border border-green-500/20 bg-green-500/10 p-3">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                    Reward voucher (1 free month)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="font-mono font-semibold">
+                      {viewing.rewardVoucherCode}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(viewing.rewardVoucherCode!);
+                        toast.success("Voucher code copied");
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Send this code to {viewing.contributorEmail} — it can be redeemed
+                    once at checkout.
+                  </p>
+                </div>
+              )}
               {viewing.description && (
                 <div>
                   <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">

@@ -235,7 +235,12 @@ export default function ContributePage() {
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
             Contributions are reviewed before being adopted into the knowledge base. Please
-            only upload documents you are entitled to share.
+            only upload documents you are entitled to share.{" "}
+            <span className="text-foreground font-medium">
+              Every approved contribution earns you a voucher for 1 month free — once your
+              contribution is approved, our team will send the voucher code to the email
+              address you provide below.
+            </span>
           </p>
         </div>
 
