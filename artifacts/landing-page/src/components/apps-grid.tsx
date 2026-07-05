@@ -3,77 +3,77 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const apps = [
   {
     title: "MyLitAI",
-    description: "AI-powered virtual paralegal for litigation matters — case analysis, drafting assistance, and procedural guidance",
+    description: "Draft cause papers, analyse case strategies, and navigate Malaysian civil procedure with an AI litigation assistant.",
     url: "https://mylitai.life",
     tag: "Litigation"
   },
   {
     title: "MySyalitAI",
-    description: "AI-powered virtual paralegal for Syariah litigation matters",
+    description: "Draft syarie pleadings, check Syariah procedure rules, and prepare submissions for Syariah Court matters.",
     url: "https://mysyalitai.life",
     tag: "Syariah"
   },
   {
     title: "MyCorpAI",
-    description: "AI-powered virtual paralegal for corporate secretary matters — board resolutions, compliance, and company law",
+    description: "Prepare board resolutions, manage Companies Act compliance, and handle corporate secretarial workflows.",
     url: "https://mycorpai.life",
     tag: "Corporate"
   },
   {
     title: "MyConveyAI",
-    description: "AI-powered virtual paralegal for conveyancing matters — drafting, searches, and transaction workflow",
+    description: "Draft sale & purchase agreements, conduct land title searches, and manage property transaction checklists.",
     url: "https://myconveyai.life",
     tag: "Conveyancing"
   },
   {
     title: "MyCrimAI",
-    description: "AI-powered virtual paralegal for criminal law matters — procedure, submissions, and sentencing guidance",
+    description: "Draft criminal submissions, research sentencing precedents, and navigate Rules of the Subordinate Courts.",
     url: "https://mycrimai.life/",
     tag: "Criminal"
   },
   {
     title: "MyCorpCommBankLitAi",
-    description: "AI-powered virtual paralegal for corporate, commercial & banking litigation matters",
+    description: "Handle corporate disputes, draft commercial agreements, and manage banking litigation matters.",
     url: "https://myccblitai.life/",
     tag: "Corp/Comm/Banking"
   },
   {
     title: "MyAccidentAi",
-    description: "AI-powered virtual paralegal for accident, personal injury & running down litigation matters",
+    description: "Draft personal injury claims, assess quantum of damages, and manage running-down cases.",
     url: "https://myaccidentai.life/",
     tag: "Accident & PI"
   },
   {
     title: "MyLawFirmAi",
-    description: "AI-powered law firm management & operations virtual paralegal",
+    description: "Manage firm HR, billing cycles, compliance deadlines, and operational workflows.",
     url: "#",
     tag: "Firm Management",
     comingSoon: true,
   },
   {
     title: "MyJudicialAi",
-    description: "AI-powered work management platform for judges & judicial officers — case scheduling, judgment drafting, bench notes and chambers admin",
+    description: "Schedule hearings, draft judgments, prepare bench notes, and manage chambers administration.",
     url: "#",
     tag: "Judiciary",
     comingSoon: true,
   },
   {
     title: "MyClientAi",
-    description: "AI-powered client intake, advisory & relationship management virtual paralegal",
+    description: "Handle client intake, manage case files, draft advisory notes, and track communication.",
     url: "#",
     tag: "Client Mgmt",
     comingSoon: true,
   },
   {
     title: "MyLawAcad",
-    description: "AI-powered work management platform for law teachers & lecturers — lesson planning, marking, supervision and academic admin",
+    description: "Plan lessons, draft assessments, manage student supervision, and handle academic administration.",
     url: "#",
     tag: "Lecturers",
     comingSoon: true,
   },
   {
     title: "MyLawResearch",
-    description: "AI-powered legal research assistant for academic publications — drafting, citations, literature review & journal submission",
+    description: "Draft articles, manage citations, conduct literature reviews, and prepare journal submissions.",
     url: "#",
     tag: "Publications",
     comingSoon: true,
