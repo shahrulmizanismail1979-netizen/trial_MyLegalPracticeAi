@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, arrayContains, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { db, contributionsTable, activityTable, vouchersTable } from "@workspace/db";
 import { getUncachableStripeClient } from "../../stripeClient";
@@ -25,7 +25,7 @@ router.get("/contributions", async (req, res): Promise<void> => {
   }
 
   if (query.success && query.data.category) {
-    conditions.push(eq(contributionsTable.category, query.data.category));
+    conditions.push(arrayContains(contributionsTable.categories, [query.data.category]));
   }
 
   if (query.success && query.data.search) {
@@ -86,8 +86,8 @@ router.patch("/contributions/:id", async (req, res): Promise<void> => {
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.description !== undefined)
     updates.description = parsed.data.description;
-  if (parsed.data.category !== undefined)
-    updates.category = parsed.data.category;
+  if (parsed.data.categories !== undefined)
+    updates.categories = parsed.data.categories;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
   if (parsed.data.adminNotes !== undefined)
     updates.adminNotes = parsed.data.adminNotes;

@@ -11,7 +11,8 @@ export interface UpdateContributionBody {
   title?: string;
   /** @nullable */
   description?: string | null;
-  category?: string;
+  /** @minItems 1 */
+  categories?: string[];
   status?: UpdateContributionBodyStatus;
   /** @nullable */
   adminNotes?: string | null;

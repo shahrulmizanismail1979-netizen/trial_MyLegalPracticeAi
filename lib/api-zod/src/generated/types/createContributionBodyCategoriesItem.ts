@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type CreateContributionBodyCategory =
-  (typeof CreateContributionBodyCategory)[keyof typeof CreateContributionBodyCategory];
+export type CreateContributionBodyCategoriesItem =
+  (typeof CreateContributionBodyCategoriesItem)[keyof typeof CreateContributionBodyCategoriesItem];
 
-export const CreateContributionBodyCategory = {
+export const CreateContributionBodyCategoriesItem = {
   Litigation: "Litigation",
   Syariah: "Syariah",
   Corporate_Secretary: "Corporate Secretary",

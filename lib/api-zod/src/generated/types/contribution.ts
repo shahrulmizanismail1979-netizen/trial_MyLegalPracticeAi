@@ -13,7 +13,8 @@ export interface Contribution {
   title: string;
   /** @nullable */
   description?: string | null;
-  category: string;
+  /** @minItems 1 */
+  categories: string[];
   contributorName: string;
   contributorEmail: string;
   /** @nullable */

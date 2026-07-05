@@ -397,7 +397,8 @@ export interface Contribution {
   title: string;
   /** @nullable */
   description?: string | null;
-  category: string;
+  /** @minItems 1 */
+  categories: string[];
   contributorName: string;
   contributorEmail: string;
   /** @nullable */
@@ -425,7 +426,8 @@ export interface KnowledgeBaseEntry {
   title: string;
   /** @nullable */
   description?: string | null;
-  category: string;
+  /** @minItems 1 */
+  categories: string[];
   fileName: string;
   objectPath: string;
   /** @nullable */
@@ -435,10 +437,10 @@ export interface KnowledgeBaseEntry {
   createdAt: string;
 }
 
-export type CreateContributionBodyCategory =
-  (typeof CreateContributionBodyCategory)[keyof typeof CreateContributionBodyCategory];
+export type CreateContributionBodyCategoriesItem =
+  (typeof CreateContributionBodyCategoriesItem)[keyof typeof CreateContributionBodyCategoriesItem];
 
-export const CreateContributionBodyCategory = {
+export const CreateContributionBodyCategoriesItem = {
   Litigation: "Litigation",
   Syariah: "Syariah",
   Corporate_Secretary: "Corporate Secretary",
@@ -454,7 +456,8 @@ export interface CreateContributionBody {
   title: string;
   /** @nullable */
   description?: string | null;
-  category: CreateContributionBodyCategory;
+  /** @minItems 1 */
+  categories: CreateContributionBodyCategoriesItem[];
   /** @minLength 1 */
   contributorName: string;
   /** @minLength 1 */
@@ -484,7 +487,8 @@ export interface UpdateContributionBody {
   title?: string;
   /** @nullable */
   description?: string | null;
-  category?: string;
+  /** @minItems 1 */
+  categories?: string[];
   status?: UpdateContributionBodyStatus;
   /** @nullable */
   adminNotes?: string | null;

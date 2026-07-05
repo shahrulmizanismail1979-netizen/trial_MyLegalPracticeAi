@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, arrayContains, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db, contributionsTable, activityTable } from "@workspace/db";
 import {
   CreateContributionBody,
@@ -53,7 +53,7 @@ router.post("/contributions", async (req, res): Promise<void> => {
     .values({
       title: data.title,
       description: data.description ?? null,
-      category: data.category,
+      categories: data.categories,
       contributorName: data.contributorName,
       contributorEmail: data.contributorEmail,
       contributorPhone: data.contributorPhone ?? null,
@@ -69,7 +69,7 @@ router.post("/contributions", async (req, res): Promise<void> => {
 
   await db.insert(activityTable).values({
     type: "contribution_added",
-    description: `New contribution "${data.title}" (${data.category}) from ${data.contributorName}`,
+    description: `New contribution "${data.title}" (${data.categories.join(", ")}) from ${data.contributorName}`,
   });
 
   res.status(201).json(GetContributionResponse.parse(contribution));
@@ -85,7 +85,7 @@ router.get("/knowledge-base", async (req, res): Promise<void> => {
   const conditions = [eq(contributionsTable.status, "approved")];
 
   if (query.success && query.data.category) {
-    conditions.push(eq(contributionsTable.category, query.data.category));
+    conditions.push(arrayContains(contributionsTable.categories, [query.data.category]));
   }
 
   if (query.success && query.data.search) {
@@ -103,7 +103,7 @@ router.get("/knowledge-base", async (req, res): Promise<void> => {
       id: contributionsTable.id,
       title: contributionsTable.title,
       description: contributionsTable.description,
-      category: contributionsTable.category,
+      categories: contributionsTable.categories,
       fileName: contributionsTable.fileName,
       objectPath: contributionsTable.objectPath,
       contentType: contributionsTable.contentType,
@@ -134,7 +134,7 @@ router.get("/knowledge-base/:id", async (req, res): Promise<void> => {
       id: contributionsTable.id,
       title: contributionsTable.title,
       description: contributionsTable.description,
-      category: contributionsTable.category,
+      categories: contributionsTable.categories,
       fileName: contributionsTable.fileName,
       objectPath: contributionsTable.objectPath,
       contentType: contributionsTable.contentType,

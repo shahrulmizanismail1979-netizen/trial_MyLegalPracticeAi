@@ -26,13 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 
@@ -51,9 +45,9 @@ const contributeSchema = z.object({
   contributorName: z.string().min(1, "Your name is required"),
   contributorEmail: z.string().email("Enter a valid email"),
   contributorPhone: z.string().optional(),
-  category: z.enum(CATEGORIES, {
-    message: "Please choose a category",
-  }),
+  categories: z
+    .array(z.enum(CATEGORIES))
+    .min(1, "Please choose at least one category"),
   title: z.string().optional(),
   description: z.string().optional(),
 });
@@ -91,6 +85,7 @@ export default function ContributePage() {
       contributorName: "",
       contributorEmail: "",
       contributorPhone: "",
+      categories: [],
       title: isJudgment ? "Case Judgment" : "",
       description: "",
     },
@@ -140,7 +135,7 @@ export default function ContributePage() {
           data: {
             title: titleBase ? `${titleBase} — ${file.name}` : file.name,
             description: values.description?.trim() || null,
-            category: values.category,
+            categories: values.categories,
             contributorName: values.contributorName,
             contributorEmail: values.contributorEmail,
             contributorPhone: values.contributorPhone?.trim() || null,
@@ -289,31 +284,42 @@ export default function ContributePage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a practice area" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="categories"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Categories (choose one or more)</FormLabel>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {CATEGORIES.map((cat) => {
+                      const checked = field.value?.includes(cat) ?? false;
+                      return (
+                        <label
+                          key={cat}
+                          className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm cursor-pointer hover:bg-muted/50"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(value) => {
+                              const current = field.value ?? [];
+                              field.onChange(
+                                value
+                                  ? [...current, cat]
+                                  : current.filter((c) => c !== cat),
+                              );
+                            }}
+                          />
+                          <span>{cat}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

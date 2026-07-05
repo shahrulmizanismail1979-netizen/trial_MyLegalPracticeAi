@@ -81,7 +81,7 @@ beforeAll(async () => {
   await db.insert(contributionsTable).values([
     {
       title: "Approved doc",
-      category: "Litigation",
+      categories: ["Litigation"],
       contributorName: "Alice",
       contributorEmail: "alice@example.com",
       fileName: "approved.txt",
@@ -90,7 +90,7 @@ beforeAll(async () => {
     },
     {
       title: "Pending doc",
-      category: "Litigation",
+      categories: ["Litigation"],
       contributorName: "Bob",
       contributorEmail: "bob@example.com",
       fileName: "pending.txt",

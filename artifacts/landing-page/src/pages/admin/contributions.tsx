@@ -77,7 +77,7 @@ type Contribution = {
   id: number;
   title: string;
   description?: string | null;
-  category: string;
+  categories: string[];
   contributorName: string;
   contributorEmail: string;
   contributorPhone?: string | null;
@@ -254,9 +254,17 @@ export default function ContributionsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {c.category}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {c.categories.map((cat) => (
+                          <Badge
+                            key={cat}
+                            variant="secondary"
+                            className="text-[10px]"
+                          >
+                            {cat}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-muted-foreground">
@@ -339,7 +347,7 @@ export default function ContributionsPage() {
                 <Info label="Contributor" value={viewing.contributorName} />
                 <Info label="Email" value={viewing.contributorEmail} />
                 <Info label="Phone" value={viewing.contributorPhone || "—"} />
-                <Info label="Category" value={viewing.category} />
+                <Info label="Categories" value={viewing.categories.join(", ")} />
                 <Info label="File" value={viewing.fileName} />
                 <Info
                   label="Extraction"

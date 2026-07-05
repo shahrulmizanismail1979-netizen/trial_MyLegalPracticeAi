@@ -93,7 +93,7 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
       .post("/api/contributions")
       .send({
         title: `PDF Contribution ${RUN_ID}`,
-        category: "Litigation",
+        categories: ["Litigation"],
         contributorName: "E2E Tester",
         contributorEmail,
         fileName: "sample.pdf",
@@ -113,7 +113,7 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
       .post("/api/contributions")
       .send({
         title: `Text Contribution ${RUN_ID}`,
-        category: "General/Other",
+        categories: ["General/Other"],
         contributorName: "E2E Tester",
         contributorEmail,
         fileName: "notes.txt",
@@ -150,5 +150,60 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
       (e: { id: number }) => e.id === approvedId,
     );
     expect(approvedEntry.extractedText).toContain(PDF_TEXT);
+  });
+
+  it("accepts multiple categories and filters knowledge-base by any of them", async () => {
+    fileRegistry.set(`/objects/uploads/${RUN_ID}-multi`, Buffer.from("Multi-category doc"));
+
+    const res = await request(app)
+      .post("/api/contributions")
+      .send({
+        title: `Multi Category Contribution ${RUN_ID}`,
+        categories: ["Litigation", "Criminal"],
+        contributorName: "E2E Tester",
+        contributorEmail,
+        fileName: "multi.txt",
+        objectPath: `/objects/uploads/${RUN_ID}-multi`,
+        contentType: "text/plain",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.categories).toEqual(["Litigation", "Criminal"]);
+    createdIds.push(res.body.id);
+
+    const { eq } = await import("drizzle-orm");
+    await db
+      .update(contributionsTable)
+      .set({ status: "approved" })
+      .where(eq(contributionsTable.id, res.body.id));
+
+    // Filtering by either category returns the doc; a non-matching one does not.
+    for (const cat of ["Litigation", "Criminal"]) {
+      const filtered = await request(app)
+        .get("/api/knowledge-base")
+        .query({ category: cat });
+      expect(filtered.status).toBe(200);
+      expect(filtered.body.map((e: { id: number }) => e.id)).toContain(res.body.id);
+    }
+    const nonMatching = await request(app)
+      .get("/api/knowledge-base")
+      .query({ category: "Conveyancing" });
+    expect(nonMatching.status).toBe(200);
+    expect(nonMatching.body.map((e: { id: number }) => e.id)).not.toContain(res.body.id);
+  });
+
+  it("rejects a contribution with no categories", async () => {
+    const res = await request(app)
+      .post("/api/contributions")
+      .send({
+        title: `Empty Categories ${RUN_ID}`,
+        categories: [],
+        contributorName: "E2E Tester",
+        contributorEmail,
+        fileName: "empty.txt",
+        objectPath: `/objects/uploads/${RUN_ID}-empty`,
+        contentType: "text/plain",
+      });
+    expect(res.status).toBe(400);
   });
 });

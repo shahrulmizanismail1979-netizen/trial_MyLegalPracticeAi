@@ -1181,8 +1181,11 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        category:
-          type: string
+        categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
         contributorName:
           type: string
         contributorEmail:
@@ -1218,7 +1221,7 @@ components:
       required:
         - id
         - title
-        - category
+        - categories
         - contributorName
         - contributorEmail
         - fileName
@@ -1237,8 +1240,11 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        category:
-          type: string
+        categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
         fileName:
           type: string
         objectPath:
@@ -1253,7 +1259,7 @@ components:
       required:
         - id
         - title
-        - category
+        - categories
         - fileName
         - objectPath
         - createdAt
@@ -1266,17 +1272,20 @@ components:
           minLength: 1
         description:
           type: ["string", "null"]
-        category:
-          type: string
-          enum:
-            - Litigation
-            - Syariah
-            - Corporate Secretary
-            - Conveyancing
-            - Criminal
-            - Corporate/Commercial/Banking
-            - Accident & Personal Injury
-            - General/Other
+        categories:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum:
+              - Litigation
+              - Syariah
+              - Corporate Secretary
+              - Conveyancing
+              - Criminal
+              - Corporate/Commercial/Banking
+              - Accident & Personal Injury
+              - General/Other
         contributorName:
           type: string
           minLength: 1
@@ -1297,7 +1306,7 @@ components:
           type: ["string", "null"]
       required:
         - title
-        - category
+        - categories
         - contributorName
         - contributorEmail
         - fileName
@@ -1310,8 +1319,11 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        category:
-          type: string
+        categories:
+          type: array
+          items:
+            type: string
+          minItems: 1
         status:
           type: string
           enum: [pending, approved, rejected]

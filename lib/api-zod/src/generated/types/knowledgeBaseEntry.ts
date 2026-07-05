@@ -11,7 +11,8 @@ export interface KnowledgeBaseEntry {
   title: string;
   /** @nullable */
   description?: string | null;
-  category: string;
+  /** @minItems 1 */
+  categories: string[];
   fileName: string;
   objectPath: string;
   /** @nullable */

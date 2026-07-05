@@ -5,14 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateContributionBodyCategory } from "./createContributionBodyCategory";
+import type { CreateContributionBodyCategoriesItem } from "./createContributionBodyCategoriesItem";
 
 export interface CreateContributionBody {
   /** @minLength 1 */
   title: string;
   /** @nullable */
   description?: string | null;
-  category: CreateContributionBodyCategory;
+  /** @minItems 1 */
+  categories: CreateContributionBodyCategoriesItem[];
   /** @minLength 1 */
   contributorName: string;
   /** @minLength 1 */

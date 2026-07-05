@@ -26,7 +26,7 @@ export const contributionsTable = pgTable("contributions", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  category: text("category").notNull(),
+  categories: text("categories").array().notNull(),
   contributorName: text("contributor_name").notNull(),
   contributorEmail: text("contributor_email").notNull(),
   contributorPhone: text("contributor_phone"),
