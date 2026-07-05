@@ -8,8 +8,9 @@ const tiers = [
     icon: Briefcase,
     description: "SMEs & startup in-house teams",
     licenses: "3 user licenses",
+    monthlyPrice: "$55",
     price: "$675",
-    perUser: "$225 per user / year",
+    perUser: "$19 per user / month · $225 per user / year",
     savings: "Save $190 vs individual",
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
@@ -17,7 +18,7 @@ const tiers = [
       "Access to all 7 AI Portals",
       "Contract review & drafting templates",
       "3 user licenses",
-      "1-year subscription",
+      "Annual or monthly subscription",
       "Centralised billing",
       "Email support",
     ],
@@ -27,8 +28,9 @@ const tiers = [
     icon: Building2,
     description: "Growing companies & in-house counsel",
     licenses: "8 user licenses",
+    monthlyPrice: "$128",
     price: "$1,536",
-    perUser: "$192 per user / year",
+    perUser: "$16 per user / month · $192 per user / year",
     savings: "Save $765 vs individual",
     featured: true,
     headline: "Adds compliance + AI advisory assistant",
@@ -47,8 +49,9 @@ const tiers = [
     icon: Factory,
     description: "GLCs & large corporations",
     licenses: "20 user licenses",
+    monthlyPrice: "$265",
     price: "$3,180",
-    perUser: "$159 per user / year",
+    perUser: "$13 per user / month · $159 per user / year",
     savings: "Save $2,555 vs individual",
     headline: "Adds board, M&A & due diligence modules",
     includes: "Growth",
@@ -132,10 +135,17 @@ export function CorporateBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-                  {tier.price !== "Custom" && (
-                    <span className="text-sm text-muted-foreground">/year</span>
+                <div className="mb-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                    {tier.price !== "Custom" && (
+                      <span className="text-sm text-muted-foreground">/year</span>
+                    )}
+                  </div>
+                  {tier.monthlyPrice && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      or {tier.monthlyPrice} / month
+                    </p>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
@@ -196,7 +206,7 @@ export function CorporateBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All corporate bundles are 1-year starter packages — new advanced AI features added later are
+          All corporate bundles are annual or monthly starter packages — new advanced AI features added later are
           charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a custom seat
           count, multi-entity setup or procurement terms?{" "}
           <a href={ENTERPRISE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

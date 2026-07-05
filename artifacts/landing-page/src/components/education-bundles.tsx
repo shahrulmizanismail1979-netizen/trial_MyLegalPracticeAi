@@ -8,8 +8,9 @@ const tiers = [
     icon: BookOpen,
     description: "Small law faculties & departments",
     licenses: "20 student/lecturer licenses",
+    monthlyPrice: "$125",
     price: "$1,540",
-    perUser: "$77 per user / year",
+    perUser: "$6 per user / month · $77 per user / year",
     savings: "Save $4,215 vs individual",
     headline: "Foundational classroom access for small cohorts",
     includes: null,
@@ -17,7 +18,7 @@ const tiers = [
       "Access to all 7 AI Portals",
       "MyLawSimEduAi simulation platform included",
       "20 user licenses",
-      "1-year academic subscription",
+      "Annual or monthly academic subscription",
       "For students & lecturers",
       "Email support",
     ],
@@ -27,8 +28,9 @@ const tiers = [
     icon: School,
     description: "Mid-sized law schools",
     licenses: "50 student/lecturer licenses",
+    monthlyPrice: "$270",
     price: "$3,250",
-    perUser: "$65 per user / year",
+    perUser: "$5 per user / month · $65 per user / year",
     savings: "Save $11,170 vs individual",
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
@@ -45,8 +47,9 @@ const tiers = [
     icon: Library,
     description: "Large universities & colleges",
     licenses: "150 user licenses",
+    monthlyPrice: "$635",
     price: "$7,650",
-    perUser: "$51 per user / year",
+    perUser: "$4 per user / month · $51 per user / year",
     savings: "Save $35,425 vs individual",
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
@@ -130,10 +133,17 @@ export function EducationBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-                  {tier.price !== "Custom" && (
-                    <span className="text-sm text-muted-foreground">/year</span>
+                <div className="mb-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                    {tier.price !== "Custom" && (
+                      <span className="text-sm text-muted-foreground">/year</span>
+                    )}
+                  </div>
+                  {tier.monthlyPrice && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      or {tier.monthlyPrice} / month
+                    </p>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
@@ -194,7 +204,7 @@ export function EducationBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All academic bundles are 1-year starter packages — new advanced AI features added later are
+          All academic bundles are annual or monthly starter packages — new advanced AI features added later are
           charged pay-as-you-go based on usage. Academic bundles require verification of institutional status. Need a different seat
           count or longer term?{" "}
           <a href={EDUCATION_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">

@@ -8,13 +8,14 @@ const tiers = [
     icon: Briefcase,
     description: "Small firms & chambers",
     licenses: "5 user licenses",
+    monthlyPrice: "$40",
     price: "$475",
-    perUser: "$95 per user / year",
+    perUser: "$8 per user / month · $95 per user / year",
     savings: "Save $965 vs individual",
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
-      "1-year subscription",
+      "Annual or monthly subscription",
       "Centralised billing",
       "Email support",
     ],
@@ -24,14 +25,15 @@ const tiers = [
     icon: Building,
     description: "Mid-sized law firms",
     licenses: "15 user licenses",
+    monthlyPrice: "$100",
     price: "$1,215",
-    perUser: "$81 per user / year",
+    perUser: "$7 per user / month · $81 per user / year",
     savings: "Save $3,095 vs individual",
     featured: true,
     features: [
       "Access to all 7 AI Portals",
       "15 user licenses",
-      "1-year subscription",
+      "Annual or monthly subscription",
       "Centralised billing & admin",
       "Priority support",
       "Onboarding session included",
@@ -42,13 +44,14 @@ const tiers = [
     icon: Building2,
     description: "Large firms & legal departments",
     licenses: "30 user licenses",
+    monthlyPrice: "$180",
     price: "$2,160",
-    perUser: "$72 per user / year",
+    perUser: "$6 per user / month · $72 per user / year",
     savings: "Save $6,445 vs individual",
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",
-      "1-year subscription",
+      "Annual or monthly subscription",
       "Dedicated account manager",
       "Priority support",
       "Onboarding & training session",
@@ -124,10 +127,17 @@ export function FirmBundles() {
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="mb-2 flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-                  {tier.price !== "Custom" && (
-                    <span className="text-sm text-muted-foreground">/year</span>
+                <div className="mb-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-foreground">{tier.price}</span>
+                    {tier.price !== "Custom" && (
+                      <span className="text-sm text-muted-foreground">/year</span>
+                    )}
+                  </div>
+                  {tier.monthlyPrice && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      or {tier.monthlyPrice} / month
+                    </p>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
@@ -173,7 +183,7 @@ export function FirmBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All firm bundles are 1-year starter packages — new advanced AI features added later are
+          All firm bundles are annual or monthly starter packages — new advanced AI features added later are
           charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a different seat
           count or custom terms?{" "}
           <a href={ENTERPRISE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
