@@ -51,7 +51,7 @@ const apps = [
     url: "#",
     tag: "Firm Management",
     comingSoon: true,
-    price: "$13",
+    price: "$19",
   },
   {
     title: "MyJudicialAi",
@@ -59,7 +59,7 @@ const apps = [
     url: "#",
     tag: "Judiciary",
     comingSoon: true,
-    price: "$13",
+    price: "$19",
   },
   {
     title: "MyClientAi",
@@ -67,7 +67,7 @@ const apps = [
     url: "#",
     tag: "Client Mgmt",
     comingSoon: true,
-    price: "$13",
+    price: "$19",
   },
   {
     title: "MyLawAcad",
@@ -75,7 +75,7 @@ const apps = [
     url: "#",
     tag: "Lecturers",
     comingSoon: true,
-    price: "$13",
+    price: "$19",
   },
   {
     title: "MyLawResearch",
@@ -83,7 +83,7 @@ const apps = [
     url: "#",
     tag: "Publications",
     comingSoon: true,
-    price: "$13",
+    price: "$19",
   },
 ];
 

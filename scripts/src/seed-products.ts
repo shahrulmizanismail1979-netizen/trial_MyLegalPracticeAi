@@ -27,7 +27,7 @@ const PLANS: TierPlan[] = [
     name: "AI Portals Bundle",
     description:
       "Access to all 7 AI Portals, Prudential Takaful life insurance, and 3 free legal-skills courses/year at Commonwealth Law University (clui.life).",
-    amountUSD: 53,
+    amountUSD: 79,
     coursesPerYear: 3,
     insuranceEntitled: true,
   },
@@ -36,7 +36,7 @@ const PLANS: TierPlan[] = [
     name: "AI Portal — Single App",
     description:
       "Access to 1 AI Portal of choice, Prudential Takaful life insurance, and 1 free legal-skills course/year at Commonwealth Law University (clui.life).",
-    amountUSD: 17,
+    amountUSD: 25,
     coursesPerYear: 1,
     insuranceEntitled: true,
   },
@@ -45,7 +45,7 @@ const PLANS: TierPlan[] = [
     name: "AI Portal — Standard",
     description:
       "Standard per-app price (101st buyer onwards). Includes Prudential Takaful life insurance and 1 free legal-skills course/year at Commonwealth Law University (clui.life).",
-    amountUSD: 23,
+    amountUSD: 35,
     coursesPerYear: 1,
     insuranceEntitled: true,
   },

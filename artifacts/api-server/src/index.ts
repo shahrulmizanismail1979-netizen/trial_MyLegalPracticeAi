@@ -25,7 +25,7 @@ async function initStripe(): Promise<void> {
     );
 
     stripeSync
-      .syncBackfill()
+      .syncBackfill({ object: "all" })
       .then(() => logger.info("Stripe data synced"))
       .catch((err) => logger.error({ err }, "Error syncing Stripe data"));
   } catch (err) {

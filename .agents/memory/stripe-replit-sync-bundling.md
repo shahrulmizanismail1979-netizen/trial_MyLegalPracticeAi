@@ -38,6 +38,17 @@ connected or missing secret key" even when healthy.
 `schema: 'stripe'` but that is not a valid prop — drop it. The schema name is fixed to `stripe`
 inside the package.
 
+## 4. `syncBackfill()` with no args silently syncs nothing
+
+The no-arg default sets `object` to a function reference (library bug), which matches no
+switch case — it resolves "successfully" and logs "synced" but writes zero rows. Price/product
+changes made in Stripe then never reach the local `stripe` schema.
+
+**Fix:** always call `syncBackfill({ object: "all" })`.
+
+**How to apply:** if Stripe dashboard/API changes aren't visible in `stripe.*` tables after a
+server restart despite a "synced" log line, check the backfill call has an explicit object.
+
 ## Security: Stripe return URLs
 
 Checkout `success_url`/`cancel_url` must be built from the server's own domain
