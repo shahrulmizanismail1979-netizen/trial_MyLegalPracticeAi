@@ -11,7 +11,7 @@ const tiers = [
     monthlyPrice: "$60",
     price: "$720",
     perUser: "$12 per user / month · $144 per user / year",
-    savings: "Save $720 vs individual",
+    savings: "Save $4,020 / yr vs individual subscriptions",
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
@@ -28,7 +28,7 @@ const tiers = [
     monthlyPrice: "$150",
     price: "$1,800",
     perUser: "$10 per user / month · $120 per user / year",
-    savings: "Save $2,325 vs individual",
+    savings: "Save $12,420 / yr vs individual subscriptions",
     featured: true,
     features: [
       "Access to all 7 AI Portals",
@@ -47,7 +47,7 @@ const tiers = [
     monthlyPrice: "$270",
     price: "$3,240",
     perUser: "$9 per user / month · $108 per user / year",
-    savings: "Save $4,635 vs individual",
+    savings: "Save $25,200 / yr vs individual subscriptions",
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",
