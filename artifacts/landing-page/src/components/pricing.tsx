@@ -41,7 +41,7 @@ export function Pricing() {
             Transparent, <span className="text-primary">Value-Driven</span> Pricing
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Equip yourself with the power of AI reference tools. Choose individual apps or secure the complete bundle at an unprecedented value.
+            Equip yourself with the power of AI virtual paralegals. Choose individual apps or secure the complete bundle at an unprecedented value.
           </p>
         </div>
 

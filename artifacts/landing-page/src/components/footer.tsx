@@ -11,7 +11,7 @@ export function Footer() {
               by Prof. Madya Dr. Shahrul Mizan Ismail
             </p>
             <p className="text-sm text-muted-foreground max-w-xs">
-              Malaysia's First AI-Enhanced Legal Reference Platform for lawyers, corporate secretaries, and legal practitioners.
+              Malaysia's First AI-Powered Virtual Paralegal for the Malaysian legal profession.
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} AI Portals by Shahrul Mizan Ismail. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
-            Malaysia's First AI-Enhanced Legal Reference Platform
+            Malaysia's First AI-Powered Virtual Paralegal
           </p>
         </div>
       </div>

@@ -3,49 +3,49 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const apps = [
   {
     title: "MyLitAI",
-    description: "AI-powered Litigation reference AI Portal for litigators",
+    description: "AI-powered virtual paralegal for litigation matters — case analysis, drafting assistance, and procedural guidance",
     url: "https://mylitai.life",
     tag: "Litigation"
   },
   {
     title: "MySyalitAI",
-    description: "AI-powered Syariah Litigation reference AI Portal for syarie lawyers",
+    description: "AI-powered virtual paralegal for Syariah litigation matters",
     url: "https://mysyalitai.life",
     tag: "Syariah"
   },
   {
     title: "MyCorpAI",
-    description: "AI-powered Corporate Secretary reference AI Portal for corporate secretaries",
+    description: "AI-powered virtual paralegal for corporate secretary matters — board resolutions, compliance, and company law",
     url: "https://mycorpai.life",
     tag: "Corporate"
   },
   {
     title: "MyConveyAI",
-    description: "AI-powered Conveyancing reference AI Portal for conveyancers",
+    description: "AI-powered virtual paralegal for conveyancing matters — drafting, searches, and transaction workflow",
     url: "https://myconveyai.life",
     tag: "Conveyancing"
   },
   {
     title: "MyCrimAI",
-    description: "AI-powered Criminal Law reference AI Portal for criminal law practitioners",
+    description: "AI-powered virtual paralegal for criminal law matters — procedure, submissions, and sentencing guidance",
     url: "https://mycrimai.life/",
     tag: "Criminal"
   },
   {
     title: "MyCorpCommBankLitAi",
-    description: "AI-powered Corporate, Commercial & Banking Litigation reference AI Portal for Malaysian legal practice",
+    description: "AI-powered virtual paralegal for corporate, commercial & banking litigation matters",
     url: "https://myccblitai.life/",
     tag: "Corp/Comm/Banking"
   },
   {
     title: "MyAccidentAi",
-    description: "AI-powered Accident, Personal Injury & Running Down Litigation reference AI Portal",
+    description: "AI-powered virtual paralegal for accident, personal injury & running down litigation matters",
     url: "https://myaccidentai.life/",
     tag: "Accident & PI"
   },
   {
     title: "MyLawFirmAi",
-    description: "AI-powered law firm management & operations reference AI Portal",
+    description: "AI-powered law firm management & operations virtual paralegal",
     url: "#",
     tag: "Firm Management",
     comingSoon: true,
@@ -59,7 +59,7 @@ const apps = [
   },
   {
     title: "MyClientAi",
-    description: "AI-powered client intake, advisory & relationship management reference AI Portal",
+    description: "AI-powered client intake, advisory & relationship management virtual paralegal",
     url: "#",
     tag: "Client Mgmt",
     comingSoon: true,

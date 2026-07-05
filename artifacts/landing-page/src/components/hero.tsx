@@ -14,17 +14,17 @@ export function Hero() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
           </span>
-          Malaysia's First AI-Enhanced Legal Reference Platform
+          Malaysia's First AI-Powered Virtual Paralegal
         </div>
         
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold tracking-tight mb-8 leading-[1.1]">
-          AI Legal Reference <br className="hidden md:block" />
-          <span className="text-gradient-gold">Portals for Malaysian</span>
-          <br className="hidden md:block" /> Lawyers &amp; Practitioners
+          AI Virtual Paralegals <br className="hidden md:block" />
+          <span className="text-gradient-gold">for the Malaysian</span>
+          <br className="hidden md:block" /> Legal Profession
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-          The future of Malaysian legal practice is here. Seven AI-powered interactive reference portals delivering instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners — curated by Prof. Madya Dr. Shahrul Mizan Ismail.
+          The future of Malaysian legal practice is here. Seven AI-powered virtual paralegal assistants that help lawyers, corporate secretaries, and legal professionals work faster, draft smarter, and navigate complex matters with confidence — curated by Prof. Madya Dr. Shahrul Mizan Ismail.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -60,7 +60,7 @@ export function Hero() {
             <BookOpen className="h-6 w-6" />
           </div>
           <h3 className="font-serif text-xl font-medium">Intelligence</h3>
-          <p className="text-sm text-muted-foreground">AI-powered search and summarization for instant reference.</p>
+          <p className="text-sm text-muted-foreground">AI-powered search and summarization for instant assistance.</p>
         </div>
         <div className="flex flex-col items-center text-center space-y-3">
           <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center text-primary">
