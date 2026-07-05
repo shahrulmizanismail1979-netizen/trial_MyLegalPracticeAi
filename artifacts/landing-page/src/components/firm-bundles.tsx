@@ -75,7 +75,7 @@ const tiers = [
   },
 ];
 
-const ENTERPRISE_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'd like to discuss enterprise licensing for the AI Portals for my organisation.")}`;
+const ENTERPRISE_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent("Hi, I'd like to discuss enterprise licensing for the AI Portals for my organisation.")}`;
 
 export function FirmBundles() {
   const scrollToPayment = () => {

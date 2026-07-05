@@ -8,7 +8,7 @@ export function Footer() {
               AI Portals
             </p>
             <p className="text-sm text-muted-foreground mb-3">
-              by Shahrul Mizan Ismail
+              by Prof. Madya Dr. Shahrul Mizan Ismail
             </p>
             <p className="text-sm text-muted-foreground max-w-xs">
               Malaysia's First AI-Enhanced Legal Reference Platform for lawyers, corporate secretaries, and legal practitioners.
@@ -47,7 +47,7 @@ export function Footer() {
                 </li>
                 <li>
                   <a
-                    href="https://wa.me/60173678484"
+                    href="https://wa.me/60139725475"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -56,7 +56,7 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:support@aiportals.my" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="mailto:shahrulmizan@ukm.edu.my" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Support
                   </a>
                 </li>

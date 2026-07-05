@@ -78,8 +78,8 @@ const tiers = [
   },
 ];
 
-const INSTITUTION_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'm enquiring about the Institution academic bundle for my institution.")}`;
-const EDUCATION_WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent("Hi, I'd like to discuss academic licensing for the AI Portals for my college/university.")}`;
+const INSTITUTION_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent("Hi, I'm enquiring about the Institution academic bundle for my institution.")}`;
+const EDUCATION_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent("Hi, I'd like to discuss academic licensing for the AI Portals for my college/university.")}`;
 
 export function EducationBundles() {
   const scrollToPayment = () => {

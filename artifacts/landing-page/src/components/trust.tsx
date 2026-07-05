@@ -25,7 +25,8 @@ export function Trust() {
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Founder &amp; Curator</h3>
               <p className="text-muted-foreground leading-relaxed">
-                <strong className="text-foreground">Shahrul Mizan Ismail</strong> is a Malaysian legal practitioner and the founder of AI Portals. With deep expertise spanning litigation, corporate, and Syariah practice areas, he personally curates and oversees the knowledge base powering each portal — ensuring accuracy, relevance, and practical value for practitioners on the ground.
+                <strong className="text-foreground">Prof. Madya Dr. Shahrul Mizan Ismail</strong> is an Associate Professor of Law at Universiti Kebangsaan Malaysia (UKM) and the founder of AI Portals. Called to the Malaysian Bar in April 2004, he brings over two decades of experience at the Bar and in the academy, working at the confluence of human rights jurisprudence, civil litigation, and the future of legal practice. He personally curates and oversees the knowledge base powering each portal — ensuring accuracy, relevance, and practical value for practitioners on the ground. Learn more at{" "}
+                <a href="https://shahrulmizan.life" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">shahrulmizan.life</a>.
               </p>
             </div>
           </div>
@@ -66,12 +67,12 @@ export function Trust() {
               <div>
                 <p className="font-medium text-foreground mb-1">WhatsApp Support</p>
                 <a
-                  href="https://wa.me/60173678484"
+                  href="https://wa.me/60139725475"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  +60 17-367 8484
+                  +60 13-972 5475
                 </a>
                 <p className="text-sm text-muted-foreground mt-1">Payment confirmation, subscription queries, and general support</p>
               </div>
@@ -84,10 +85,10 @@ export function Trust() {
               <div>
                 <p className="font-medium text-foreground mb-1">Email</p>
                 <a
-                  href="mailto:support@aiportals.my"
+                  href="mailto:shahrulmizan@ukm.edu.my"
                   className="text-primary hover:underline"
                 >
-                  support@aiportals.my
+                  shahrulmizan@ukm.edu.my
                 </a>
                 <p className="text-sm text-muted-foreground mt-1">Billing, enterprise inquiries, and institutional licensing</p>
               </div>

@@ -1,7 +1,7 @@
 import { MessageCircle, CreditCard, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const WHATSAPP_URL = `https://wa.me/60173678484?text=${encodeURIComponent(
+const WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent(
   "Hi, I'd like to subscribe to the AI Portals. Please help me get set up.",
 )}`;
 

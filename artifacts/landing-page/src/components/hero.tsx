@@ -24,7 +24,7 @@ export function Hero() {
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
-          The future of Malaysian legal practice is here. Seven AI-powered interactive reference portals delivering instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners — curated by Shahrul Mizan.
+          The future of Malaysian legal practice is here. Seven AI-powered interactive reference portals delivering instant, intelligent access to legal knowledge for lawyers, corporate secretaries, and practitioners — curated by Prof. Madya Dr. Shahrul Mizan Ismail.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

@@ -25,7 +25,7 @@ export function TermsPrivacy() {
           <div>
             <h3 className="font-semibold text-foreground mb-2">3. Refund Policy</h3>
             <p>
-              We do not offer refunds on digital subscriptions once access has been activated. If you experience a technical issue preventing access, please contact us via WhatsApp (+60 17-367 8484) or email (support@aiportals.my) within 7 days of purchase and we will work to resolve it. Pre-orders that are cancelled before launch will be refunded in full.
+              We do not offer refunds on digital subscriptions once access has been activated. If you experience a technical issue preventing access, please contact us via WhatsApp (+60 13-972 5475) or email (shahrulmizan@ukm.edu.my) within 7 days of purchase and we will work to resolve it. Pre-orders that are cancelled before launch will be refunded in full.
             </p>
           </div>
 
@@ -61,9 +61,9 @@ export function TermsPrivacy() {
             <h3 className="font-semibold text-foreground mb-2">8. Contact</h3>
             <p>
               For terms-related queries, contact us at{" "}
-              <a href="mailto:support@aiportals.my" className="text-primary hover:underline">support@aiportals.my</a>
+              <a href="mailto:shahrulmizan@ukm.edu.my" className="text-primary hover:underline">shahrulmizan@ukm.edu.my</a>
               {" "}or via WhatsApp at{" "}
-              <a href="https://wa.me/60173678484" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">+60 17-367 8484</a>.
+              <a href="https://wa.me/60139725475" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">+60 13-972 5475</a>.
             </p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function TermsPrivacy() {
             <h3 className="font-semibold text-foreground mb-2">5. Your Rights</h3>
             <p>
               Under the PDPA, you have the right to access and correct your personal data held by us. To exercise these rights, or to withdraw consent for data processing, contact us at{" "}
-              <a href="mailto:support@aiportals.my" className="text-primary hover:underline">support@aiportals.my</a>.
+              <a href="mailto:shahrulmizan@ukm.edu.my" className="text-primary hover:underline">shahrulmizan@ukm.edu.my</a>.
             </p>
           </div>
 
@@ -132,9 +132,9 @@ export function TermsPrivacy() {
             <h3 className="font-semibold text-foreground mb-2">8. Contact</h3>
             <p>
               For privacy-related queries or data access requests, contact us at{" "}
-              <a href="mailto:support@aiportals.my" className="text-primary hover:underline">support@aiportals.my</a>
+              <a href="mailto:shahrulmizan@ukm.edu.my" className="text-primary hover:underline">shahrulmizan@ukm.edu.my</a>
               {" "}or via WhatsApp at{" "}
-              <a href="https://wa.me/60173678484" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">+60 17-367 8484</a>.
+              <a href="https://wa.me/60139725475" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">+60 13-972 5475</a>.
             </p>
           </div>
         </div>
