@@ -129,14 +129,17 @@ export function FirmBundles() {
               <CardContent className="flex-1 flex flex-col">
                 <div className="mb-2">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-                    {tier.price !== "Custom" && (
+                    <span className="text-3xl font-bold text-foreground">{tier.monthlyPrice || tier.price}</span>
+                    {tier.monthlyPrice && (
+                      <span className="text-sm text-muted-foreground">/month</span>
+                    )}
+                    {!tier.monthlyPrice && tier.price !== "Custom" && (
                       <span className="text-sm text-muted-foreground">/year</span>
                     )}
                   </div>
                   {tier.monthlyPrice && (
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      or {tier.monthlyPrice} / month
+                      {tier.price} / year
                     </p>
                   )}
                 </div>
