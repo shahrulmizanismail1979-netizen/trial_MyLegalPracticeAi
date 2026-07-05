@@ -67,7 +67,7 @@ export function Hero() {
             <Shield className="h-6 w-6" />
           </div>
           <h3 className="font-serif text-xl font-medium">Trust</h3>
-          <p className="text-sm text-muted-foreground">Curated knowledge from a seasoned practitioner's expert collection.</p>
+          <p className="text-sm text-muted-foreground">Built on a curated legal knowledge base by subject-matter experts.</p>
         </div>
       </div>
     </section>
