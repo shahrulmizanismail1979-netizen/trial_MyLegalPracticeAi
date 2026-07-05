@@ -53,11 +53,7 @@ export function Pricing() {
               Best Value
             </div>
             <CardHeader className="pb-8 pt-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium mb-4 w-fit">
-                <AlertCircle className="h-4 w-4" />
-                2nd Kohort Special: Limited to First 100 People
-              </div>
-              <CardTitle className="font-serif text-4xl mb-2">The Complete Bundle</CardTitle>
+                <CardTitle className="font-serif text-4xl mb-2">The Complete Bundle</CardTitle>
               <CardDescription className="text-lg">All 7 AI Portals</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -82,8 +78,6 @@ export function Pricing() {
               <ul className="space-y-4">
                 {[
                   "Access to all 7 AI Portals",
-                  "Prudential Takaful life insurance included",
-                  "3 free legal-skills courses / year at Commonwealth Law University (clui.life)",
                   "Monthly subscription — cancel anytime",
                   "1 user license",
                   "Free platform updates",
@@ -110,13 +104,11 @@ export function Pricing() {
                   <span className="text-4xl font-bold text-foreground">$25</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <p className="text-muted-foreground mb-8">Billed monthly (2nd Kohort)</p>
+                <p className="text-muted-foreground mb-8">Billed monthly</p>
                 
                 <ul className="space-y-4 mb-8">
                   {[
                     "Access to 1 AI Portal of choice",
-                    "Prudential Takaful life insurance included",
-                    "1 free legal-skills course / year at Commonwealth Law University (clui.life)",
                     "Monthly subscription — cancel anytime",
                     "1 user license"
                   ].map((feature, i) => (
@@ -153,32 +145,7 @@ export function Pricing() {
           </div>
         )}
 
-        <div className="mt-12 text-center max-w-2xl mx-auto space-y-4">
-          <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-            <h4 className="font-bold text-foreground mb-1">Standard Price (101st buyer onwards)</h4>
-            <p className="text-muted-foreground">$35 per app / month (1 user) — includes Prudential Takaful life insurance + 1 free legal-skills course / year at Commonwealth Law University (clui.life)</p>
-          </div>
-          <div className="p-5 rounded-lg bg-primary/5 border border-primary/20 text-left">
-            <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-bold text-primary mb-1">More than software — a professional membership</h4>
-                <p className="text-sm text-muted-foreground">
-                  Every plan now includes a <span className="text-foreground font-medium">Prudential Takaful life insurance</span> benefit and{" "}
-                  <span className="text-foreground font-medium">free lifelong-learning legal-skills courses</span> at{" "}
-                  <a
-                    href="https://clui.life"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary font-medium underline underline-offset-2 hover:text-primary/80"
-                  >
-                    Commonwealth Law University (clui.life)
-                  </a>
-                  , a lifelong-learning initiative organized by a start-up under Universiti Kebangsaan Malaysia.
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="mt-12 text-center max-w-2xl mx-auto">
           <div className="p-5 rounded-lg bg-primary/5 border border-primary/20 text-left">
             <div className="flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -193,9 +160,6 @@ export function Pricing() {
               </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground italic">
-            Note: 1st Kohort prices of $14 and $21 are completely SOLD OUT. Secure the 2nd Kohort pricing before it's gone.
-          </p>
         </div>
       </div>
     </section>
