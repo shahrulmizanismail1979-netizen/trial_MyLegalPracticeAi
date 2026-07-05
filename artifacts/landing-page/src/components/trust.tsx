@@ -11,7 +11,7 @@ export function Trust() {
         <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6">
           Trusted by <span className="text-primary">Malaysian Legal Professionals</span>
         </h2>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+        <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-justify">
           AI Portals is built on deep Malaysian legal expertise, curated by a practitioner with decades of hands-on experience in the profession.
         </p>
       </div>
@@ -24,7 +24,7 @@ export function Trust() {
             </div>
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Founder &amp; Curator</h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-justify">
                 <strong className="text-foreground">Prof. Madya Dr. Shahrul Mizan Ismail</strong> is an Associate Professor of Law at Universiti Kebangsaan Malaysia (UKM) and the founder of AI Portals. Called to the Malaysian Bar in April 2004, he brings over two decades of experience at the Bar and in the academy, working at the confluence of human rights jurisprudence, civil litigation, and the future of legal practice. He personally curates and oversees the knowledge base powering each portal — ensuring accuracy, relevance, and practical value for practitioners on the ground. Learn more at{" "}
                 <a href="https://shahrulmizan.life" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">shahrulmizan.life</a>.
               </p>
@@ -37,7 +37,7 @@ export function Trust() {
             </div>
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Editorial Methodology</h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-justify">
                 Every AI Portal is built on a curated, practitioner-reviewed knowledge base drawn from Malaysian statutes, case law, procedural rules, and practice guides. Content is structured for professional legal reference, not general-purpose answers — ensuring practitioners can rely on the outputs for day-to-day legal work.
               </p>
             </div>
@@ -49,7 +49,7 @@ export function Trust() {
             </div>
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Who We Serve</h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed text-justify">
                 AI Portals serves advocates &amp; solicitors, syarie lawyers, corporate secretaries, conveyancers, criminal law practitioners, in-house legal teams, and law students across Malaysia. The platform is designed exclusively for the Malaysian legal ecosystem, covering Malaysian statutes, courts, and practice norms.
               </p>
             </div>
@@ -96,7 +96,7 @@ export function Trust() {
           </div>
 
           <div className="border-t border-border pt-6">
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed text-justify">
               <strong className="text-foreground">AI Portals</strong> is a Malaysian legal-tech brand operated by Shahrul Mizan Ismail. Registered and operating in Malaysia. All subscriptions are governed by our{" "}
               <a href="#terms" className="text-primary hover:underline">Terms of Service</a>
               {" "}and{" "}
