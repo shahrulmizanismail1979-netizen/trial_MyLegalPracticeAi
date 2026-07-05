@@ -5,13 +5,13 @@ export function TermsPrivacy() {
         <h2 className="font-serif text-3xl font-bold mb-6 text-foreground">Terms of Service</h2>
         <div className="space-y-5 text-muted-foreground leading-relaxed text-sm">
           <p>
-            <strong className="text-foreground">Last updated: June 2025.</strong> These Terms of Service govern your access to and use of the AI Portals platform (&ldquo;Platform&rdquo;), operated by Shahrul Mizan Ismail (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By purchasing a subscription or accessing any AI Portal, you agree to these terms.
+            <strong className="text-foreground">Last updated: July 2026.</strong> These Terms of Service govern your access to and use of the AI Portals platform (&ldquo;Platform&rdquo;), operated by Shahrul Mizan Ismail (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By purchasing a subscription or accessing any AI Portal, you agree to these terms.
           </p>
 
           <div>
             <h3 className="font-semibold text-foreground mb-2">1. Subscriptions and Access</h3>
             <p>
-              Each subscription grants one (1) named user access to the specified AI Portal(s). Individual plans (Bundle, Single, and Standard) are billed monthly on a recurring basis and continue until cancelled. Firm, corporate, and academic bundles are supplied as one (1) year subscriptions from the date of activation. Subscriptions are non-transferable. Bundle subscriptions cover all portals listed at the time of purchase and any updates released during the subscription period. Pre-order subscriptions will be activated upon portal launch; the subscription term begins on the activation date.
+              Each subscription grants one (1) named user access to the specified AI Portal(s). Individual plans (Single App and Complete Bundle) are billed monthly on a recurring basis and continue until cancelled. Firm, corporate, and academic bundles are billed monthly or annually from the date of activation. Subscriptions are non-transferable. Bundle subscriptions cover all portals listed at the time of purchase and any updates released during the subscription period.
             </p>
           </div>
 
@@ -25,7 +25,7 @@ export function TermsPrivacy() {
           <div>
             <h3 className="font-semibold text-foreground mb-2">3. Refund Policy</h3>
             <p>
-              We do not offer refunds on digital subscriptions once access has been activated. If you experience a technical issue preventing access, please contact us via WhatsApp (+60 13-972 5475) or email (shahrulmizan@ukm.edu.my) within 7 days of purchase and we will work to resolve it. Pre-orders that are cancelled before launch will be refunded in full.
+              We do not offer refunds on digital subscriptions once access has been activated. If you experience a technical issue preventing access, please contact us via WhatsApp (+60 13-972 5475) or email (shahrulmizan@ukm.edu.my) within 7 days of purchase and we will work to resolve it.
             </p>
           </div>
 
@@ -75,7 +75,7 @@ export function TermsPrivacy() {
         <h2 className="font-serif text-3xl font-bold mb-6 text-foreground">Privacy Policy</h2>
         <div className="space-y-5 text-muted-foreground leading-relaxed text-sm">
           <p>
-            <strong className="text-foreground">Last updated: June 2025.</strong> This Privacy Policy explains how AI Portals, operated by Shahrul Mizan Ismail, collects, uses, and protects your personal data in accordance with the Personal Data Protection Act 2010 (PDPA) of Malaysia.
+            <strong className="text-foreground">Last updated: July 2026.</strong> This Privacy Policy explains how AI Portals, operated by Shahrul Mizan Ismail, collects, uses, and protects your personal data in accordance with the Personal Data Protection Act 2010 (PDPA) of Malaysia.
           </p>
 
           <div>
@@ -88,7 +88,7 @@ export function TermsPrivacy() {
           <div>
             <h3 className="font-semibold text-foreground mb-2">2. How We Use Your Information</h3>
             <p>
-              We use your personal data to: (a) activate and manage your subscription; (b) communicate service updates, including new portal launches you have pre-ordered; (c) provide customer support; and (d) comply with legal obligations. We do not sell your personal data to third parties.
+              We use your personal data to: (a) activate and manage your subscription; (b) communicate service updates and new portal launches; (c) provide customer support; and (d) comply with legal obligations. We do not sell your personal data to third parties.
             </p>
           </div>
 

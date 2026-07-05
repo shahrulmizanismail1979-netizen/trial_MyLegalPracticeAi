@@ -192,7 +192,7 @@ export default function SubscribersPage() {
                         )}
                         <div className={`flex items-center gap-1 ${sub.insuranceEntitled ? "text-green-500" : "text-muted-foreground"}`}>
                           <ShieldCheck className="w-3 h-3 shrink-0" />
-                          {sub.insuranceEntitled ? "Takaful insured" : "No insurance"}
+                          {sub.insuranceEntitled ? "Insurance entitled" : "No insurance"}
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <GraduationCap className="w-3 h-3 shrink-0" />
@@ -398,7 +398,7 @@ function SubscriberDialog({ mode, subscriber, asDropdownItem }: { mode: "add" | 
                   <FormControl>
                     <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(!!checked)} />
                   </FormControl>
-                  <FormLabel className="font-normal text-sm">Entitled to Prudential Takaful life insurance</FormLabel>
+                  <FormLabel className="font-normal text-sm">Insurance entitlement</FormLabel>
                 </FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">
