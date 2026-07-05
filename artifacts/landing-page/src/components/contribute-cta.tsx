@@ -1,4 +1,4 @@
-import { HeartHandshake, ArrowRight } from "lucide-react";
+import { FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ContributeCTA() {
@@ -8,25 +8,26 @@ export function ContributeCTA() {
         <div className="absolute top-0 right-0 h-40 w-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4">
-            <HeartHandshake className="h-4 w-4" />
-            A shared cause for legal education
+            <FileText className="h-4 w-4" />
+            Share documents — not money
           </div>
           <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6 max-w-4xl">
-            Give back — help educate the next generation of Malaysian lawyers
+            Contribute cause papers and legal documents from your own practice
           </h2>
           <p className="text-muted-foreground text-lg mb-8 text-justify">
-            Every document you share becomes part of a growing public good. By contributing
-            your cause papers and legal materials, you help build AI tools that make quality
-            legal knowledge accessible to students, pupils in chambers, and practitioners
-            across Malaysia — especially those who need it most. It's a small act with a lasting
-            impact on legal education and access to justice. Our team carefully reviews every
-            contribution before it joins the shared knowledge base, so only accurate, relevant,
-            and appropriately anonymised materials become part of the resource that future
-            generations of Malaysian legal professionals will learn from.
+            This is not a request for donations. We are inviting practising lawyers to share
+            soft copies of court cause papers and legal documents from their own legal
+            practice — statements of claim, defences, affidavits, submissions, agreements, and
+            similar materials. Every document you contribute is used to train and improve the
+            AI Portals, so the apps become smarter, more accurate, and more useful to every
+            lawyer who subscribes. Our team carefully reviews every contribution before it
+            joins the knowledge base, so only accurate, relevant, and appropriately anonymised
+            materials are adopted. The more real-world documents the AI learns from, the
+            better it can assist you and fellow practitioners across Malaysia.
           </p>
           <Button size="lg" className="group" asChild>
             <a href={`${import.meta.env.BASE_URL}contribute`}>
-              Contribute to the cause
+              Contribute your documents
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
           </Button>
