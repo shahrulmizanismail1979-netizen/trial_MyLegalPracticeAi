@@ -1,11 +1,43 @@
-import { ExternalLink, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Sparkles, ChevronDown, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-const apps = [
+
+type AppVersion = {
+  label: string;
+  url: string;
+  badge: string;
+  description: string;
+};
+
+type App = {
+  title: string;
+  description: string;
+  url: string;
+  tag: string;
+  comingSoon?: boolean;
+  versions?: AppVersion[];
+};
+
+const apps: App[] = [
   {
     title: "MyLitAI",
     description: "Draft cause papers, analyse case strategies, and navigate Malaysian civil procedure with an AI litigation assistant.",
     url: "https://mylitai.life",
-    tag: "Litigation"
+    tag: "Litigation",
+    versions: [
+      {
+        label: "Standard",
+        badge: "Version 1",
+        url: "https://mylitai.life",
+        description: "Classic AI litigation assistant. Ask any question, get instant guidance on civil procedure, pleadings, case strategy, and court practice — conversational and open-ended.",
+      },
+      {
+        label: "IRAC Method",
+        badge: "Version 2",
+        url: "https://mylitai.life/irac/",
+        description: "Structured legal analysis using the IRAC framework (Issue → Rule → Application → Conclusion). Best for systematically breaking down legal problems, preparing written submissions, and structured advocacy.",
+      },
+    ],
   },
   {
     title: "MySyalitAI",
@@ -80,7 +112,34 @@ const apps = [
   },
 ];
 
+function VersionCard({ version }: { version: AppVersion }) {
+  return (
+    <a
+      href={version.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 hover:border-primary/60 hover:bg-primary/5 p-4 transition-all duration-200"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
+          {version.badge}
+        </span>
+        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+      </div>
+      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+        {version.label}
+      </p>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {version.description}
+      </p>
+    </a>
+  );
+}
+
 export function AppsGrid() {
+  const [expandedApp, setExpandedApp] = useState<string | null>(null);
+
   return (
     <section id="apps" className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="mb-12">
@@ -115,7 +174,6 @@ export function AppsGrid() {
                     <CardDescription className="text-base text-muted-foreground mb-5">
                       {app.description}
                     </CardDescription>
-
                     <div className="mt-auto">
                       <div className="flex items-start gap-2 rounded-lg bg-amber-400/5 border border-amber-400/20 p-3">
                         <Sparkles className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
@@ -131,6 +189,63 @@ export function AppsGrid() {
             );
           }
 
+          if (app.versions) {
+            const isExpanded = expandedApp === app.title;
+            return (
+              <div key={app.title} style={{ animationDelay: `${index * 100}ms` }}>
+                <Card
+                  className={`h-full flex flex-col bg-card/50 border-border/50 backdrop-blur-sm transition-all duration-300 cursor-pointer select-none ${
+                    isExpanded
+                      ? "border-primary/60 bg-card shadow-lg shadow-primary/10"
+                      : "hover:border-primary/50 hover:bg-card hover:-translate-y-1"
+                  }`}
+                  onClick={() => setExpandedApp(isExpanded ? null : app.title)}
+                >
+                  <CardHeader>
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-xs font-medium uppercase tracking-wider text-primary px-3 py-1 rounded-full border border-primary/20 bg-primary/10">
+                        {app.tag}
+                      </span>
+                      {isExpanded ? (
+                        <X className="h-5 w-5 text-primary transition-colors" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-colors" />
+                      )}
+                    </div>
+                    <CardTitle className={`font-serif text-2xl transition-colors ${isExpanded ? "text-primary" : ""}`}>
+                      {app.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-1">
+                    <CardDescription className="text-base text-muted-foreground mb-4">
+                      {app.description}
+                    </CardDescription>
+
+                    {!isExpanded && (
+                      <div className="mt-auto">
+                        <div className="flex items-center gap-2 text-xs text-primary font-medium">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                          {app.versions.length} versions available — click to choose
+                        </div>
+                      </div>
+                    )}
+
+                    {isExpanded && (
+                      <div className="mt-2 space-y-3" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                          Choose your version
+                        </p>
+                        {app.versions.map((v) => (
+                          <VersionCard key={v.url} version={v} />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          }
+
           return (
             <a
               key={app.title}
@@ -140,7 +255,7 @@ export function AppsGrid() {
               className="group block"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <Card className="h-full bg-card/50 border-border/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:bg-card hover:-translate-y-1">
+              <Card className="h-full bg-card/50 border-border/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:bg-card hover:-translate-y-1 relative overflow-hidden">
                 <CardHeader>
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-xs font-medium uppercase tracking-wider text-primary px-3 py-1 rounded-full border border-primary/20 bg-primary/10">
