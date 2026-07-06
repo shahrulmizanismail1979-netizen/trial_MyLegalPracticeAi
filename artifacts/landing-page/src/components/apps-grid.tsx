@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Sparkles, ChevronDown, X } from "lucide-react";
+import { ExternalLink, Sparkles, ChevronDown, X, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type AppVersion = {
@@ -112,28 +112,61 @@ const apps: App[] = [
   },
 ];
 
+async function startCheckout(appUrl: string): Promise<void> {
+  const res = await fetch("/api/stripe/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tier: "single", appUrl }),
+  });
+  const data = (await res.json()) as { url?: string; error?: string };
+  if (!res.ok || !data.url) {
+    throw new Error(data.error ?? "Could not start checkout. Please try again.");
+  }
+  window.location.href = data.url;
+}
+
 function VersionCard({ version }: { version: AppVersion }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setError(null);
+    setLoading(true);
+    try {
+      await startCheckout(version.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setLoading(false);
+    }
+  };
+
   return (
-    <a
-      href={version.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 hover:border-primary/60 hover:bg-primary/5 p-4 transition-all duration-200"
-      onClick={(e) => e.stopPropagation()}
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="group w-full text-left flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 hover:border-primary/60 hover:bg-primary/5 p-4 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
     >
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
           {version.badge}
         </span>
-        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+        ) : (
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+        )}
       </div>
       <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-        {version.label}
+        {loading ? "Redirecting to checkout…" : version.label}
       </p>
       <p className="text-xs text-muted-foreground leading-relaxed">
         {version.description}
       </p>
-    </a>
+      {error && (
+        <p className="text-xs text-red-400 mt-1">{error}</p>
+      )}
+    </button>
   );
 }
 

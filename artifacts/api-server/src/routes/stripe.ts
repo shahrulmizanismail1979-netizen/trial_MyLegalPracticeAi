@@ -9,6 +9,21 @@ const CHECKOUT_TIERS = ["bundle", "single", "standard"] as const;
 type CheckoutTier = (typeof CHECKOUT_TIERS)[number];
 
 /**
+ * Allowlist of app URLs that can be used as post-checkout redirect targets.
+ * Only URLs in this list are accepted — the client cannot supply arbitrary URLs.
+ */
+const ALLOWED_APP_REDIRECTS = new Set([
+  "https://mylitai.life",
+  "https://mylitai.life/irac/",
+  "https://mysyalitai.life",
+  "https://mycorpai.life",
+  "https://myconveyai.life",
+  "https://mycrimai.life/",
+  "https://myccblitai.life/",
+  "https://myaccidentai.life/",
+]);
+
+/**
  * Canonical origin for Stripe return URLs. Derived only from the server
  * environment — never from the client-supplied Origin header — so a public
  * checkout request cannot redirect the post-payment flow to an attacker domain.
@@ -79,11 +94,17 @@ router.get("/products-with-prices", async (req, res) => {
 // Public: start a subscription checkout for a given tier
 router.post("/checkout", async (req, res) => {
   const tier = req.body?.tier as string | undefined;
+  const appUrl = req.body?.appUrl as string | undefined;
 
   if (!tier || !CHECKOUT_TIERS.includes(tier as CheckoutTier)) {
     res.status(400).json({
       error: `Invalid tier. Expected one of: ${CHECKOUT_TIERS.join(", ")}`,
     });
+    return;
+  }
+
+  if (appUrl !== undefined && !ALLOWED_APP_REDIRECTS.has(appUrl)) {
+    res.status(400).json({ error: "Invalid appUrl." });
     return;
   }
 
@@ -100,12 +121,20 @@ router.post("/checkout", async (req, res) => {
   const origin = resolveOrigin();
   const stripe = await getUncachableStripeClient();
 
+  // If the caller supplied a whitelisted appUrl, encode it into the success_url
+  // so the landing page can redirect the user there after payment is confirmed.
+  const successParams = new URLSearchParams({
+    checkout: "success",
+    session_id: "{CHECKOUT_SESSION_ID}",
+  });
+  if (appUrl) successParams.set("redirect", appUrl);
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
-    success_url: `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/?${successParams.toString()}`,
     cancel_url: `${origin}/?checkout=cancelled`,
     subscription_data: { metadata: { tier } },
     metadata: { tier },

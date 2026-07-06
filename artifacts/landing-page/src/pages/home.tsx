@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Hero } from "@/components/hero";
 import { AppsGrid } from "@/components/apps-grid";
 import { SubscriberStats } from "@/components/subscriber-stats";
@@ -12,7 +13,28 @@ import { Trust } from "@/components/trust";
 import { TermsPrivacy } from "@/components/terms-privacy";
 import { Footer } from "@/components/footer";
 
+const ALLOWED_REDIRECTS = new Set([
+  "https://mylitai.life",
+  "https://mylitai.life/irac/",
+  "https://mysyalitai.life",
+  "https://mycorpai.life",
+  "https://myconveyai.life",
+  "https://mycrimai.life/",
+  "https://myccblitai.life/",
+  "https://myaccidentai.life/",
+]);
+
 export default function Home() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      const redirect = params.get("redirect");
+      if (redirect && ALLOWED_REDIRECTS.has(redirect)) {
+        window.location.href = redirect;
+      }
+    }
+  }, []);
+
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none z-0">
