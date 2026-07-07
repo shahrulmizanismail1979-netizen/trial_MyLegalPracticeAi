@@ -2,20 +2,19 @@ import { Check, Building2, Building, Briefcase, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const INDIVIDUAL_BUNDLE_PRICE = 79;
+
 const tiers = [
   {
     name: "Boutique",
     icon: Briefcase,
     description: "Small firms & chambers",
-    licenses: "5 user licenses",
-    monthlyPrice: "$60",
-    price: "$720",
-    perUser: "$12 per user / month · $144 per user / year",
-    savings: "Save $4,020 / yr vs individual subscriptions",
+    seats: 5,
+    monthlyPrice: 59,
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
-      "Annual or monthly subscription",
+      "Monthly subscription — cancel anytime",
       "Centralised billing",
       "Email support",
     ],
@@ -24,16 +23,13 @@ const tiers = [
     name: "Practice",
     icon: Building,
     description: "Mid-sized law firms",
-    licenses: "15 user licenses",
-    monthlyPrice: "$150",
-    price: "$1,800",
-    perUser: "$10 per user / month · $120 per user / year",
-    savings: "Save $12,420 / yr vs individual subscriptions",
+    seats: 15,
+    monthlyPrice: 149,
     featured: true,
     features: [
       "Access to all 7 AI Portals",
       "15 user licenses",
-      "Annual or monthly subscription",
+      "Monthly subscription — cancel anytime",
       "Centralised billing & admin",
       "Priority support",
       "Onboarding session included",
@@ -43,15 +39,12 @@ const tiers = [
     name: "Firm",
     icon: Building2,
     description: "Large firms & legal departments",
-    licenses: "30 user licenses",
-    monthlyPrice: "$270",
-    price: "$3,240",
-    perUser: "$9 per user / month · $108 per user / year",
-    savings: "Save $25,200 / yr vs individual subscriptions",
+    seats: 30,
+    monthlyPrice: 269,
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",
-      "Annual or monthly subscription",
+      "Monthly subscription — cancel anytime",
       "Dedicated account manager",
       "Priority support",
       "Onboarding & training session",
@@ -62,10 +55,8 @@ const tiers = [
     name: "Enterprise",
     icon: Crown,
     description: "Organisations needing 50+ seats",
-    licenses: "Custom licensing",
-    price: "Custom",
-    perUser: "Volume pricing",
-    savings: "Tailored to your needs",
+    seats: null,
+    monthlyPrice: null,
     features: [
       "Access to all 7 AI Portals",
       "50+ user licenses",
@@ -96,8 +87,8 @@ export function FirmBundles() {
           Bundles for <span className="text-primary">Teams of Every Size</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Equip your entire firm or legal department with all 7 AI Portals. Volume pricing,
-          centralised billing, and priority support — scaled to fit your team.
+          Every team member gets full access to all 7 AI Portals. Volume pricing scales with your team —
+the larger your firm, the lower the equivalent per-user cost.
         </p>
       </div>
 
@@ -105,6 +96,19 @@ export function FirmBundles() {
         {tiers.map((tier) => {
           const Icon = tier.icon;
           const isEnterprise = tier.name === "Enterprise";
+
+          const perUser = tier.seats
+            ? Math.round((tier.monthlyPrice! / tier.seats) * 100) / 100
+            : null;
+
+          const individualTotal = tier.seats
+            ? tier.seats * INDIVIDUAL_BUNDLE_PRICE
+            : null;
+
+          const yearlySavings = tier.seats && tier.monthlyPrice
+            ? (individualTotal! - tier.monthlyPrice) * 12
+            : null;
+
           return (
             <Card
               key={tier.name}
@@ -128,23 +132,39 @@ export function FirmBundles() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="mb-2">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-foreground">{tier.monthlyPrice || tier.price}</span>
-                    {tier.monthlyPrice && (
-                      <span className="text-sm text-muted-foreground">/month</span>
-                    )}
-                    {!tier.monthlyPrice && tier.price !== "Custom" && (
-                      <span className="text-sm text-muted-foreground">/year</span>
-                    )}
-                  </div>
-                  {tier.monthlyPrice && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {tier.price} / year
-                    </p>
+                  {isEnterprise ? (
+                    <div className="text-3xl font-bold text-foreground">Custom</div>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold text-foreground">${tier.monthlyPrice}</span>
+                        <span className="text-sm text-muted-foreground">/month</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        ${(tier.monthlyPrice! * 12).toLocaleString()} / year
+                      </p>
+                    </>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
-                <p className="text-xs text-primary mb-6">{tier.savings}</p>
+
+                {!isEnterprise && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {tier.seats} user licenses · all 7 portals each
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Equivalent to ~${perUser}/user when shared across {tier.seats} licenses
+                    </p>
+                  </>
+                )}
+
+                {yearlySavings && yearlySavings > 0 && (
+                  <p className="text-xs text-primary mt-3 mb-6">
+                    Save ${yearlySavings.toLocaleString()}/yr vs {tier.seats} individual Complete Bundle
+                    subscriptions at ${INDIVIDUAL_BUNDLE_PRICE}/mo each
+                  </p>
+                )}
+                {isEnterprise && <div className="mt-2 mb-6" />}
 
                 <ul className="space-y-3 mb-6 flex-1">
                   {tier.features.map((feature, i) => (
@@ -186,9 +206,9 @@ export function FirmBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All firm bundles are annual or monthly starter packages — new advanced AI features added later are
-          charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a different seat
-          count or custom terms?{" "}
+          All firm bundles are monthly starter packages — new advanced AI features added later are
+charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a different seat
+count or custom terms?{" "}
           <a href={ENTERPRISE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Talk to us on WhatsApp
           </a>

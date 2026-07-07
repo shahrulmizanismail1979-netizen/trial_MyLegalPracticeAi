@@ -2,23 +2,22 @@ import { Check, GraduationCap, BookOpen, School, Library, Sparkles } from "lucid
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const INDIVIDUAL_BUNDLE_PRICE = 79;
+
 const tiers = [
   {
     name: "Faculty Starter",
     icon: BookOpen,
     description: "Small law faculties & departments",
-    licenses: "20 student/lecturer licenses",
-    monthlyPrice: "$188",
-    price: "$2,256",
-    perUser: "$9 per user / month · $113 per user / year",
-    savings: "Save $16,704 / yr vs individual subscriptions",
+    seats: 20,
+    monthlyPrice: 188,
     headline: "Foundational classroom access for small cohorts",
     includes: null,
     features: [
       "Access to all 7 AI Portals",
       "MyLawSimEduAi simulation platform included",
       "20 user licenses",
-      "Annual or monthly academic subscription",
+      "Monthly academic subscription — cancel anytime",
       "For students & lecturers",
       "Email support",
     ],
@@ -27,11 +26,8 @@ const tiers = [
     name: "Faculty Plus",
     icon: School,
     description: "Mid-sized law schools",
-    licenses: "50 student/lecturer licenses",
-    monthlyPrice: "$405",
-    price: "$4,860",
-    perUser: "$8 per user / month · $97 per user / year",
-    savings: "Save $42,540 / yr vs individual subscriptions",
+    seats: 50,
+    monthlyPrice: 405,
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
     includes: "Faculty Starter",
@@ -46,11 +42,8 @@ const tiers = [
     name: "Campus",
     icon: Library,
     description: "Large universities & colleges",
-    licenses: "150 user licenses",
-    monthlyPrice: "$953",
-    price: "$11,436",
-    perUser: "$6 per user / month · $76 per user / year",
-    savings: "Save $130,764 / yr vs individual subscriptions",
+    seats: 150,
+    monthlyPrice: 953,
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
     features: [
@@ -65,10 +58,8 @@ const tiers = [
     name: "Institution",
     icon: GraduationCap,
     description: "Multi-campus & nationwide programmes",
-    licenses: "Custom seat count",
-    price: "Custom",
-    perUser: "Volume academic pricing",
-    savings: "Tailored to your institution",
+    seats: null,
+    monthlyPrice: null,
     headline: "Adds multi-campus deployment, SSO & API access",
     includes: "Campus",
     features: [
@@ -101,9 +92,9 @@ export function EducationBundles() {
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Empower the next generation of Malaysian legal practitioners. Every academic bundle
-          comes with <span className="text-primary font-medium">MyLawSimEduAi</span> — our AI-powered
-          legal simulation platform — bundled together with all 7 AI Portals for both students
-          and lecturers.
+comes with <span className="text-primary font-medium">MyLawSimEduAi</span> — our AI-powered
+legal simulation platform — bundled together with all 7 AI Portals for both students
+and lecturers.
         </p>
       </div>
 
@@ -111,6 +102,19 @@ export function EducationBundles() {
         {tiers.map((tier) => {
           const Icon = tier.icon;
           const isInstitution = tier.name === "Institution";
+
+          const perUser = tier.seats && tier.monthlyPrice
+            ? Math.round((tier.monthlyPrice / tier.seats) * 100) / 100
+            : null;
+
+          const individualTotal = tier.seats
+            ? tier.seats * INDIVIDUAL_BUNDLE_PRICE
+            : null;
+
+          const yearlySavings = tier.seats && tier.monthlyPrice
+            ? (individualTotal! - tier.monthlyPrice) * 12
+            : null;
+
           return (
             <Card
               key={tier.name}
@@ -134,23 +138,39 @@ export function EducationBundles() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="mb-2">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-foreground">{tier.monthlyPrice || tier.price}</span>
-                    {tier.monthlyPrice && (
-                      <span className="text-sm text-muted-foreground">/month</span>
-                    )}
-                    {!tier.monthlyPrice && tier.price !== "Custom" && (
-                      <span className="text-sm text-muted-foreground">/year</span>
-                    )}
-                  </div>
-                  {tier.monthlyPrice && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {tier.price} / year
-                    </p>
+                  {isInstitution ? (
+                    <div className="text-3xl font-bold text-foreground">Custom</div>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold text-foreground">${tier.monthlyPrice}</span>
+                        <span className="text-sm text-muted-foreground">/month</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        ${(tier.monthlyPrice! * 12).toLocaleString()} / year
+                      </p>
+                    </>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
-                <p className="text-xs text-primary mb-4">{tier.savings}</p>
+
+                {!isInstitution && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {tier.seats} user licenses · all 7 portals each
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Equivalent to ~${perUser}/user when shared across {tier.seats} licenses
+                    </p>
+                  </>
+                )}
+
+                {yearlySavings && yearlySavings > 0 && (
+                  <p className="text-xs text-primary mt-3 mb-4">
+                    Save ${yearlySavings.toLocaleString()}/yr vs {tier.seats} individual Complete Bundle
+                    subscriptions at ${INDIVIDUAL_BUNDLE_PRICE}/mo each
+                  </p>
+                )}
+                {isInstitution && <div className="mt-2 mb-4" />}
 
                 <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/15">
                   <div className="flex items-start gap-2">
@@ -207,9 +227,9 @@ export function EducationBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All academic bundles are annual or monthly starter packages — new advanced AI features added later are
-          charged pay-as-you-go based on usage. Academic bundles require verification of institutional status. Need a different seat
-          count or longer term?{" "}
+          All academic bundles are monthly starter packages — new advanced AI features added later are
+charged pay-as-you-go based on usage. Academic bundles require verification of institutional status. Need a different seat
+count or longer term?{" "}
           <a href={EDUCATION_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Talk to us on WhatsApp
           </a>

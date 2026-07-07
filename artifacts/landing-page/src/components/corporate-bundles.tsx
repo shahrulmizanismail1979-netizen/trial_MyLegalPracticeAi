@@ -2,23 +2,22 @@ import { Check, Building2, Factory, Briefcase, Crown, Sparkles } from "lucide-re
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const INDIVIDUAL_BUNDLE_PRICE = 79;
+
 const tiers = [
   {
     name: "Startup Legal",
     icon: Briefcase,
     description: "SMEs & startup in-house teams",
-    licenses: "3 user licenses",
-    monthlyPrice: "$83",
-    price: "$996",
-    perUser: "$28 per user / month · $332 per user / year",
-    savings: "Save $1,848 / yr vs individual subscriptions",
+    seats: 3,
+    monthlyPrice: 83,
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
     features: [
       "Access to all 7 AI Portals",
       "Contract review & drafting templates",
       "3 user licenses",
-      "Annual or monthly subscription",
+      "Monthly subscription — cancel anytime",
       "Centralised billing",
       "Email support",
     ],
@@ -27,11 +26,8 @@ const tiers = [
     name: "Growth",
     icon: Building2,
     description: "Growing companies & in-house counsel",
-    licenses: "8 user licenses",
-    monthlyPrice: "$192",
-    price: "$2,304",
-    perUser: "$24 per user / month · $288 per user / year",
-    savings: "Save $5,280 / yr vs individual subscriptions",
+    seats: 8,
+    monthlyPrice: 192,
     featured: true,
     headline: "Adds compliance + AI advisory assistant",
     includes: "Startup Legal",
@@ -48,11 +44,8 @@ const tiers = [
     name: "Corporate",
     icon: Factory,
     description: "GLCs & large corporations",
-    licenses: "20 user licenses",
-    monthlyPrice: "$398",
-    price: "$4,776",
-    perUser: "$20 per user / month · $239 per user / year",
-    savings: "Save $14,184 / yr vs individual subscriptions",
+    seats: 20,
+    monthlyPrice: 398,
     headline: "Adds board, M&A & due diligence modules",
     includes: "Growth",
     features: [
@@ -68,10 +61,8 @@ const tiers = [
     name: "Group / Enterprise",
     icon: Crown,
     description: "Conglomerates & multi-entity groups",
-    licenses: "Custom licensing",
-    price: "Custom",
-    perUser: "Volume pricing",
-    savings: "Tailored to your group",
+    seats: null,
+    monthlyPrice: null,
     headline: "Adds ESG, group governance & cross-border mapping",
     includes: "Corporate",
     features: [
@@ -104,8 +95,8 @@ export function CorporateBundles() {
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Tiered for corporate legal advisory work — each level adds advisory depth on top of
-          the previous one. Centralised billing, volume pricing, and priority support across
-          your organisation.
+the previous one. Centralised billing, volume pricing, and priority support across
+your organisation.
         </p>
       </div>
 
@@ -113,6 +104,19 @@ export function CorporateBundles() {
         {tiers.map((tier) => {
           const Icon = tier.icon;
           const isEnterprise = tier.name === "Group / Enterprise";
+
+          const perUser = tier.seats && tier.monthlyPrice
+            ? Math.round((tier.monthlyPrice / tier.seats) * 100) / 100
+            : null;
+
+          const individualTotal = tier.seats
+            ? tier.seats * INDIVIDUAL_BUNDLE_PRICE
+            : null;
+
+          const yearlySavings = tier.seats && tier.monthlyPrice
+            ? (individualTotal! - tier.monthlyPrice) * 12
+            : null;
+
           return (
             <Card
               key={tier.name}
@@ -136,23 +140,39 @@ export function CorporateBundles() {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="mb-2">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-foreground">{tier.monthlyPrice || tier.price}</span>
-                    {tier.monthlyPrice && (
-                      <span className="text-sm text-muted-foreground">/month</span>
-                    )}
-                    {!tier.monthlyPrice && tier.price !== "Custom" && (
-                      <span className="text-sm text-muted-foreground">/year</span>
-                    )}
-                  </div>
-                  {tier.monthlyPrice && (
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {tier.price} / year
-                    </p>
+                  {isEnterprise ? (
+                    <div className="text-3xl font-bold text-foreground">Custom</div>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-3xl font-bold text-foreground">${tier.monthlyPrice}</span>
+                        <span className="text-sm text-muted-foreground">/month</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        ${(tier.monthlyPrice! * 12).toLocaleString()} / year
+                      </p>
+                    </>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mb-1">{tier.perUser}</p>
-                <p className="text-xs text-primary mb-4">{tier.savings}</p>
+
+                {!isEnterprise && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {tier.seats} user licenses · all 7 portals each
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Equivalent to ~${perUser}/user when shared across {tier.seats} licenses
+                    </p>
+                  </>
+                )}
+
+                {yearlySavings && yearlySavings > 0 && (
+                  <p className="text-xs text-primary mt-3 mb-4">
+                    Save ${yearlySavings.toLocaleString()}/yr vs {tier.seats} individual Complete Bundle
+                    subscriptions at ${INDIVIDUAL_BUNDLE_PRICE}/mo each
+                  </p>
+                )}
+                {isEnterprise && <div className="mt-2 mb-4" />}
 
                 <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/15">
                   <div className="flex items-start gap-2">
@@ -209,9 +229,9 @@ export function CorporateBundles() {
 
       <div className="mt-12 text-center max-w-3xl mx-auto">
         <p className="text-sm text-muted-foreground">
-          All corporate bundles are annual or monthly starter packages — new advanced AI features added later are
-          charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a custom seat
-          count, multi-entity setup or procurement terms?{" "}
+          All corporate bundles are monthly starter packages — new advanced AI features added later are
+charged pay-as-you-go based on usage. They include centralised billing and admin access. Need a custom seat
+count, multi-entity setup or procurement terms?{" "}
           <a href={ENTERPRISE_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
             Talk to us on WhatsApp
           </a>
