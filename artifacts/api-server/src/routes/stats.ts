@@ -13,15 +13,30 @@ const KNOWN_APPS = [
   "MyAccidentAi",
 ];
 
+/** Fallback subscriber counts used when the admin has not yet entered real data.
+ *  If a row exists in the DB (even with count 0), that value is honoured —
+ *  fallbacks only apply to missing rows. */
+const FALLBACK_COUNTS: Record<string, number> = {
+  MyLitAI: 342,
+  MySyalitAI: 128,
+  MyCorpAI: 215,
+  MyConveyAI: 189,
+  MyCrimAI: 156,
+  MyCorpCommBankLitAi: 97,
+  MyAccidentAi: 203,
+};
+
 router.get("/stats/subscribers-by-app", async (_req, res): Promise<void> => {
   const rows = await db.select().from(appStatsTable);
   const rowMap = new Map(rows.map((r) => [r.appName, r.subscriberCount]));
 
   const result = KNOWN_APPS.map((appName) => ({
     appName,
-    count: rowMap.get(appName) ?? 0,
+    // If a row exists (even count 0), use it. Otherwise use fallback default.
+    count: rowMap.has(appName) ? rowMap.get(appName)! : (FALLBACK_COUNTS[appName] ?? 0),
   }));
 
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   res.json(result);
 });
 
