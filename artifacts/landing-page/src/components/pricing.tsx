@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { Check, AlertCircle, Sparkles, Loader2, Clock, Zap, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +8,7 @@ type CheckoutTier = "bundle" | "single" | "standard";
 export function Pricing() {
   const [loadingTier, setLoadingTier] = useState<CheckoutTier | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [trialNote, setTrialNote] = useState(false);
 
   const startCheckout = async (tier: CheckoutTier) => {
     setCheckoutError(null);
@@ -34,87 +35,96 @@ export function Pricing() {
   return (
     <section id="pricing" className="py-24 px-6 lg:px-8 relative">
       <div className="absolute inset-0 bg-secondary/30 -skew-y-2 origin-top-left -z-10" />
-      
+
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6">
             Transparent, <span className="text-primary">Value-Driven</span> Pricing
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Equip yourself with the power of AI virtual paralegals. Choose individual apps or secure the complete bundle at an unprecedented value.
+            Start free. Upgrade when you are ready. Every tier is designed to deliver real value
+            for Malaysian legal professionals.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          
-          {/* Bundle Column - Most Prominent */}
-          <Card className="lg:col-span-2 relative overflow-hidden border-primary shadow-[0_0_30px_rgba(212,175,55,0.15)] bg-card lg:order-2">
-            <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-bold uppercase tracking-wider rounded-bl-lg">
-              Best Value
-            </div>
-            <CardHeader className="pb-8 pt-10">
-                <CardTitle className="font-serif text-4xl mb-2">The Complete Bundle</CardTitle>
-              <CardDescription className="text-lg">All 7 AI Portals</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-5xl font-bold text-foreground">$79</span>
-                  <span className="text-lg text-muted-foreground">/month</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+
+          {/* Free Trial */}
+          <Card className="bg-card/50 border-border/50 flex flex-col justify-between">
+            <div>
+              <CardHeader className="pb-6 pt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-5 w-5 text-emerald-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/30 bg-emerald-400/10">
+                    No card required
+                  </span>
                 </div>
-                <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
-                <Button
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12"
-                  onClick={() => startCheckout("bundle")}
-                  disabled={loadingTier !== null}
-                >
-                  {loadingTier === "bundle" ? (
-                    <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
-                  ) : (
-                    "Get the Bundle"
-                  )}
-                </Button>
-              </div>
-              <ul className="space-y-4">
-                {[
-                  "Access to all 7 AI Portals",
-                  "Monthly subscription — cancel anytime",
-                  "1 user license",
-                  "Free platform updates",
-                  "Priority support"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <span className="text-foreground/80">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
+                <CardTitle className="font-serif text-3xl mb-2">Free Trial</CardTitle>
+                <CardDescription className="text-lg">Explore before you commit</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-4xl font-bold text-foreground">$0</span>
+                  <span className="text-lg text-muted-foreground">/ 7 days</span>
+                </div>
+                <p className="text-muted-foreground mb-6">Full access to 1 portal</p>
+
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "7-day full access to 1 AI Portal",
+                    "10 queries per day",
+                    "All features included",
+                    "Cancel anytime before billing",
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <span className="text-foreground/80 text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </div>
+            <CardFooter>
+              <Button
+                variant="outline"
+                className="w-full text-lg h-12 border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-400"
+                onClick={() => setTrialNote(true)}
+              >
+                Start Free Trial
+              </Button>
+            </CardFooter>
           </Card>
 
-          {/* Single App Column */}
-          <Card className="bg-card/50 border-border/50 lg:order-1 flex flex-col justify-between">
+          {/* Single App */}
+          <Card className="bg-card/50 border-border/50 flex flex-col justify-between">
             <div>
-              <CardHeader className="pb-8 pt-10">
+              <CardHeader className="pb-6 pt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
+                    Most Popular
+                  </span>
+                </div>
                 <CardTitle className="font-serif text-3xl mb-2">Single App</CardTitle>
-                <CardDescription className="text-lg">Choose 1 AI Portal</CardDescription>
+                <CardDescription className="text-lg">1 AI Portal, unlimited use</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-4xl font-bold text-foreground">$25</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <p className="text-muted-foreground mb-8">Billed monthly</p>
-                
-                <ul className="space-y-4 mb-8">
+                <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
+
+                <ul className="space-y-3 mb-6">
                   {[
-                    "Access to 1 AI Portal of choice",
-                    "Monthly subscription — cancel anytime",
-                    "1 user license"
+                    "Unlimited access to 1 AI Portal",
+                    "All features & updates",
+                    "1 user license",
+                    "Email support",
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <span className="text-foreground/80">{feature}</span>
+                      <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <span className="text-foreground/80 text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -130,13 +140,80 @@ export function Pricing() {
                 {loadingTier === "single" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
                 ) : (
-                  "Select an App"
+                  "Subscribe — Single"
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Complete Bundle */}
+          <Card className="relative overflow-hidden border-primary shadow-[0_0_30px_rgba(212,175,55,0.15)] bg-card">
+            <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-bold uppercase tracking-wider rounded-bl-lg">
+              Best Value
+            </div>
+            <CardHeader className="pb-6 pt-10">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="h-5 w-5 text-primary" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
+                  Save 48%
+                </span>
+              </div>
+              <CardTitle className="font-serif text-3xl mb-2">Complete Bundle</CardTitle>
+              <CardDescription className="text-lg">All 7 AI Portals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-5xl font-bold text-foreground">$79</span>
+                <span className="text-lg text-muted-foreground">/month</span>
+              </div>
+              <p className="text-muted-foreground mb-2">Billed monthly · cancel anytime</p>
+              <p className="text-sm text-muted-foreground mb-6">
+                <span className="line-through opacity-60">$175</span> if bought individually — you save $96
+              </p>
+
+              <ul className="space-y-3 mb-6">
+                {[
+                  "Unlimited access to all 7 AI Portals",
+                  "All features & updates",
+                  "1 user license",
+                  "Priority support",
+                  "Early access to new portals",
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="text-foreground/80 text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12"
+                onClick={() => startCheckout("bundle")}
+                disabled={loadingTier !== null}
+              >
+                {loadingTier === "bundle" ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
+                ) : (
+                  "Subscribe — Bundle"
                 )}
               </Button>
             </CardFooter>
           </Card>
 
         </div>
+
+        {trialNote && (
+          <div className="mt-8 max-w-2xl mx-auto flex items-start gap-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm">
+            <Sparkles className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="text-emerald-400">
+              <span className="font-semibold">Free trial coming soon.</span>{" "}
+              We are setting up the 7-day trial system. In the meantime, feel free to explore any
+              live portal above — each app has its own preview mode so you can test the interface
+              before subscribing.
+            </div>
+          </div>
+        )}
 
         {checkoutError && (
           <div className="mt-8 max-w-2xl mx-auto flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
@@ -150,12 +227,10 @@ export function Pricing() {
             <div className="flex items-start gap-3">
               <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-primary mb-1">All prices are for the Starter Package</h4>
+                <h4 className="font-bold text-primary mb-1">Fair & flexible pricing</h4>
                 <p className="text-sm text-muted-foreground">
-                  Every package above is a <span className="text-foreground font-medium">monthly starter subscription</span> covering
-                  the current AI Portals and features — billed each month, cancel anytime. As we roll out more advanced
-                  AI features over time, those will be offered on a <span className="text-foreground font-medium">pay-as-you-go basis</span> —
-                  charged according to actual usage, so you only pay for what you use.
+                  Every plan is a <span className="text-foreground font-medium">monthly subscription</span> — billed each month, cancel anytime. Need a different arrangement? 
+                  <a href="mailto:support@mylitai.life" className="text-primary underline underline-offset-2">Contact us</a> for firm, corporate, or academic licensing.
                 </p>
               </div>
             </div>
