@@ -10,7 +10,7 @@ const tiers = [
     icon: Briefcase,
     description: "Small firms & chambers",
     seats: 5,
-    monthlyPrice: 59,
+    monthlyPrice: 355,
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
@@ -24,7 +24,7 @@ const tiers = [
     icon: Building,
     description: "Mid-sized law firms",
     seats: 15,
-    monthlyPrice: 149,
+    monthlyPrice: 1005,
     featured: true,
     features: [
       "Access to all 7 AI Portals",
@@ -40,7 +40,7 @@ const tiers = [
     icon: Building2,
     description: "Large firms & legal departments",
     seats: 30,
-    monthlyPrice: 269,
+    monthlyPrice: 1890,
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",

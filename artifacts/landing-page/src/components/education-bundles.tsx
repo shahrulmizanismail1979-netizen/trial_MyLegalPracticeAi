@@ -10,7 +10,7 @@ const tiers = [
     icon: BookOpen,
     description: "Small law faculties & departments",
     seats: 20,
-    monthlyPrice: 188,
+    monthlyPrice: 1340,
     headline: "Foundational classroom access for small cohorts",
     includes: null,
     features: [
@@ -27,7 +27,7 @@ const tiers = [
     icon: School,
     description: "Mid-sized law schools",
     seats: 50,
-    monthlyPrice: 405,
+    monthlyPrice: 3250,
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
     includes: "Faculty Starter",
@@ -43,7 +43,7 @@ const tiers = [
     icon: Library,
     description: "Large universities & colleges",
     seats: 150,
-    monthlyPrice: 953,
+    monthlyPrice: 9450,
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
     features: [

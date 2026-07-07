@@ -10,7 +10,7 @@ const tiers = [
     icon: Briefcase,
     description: "SMEs & startup in-house teams",
     seats: 3,
-    monthlyPrice: 83,
+    monthlyPrice: 213,
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
     features: [
@@ -27,7 +27,7 @@ const tiers = [
     icon: Building2,
     description: "Growing companies & in-house counsel",
     seats: 8,
-    monthlyPrice: 192,
+    monthlyPrice: 552,
     featured: true,
     headline: "Adds compliance + AI advisory assistant",
     includes: "Startup Legal",
@@ -45,7 +45,7 @@ const tiers = [
     icon: Factory,
     description: "GLCs & large corporations",
     seats: 20,
-    monthlyPrice: 398,
+    monthlyPrice: 1300,
     headline: "Adds board, M&A & due diligence modules",
     includes: "Growth",
     features: [
