@@ -4,20 +4,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 
 type CheckoutTier = "bundle" | "single" | "standard";
+type LoadingKey = CheckoutTier | "trial";
 
 export function Pricing() {
-  const [loadingTier, setLoadingTier] = useState<CheckoutTier | null>(null);
+  const [loadingTier, setLoadingTier] = useState<LoadingKey | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [trialNote, setTrialNote] = useState(false);
 
-  const startCheckout = async (tier: CheckoutTier) => {
+  const startCheckout = async (tier: CheckoutTier, trial = false) => {
     setCheckoutError(null);
-    setLoadingTier(tier);
+    setLoadingTier(trial ? "trial" : tier);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify(trial ? { tier, trial: true } : { tier }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
@@ -56,7 +56,7 @@ export function Pricing() {
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="h-5 w-5 text-emerald-400" />
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-400/30 bg-emerald-400/10">
-                    No card required
+                    7 days free
                   </span>
                 </div>
                 <CardTitle className="font-serif text-3xl mb-2">Free Trial</CardTitle>
@@ -67,14 +67,16 @@ export function Pricing() {
                   <span className="text-4xl font-bold text-foreground">$0</span>
                   <span className="text-lg text-muted-foreground">/ 7 days</span>
                 </div>
-                <p className="text-muted-foreground mb-6">Full access to 1 portal</p>
+                <p className="text-muted-foreground mb-6">
+                  Then $25/month unless cancelled
+                </p>
 
                 <ul className="space-y-3 mb-6">
                   {[
                     "7-day full access to 1 AI Portal",
-                    "10 queries per day",
                     "All features included",
-                    "Cancel anytime before billing",
+                    "Card required — not charged during trial",
+                    "Auto-bills $25/mo after 7 days unless you cancel",
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -88,9 +90,14 @@ export function Pricing() {
               <Button
                 variant="outline"
                 className="w-full text-lg h-12 border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-400"
-                onClick={() => setTrialNote(true)}
+                onClick={() => startCheckout("single", true)}
+                disabled={loadingTier !== null}
               >
-                Start Free Trial
+                {loadingTier === "trial" ? (
+                  <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
+                ) : (
+                  "Start Free Trial"
+                )}
               </Button>
             </CardFooter>
           </Card>
@@ -202,18 +209,6 @@ export function Pricing() {
           </Card>
 
         </div>
-
-        {trialNote && (
-          <div className="mt-8 max-w-2xl mx-auto flex items-start gap-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm">
-            <Sparkles className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-            <div className="text-emerald-400">
-              <span className="font-semibold">Free trial coming soon.</span>{" "}
-              We are setting up the 7-day trial system. In the meantime, feel free to explore any
-              live portal above — each app has its own preview mode so you can test the interface
-              before subscribing.
-            </div>
-          </div>
-        )}
 
         {checkoutError && (
           <div className="mt-8 max-w-2xl mx-auto flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">

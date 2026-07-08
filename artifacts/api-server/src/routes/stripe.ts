@@ -95,6 +95,12 @@ router.get("/products-with-prices", async (req, res) => {
 router.post("/checkout", async (req, res) => {
   const tier = req.body?.tier as string | undefined;
   const appUrl = req.body?.appUrl as string | undefined;
+  const trial = req.body?.trial === true;
+
+  if (trial && tier !== "single") {
+    res.status(400).json({ error: "Free trial is only available on the single tier." });
+    return;
+  }
 
   if (!tier || !CHECKOUT_TIERS.includes(tier as CheckoutTier)) {
     res.status(400).json({
@@ -134,10 +140,23 @@ router.post("/checkout", async (req, res) => {
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
+    // For trials: always collect a card upfront so the subscription
+    // auto-converts to a paid plan when the trial ends unless cancelled.
+    payment_method_collection: "always",
     success_url: `${origin}/?${successParams.toString()}`,
     cancel_url: `${origin}/?checkout=cancelled`,
-    subscription_data: { metadata: { tier } },
-    metadata: { tier },
+    subscription_data: {
+      metadata: { tier, trial: trial ? "true" : "false" },
+      ...(trial
+        ? {
+            trial_period_days: 7,
+            trial_settings: {
+              end_behavior: { missing_payment_method: "cancel" },
+            },
+          }
+        : {}),
+    },
+    metadata: { tier, trial: trial ? "true" : "false" },
   });
 
   res.json({ url: session.url });
