@@ -126,10 +126,11 @@ async function startCheckout(appUrl: string): Promise<void> {
 }
 
 function VersionCard({ version }: { version: AppVersion }) {
+  const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleClick = async (e: React.MouseEvent) => {
+  const handleSubscribe = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setError(null);
     setLoading(true);
@@ -142,31 +143,72 @@ function VersionCard({ version }: { version: AppVersion }) {
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className="group w-full text-left flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 hover:border-primary/60 hover:bg-primary/5 p-4 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-    >
+    <div className="w-full flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 p-4 transition-all duration-200">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
           {version.badge}
         </span>
-        {loading ? (
-          <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-        ) : (
-          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-        )}
+        <span className="text-xs font-semibold text-foreground">
+          $25<span className="text-muted-foreground font-normal">/month</span>
+        </span>
       </div>
-      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-        {loading ? "Redirecting to checkout…" : version.label}
-      </p>
+      <p className="text-sm font-semibold text-foreground">{version.label}</p>
       <p className="text-xs text-muted-foreground leading-relaxed">
         {version.description}
       </p>
-      {error && (
-        <p className="text-xs text-red-400 mt-1">{error}</p>
+
+      {!confirming ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(true);
+          }}
+          className="mt-2 w-full rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold py-2 transition-colors"
+        >
+          Choose {version.badge}
+        </button>
+      ) : (
+        <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <p className="text-xs text-foreground font-semibold">
+            Single App plan — {version.label}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            $25 USD/month · unlimited access to this portal · billed monthly, cancel anytime.
+            Stripe may display the equivalent amount in MYR at checkout.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubscribe}
+              disabled={loading}
+              className="flex-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Redirecting…
+                </>
+              ) : (
+                <>
+                  Continue to secure checkout <ExternalLink className="h-3 w-3" />
+                </>
+              )}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+                setError(null);
+              }}
+              disabled={loading}
+              className="rounded-lg border border-border text-muted-foreground hover:text-foreground text-xs font-semibold px-3 py-2 transition-colors disabled:opacity-60"
+            >
+              Back
+            </button>
+          </div>
+        </div>
       )}
-    </button>
+
+      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+    </div>
   );
 }
 

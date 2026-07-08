@@ -17,37 +17,29 @@ type TierPlan = {
   name: string;
   description: string;
   amountUSD: number; // whole US dollars, per month
-  coursesPerYear: number;
-  insuranceEntitled: boolean;
 };
 
 const PLANS: TierPlan[] = [
   {
     tier: "bundle",
-    name: "AI Portals Bundle",
+    name: "Complete Bundle — All 7 AI Portals",
     description:
-      "Access to all 7 AI Portals, Prudential Takaful life insurance, and 3 free legal-skills courses/year at Commonwealth Law University (clui.life).",
+      "Unlimited access to all 7 AI Portals for Malaysian legal professionals. 1 user license, priority support, early access to new portals. Billed monthly, cancel anytime.",
     amountUSD: 79,
-    coursesPerYear: 3,
-    insuranceEntitled: true,
   },
   {
     tier: "single",
-    name: "AI Portal — Single App",
+    name: "Single App — 1 AI Portal",
     description:
-      "Access to 1 AI Portal of choice, Prudential Takaful life insurance, and 1 free legal-skills course/year at Commonwealth Law University (clui.life).",
+      "Unlimited access to 1 AI Portal of your choice. 1 user license, all features and updates, email support. Billed monthly, cancel anytime.",
     amountUSD: 25,
-    coursesPerYear: 1,
-    insuranceEntitled: true,
   },
   {
     tier: "standard",
-    name: "AI Portal — Standard",
+    name: "Single App — Standard Rate",
     description:
-      "Standard per-app price (101st buyer onwards). Includes Prudential Takaful life insurance and 1 free legal-skills course/year at Commonwealth Law University (clui.life).",
+      "Standard per-app rate. Unlimited access to 1 AI Portal of your choice. 1 user license, all features and updates. Billed monthly, cancel anytime.",
     amountUSD: 35,
-    coursesPerYear: 1,
-    insuranceEntitled: true,
   },
 ];
 
@@ -67,13 +59,23 @@ async function createProducts() {
       product = await stripe.products.create({
         name: plan.name,
         description: plan.description,
-        metadata: {
-          tier: plan.tier,
-          coursesPerYear: String(plan.coursesPerYear),
-          insuranceEntitled: String(plan.insuranceEntitled),
-        },
+        metadata: { tier: plan.tier },
       });
       console.log(`Created product ${plan.name} (${product.id}).`);
+    } else if (
+      product.name !== plan.name ||
+      product.description !== plan.description
+    ) {
+      product = await stripe.products.update(product.id, {
+        name: plan.name,
+        description: plan.description,
+        metadata: {
+          tier: plan.tier,
+          coursesPerYear: "",
+          insuranceEntitled: "",
+        },
+      });
+      console.log(`Updated product name/description for ${plan.name} (${product.id}).`);
     }
 
     // Inspect existing prices for this product.
