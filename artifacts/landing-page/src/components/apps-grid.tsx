@@ -174,7 +174,6 @@ function VersionCard({ version }: { version: AppVersion }) {
           </p>
           <p className="text-xs text-muted-foreground">
             $25 USD/month · unlimited access to this portal · billed monthly, cancel anytime.
-            Stripe may display the equivalent amount in MYR at checkout.
           </p>
           <div className="flex gap-2">
             <button

@@ -140,6 +140,9 @@ router.post("/checkout", async (req, res) => {
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
+    // Disable Stripe Adaptive Pricing so checkout always shows USD
+    // instead of auto-converting to the customer's local currency (e.g. MYR).
+    adaptive_pricing: { enabled: false },
     // For trials: always collect a card upfront so the subscription
     // auto-converts to a paid plan when the trial ends unless cancelled.
     payment_method_collection: "always",
