@@ -63,6 +63,8 @@ export interface Subscriber {
   stripeCustomerId?: string | null;
   /** @nullable */
   stripeSubscriptionId?: string | null;
+  /** @nullable */
+  accessCode?: string | null;
   insuranceEntitled: boolean;
   coursesPerYear: number;
   coursesUsed: number;

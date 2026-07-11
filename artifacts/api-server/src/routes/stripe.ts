@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
+import { provisionFromCheckoutSession } from "../lib/provisioning";
 
 const router: IRouter = Router();
 
@@ -129,11 +130,11 @@ router.post("/checkout", async (req, res) => {
 
   // If the caller supplied a whitelisted appUrl, encode it into the success_url
   // so the landing page can redirect the user there after payment is confirmed.
-  const successParams = new URLSearchParams({
-    checkout: "success",
-    session_id: "{CHECKOUT_SESSION_ID}",
-  });
-  if (appUrl) successParams.set("redirect", appUrl);
+  // NOTE: {CHECKOUT_SESSION_ID} must stay literal (unencoded) — Stripe replaces
+  // it with the real session id. URLSearchParams would percent-encode the braces.
+  const successUrl =
+    `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}` +
+    (appUrl ? `&redirect=${encodeURIComponent(appUrl)}` : "");
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -146,7 +147,7 @@ router.post("/checkout", async (req, res) => {
     // For trials: always collect a card upfront so the subscription
     // auto-converts to a paid plan when the trial ends unless cancelled.
     payment_method_collection: "always",
-    success_url: `${origin}/?${successParams.toString()}`,
+    success_url: successUrl,
     cancel_url: `${origin}/?checkout=cancelled`,
     subscription_data: {
       metadata: { tier, trial: trial ? "true" : "false" },
@@ -159,10 +160,38 @@ router.post("/checkout", async (req, res) => {
           }
         : {}),
     },
-    metadata: { tier, trial: trial ? "true" : "false" },
+    metadata: { tier, trial: trial ? "true" : "false", ...(appUrl ? { appUrl } : {}) },
   });
 
   res.json({ url: session.url });
+});
+
+// Public: fetch access details for a completed checkout session so the
+// success page can show the customer their access code immediately.
+// The session id itself is the bearer secret (only the purchaser has it).
+router.get("/session-info", async (req, res) => {
+  const sessionId = req.query.session_id;
+  if (typeof sessionId !== "string" || !/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
+    res.status(400).json({ error: "Invalid session_id." });
+    return;
+  }
+
+  try {
+    const result = await provisionFromCheckoutSession(sessionId);
+    if (!result) {
+      res.status(404).json({ error: "Checkout session is not complete yet." });
+      return;
+    }
+    res.json({
+      accessCode: result.accessCode,
+      apps: result.apps,
+      tier: result.tier,
+      trial: result.trial,
+    });
+  } catch (err) {
+    req.log.error({ err, sessionId }, "session-info lookup failed");
+    res.status(404).json({ error: "Checkout session not found." });
+  }
 });
 
 export default router;

@@ -5,6 +5,7 @@ import authRouter from "./auth";
 import storageRouter from "./storage";
 import contributionsRouter from "./contributions";
 import stripeRouter from "./stripe";
+import accessRouter from "./access";
 import statsRouter from "./stats";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
@@ -16,6 +17,7 @@ router.use(storageRouter);
 router.use(contributionsRouter);
 router.use(statsRouter);
 router.use("/stripe", stripeRouter);
+router.use("/access", accessRouter);
 router.use("/admin", requireAuth, requireStaff, adminRouter);
 
 export default router;

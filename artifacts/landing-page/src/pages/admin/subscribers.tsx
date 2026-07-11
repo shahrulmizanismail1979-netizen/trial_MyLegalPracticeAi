@@ -177,6 +177,19 @@ export default function SubscribersPage() {
                       <div className="font-medium">{sub.name}</div>
                       <div className="text-xs text-muted-foreground">{sub.email}</div>
                       <div className="text-xs text-muted-foreground">{sub.phone}</div>
+                      {sub.accessCode && (
+                        <button
+                          type="button"
+                          title="Click to copy access code"
+                          onClick={() => {
+                            navigator.clipboard.writeText(sub.accessCode!);
+                            toast.success("Access code copied");
+                          }}
+                          className="mt-1 font-mono text-[11px] text-primary border border-primary/30 bg-primary/5 rounded px-1.5 py-0.5 hover:bg-primary/10"
+                        >
+                          {sub.accessCode}
+                        </button>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[200px]">

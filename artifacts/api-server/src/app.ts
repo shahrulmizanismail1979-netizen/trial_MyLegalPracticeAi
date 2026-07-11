@@ -11,6 +11,7 @@ import {
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
+import { handleStripeEventForProvisioning } from "./lib/provisioning";
 
 const app: Express = express();
 
@@ -28,6 +29,11 @@ app.post(
     try {
       const sig = Array.isArray(signature) ? signature[0] : signature;
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      // Signature verified by processWebhook above — safe to act on the payload.
+      // Auto-provision subscribers (access code + emails) on completed checkouts.
+      void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
+        logger.error({ err }, "Stripe provisioning hook failed");
+      });
       res.status(200).json({ received: true });
     } catch (error) {
       logger.error({ err: error }, "Stripe webhook processing error");
