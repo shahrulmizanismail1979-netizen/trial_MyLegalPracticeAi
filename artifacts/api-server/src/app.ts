@@ -15,6 +15,10 @@ import { handleStripeEventForProvisioning } from "./lib/provisioning";
 
 const app: Express = express();
 
+// The API server sits behind the Replit shared reverse proxy — trust the
+// first proxy hop so req.ip reflects the real client (used for rate limiting).
+app.set("trust proxy", 1);
+
 // Stripe webhook must be registered BEFORE express.json() so it receives the
 // raw request body (a Buffer) required for signature verification.
 app.post(

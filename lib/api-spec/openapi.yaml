@@ -24,7 +24,31 @@ tags:
     description: Object storage upload and serving endpoints.
   - name: contributions
     description: Document contribution portal and knowledge base
+  - name: assistant
+    description: AI receptionist assistant for the landing page
 paths:
+  /assistant/chat:
+    post:
+      operationId: assistantChat
+      tags: [assistant]
+      summary: Chat with the AI receptionist
+      description: Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantChatBody"
+      responses:
+        "200":
+          description: SSE stream of assistant reply chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Invalid request body
+
   /healthz:
     get:
       operationId: healthCheck
@@ -1424,3 +1448,29 @@ components:
           enum: [pending, approved, rejected]
         adminNotes:
           type: ["string", "null"]
+
+    AssistantChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+        - role
+        - content
+
+    AssistantChatBody:
+      type: object
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/AssistantChatMessage"
+      required:
+        - messages

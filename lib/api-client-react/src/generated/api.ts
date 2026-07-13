@@ -20,6 +20,7 @@ import type {
   ActivityEntry,
   AppStat,
   AppSubscriberStat,
+  AssistantChatBody,
   Contribution,
   CreateContributionBody,
   CreateKohortBody,
@@ -57,6 +58,93 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.
+ * @summary Chat with the AI receptionist
+ */
+export const getAssistantChatUrl = () => {
+  return `/api/assistant/chat`;
+};
+
+export const assistantChat = async (
+  assistantChatBody: AssistantChatBody,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getAssistantChatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(assistantChatBody),
+  });
+};
+
+export const getAssistantChatMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assistantChat>>,
+    TError,
+    { data: BodyType<AssistantChatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof assistantChat>>,
+  TError,
+  { data: BodyType<AssistantChatBody> },
+  TContext
+> => {
+  const mutationKey = ["assistantChat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof assistantChat>>,
+    { data: BodyType<AssistantChatBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return assistantChat(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AssistantChatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof assistantChat>>
+>;
+export type AssistantChatMutationBody = BodyType<AssistantChatBody>;
+export type AssistantChatMutationError = ErrorType<void>;
+
+/**
+ * @summary Chat with the AI receptionist
+ */
+export const useAssistantChat = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assistantChat>>,
+    TError,
+    { data: BodyType<AssistantChatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof assistantChat>>,
+  TError,
+  { data: BodyType<AssistantChatBody> },
+  TContext
+> => {
+  return useMutation(getAssistantChatMutationOptions(options));
+};
 
 /**
  * Returns server health status

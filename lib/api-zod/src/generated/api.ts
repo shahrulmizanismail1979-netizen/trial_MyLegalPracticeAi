@@ -8,6 +8,29 @@
 import * as zod from "zod";
 
 /**
+ * Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.
+ * @summary Chat with the AI receptionist
+ */
+export const assistantChatBodyMessagesItemContentMax = 4000;
+
+export const assistantChatBodyMessagesMax = 30;
+
+export const AssistantChatBody = zod.object({
+  messages: zod
+    .array(
+      zod.object({
+        role: zod.enum(["user", "assistant"]),
+        content: zod
+          .string()
+          .min(1)
+          .max(assistantChatBodyMessagesItemContentMax),
+      }),
+    )
+    .min(1)
+    .max(assistantChatBodyMessagesMax),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

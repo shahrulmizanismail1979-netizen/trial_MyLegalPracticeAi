@@ -1,4 +1,5 @@
 import { Hero } from "@/components/hero";
+import { ReceptionChat } from "@/components/reception-chat";
 import { AppsGrid } from "@/components/apps-grid";
 import { SubscriberStats } from "@/components/subscriber-stats";
 import { Pricing } from "@/components/pricing";
@@ -24,6 +25,7 @@ export default function Home() {
       <CheckoutSuccess />
       <div className="relative z-10">
         <Hero />
+        <ReceptionChat />
         <ContributeCTA />
         <AppsGrid />
         <SubscriberStats />

@@ -512,6 +512,31 @@ export interface UpdateContributionBody {
   adminNotes?: string | null;
 }
 
+export type AssistantChatMessageRole =
+  (typeof AssistantChatMessageRole)[keyof typeof AssistantChatMessageRole];
+
+export const AssistantChatMessageRole = {
+  user: "user",
+  assistant: "assistant",
+} as const;
+
+export interface AssistantChatMessage {
+  role: AssistantChatMessageRole;
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  content: string;
+}
+
+export interface AssistantChatBody {
+  /**
+   * @minItems 1
+   * @maxItems 30
+   */
+  messages: AssistantChatMessage[];
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;
