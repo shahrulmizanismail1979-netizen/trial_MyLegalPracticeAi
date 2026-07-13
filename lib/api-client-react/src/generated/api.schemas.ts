@@ -1049,6 +1049,242 @@ export interface AccidentAdminDashboard {
   recentUsage: AccidentRecentUsageItem[];
 }
 
+export interface CrimVerifyAccessCodeBody {
+  accessCode: string;
+}
+
+export interface CrimEntitlements {
+  tier: string;
+  tierName: string;
+  voice: boolean;
+  aiTools: string[];
+}
+
+export interface CrimAuthResponse {
+  authenticated: boolean;
+  message: string;
+  tier?: string;
+  entitlements?: CrimEntitlements;
+}
+
+export interface CrimSessionResponse {
+  authenticated: boolean;
+  isAdmin?: boolean;
+  tier?: string;
+  entitlements?: CrimEntitlements;
+}
+
+export interface CrimMessageResponse {
+  message: string;
+}
+
+export interface CrimErrorResponse {
+  error: string;
+}
+
+export interface CrimDashboardStats {
+  topicsCount: number;
+  caseLawsCount: number;
+  causePapersCount: number;
+  workflowsCount: number;
+  sampleDocumentsCount: number;
+  glossaryCount: number;
+  costsFeesCount: number;
+}
+
+export type CrimSearchResultType =
+  (typeof CrimSearchResultType)[keyof typeof CrimSearchResultType];
+
+export const CrimSearchResultType = {
+  topic: "topic",
+  "case-law": "case-law",
+  "cause-paper": "cause-paper",
+  workflow: "workflow",
+  "sample-document": "sample-document",
+  glossary: "glossary",
+  "cost-fee": "cost-fee",
+} as const;
+
+export interface CrimSearchResult {
+  id: number;
+  type: CrimSearchResultType;
+  title: string;
+  excerpt: string;
+}
+
+export interface CrimSearchResults {
+  results: CrimSearchResult[];
+  total: number;
+}
+
+export interface CrimTopic {
+  id: number;
+  title: string;
+  description: string;
+  content: string;
+  category: string;
+  orderIndex: number;
+  createdAt: string;
+}
+
+export interface CrimCaseLaw {
+  id: number;
+  caseName: string;
+  citation: string;
+  court: string;
+  year: number;
+  summary: string;
+  keyPrinciples: string;
+  category: string;
+  fullText: string;
+  createdAt: string;
+}
+
+export interface CrimCausePaper {
+  id: number;
+  title: string;
+  court: string;
+  description: string;
+  templateContent: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface CrimWorkflow {
+  id: number;
+  title: string;
+  description: string;
+  steps: string;
+  category: string;
+  estimatedDuration: string;
+  createdAt: string;
+}
+
+export interface CrimSampleDocument {
+  id: number;
+  title: string;
+  description: string;
+  documentType: string;
+  content: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface CrimGlossaryTerm {
+  id: number;
+  term: string;
+  definition: string;
+  malayTranslation: string;
+  relatedTerms: string;
+  createdAt: string;
+}
+
+export interface CrimCostFee {
+  id: number;
+  title: string;
+  description: string;
+  amount: string;
+  category: string;
+  courtType: string;
+  legalBasis: string;
+  createdAt: string;
+}
+
+export type CrimActivityItemType =
+  (typeof CrimActivityItemType)[keyof typeof CrimActivityItemType];
+
+export const CrimActivityItemType = {
+  topic: "topic",
+  "case-law": "case-law",
+  "cause-paper": "cause-paper",
+  workflow: "workflow",
+  "sample-document": "sample-document",
+  glossary: "glossary",
+  "cost-fee": "cost-fee",
+} as const;
+
+export interface CrimActivityItem {
+  id: number;
+  type: CrimActivityItemType;
+  title: string;
+  createdAt: string;
+}
+
+export interface CrimCategoryWithCount {
+  name: string;
+  topicsCount: number;
+  caseLawsCount: number;
+  causePapersCount: number;
+  workflowsCount: number;
+  sampleDocumentsCount: number;
+}
+
+export interface CorpGeminiConversation {
+  id: number;
+  title: string;
+  createdAt: string;
+}
+
+export interface CorpGeminiMessage {
+  id: number;
+  conversationId: number;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CorpCreateGeminiConversationBody {
+  title: string;
+}
+
+export interface CorpSendGeminiMessageBody {
+  content: string;
+}
+
+export interface CorpGeminiConversationWithMessages {
+  id: number;
+  title: string;
+  createdAt: string;
+  messages: CorpGeminiMessage[];
+}
+
+export interface CorpGenerateGeminiImageBody {
+  prompt: string;
+}
+
+export interface CorpGenerateGeminiImageResponse {
+  b64_json: string;
+  mimeType: string;
+}
+
+export interface CorpGeminiError {
+  error: string;
+}
+
+export interface CorpVerifyPasswordBody {
+  password: string;
+}
+
+export interface CorpVerifyPasswordResponse {
+  success: boolean;
+  token: string;
+  /** Effective access tier: legacy_full, student, practitioner, or firm */
+  tier?: string;
+  /** Optional failure reason, e.g. subscription_inactive */
+  reason?: string;
+}
+
+export interface CorpAiToolsChatBody {
+  /** One of: tutor, drafter, risk-scanner, checklist, deadline-calculator */
+  tool: string;
+  message: string;
+  /**
+   * Optional additional context for the tool
+   * @nullable
+   */
+  context?: string | null;
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;
@@ -1087,3 +1323,55 @@ export const ListContributionsStatus = {
   approved: "approved",
   rejected: "rejected",
 } as const;
+
+export type CrimSearchContentParams = {
+  q: string;
+  type?: CrimSearchContentType;
+};
+
+export type CrimSearchContentType =
+  (typeof CrimSearchContentType)[keyof typeof CrimSearchContentType];
+
+export const CrimSearchContentType = {
+  topics: "topics",
+  "case-laws": "case-laws",
+  "cause-papers": "cause-papers",
+  workflows: "workflows",
+  "sample-documents": "sample-documents",
+  glossary: "glossary",
+  "costs-fees": "costs-fees",
+} as const;
+
+export type CrimListTopicsParams = {
+  category?: string;
+};
+
+export type CrimListCaseLawsParams = {
+  category?: string;
+  court?: string;
+};
+
+export type CrimListCausePapersParams = {
+  category?: string;
+  court?: string;
+};
+
+export type CrimListWorkflowsParams = {
+  category?: string;
+};
+
+export type CrimListSampleDocumentsParams = {
+  category?: string;
+};
+
+export type CrimListGlossaryTermsParams = {
+  letter?: string;
+};
+
+export type CrimListCostsFeesParams = {
+  category?: string;
+};
+
+export type CrimGetRecentActivityParams = {
+  limit?: number;
+};

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/mycorplegalai/"
+title = "MyCorpLegalAI"
+version = "1.0.0"
+id = "artifacts/mycorplegalai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/mycorplegalai/" ]
+localPort = 25195
+
+[services.development]
+run = "pnpm --filter @workspace/mycorplegalai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mycorplegalai", "run", "build" ]
+publicDir = "artifacts/mycorplegalai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25195"
+BASE_PATH = "/mycorplegalai/"

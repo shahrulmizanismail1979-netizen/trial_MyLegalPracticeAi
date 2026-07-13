@@ -16,10 +16,16 @@
       "path": "./lib/object-storage-web"
     },
     {
+      "path": "./lib/tiers"
+    },
+    {
       "path": "./lib/integrations-openai-ai-server"
     },
     {
       "path": "./lib/integrations-gemini-ai"
+    },
+    {
+      "path": "./lib/entitlements"
     }
   ]
 }

@@ -15,6 +15,9 @@ import conveyAdminRouter from "./convey-admin";
 import accidentRouter from "./accident";
 import accidentAiRouter from "./accident-ai";
 import accidentAdminRouter from "./accident-admin";
+import crimRouter from "../crim/routes";
+import { crimSession } from "../crim/session";
+import corpRouter from "../corp/routes";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -37,5 +40,12 @@ router.use(conveyAdminRouter);
 router.use("/accident", accidentRouter);
 router.use("/accident", accidentAiRouter);
 router.use("/accident", accidentAdminRouter);
+// MyCrimAI (criminal law app): /crim/*. Uses express-session (Postgres-backed),
+// scoped to this mount so the rest of the API is unaffected.
+router.use("/crim", crimSession, crimRouter);
+
+// MyCorpLegalAI (corporate secretary app): /corp/*. Uses Bearer-token sessions
+// stored in corp_sessions — no express-session middleware needed.
+router.use("/corp", corpRouter);
 
 export default router;

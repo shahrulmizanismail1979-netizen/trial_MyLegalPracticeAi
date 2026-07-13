@@ -49,7 +49,7 @@ const apps: App[] = [
   {
     title: "MyCorpAI",
     description: "Prepare board resolutions, manage Companies Act compliance, and handle corporate secretarial workflows.",
-    url: "https://mycorpai.life",
+    url: "/mycorplegalai/",
     tag: "Corporate"
   },
   {
@@ -61,7 +61,7 @@ const apps: App[] = [
   {
     title: "MyCrimAI",
     description: "Draft criminal submissions, research sentencing precedents, and navigate Rules of the Subordinate Courts.",
-    url: "https://mycrimai.life/",
+    url: "/mycrimai/",
     tag: "Criminal"
   },
   {

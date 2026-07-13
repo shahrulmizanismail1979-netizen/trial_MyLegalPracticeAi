@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/mycrimai/"
+title = "MyCrimAI"
+version = "1.0.0"
+id = "artifacts/mycrimai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/mycrimai/" ]
+localPort = 22614
+
+[services.development]
+run = "pnpm --filter @workspace/mycrimai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mycrimai", "run", "build" ]
+publicDir = "artifacts/mycrimai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22614"
+BASE_PATH = "/mycrimai/"

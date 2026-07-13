@@ -10,6 +10,8 @@ import {
   activityTable,
   usersTable,
   accessCodesTable,
+  crimAccessCodesTable,
+  corpAccessCodes as corpAccessCodesTable,
 } from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
@@ -21,11 +23,16 @@ export const APP_NAME_BY_URL: Record<string, string> = {
   "https://mylitai.life/irac/": "MyLitAI (Versi 2)",
   "https://mysyalitai.life": "MySyalitAI",
   "https://mycorpai.life": "MyCorpAI",
+  // The hosted MyCorpLegalAI app (rebranded MyCorpAI) — keeps the canonical
+  // "MyCorpAI" app name so admin stats/filters stay on one bucket.
+  "/mycorplegalai/": "MyCorpAI",
   "https://myconveyai.life": "MyConveyAI",
   // The hosted MyConveyLitAI app (rebranded MyConveyAI) — keeps the canonical
   // "MyConveyAI" app name so admin stats/filters stay on one bucket.
   "/myconveylitai/": "MyConveyAI",
   "https://mycrimai.life/": "MyCrimAI",
+  // The hosted MyCrimAI app — same canonical "MyCrimAI" bucket.
+  "/mycrimai/": "MyCrimAI",
   "https://myccblitai.life/": "MyCCBLitAI",
   "https://myaccidentai.life/": "MyAccidentAI",
   // The hosted MyAccidentAI app — keeps the canonical "MyAccidentAI" app
@@ -152,6 +159,84 @@ async function syncAccidentAccessCode(params: {
   }
 }
 
+// Landing purchases for the criminal-law product also unlock the hosted
+// MyCrimAI app (one synced access-code system).
+function includesCrimApp(apps: string[]): boolean {
+  return apps.includes("MyCrimAI");
+}
+
+/**
+ * Upsert a MyCrimAI access code so the landing-page access code also logs
+ * in to the hosted app. Tier "full" = unrestricted (landing sells one plan).
+ * Idempotent via the unique code constraint. Best-effort: never fails
+ * provisioning. Stripe IDs intentionally NOT copied — landing billing stays
+ * owned by the subscribers table.
+ */
+async function syncCrimAccessCode(params: {
+  accessCode: string;
+  name: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(crimAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        label: params.name,
+        tier: "full",
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: crimAccessCodesTable.code,
+        set: { isActive: true, tier: "full" },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyCrimAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyCrimAI access code for landing purchase");
+  }
+}
+
+// Landing purchases for the corporate product also unlock the hosted
+// MyCorpLegalAI app (one synced access-code system).
+function includesCorpApp(apps: string[]): boolean {
+  return apps.includes("MyCorpAI");
+}
+
+/**
+ * Upsert a MyCorpLegalAI access code so the landing-page access code also
+ * logs in to the hosted app. Tier "firm" = highest purchasable tier (landing
+ * sells one plan). Idempotent via the unique code constraint. Best-effort:
+ * never fails provisioning. Stripe IDs intentionally NOT copied — landing
+ * billing stays owned by the subscribers table.
+ */
+async function syncCorpAccessCode(params: {
+  accessCode: string;
+  name: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(corpAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        label: params.name,
+        tier: "firm",
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: corpAccessCodesTable.code,
+        set: { isActive: true, tier: "firm" },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyCorpLegalAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyCorpLegalAI access code for landing purchase");
+  }
+}
+
 function appsForCheckout(tier: string | null, appUrl: string | null): string[] {
   if (tier === "bundle") return [...ALL_APP_NAMES];
   if (appUrl && APP_NAME_BY_URL[appUrl]) return [APP_NAME_BY_URL[appUrl]!];
@@ -263,6 +348,18 @@ export async function provisionFromCheckoutSession(
           name: existing.name,
         });
       }
+      if (existing.accessCode && includesCrimApp(existing.apps)) {
+        await syncCrimAccessCode({
+          accessCode: existing.accessCode,
+          name: existing.name,
+        });
+      }
+      if (existing.accessCode && includesCorpApp(existing.apps)) {
+        await syncCorpAccessCode({
+          accessCode: existing.accessCode,
+          name: existing.name,
+        });
+      }
       return {
         accessCode: existing.accessCode,
         apps: existing.apps,
@@ -328,6 +425,18 @@ export async function provisionFromCheckoutSession(
         name: existing.name,
       });
     }
+    if (existing.accessCode && includesCrimApp(existing.apps)) {
+      await syncCrimAccessCode({
+        accessCode: existing.accessCode,
+        name: existing.name,
+      });
+    }
+    if (existing.accessCode && includesCorpApp(existing.apps)) {
+      await syncCorpAccessCode({
+        accessCode: existing.accessCode,
+        name: existing.name,
+      });
+    }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -345,6 +454,14 @@ export async function provisionFromCheckoutSession(
 
   if (includesAccidentApp(apps)) {
     await syncAccidentAccessCode({ accessCode, name });
+  }
+
+  if (includesCrimApp(apps)) {
+    await syncCrimAccessCode({ accessCode, name });
+  }
+
+  if (includesCorpApp(apps)) {
+    await syncCorpAccessCode({ accessCode, name });
   }
 
   await db.insert(activityTable).values({

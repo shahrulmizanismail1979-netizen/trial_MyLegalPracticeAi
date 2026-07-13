@@ -1489,3 +1489,537 @@ export const AccidentGetAdminDashboardResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * Verify practitioner access code
+ * @summary Verify access code
+ */
+export const CrimVerifyAccessCodeBody = zod.object({
+  accessCode: zod.string(),
+});
+
+export const CrimVerifyAccessCodeResponse = zod.object({
+  authenticated: zod.boolean(),
+  message: zod.string(),
+  tier: zod.string().optional(),
+  entitlements: zod
+    .object({
+      tier: zod.string(),
+      tierName: zod.string(),
+      voice: zod.boolean(),
+      aiTools: zod.array(zod.string()),
+    })
+    .optional(),
+});
+
+/**
+ * Check if user has valid session
+ * @summary Check current session
+ */
+export const CrimCheckSessionResponse = zod.object({
+  authenticated: zod.boolean(),
+  isAdmin: zod.boolean().optional(),
+  tier: zod.string().optional(),
+  entitlements: zod
+    .object({
+      tier: zod.string(),
+      tierName: zod.string(),
+      voice: zod.boolean(),
+      aiTools: zod.array(zod.string()),
+    })
+    .optional(),
+});
+
+/**
+ * Clear session
+ * @summary Logout
+ */
+export const CrimLogoutResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * Returns counts for all content types
+ * @summary Get dashboard statistics
+ */
+export const CrimGetDashboardStatsResponse = zod.object({
+  topicsCount: zod.number(),
+  caseLawsCount: zod.number(),
+  causePapersCount: zod.number(),
+  workflowsCount: zod.number(),
+  sampleDocumentsCount: zod.number(),
+  glossaryCount: zod.number(),
+  costsFeesCount: zod.number(),
+});
+
+/**
+ * Search topics, case laws, glossary, etc.
+ * @summary Search across all content
+ */
+export const CrimSearchContentQueryParams = zod.object({
+  q: zod.coerce.string(),
+  type: zod
+    .enum([
+      "topics",
+      "case-laws",
+      "cause-papers",
+      "workflows",
+      "sample-documents",
+      "glossary",
+      "costs-fees",
+    ])
+    .optional(),
+});
+
+export const CrimSearchContentResponse = zod.object({
+  results: zod.array(
+    zod.object({
+      id: zod.number(),
+      type: zod.enum([
+        "topic",
+        "case-law",
+        "cause-paper",
+        "workflow",
+        "sample-document",
+        "glossary",
+        "cost-fee",
+      ]),
+      title: zod.string(),
+      excerpt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary List all theory topics
+ */
+export const CrimListTopicsQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+});
+
+export const CrimListTopicsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  content: zod.string(),
+  category: zod.string(),
+  orderIndex: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListTopicsResponse = zod.array(CrimListTopicsResponseItem);
+
+/**
+ * @summary Get topic by ID
+ */
+export const CrimGetTopicParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetTopicResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  content: zod.string(),
+  category: zod.string(),
+  orderIndex: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all case laws
+ */
+export const CrimListCaseLawsQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+  court: zod.coerce.string().optional(),
+});
+
+export const CrimListCaseLawsResponseItem = zod.object({
+  id: zod.number(),
+  caseName: zod.string(),
+  citation: zod.string(),
+  court: zod.string(),
+  year: zod.number(),
+  summary: zod.string(),
+  keyPrinciples: zod.string(),
+  category: zod.string(),
+  fullText: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListCaseLawsResponse = zod.array(CrimListCaseLawsResponseItem);
+
+/**
+ * @summary Get case law by ID
+ */
+export const CrimGetCaseLawParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetCaseLawResponse = zod.object({
+  id: zod.number(),
+  caseName: zod.string(),
+  citation: zod.string(),
+  court: zod.string(),
+  year: zod.number(),
+  summary: zod.string(),
+  keyPrinciples: zod.string(),
+  category: zod.string(),
+  fullText: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all cause papers
+ */
+export const CrimListCausePapersQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+  court: zod.coerce.string().optional(),
+});
+
+export const CrimListCausePapersResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  court: zod.string(),
+  description: zod.string(),
+  templateContent: zod.string(),
+  category: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListCausePapersResponse = zod.array(
+  CrimListCausePapersResponseItem,
+);
+
+/**
+ * @summary Get cause paper by ID
+ */
+export const CrimGetCausePaperParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetCausePaperResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  court: zod.string(),
+  description: zod.string(),
+  templateContent: zod.string(),
+  category: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all practice workflows
+ */
+export const CrimListWorkflowsQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+});
+
+export const CrimListWorkflowsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  steps: zod.string(),
+  category: zod.string(),
+  estimatedDuration: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListWorkflowsResponse = zod.array(
+  CrimListWorkflowsResponseItem,
+);
+
+/**
+ * @summary Get workflow by ID
+ */
+export const CrimGetWorkflowParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetWorkflowResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  steps: zod.string(),
+  category: zod.string(),
+  estimatedDuration: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all sample documents
+ */
+export const CrimListSampleDocumentsQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+});
+
+export const CrimListSampleDocumentsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  documentType: zod.string(),
+  content: zod.string(),
+  category: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListSampleDocumentsResponse = zod.array(
+  CrimListSampleDocumentsResponseItem,
+);
+
+/**
+ * @summary Get sample document by ID
+ */
+export const CrimGetSampleDocumentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetSampleDocumentResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  documentType: zod.string(),
+  content: zod.string(),
+  category: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all glossary terms
+ */
+export const CrimListGlossaryTermsQueryParams = zod.object({
+  letter: zod.coerce.string().optional(),
+});
+
+export const CrimListGlossaryTermsResponseItem = zod.object({
+  id: zod.number(),
+  term: zod.string(),
+  definition: zod.string(),
+  malayTranslation: zod.string(),
+  relatedTerms: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListGlossaryTermsResponse = zod.array(
+  CrimListGlossaryTermsResponseItem,
+);
+
+/**
+ * @summary Get glossary term by ID
+ */
+export const CrimGetGlossaryTermParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetGlossaryTermResponse = zod.object({
+  id: zod.number(),
+  term: zod.string(),
+  definition: zod.string(),
+  malayTranslation: zod.string(),
+  relatedTerms: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary List all costs and fees
+ */
+export const CrimListCostsFeesQueryParams = zod.object({
+  category: zod.coerce.string().optional(),
+});
+
+export const CrimListCostsFeesResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  amount: zod.string(),
+  category: zod.string(),
+  courtType: zod.string(),
+  legalBasis: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimListCostsFeesResponse = zod.array(
+  CrimListCostsFeesResponseItem,
+);
+
+/**
+ * @summary Get cost/fee by ID
+ */
+export const CrimGetCostFeeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CrimGetCostFeeResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  amount: zod.string(),
+  category: zod.string(),
+  courtType: zod.string(),
+  legalBasis: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * Returns the most recently added content across all types
+ * @summary Get recent content additions
+ */
+export const crimGetRecentActivityQueryLimitDefault = 10;
+
+export const CrimGetRecentActivityQueryParams = zod.object({
+  limit: zod.coerce.number().default(crimGetRecentActivityQueryLimitDefault),
+});
+
+export const CrimGetRecentActivityResponseItem = zod.object({
+  id: zod.number(),
+  type: zod.enum([
+    "topic",
+    "case-law",
+    "cause-paper",
+    "workflow",
+    "sample-document",
+    "glossary",
+    "cost-fee",
+  ]),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CrimGetRecentActivityResponse = zod.array(
+  CrimGetRecentActivityResponseItem,
+);
+
+/**
+ * @summary List all categories with counts
+ */
+export const CrimListCategoriesResponseItem = zod.object({
+  name: zod.string(),
+  topicsCount: zod.number(),
+  caseLawsCount: zod.number(),
+  causePapersCount: zod.number(),
+  workflowsCount: zod.number(),
+  sampleDocumentsCount: zod.number(),
+});
+export const CrimListCategoriesResponse = zod.array(
+  CrimListCategoriesResponseItem,
+);
+
+/**
+ * @summary List all conversations
+ */
+export const CorpListGeminiConversationsResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CorpListGeminiConversationsResponse = zod.array(
+  CorpListGeminiConversationsResponseItem,
+);
+
+/**
+ * @summary Create a new conversation
+ */
+export const CorpCreateGeminiConversationBody = zod.object({
+  title: zod.string(),
+});
+
+/**
+ * @summary Get conversation with messages
+ */
+export const CorpGetGeminiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CorpGetGeminiConversationResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  createdAt: zod.coerce.date(),
+  messages: zod.array(
+    zod.object({
+      id: zod.number(),
+      conversationId: zod.number(),
+      role: zod.string(),
+      content: zod.string(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a conversation
+ */
+export const CorpDeleteGeminiConversationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List messages in a conversation
+ */
+export const CorpListGeminiMessagesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CorpListGeminiMessagesResponseItem = zod.object({
+  id: zod.number(),
+  conversationId: zod.number(),
+  role: zod.string(),
+  content: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const CorpListGeminiMessagesResponse = zod.array(
+  CorpListGeminiMessagesResponseItem,
+);
+
+/**
+ * @summary Send a message and receive an AI response (SSE stream)
+ */
+export const CorpSendGeminiMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CorpSendGeminiMessageBody = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Generate an image from a text prompt
+ */
+export const CorpGenerateGeminiImageBody = zod.object({
+  prompt: zod.string(),
+});
+
+export const CorpGenerateGeminiImageResponse = zod.object({
+  b64_json: zod.string(),
+  mimeType: zod.string(),
+});
+
+/**
+ * @summary Verify access password
+ */
+export const CorpVerifyPasswordBody = zod.object({
+  password: zod.string(),
+});
+
+export const CorpVerifyPasswordResponse = zod.object({
+  success: zod.boolean(),
+  token: zod.string(),
+  tier: zod
+    .string()
+    .optional()
+    .describe(
+      "Effective access tier: legacy_full, student, practitioner, or firm",
+    ),
+  reason: zod
+    .string()
+    .optional()
+    .describe("Optional failure reason, e.g. subscription_inactive"),
+});
+
+/**
+ * @summary Send a message to one of the 5 AI tools (SSE stream)
+ */
+export const CorpAiToolsChatBody = zod.object({
+  tool: zod
+    .string()
+    .describe(
+      "One of: tutor, drafter, risk-scanner, checklist, deadline-calculator",
+    ),
+  message: zod.string(),
+  context: zod
+    .string()
+    .nullish()
+    .describe("Optional additional context for the tool"),
+});

@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -26,11 +25,16 @@ tags:
     description: Document contribution portal and knowledge base
   - name: assistant
     description: AI receptionist assistant for the landing page
+  - name: crim
+    description: MyCrimAI criminal law app endpoints (/crim/*)
+  - name: corp
+    description: MyCorpLegalAI corporate secretary app endpoints (/corp/*)
 paths:
   /assistant/chat:
     post:
       operationId: assistantChat
-      tags: [assistant]
+      tags:
+        - assistant
       summary: Chat with the AI receptionist
       description: Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.
       requestBody:
@@ -48,11 +52,11 @@ paths:
                 type: string
         "400":
           description: Invalid request body
-
   /currency/rates:
     get:
       operationId: getCurrencyRates
-      tags: [currency]
+      tags:
+        - currency
       summary: USD exchange rates for display currencies
       description: Returns cached USD-based exchange rates for supported display currencies. Public endpoint.
       responses:
@@ -62,11 +66,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CurrencyRates"
-
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
+      tags:
+        - health
       summary: Health check
       description: Returns server health status
       responses:
@@ -76,11 +80,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-
   /stats/subscribers-by-app:
     get:
       operationId: getAppSubscriberStats
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: Public subscriber counts per app
       description: Returns confirmed subscriber counts for each AI Portal. Public endpoint — no authentication required.
       responses:
@@ -92,11 +96,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AppSubscriberStat"
-
   /admin/dashboard:
     get:
       operationId: getDashboardStats
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: Get dashboard statistics
       responses:
         "200":
@@ -105,18 +109,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardStats"
-
   /admin/subscribers:
     get:
       operationId: listSubscribers
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: List all subscribers
       parameters:
         - name: status
           in: query
           schema:
             type: string
-            enum: [pending, confirmed, rejected]
+            enum:
+              - pending
+              - confirmed
+              - rejected
         - name: app
           in: query
           schema:
@@ -136,7 +143,8 @@ paths:
                   $ref: "#/components/schemas/Subscriber"
     post:
       operationId: createSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Add a new subscriber
       requestBody:
         required: true
@@ -151,11 +159,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscriber"
-
   /admin/subscribers/{id}:
     get:
       operationId: getSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Get a subscriber by ID
       parameters:
         - name: id
@@ -174,7 +182,8 @@ paths:
           description: Not found
     patch:
       operationId: updateSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Update a subscriber
       parameters:
         - name: id
@@ -199,7 +208,8 @@ paths:
           description: Not found
     delete:
       operationId: deleteSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Delete a subscriber
       parameters:
         - name: id
@@ -210,11 +220,11 @@ paths:
       responses:
         "204":
           description: Deleted
-
   /admin/kohorts:
     get:
       operationId: listKohorts
-      tags: [kohorts]
+      tags:
+        - kohorts
       summary: List all kohorts
       responses:
         "200":
@@ -227,7 +237,8 @@ paths:
                   $ref: "#/components/schemas/Kohort"
     post:
       operationId: createKohort
-      tags: [kohorts]
+      tags:
+        - kohorts
       summary: Create a new kohort
       requestBody:
         required: true
@@ -242,11 +253,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Kohort"
-
   /admin/kohorts/{id}:
     patch:
       operationId: updateKohort
-      tags: [kohorts]
+      tags:
+        - kohorts
       summary: Update a kohort
       parameters:
         - name: id
@@ -269,11 +280,11 @@ paths:
                 $ref: "#/components/schemas/Kohort"
         "404":
           description: Not found
-
   /admin/pricing:
     get:
       operationId: listPricing
-      tags: [pricing]
+      tags:
+        - pricing
       summary: List all pricing entries
       responses:
         "200":
@@ -286,7 +297,8 @@ paths:
                   $ref: "#/components/schemas/PricingEntry"
     post:
       operationId: createPricing
-      tags: [pricing]
+      tags:
+        - pricing
       summary: Create a new pricing entry
       requestBody:
         required: true
@@ -301,11 +313,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PricingEntry"
-
   /admin/pricing/{id}:
     patch:
       operationId: updatePricing
-      tags: [pricing]
+      tags:
+        - pricing
       summary: Update a pricing entry
       parameters:
         - name: id
@@ -330,7 +342,8 @@ paths:
           description: Not found
     delete:
       operationId: deletePricing
-      tags: [pricing]
+      tags:
+        - pricing
       summary: Delete a pricing entry
       parameters:
         - name: id
@@ -341,11 +354,11 @@ paths:
       responses:
         "204":
           description: Deleted
-
   /admin/vouchers:
     get:
       operationId: listVouchers
-      tags: [vouchers]
+      tags:
+        - vouchers
       summary: List all vouchers
       responses:
         "200":
@@ -358,7 +371,8 @@ paths:
                   $ref: "#/components/schemas/Voucher"
     post:
       operationId: createVoucher
-      tags: [vouchers]
+      tags:
+        - vouchers
       summary: Create a new voucher
       requestBody:
         required: true
@@ -373,11 +387,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Voucher"
-
   /admin/vouchers/{id}:
     patch:
       operationId: updateVoucher
-      tags: [vouchers]
+      tags:
+        - vouchers
       summary: Update a voucher
       parameters:
         - name: id
@@ -402,7 +416,8 @@ paths:
           description: Not found
     delete:
       operationId: deleteVoucher
-      tags: [vouchers]
+      tags:
+        - vouchers
       summary: Delete a voucher
       parameters:
         - name: id
@@ -413,11 +428,11 @@ paths:
       responses:
         "204":
           description: Deleted
-
   /admin/subscribers/{id}/confirm:
     patch:
       operationId: confirmSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Confirm a subscriber's payment
       parameters:
         - name: id
@@ -434,11 +449,11 @@ paths:
                 $ref: "#/components/schemas/Subscriber"
         "404":
           description: Not found
-
   /admin/subscribers/{id}/reject:
     patch:
       operationId: rejectSubscriber
-      tags: [subscribers]
+      tags:
+        - subscribers
       summary: Reject a subscriber's payment
       parameters:
         - name: id
@@ -455,11 +470,11 @@ paths:
                 $ref: "#/components/schemas/Subscriber"
         "404":
           description: Not found
-
   /admin/recent-activity:
     get:
       operationId: getRecentActivity
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: Get recent activity feed
       parameters:
         - name: limit
@@ -476,11 +491,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActivityEntry"
-
   /admin/revenue-by-app:
     get:
       operationId: getRevenueByApp
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: Get revenue breakdown by app
       responses:
         "200":
@@ -491,11 +506,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RevenueByApp"
-
   /admin/app-stats:
     get:
       operationId: listAppStats
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: List all app subscriber counts
       responses:
         "200":
@@ -506,11 +521,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AppStat"
-
   /admin/app-stats/{appName}:
     patch:
       operationId: updateAppStat
-      tags: [dashboard]
+      tags:
+        - dashboard
       summary: Update subscriber count for an app
       parameters:
         - name: appName
@@ -533,10 +548,10 @@ paths:
                 $ref: "#/components/schemas/AppStat"
         "404":
           description: App not found
-
   /storage/uploads/request-url:
     post:
-      tags: [Storage]
+      tags:
+        - Storage
       operationId: requestUploadUrl
       summary: Request a presigned URL for file upload
       description: |
@@ -547,29 +562,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UploadUrlRequest'
+              $ref: "#/components/schemas/UploadUrlRequest"
       responses:
-        '200':
+        "200":
           description: Presigned upload URL generated.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UploadUrlResponse'
-        '400':
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
           description: Missing or invalid required fields.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '500':
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
           description: Failed to generate upload URL.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
   /storage/public-objects/{filePath}:
     get:
-      tags: [Storage]
+      tags:
+        - Storage
       operationId: getPublicObject
       summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
       parameters:
@@ -580,28 +596,29 @@ paths:
             type: string
           description: Relative file path within the public search paths.
       responses:
-        '200':
+        "200":
           description: Object content streamed with correct Content-Type.
           content:
-            '*/*':
+            "*/*":
               schema:
                 type: string
                 format: binary
-        '404':
+        "404":
           description: File not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '500':
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
           description: Failed to serve public object.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
+                $ref: "#/components/schemas/ErrorEnvelope"
   /storage/objects/{objectPath}:
     get:
-      tags: [Storage]
+      tags:
+        - Storage
       operationId: getStorageObject
       summary: Serve an object entity from PRIVATE_OBJECT_DIR
       parameters:
@@ -612,30 +629,30 @@ paths:
             type: string
           description: Object path within the private object dir (e.g. `uploads/some-uuid`).
       responses:
-        '200':
+        "200":
           description: Object content streamed with correct Content-Type.
           content:
-            '*/*':
+            "*/*":
               schema:
                 type: string
                 format: binary
-        '404':
+        "404":
           description: Object not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '500':
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
           description: Failed to serve object.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-
+                $ref: "#/components/schemas/ErrorEnvelope"
   /contributions:
     post:
       operationId: createContribution
-      tags: [contributions]
+      tags:
+        - contributions
       summary: Submit a document contribution (public)
       requestBody:
         required: true
@@ -650,11 +667,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contribution"
-
   /knowledge-base:
     get:
       operationId: listKnowledgeBase
-      tags: [contributions]
+      tags:
+        - contributions
       summary: List approved contributions (read-only knowledge base)
       parameters:
         - name: category
@@ -674,11 +691,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/KnowledgeBaseEntry"
-
   /knowledge-base/{id}:
     get:
       operationId: getKnowledgeBaseEntry
-      tags: [contributions]
+      tags:
+        - contributions
       summary: Get a single approved knowledge base entry
       parameters:
         - name: id
@@ -695,18 +712,21 @@ paths:
                 $ref: "#/components/schemas/KnowledgeBaseEntry"
         "404":
           description: Not found
-
   /admin/contributions:
     get:
       operationId: listContributions
-      tags: [contributions]
+      tags:
+        - contributions
       summary: List all contributions (admin)
       parameters:
         - name: status
           in: query
           schema:
             type: string
-            enum: [pending, approved, rejected]
+            enum:
+              - pending
+              - approved
+              - rejected
         - name: category
           in: query
           schema:
@@ -724,11 +744,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Contribution"
-
   /admin/contributions/{id}:
     get:
       operationId: getContribution
-      tags: [contributions]
+      tags:
+        - contributions
       summary: Get a contribution by ID
       parameters:
         - name: id
@@ -747,7 +767,8 @@ paths:
           description: Not found
     patch:
       operationId: updateContribution
-      tags: [contributions]
+      tags:
+        - contributions
       summary: Update a contribution (status, category, notes)
       parameters:
         - name: id
@@ -772,7 +793,8 @@ paths:
           description: Not found
     delete:
       operationId: deleteContribution
-      tags: [contributions]
+      tags:
+        - contributions
       summary: Delete a contribution
       parameters:
         - name: id
@@ -783,11 +805,11 @@ paths:
       responses:
         "204":
           description: Deleted
-
   /convey/auth:
     post:
       operationId: verifyPassword
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI verifyPassword
       requestBody:
         required: true
@@ -805,7 +827,8 @@ paths:
   /convey/chat:
     post:
       operationId: sendChatMessage
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI sendChatMessage
       requestBody:
         required: true
@@ -823,7 +846,8 @@ paths:
   /convey/draft:
     post:
       operationId: generateDraft
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateDraft
       requestBody:
         required: true
@@ -841,7 +865,8 @@ paths:
   /convey/risk-scan:
     post:
       operationId: scanTransactionRisk
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI scanTransactionRisk
       requestBody:
         required: true
@@ -859,7 +884,8 @@ paths:
   /convey/checklist:
     post:
       operationId: generateChecklist
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateChecklist
       requestBody:
         required: true
@@ -877,7 +903,8 @@ paths:
   /convey/deadlines:
     post:
       operationId: calculateDeadlines
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI calculateDeadlines
       requestBody:
         required: true
@@ -895,7 +922,8 @@ paths:
   /convey/review-spa:
     post:
       operationId: reviewSpaClause
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI reviewSpaClause
       requestBody:
         required: true
@@ -913,7 +941,8 @@ paths:
   /convey/compare-clauses:
     post:
       operationId: compareClauses
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI compareClauses
       requestBody:
         required: true
@@ -931,7 +960,8 @@ paths:
   /convey/interpret-title:
     post:
       operationId: interpretLandTitle
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI interpretLandTitle
       requestBody:
         required: true
@@ -949,7 +979,8 @@ paths:
   /convey/fee-quotation:
     post:
       operationId: generateFeeQuotation
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateFeeQuotation
       requestBody:
         required: true
@@ -967,7 +998,8 @@ paths:
   /convey/advice-letter:
     post:
       operationId: generateAdviceLetter
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateAdviceLetter
       requestBody:
         required: true
@@ -985,7 +1017,8 @@ paths:
   /convey/due-diligence:
     post:
       operationId: generateDueDiligence
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateDueDiligence
       requestBody:
         required: true
@@ -1003,7 +1036,8 @@ paths:
   /convey/legal-opinion:
     post:
       operationId: generateLegalOpinion
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateLegalOpinion
       requestBody:
         required: true
@@ -1021,7 +1055,8 @@ paths:
   /convey/requisition:
     post:
       operationId: generateRequisition
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateRequisition
       requestBody:
         required: true
@@ -1039,7 +1074,8 @@ paths:
   /convey/completion-statement:
     post:
       operationId: generateCompletionStatement
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateCompletionStatement
       requestBody:
         required: true
@@ -1057,7 +1093,8 @@ paths:
   /convey/case-research:
     post:
       operationId: researchCaseLaw
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI researchCaseLaw
       requestBody:
         required: true
@@ -1075,7 +1112,8 @@ paths:
   /convey/stamp-duty:
     post:
       operationId: calculateStampDuty
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI calculateStampDuty
       requestBody:
         required: true
@@ -1093,7 +1131,8 @@ paths:
   /convey/rpgt:
     post:
       operationId: analyzeRPGT
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI analyzeRPGT
       requestBody:
         required: true
@@ -1111,7 +1150,8 @@ paths:
   /convey/tenancy:
     post:
       operationId: draftTenancy
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI draftTenancy
       requestBody:
         required: true
@@ -1129,7 +1169,8 @@ paths:
   /convey/power-of-attorney:
     post:
       operationId: draftPowerOfAttorney
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI draftPowerOfAttorney
       requestBody:
         required: true
@@ -1147,7 +1188,8 @@ paths:
   /convey/caveat:
     post:
       operationId: adviseCaveat
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseCaveat
       requestBody:
         required: true
@@ -1165,7 +1207,8 @@ paths:
   /convey/land-search:
     post:
       operationId: analyzeLandSearch
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI analyzeLandSearch
       requestBody:
         required: true
@@ -1183,7 +1226,8 @@ paths:
   /convey/developer-claim:
     post:
       operationId: adviseDeveloperClaim
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseDeveloperClaim
       requestBody:
         required: true
@@ -1201,7 +1245,8 @@ paths:
   /convey/bankruptcy-search:
     post:
       operationId: adviseBankruptcySearch
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseBankruptcySearch
       requestBody:
         required: true
@@ -1219,7 +1264,8 @@ paths:
   /convey/foreign-purchase:
     post:
       operationId: adviseForeignPurchase
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseForeignPurchase
       requestBody:
         required: true
@@ -1237,7 +1283,8 @@ paths:
   /convey/loan-doc:
     post:
       operationId: reviewLoanDoc
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI reviewLoanDoc
       requestBody:
         required: true
@@ -1255,7 +1302,8 @@ paths:
   /convey/tax-compliance:
     post:
       operationId: adviseTaxCompliance
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseTaxCompliance
       requestBody:
         required: true
@@ -1273,7 +1321,8 @@ paths:
   /convey/strata:
     post:
       operationId: adviseStrata
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI adviseStrata
       requestBody:
         required: true
@@ -1291,7 +1340,8 @@ paths:
   /convey/quiz:
     post:
       operationId: generateQuiz
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateQuiz
       requestBody:
         required: true
@@ -1309,7 +1359,8 @@ paths:
   /convey/simulate:
     post:
       operationId: simulateTransaction
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI simulateTransaction
       requestBody:
         required: true
@@ -1327,7 +1378,8 @@ paths:
   /convey/clause-library:
     post:
       operationId: searchClauseLibrary
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI searchClauseLibrary
       requestBody:
         required: true
@@ -1345,7 +1397,8 @@ paths:
   /convey/analyze-doc:
     post:
       operationId: analyzeDocument
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI analyzeDocument
       requestBody:
         required: true
@@ -1363,7 +1416,8 @@ paths:
   /convey/compliance:
     post:
       operationId: checkCompliance
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI checkCompliance
       requestBody:
         required: true
@@ -1381,7 +1435,8 @@ paths:
   /convey/timeline:
     post:
       operationId: generateTimeline
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateTimeline
       requestBody:
         required: true
@@ -1399,7 +1454,8 @@ paths:
   /convey/mock-exam:
     post:
       operationId: generateMockExam
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateMockExam
       requestBody:
         required: true
@@ -1417,7 +1473,8 @@ paths:
   /convey/analyze-case:
     post:
       operationId: analyzeCase
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI analyzeCase
       requestBody:
         required: true
@@ -1435,7 +1492,8 @@ paths:
   /convey/corp-resolution:
     post:
       operationId: draftCorpResolution
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI draftCorpResolution
       requestBody:
         required: true
@@ -1453,7 +1511,8 @@ paths:
   /convey/corp-due-diligence:
     post:
       operationId: generateCorpPropertyDD
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI generateCorpPropertyDD
       requestBody:
         required: true
@@ -1471,7 +1530,8 @@ paths:
   /convey/jv-agreement:
     post:
       operationId: draftJVAgreement
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI draftJVAgreement
       requestBody:
         required: true
@@ -1489,7 +1549,8 @@ paths:
   /convey/guarantee:
     post:
       operationId: draftGuarantee
-      tags: [convey]
+      tags:
+        - convey
       summary: MyConveyLitAI draftGuarantee
       requestBody:
         required: true
@@ -1507,7 +1568,8 @@ paths:
   /accident/auth/verify-code:
     post:
       operationId: accidentVerifyCode
-      tags: [accident]
+      tags:
+        - accident
       summary: Verify a MyAccidentAI access code
       requestBody:
         required: true
@@ -1528,11 +1590,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentErrorResponse"
-
   /accident/auth/check-session:
     get:
       operationId: accidentCheckSession
-      tags: [accident]
+      tags:
+        - accident
       summary: Check if current MyAccidentAI session is valid
       responses:
         "200":
@@ -1541,11 +1603,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentSessionStatus"
-
   /accident/auth/logout:
     post:
       operationId: accidentLogout
-      tags: [accident]
+      tags:
+        - accident
       summary: Logout and clear MyAccidentAI session
       responses:
         "200":
@@ -1554,11 +1616,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentMessageResponse"
-
   /accident/admin/login:
     post:
       operationId: accidentAdminLogin
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: MyAccidentAI admin login with password
       requestBody:
         required: true
@@ -1579,11 +1641,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentErrorResponse"
-
   /accident/admin/check:
     get:
       operationId: accidentAdminCheck
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: Check if MyAccidentAI admin session is valid
       responses:
         "200":
@@ -1592,11 +1654,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentAdminStatus"
-
   /accident/admin/codes:
     get:
       operationId: accidentListAccessCodes
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: List all MyAccidentAI access codes
       responses:
         "200":
@@ -1615,7 +1677,8 @@ paths:
                 $ref: "#/components/schemas/AccidentErrorResponse"
     post:
       operationId: accidentCreateAccessCode
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: Create a new MyAccidentAI access code
       requestBody:
         required: true
@@ -1636,11 +1699,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentErrorResponse"
-
   /accident/admin/codes/{id}:
     delete:
       operationId: accidentDeleteAccessCode
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: Delete a MyAccidentAI access code
       parameters:
         - name: id
@@ -1659,7 +1722,8 @@ paths:
                 $ref: "#/components/schemas/AccidentErrorResponse"
     patch:
       operationId: accidentUpdateAccessCode
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: Update a MyAccidentAI access code
       parameters:
         - name: id
@@ -1686,11 +1750,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentErrorResponse"
-
   /accident/admin/dashboard:
     get:
       operationId: accidentGetAdminDashboard
-      tags: [accident-admin]
+      tags:
+        - accident-admin
       summary: Get MyAccidentAI admin dashboard stats
       responses:
         "200":
@@ -1705,7 +1769,653 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccidentErrorResponse"
-
+  /crim/auth/verify:
+    post:
+      operationId: crimVerifyAccessCode
+      tags:
+        - crim
+      summary: Verify access code
+      description: Verify practitioner access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrimVerifyAccessCodeBody"
+      responses:
+        "200":
+          description: Access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimAuthResponse"
+        "401":
+          description: Invalid access code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/auth/session:
+    get:
+      operationId: crimCheckSession
+      tags:
+        - crim
+      summary: Check current session
+      description: Check if user has valid session
+      responses:
+        "200":
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimSessionResponse"
+  /crim/auth/logout:
+    post:
+      operationId: crimLogout
+      tags:
+        - crim
+      summary: Logout
+      description: Clear session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimMessageResponse"
+  /crim/dashboard/stats:
+    get:
+      operationId: crimGetDashboardStats
+      tags:
+        - crim
+      summary: Get dashboard statistics
+      description: Returns counts for all content types
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimDashboardStats"
+  /crim/search:
+    get:
+      operationId: crimSearchContent
+      tags:
+        - crim
+      summary: Search across all content
+      description: Search topics, case laws, glossary, etc.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - topics
+              - case-laws
+              - cause-papers
+              - workflows
+              - sample-documents
+              - glossary
+              - costs-fees
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimSearchResults"
+  /crim/topics:
+    get:
+      operationId: crimListTopics
+      tags:
+        - crim
+      summary: List all theory topics
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of topics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimTopic"
+  /crim/topics/{id}:
+    get:
+      operationId: crimGetTopic
+      tags:
+        - crim
+      summary: Get topic by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Topic detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimTopic"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/case-laws:
+    get:
+      operationId: crimListCaseLaws
+      tags:
+        - crim
+      summary: List all case laws
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: court
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of case laws
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimCaseLaw"
+  /crim/case-laws/{id}:
+    get:
+      operationId: crimGetCaseLaw
+      tags:
+        - crim
+      summary: Get case law by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Case law detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimCaseLaw"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/cause-papers:
+    get:
+      operationId: crimListCausePapers
+      tags:
+        - crim
+      summary: List all cause papers
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: court
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of cause papers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimCausePaper"
+  /crim/cause-papers/{id}:
+    get:
+      operationId: crimGetCausePaper
+      tags:
+        - crim
+      summary: Get cause paper by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cause paper detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimCausePaper"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/workflows:
+    get:
+      operationId: crimListWorkflows
+      tags:
+        - crim
+      summary: List all practice workflows
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimWorkflow"
+  /crim/workflows/{id}:
+    get:
+      operationId: crimGetWorkflow
+      tags:
+        - crim
+      summary: Get workflow by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimWorkflow"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/sample-documents:
+    get:
+      operationId: crimListSampleDocuments
+      tags:
+        - crim
+      summary: List all sample documents
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of sample documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimSampleDocument"
+  /crim/sample-documents/{id}:
+    get:
+      operationId: crimGetSampleDocument
+      tags:
+        - crim
+      summary: Get sample document by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sample document detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimSampleDocument"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/glossary:
+    get:
+      operationId: crimListGlossaryTerms
+      tags:
+        - crim
+      summary: List all glossary terms
+      parameters:
+        - name: letter
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of glossary terms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimGlossaryTerm"
+  /crim/glossary/{id}:
+    get:
+      operationId: crimGetGlossaryTerm
+      tags:
+        - crim
+      summary: Get glossary term by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Glossary term detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimGlossaryTerm"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/costs-fees:
+    get:
+      operationId: crimListCostsFees
+      tags:
+        - crim
+      summary: List all costs and fees
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of costs and fees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimCostFee"
+  /crim/costs-fees/{id}:
+    get:
+      operationId: crimGetCostFee
+      tags:
+        - crim
+      summary: Get cost/fee by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cost/fee detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimCostFee"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrimErrorResponse"
+  /crim/recent-activity:
+    get:
+      operationId: crimGetRecentActivity
+      tags:
+        - crim
+      summary: Get recent content additions
+      description: Returns the most recently added content across all types
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimActivityItem"
+  /crim/categories:
+    get:
+      operationId: crimListCategories
+      tags:
+        - crim
+      summary: List all categories with counts
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CrimCategoryWithCount"
+  /corp/gemini/conversations:
+    get:
+      operationId: corpListGeminiConversations
+      tags:
+        - corp
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorpGeminiConversation"
+    post:
+      operationId: corpCreateGeminiConversation
+      tags:
+        - corp
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpCreateGeminiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpGeminiConversation"
+  /corp/gemini/conversations/{id}:
+    get:
+      operationId: corpGetGeminiConversation
+      tags:
+        - corp
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpGeminiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpGeminiError"
+    delete:
+      operationId: corpDeleteGeminiConversation
+      tags:
+        - corp
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpGeminiError"
+  /corp/gemini/conversations/{id}/messages:
+    get:
+      operationId: corpListGeminiMessages
+      tags:
+        - corp
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorpGeminiMessage"
+    post:
+      operationId: corpSendGeminiMessage
+      tags:
+        - corp
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpSendGeminiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+  /corp/gemini/generate-image:
+    post:
+      operationId: corpGenerateGeminiImage
+      tags:
+        - corp
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpGenerateGeminiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpGenerateGeminiImageResponse"
+  /corp/legal/verify-password:
+    post:
+      operationId: corpVerifyPassword
+      tags:
+        - corp
+      summary: Verify access password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpVerifyPasswordBody"
+      responses:
+        "200":
+          description: Password verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpVerifyPasswordResponse"
+  /corp/legal/ai-tools/chat:
+    post:
+      operationId: corpAiToolsChat
+      tags:
+        - corp
+      summary: Send a message to one of the 5 AI tools (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CorpAiToolsChatBody"
+      responses:
+        "200":
+          description: SSE stream of AI response
+          content:
+            text/event-stream: {}
 components:
   schemas:
     HealthStatus:
@@ -1715,7 +2425,6 @@ components:
           type: string
       required:
         - status
-
     Subscriber:
       type: object
       properties:
@@ -1732,27 +2441,51 @@ components:
           items:
             type: string
         kohortId:
-          type: ["integer", "null"]
+          type:
+            - integer
+            - "null"
         tier:
-          type: ["string", "null"]
-          enum: [bundle, single, standard, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - bundle
+            - single
+            - standard
+            - null
         paymentStatus:
           type: string
-          enum: [pending, confirmed, rejected]
+          enum:
+            - pending
+            - confirmed
+            - rejected
         paymentAmount:
           type: string
         paymentDate:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
         paymentProvider:
-          type: ["string", "null"]
-          enum: [stripe, manual, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - stripe
+            - manual
+            - null
         stripeCustomerId:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         stripeSubscriptionId:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         accessCode:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         insuranceEntitled:
           type: boolean
         coursesPerYear:
@@ -1760,11 +2493,17 @@ components:
         coursesUsed:
           type: integer
         voucherCode:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         notes:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         subscriptionExpiry:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
         createdAt:
           type: string
@@ -1785,7 +2524,6 @@ components:
         - coursesUsed
         - createdAt
         - updatedAt
-
     CreateSubscriberBody:
       type: object
       properties:
@@ -1800,15 +2538,28 @@ components:
           items:
             type: string
         kohortId:
-          type: ["integer", "null"]
+          type:
+            - integer
+            - "null"
         tier:
-          type: ["string", "null"]
-          enum: [bundle, single, standard, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - bundle
+            - single
+            - standard
+            - null
         paymentAmount:
           type: string
         paymentProvider:
-          type: ["string", "null"]
-          enum: [stripe, manual, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - stripe
+            - manual
+            - null
         insuranceEntitled:
           type: boolean
         coursesPerYear:
@@ -1816,16 +2567,19 @@ components:
         coursesUsed:
           type: integer
         voucherCode:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         notes:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
       required:
         - name
         - email
         - phone
         - apps
         - paymentAmount
-
     UpdateSubscriberBody:
       type: object
       properties:
@@ -1840,18 +2594,34 @@ components:
           items:
             type: string
         kohortId:
-          type: ["integer", "null"]
+          type:
+            - integer
+            - "null"
         tier:
-          type: ["string", "null"]
-          enum: [bundle, single, standard, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - bundle
+            - single
+            - standard
+            - null
         paymentStatus:
           type: string
-          enum: [pending, confirmed, rejected]
+          enum:
+            - pending
+            - confirmed
+            - rejected
         paymentAmount:
           type: string
         paymentProvider:
-          type: ["string", "null"]
-          enum: [stripe, manual, null]
+          type:
+            - string
+            - "null"
+          enum:
+            - stripe
+            - manual
+            - null
         insuranceEntitled:
           type: boolean
         coursesPerYear:
@@ -1859,13 +2629,18 @@ components:
         coursesUsed:
           type: integer
         voucherCode:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         notes:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         subscriptionExpiry:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
-
     Kohort:
       type: object
       properties:
@@ -1902,7 +2677,6 @@ components:
         - isActive
         - createdAt
         - updatedAt
-
     CreateKohortBody:
       type: object
       properties:
@@ -1922,7 +2696,6 @@ components:
         - pricePerApp
         - bundlePrice
         - subscriptionYears
-
     UpdateKohortBody:
       type: object
       properties:
@@ -1938,7 +2711,6 @@ components:
           type: integer
         isActive:
           type: boolean
-
     PricingEntry:
       type: object
       properties:
@@ -1969,7 +2741,6 @@ components:
         - isActive
         - createdAt
         - updatedAt
-
     CreatePricingBody:
       type: object
       properties:
@@ -1986,7 +2757,6 @@ components:
         - appSlug
         - standardPrice
         - standardDurationYears
-
     UpdatePricingBody:
       type: object
       properties:
@@ -2000,7 +2770,6 @@ components:
           type: integer
         isActive:
           type: boolean
-
     Voucher:
       type: object
       properties:
@@ -2010,7 +2779,9 @@ components:
           type: string
         discountType:
           type: string
-          enum: [percentage, fixed]
+          enum:
+            - percentage
+            - fixed
         discountValue:
           type: string
         maxUses:
@@ -2018,12 +2789,16 @@ components:
         usedCount:
           type: integer
         appFilter:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         validFrom:
           type: string
           format: date-time
         validUntil:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
         isActive:
           type: boolean
@@ -2043,7 +2818,6 @@ components:
         - isActive
         - createdAt
         - updatedAt
-
     CreateVoucherBody:
       type: object
       properties:
@@ -2051,25 +2825,30 @@ components:
           type: string
         discountType:
           type: string
-          enum: [percentage, fixed]
+          enum:
+            - percentage
+            - fixed
         discountValue:
           type: string
         maxUses:
           type: integer
         appFilter:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         validFrom:
           type: string
           format: date-time
         validUntil:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
       required:
         - code
         - discountType
         - discountValue
         - maxUses
-
     UpdateVoucherBody:
       type: object
       properties:
@@ -2077,22 +2856,27 @@ components:
           type: string
         discountType:
           type: string
-          enum: [percentage, fixed]
+          enum:
+            - percentage
+            - fixed
         discountValue:
           type: string
         maxUses:
           type: integer
         appFilter:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         validFrom:
           type: string
           format: date-time
         validUntil:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
         isActive:
           type: boolean
-
     DashboardStats:
       type: object
       properties:
@@ -2120,7 +2904,6 @@ components:
         - kohortSlotsRemaining
         - activeVouchers
         - subscribersByApp
-
     ActivityEntry:
       type: object
       properties:
@@ -2128,11 +2911,21 @@ components:
           type: integer
         type:
           type: string
-          enum: [subscriber_added, payment_confirmed, payment_rejected, voucher_created, kohort_updated, price_changed, contribution_added, contribution_status_changed]
+          enum:
+            - subscriber_added
+            - payment_confirmed
+            - payment_rejected
+            - voucher_created
+            - kohort_updated
+            - price_changed
+            - contribution_added
+            - contribution_status_changed
         description:
           type: string
         metadata:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         createdAt:
           type: string
           format: date-time
@@ -2141,7 +2934,6 @@ components:
         - type
         - description
         - createdAt
-
     RevenueByApp:
       type: object
       properties:
@@ -2155,10 +2947,12 @@ components:
         - appName
         - totalRevenue
         - subscriberCount
-
     UploadUrlRequest:
       type: object
-      required: [name, size, contentType]
+      required:
+        - name
+        - size
+        - contentType
       properties:
         name:
           type: string
@@ -2174,7 +2968,9 @@ components:
           description: MIME type of the file (e.g. `image/jpeg`).
     UploadUrlResponse:
       type: object
-      required: [uploadURL, objectPath]
+      required:
+        - uploadURL
+        - objectPath
       properties:
         uploadURL:
           type: string
@@ -2184,14 +2980,14 @@ components:
           type: string
           description: Normalized object path (e.g. `/objects/uploads/uuid`). Store this in your database.
         metadata:
-          $ref: '#/components/schemas/UploadUrlRequest'
+          $ref: "#/components/schemas/UploadUrlRequest"
     ErrorEnvelope:
       type: object
-      required: [error]
+      required:
+        - error
       properties:
         error:
           type: string
-
     Contribution:
       type: object
       properties:
@@ -2200,7 +2996,9 @@ components:
         title:
           type: string
         description:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         categories:
           type: array
           items:
@@ -2211,27 +3009,46 @@ components:
         contributorEmail:
           type: string
         contributorPhone:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         fileName:
           type: string
         objectPath:
           type: string
         fileSize:
-          type: ["integer", "null"]
+          type:
+            - integer
+            - "null"
         contentType:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         extractedText:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         extractionStatus:
           type: string
-          enum: [pending, extracted, unsupported, failed]
+          enum:
+            - pending
+            - extracted
+            - unsupported
+            - failed
         status:
           type: string
-          enum: [pending, approved, rejected]
+          enum:
+            - pending
+            - approved
+            - rejected
         adminNotes:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         rewardVoucherCode:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         createdAt:
           type: string
           format: date-time
@@ -2250,7 +3067,6 @@ components:
         - status
         - createdAt
         - updatedAt
-
     KnowledgeBaseEntry:
       type: object
       properties:
@@ -2259,7 +3075,9 @@ components:
         title:
           type: string
         description:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         categories:
           type: array
           items:
@@ -2270,9 +3088,13 @@ components:
         objectPath:
           type: string
         contentType:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         extractedText:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         createdAt:
           type: string
           format: date-time
@@ -2283,7 +3105,6 @@ components:
         - fileName
         - objectPath
         - createdAt
-
     AppSubscriberStat:
       type: object
       properties:
@@ -2294,7 +3115,6 @@ components:
       required:
         - appName
         - count
-
     AppStat:
       type: object
       properties:
@@ -2309,7 +3129,6 @@ components:
         - appName
         - subscriberCount
         - updatedAt
-
     UpdateAppStatBody:
       type: object
       properties:
@@ -2318,7 +3137,6 @@ components:
           minimum: 0
       required:
         - subscriberCount
-
     CreateContributionBody:
       type: object
       properties:
@@ -2326,7 +3144,9 @@ components:
           type: string
           minLength: 1
         description:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         categories:
           type: array
           minItems: 1
@@ -2348,7 +3168,9 @@ components:
           type: string
           minLength: 1
         contributorPhone:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         fileName:
           type: string
           minLength: 1
@@ -2356,9 +3178,13 @@ components:
           type: string
           minLength: 1
         fileSize:
-          type: ["integer", "null"]
+          type:
+            - integer
+            - "null"
         contentType:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
       required:
         - title
         - categories
@@ -2366,14 +3192,15 @@ components:
         - contributorEmail
         - fileName
         - objectPath
-
     UpdateContributionBody:
       type: object
       properties:
         title:
           type: string
         description:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
         categories:
           type: array
           items:
@@ -2381,16 +3208,22 @@ components:
           minItems: 1
         status:
           type: string
-          enum: [pending, approved, rejected]
+          enum:
+            - pending
+            - approved
+            - rejected
         adminNotes:
-          type: ["string", "null"]
-
+          type:
+            - string
+            - "null"
     AssistantChatMessage:
       type: object
       properties:
         role:
           type: string
-          enum: [user, assistant]
+          enum:
+            - user
+            - assistant
         content:
           type: string
           minLength: 1
@@ -2398,7 +3231,6 @@ components:
       required:
         - role
         - content
-
     AssistantChatBody:
       type: object
       properties:
@@ -2410,7 +3242,6 @@ components:
             $ref: "#/components/schemas/AssistantChatMessage"
       required:
         - messages
-
     CurrencyRates:
       type: object
       properties:
@@ -2461,10 +3292,14 @@ components:
             properties:
               role:
                 type: string
-                enum: [user, model]
+                enum:
+                  - user
+                  - model
               content:
                 type: string
-            required: [role, content]
+            required:
+              - role
+              - content
         message:
           type: string
       required:
@@ -3211,7 +4046,6 @@ components:
           type: string
       required:
         - draft
-
     AccidentErrorResponse:
       type: object
       properties:
@@ -3219,7 +4053,6 @@ components:
           type: string
       required:
         - error
-
     AccidentMessageResponse:
       type: object
       properties:
@@ -3227,7 +4060,6 @@ components:
           type: string
       required:
         - message
-
     AccidentVerifyCodeBody:
       type: object
       properties:
@@ -3235,7 +4067,6 @@ components:
           type: string
       required:
         - code
-
     AccidentVerifyCodeResponse:
       type: object
       properties:
@@ -3248,17 +4079,17 @@ components:
       required:
         - valid
         - message
-
     AccidentSessionStatus:
       type: object
       properties:
         authenticated:
           type: boolean
         codeLabel:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
       required:
         - authenticated
-
     AccidentAdminLoginBody:
       type: object
       properties:
@@ -3266,7 +4097,6 @@ components:
           type: string
       required:
         - password
-
     AccidentAdminStatus:
       type: object
       properties:
@@ -3274,7 +4104,6 @@ components:
           type: boolean
       required:
         - isAdmin
-
     AccidentAccessCodeItem:
       type: object
       properties:
@@ -3294,7 +4123,9 @@ components:
           type: string
           format: date-time
         expiresAt:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
       required:
         - id
@@ -3304,7 +4135,6 @@ components:
         - currentUsers
         - isActive
         - createdAt
-
     AccidentCreateAccessCodeBody:
       type: object
       properties:
@@ -3315,12 +4145,13 @@ components:
         code:
           type: string
         expiresAt:
-          type: ["string", "null"]
+          type:
+            - string
+            - "null"
           format: date-time
       required:
         - label
         - maxUsers
-
     AccidentUpdateAccessCodeBody:
       type: object
       properties:
@@ -3328,7 +4159,6 @@ components:
           type: boolean
         maxUsers:
           type: integer
-
     AccidentAdminDashboard:
       type: object
       properties:
@@ -3347,7 +4177,6 @@ components:
         - activeCodes
         - totalUsage
         - recentUsage
-
     AccidentRecentUsageItem:
       type: object
       properties:
@@ -3362,3 +4191,498 @@ components:
         - codeLabel
         - sessionId
         - usedAt
+    CrimVerifyAccessCodeBody:
+      type: object
+      properties:
+        accessCode:
+          type: string
+      required:
+        - accessCode
+    CrimEntitlements:
+      type: object
+      properties:
+        tier:
+          type: string
+        tierName:
+          type: string
+        voice:
+          type: boolean
+        aiTools:
+          type: array
+          items:
+            type: string
+      required:
+        - tier
+        - tierName
+        - voice
+        - aiTools
+    CrimAuthResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        message:
+          type: string
+        tier:
+          type: string
+        entitlements:
+          $ref: "#/components/schemas/CrimEntitlements"
+      required:
+        - authenticated
+        - message
+    CrimSessionResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        isAdmin:
+          type: boolean
+        tier:
+          type: string
+        entitlements:
+          $ref: "#/components/schemas/CrimEntitlements"
+      required:
+        - authenticated
+    CrimMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    CrimErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    CrimDashboardStats:
+      type: object
+      properties:
+        topicsCount:
+          type: integer
+        caseLawsCount:
+          type: integer
+        causePapersCount:
+          type: integer
+        workflowsCount:
+          type: integer
+        sampleDocumentsCount:
+          type: integer
+        glossaryCount:
+          type: integer
+        costsFeesCount:
+          type: integer
+      required:
+        - topicsCount
+        - caseLawsCount
+        - causePapersCount
+        - workflowsCount
+        - sampleDocumentsCount
+        - glossaryCount
+        - costsFeesCount
+    CrimSearchResults:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CrimSearchResult"
+        total:
+          type: integer
+      required:
+        - results
+        - total
+    CrimSearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum:
+            - topic
+            - case-law
+            - cause-paper
+            - workflow
+            - sample-document
+            - glossary
+            - cost-fee
+        title:
+          type: string
+        excerpt:
+          type: string
+      required:
+        - id
+        - type
+        - title
+        - excerpt
+    CrimTopic:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        orderIndex:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - content
+        - category
+        - orderIndex
+        - createdAt
+    CrimCaseLaw:
+      type: object
+      properties:
+        id:
+          type: integer
+        caseName:
+          type: string
+        citation:
+          type: string
+        court:
+          type: string
+        year:
+          type: integer
+        summary:
+          type: string
+        keyPrinciples:
+          type: string
+        category:
+          type: string
+        fullText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - caseName
+        - citation
+        - court
+        - year
+        - summary
+        - keyPrinciples
+        - category
+        - fullText
+        - createdAt
+    CrimCausePaper:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        court:
+          type: string
+        description:
+          type: string
+        templateContent:
+          type: string
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - court
+        - description
+        - templateContent
+        - category
+        - createdAt
+    CrimWorkflow:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        steps:
+          type: string
+        category:
+          type: string
+        estimatedDuration:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - steps
+        - category
+        - estimatedDuration
+        - createdAt
+    CrimSampleDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        documentType:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - documentType
+        - content
+        - category
+        - createdAt
+    CrimGlossaryTerm:
+      type: object
+      properties:
+        id:
+          type: integer
+        term:
+          type: string
+        definition:
+          type: string
+        malayTranslation:
+          type: string
+        relatedTerms:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - term
+        - definition
+        - malayTranslation
+        - relatedTerms
+        - createdAt
+    CrimCostFee:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        amount:
+          type: string
+        category:
+          type: string
+        courtType:
+          type: string
+        legalBasis:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - amount
+        - category
+        - courtType
+        - legalBasis
+        - createdAt
+    CrimActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum:
+            - topic
+            - case-law
+            - cause-paper
+            - workflow
+            - sample-document
+            - glossary
+            - cost-fee
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - title
+        - createdAt
+    CrimCategoryWithCount:
+      type: object
+      properties:
+        name:
+          type: string
+        topicsCount:
+          type: integer
+        caseLawsCount:
+          type: integer
+        causePapersCount:
+          type: integer
+        workflowsCount:
+          type: integer
+        sampleDocumentsCount:
+          type: integer
+      required:
+        - name
+        - topicsCount
+        - caseLawsCount
+        - causePapersCount
+        - workflowsCount
+        - sampleDocumentsCount
+    CorpGeminiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    CorpGeminiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CorpCreateGeminiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    CorpSendGeminiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    CorpGeminiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CorpGeminiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    CorpGenerateGeminiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+      required:
+        - prompt
+    CorpGenerateGeminiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+        mimeType:
+          type: string
+      required:
+        - b64_json
+        - mimeType
+    CorpGeminiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    CorpVerifyPasswordBody:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+        - password
+    CorpVerifyPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+        tier:
+          type: string
+          description: "Effective access tier: legacy_full, student, practitioner, or firm"
+        reason:
+          type: string
+          description: Optional failure reason, e.g. subscription_inactive
+      required:
+        - success
+        - token
+    CorpAiToolsChatBody:
+      type: object
+      properties:
+        tool:
+          type: string
+          description: "One of: tutor, drafter, risk-scanner, checklist, deadline-calculator"
+        message:
+          type: string
+        context:
+          type:
+            - string
+            - "null"
+          description: Optional additional context for the tool
+      required:
+        - tool
+        - message

@@ -61,11 +61,47 @@ import type {
   CompareClausesBody,
   CompareClausesResponse,
   Contribution,
+  CorpAiToolsChatBody,
+  CorpCreateGeminiConversationBody,
+  CorpGeminiConversation,
+  CorpGeminiConversationWithMessages,
+  CorpGeminiError,
+  CorpGeminiMessage,
+  CorpGenerateGeminiImageBody,
+  CorpGenerateGeminiImageResponse,
+  CorpSendGeminiMessageBody,
+  CorpVerifyPasswordBody,
+  CorpVerifyPasswordResponse,
   CreateContributionBody,
   CreateKohortBody,
   CreatePricingBody,
   CreateSubscriberBody,
   CreateVoucherBody,
+  CrimActivityItem,
+  CrimAuthResponse,
+  CrimCaseLaw,
+  CrimCategoryWithCount,
+  CrimCausePaper,
+  CrimCostFee,
+  CrimDashboardStats,
+  CrimErrorResponse,
+  CrimGetRecentActivityParams,
+  CrimGlossaryTerm,
+  CrimListCaseLawsParams,
+  CrimListCausePapersParams,
+  CrimListCostsFeesParams,
+  CrimListGlossaryTermsParams,
+  CrimListSampleDocumentsParams,
+  CrimListTopicsParams,
+  CrimListWorkflowsParams,
+  CrimMessageResponse,
+  CrimSampleDocument,
+  CrimSearchContentParams,
+  CrimSearchResults,
+  CrimSessionResponse,
+  CrimTopic,
+  CrimVerifyAccessCodeBody,
+  CrimWorkflow,
   CurrencyRates,
   DashboardStats,
   DraftCorpResolutionBody,
@@ -7590,3 +7626,2682 @@ export function useAccidentGetAdminDashboard<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Verify practitioner access code
+ * @summary Verify access code
+ */
+export const getCrimVerifyAccessCodeUrl = () => {
+  return `/api/crim/auth/verify`;
+};
+
+export const crimVerifyAccessCode = async (
+  crimVerifyAccessCodeBody: CrimVerifyAccessCodeBody,
+  options?: RequestInit,
+): Promise<CrimAuthResponse> => {
+  return customFetch<CrimAuthResponse>(getCrimVerifyAccessCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(crimVerifyAccessCodeBody),
+  });
+};
+
+export const getCrimVerifyAccessCodeMutationOptions = <
+  TError = ErrorType<CrimErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof crimVerifyAccessCode>>,
+    TError,
+    { data: BodyType<CrimVerifyAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof crimVerifyAccessCode>>,
+  TError,
+  { data: BodyType<CrimVerifyAccessCodeBody> },
+  TContext
+> => {
+  const mutationKey = ["crimVerifyAccessCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof crimVerifyAccessCode>>,
+    { data: BodyType<CrimVerifyAccessCodeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return crimVerifyAccessCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CrimVerifyAccessCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof crimVerifyAccessCode>>
+>;
+export type CrimVerifyAccessCodeMutationBody =
+  BodyType<CrimVerifyAccessCodeBody>;
+export type CrimVerifyAccessCodeMutationError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Verify access code
+ */
+export const useCrimVerifyAccessCode = <
+  TError = ErrorType<CrimErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof crimVerifyAccessCode>>,
+    TError,
+    { data: BodyType<CrimVerifyAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof crimVerifyAccessCode>>,
+  TError,
+  { data: BodyType<CrimVerifyAccessCodeBody> },
+  TContext
+> => {
+  return useMutation(getCrimVerifyAccessCodeMutationOptions(options));
+};
+
+/**
+ * Check if user has valid session
+ * @summary Check current session
+ */
+export const getCrimCheckSessionUrl = () => {
+  return `/api/crim/auth/session`;
+};
+
+export const crimCheckSession = async (
+  options?: RequestInit,
+): Promise<CrimSessionResponse> => {
+  return customFetch<CrimSessionResponse>(getCrimCheckSessionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimCheckSessionQueryKey = () => {
+  return [`/api/crim/auth/session`] as const;
+};
+
+export const getCrimCheckSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimCheckSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimCheckSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimCheckSessionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimCheckSession>>
+  > = ({ signal }) => crimCheckSession({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimCheckSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimCheckSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimCheckSession>>
+>;
+export type CrimCheckSessionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check current session
+ */
+
+export function useCrimCheckSession<
+  TData = Awaited<ReturnType<typeof crimCheckSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimCheckSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimCheckSessionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Clear session
+ * @summary Logout
+ */
+export const getCrimLogoutUrl = () => {
+  return `/api/crim/auth/logout`;
+};
+
+export const crimLogout = async (
+  options?: RequestInit,
+): Promise<CrimMessageResponse> => {
+  return customFetch<CrimMessageResponse>(getCrimLogoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCrimLogoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof crimLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof crimLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["crimLogout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof crimLogout>>,
+    void
+  > = () => {
+    return crimLogout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CrimLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof crimLogout>>
+>;
+
+export type CrimLogoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Logout
+ */
+export const useCrimLogout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof crimLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof crimLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getCrimLogoutMutationOptions(options));
+};
+
+/**
+ * Returns counts for all content types
+ * @summary Get dashboard statistics
+ */
+export const getCrimGetDashboardStatsUrl = () => {
+  return `/api/crim/dashboard/stats`;
+};
+
+export const crimGetDashboardStats = async (
+  options?: RequestInit,
+): Promise<CrimDashboardStats> => {
+  return customFetch<CrimDashboardStats>(getCrimGetDashboardStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetDashboardStatsQueryKey = () => {
+  return [`/api/crim/dashboard/stats`] as const;
+};
+
+export const getCrimGetDashboardStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetDashboardStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetDashboardStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetDashboardStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimGetDashboardStats>>
+  > = ({ signal }) => crimGetDashboardStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetDashboardStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetDashboardStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetDashboardStats>>
+>;
+export type CrimGetDashboardStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get dashboard statistics
+ */
+
+export function useCrimGetDashboardStats<
+  TData = Awaited<ReturnType<typeof crimGetDashboardStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetDashboardStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetDashboardStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Search topics, case laws, glossary, etc.
+ * @summary Search across all content
+ */
+export const getCrimSearchContentUrl = (params: CrimSearchContentParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/search?${stringifiedParams}`
+    : `/api/crim/search`;
+};
+
+export const crimSearchContent = async (
+  params: CrimSearchContentParams,
+  options?: RequestInit,
+): Promise<CrimSearchResults> => {
+  return customFetch<CrimSearchResults>(getCrimSearchContentUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimSearchContentQueryKey = (
+  params?: CrimSearchContentParams,
+) => {
+  return [`/api/crim/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimSearchContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimSearchContent>>,
+  TError = ErrorType<unknown>,
+>(
+  params: CrimSearchContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimSearchContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimSearchContentQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimSearchContent>>
+  > = ({ signal }) => crimSearchContent(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimSearchContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimSearchContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimSearchContent>>
+>;
+export type CrimSearchContentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Search across all content
+ */
+
+export function useCrimSearchContent<
+  TData = Awaited<ReturnType<typeof crimSearchContent>>,
+  TError = ErrorType<unknown>,
+>(
+  params: CrimSearchContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimSearchContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimSearchContentQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all theory topics
+ */
+export const getCrimListTopicsUrl = (params?: CrimListTopicsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/topics?${stringifiedParams}`
+    : `/api/crim/topics`;
+};
+
+export const crimListTopics = async (
+  params?: CrimListTopicsParams,
+  options?: RequestInit,
+): Promise<CrimTopic[]> => {
+  return customFetch<CrimTopic[]>(getCrimListTopicsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListTopicsQueryKey = (params?: CrimListTopicsParams) => {
+  return [`/api/crim/topics`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListTopicsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListTopics>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListTopicsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListTopics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimListTopicsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof crimListTopics>>> = ({
+    signal,
+  }) => crimListTopics(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListTopics>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListTopicsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListTopics>>
+>;
+export type CrimListTopicsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all theory topics
+ */
+
+export function useCrimListTopics<
+  TData = Awaited<ReturnType<typeof crimListTopics>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListTopicsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListTopics>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListTopicsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get topic by ID
+ */
+export const getCrimGetTopicUrl = (id: number) => {
+  return `/api/crim/topics/${id}`;
+};
+
+export const crimGetTopic = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimTopic> => {
+  return customFetch<CrimTopic>(getCrimGetTopicUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetTopicQueryKey = (id: number) => {
+  return [`/api/crim/topics/${id}`] as const;
+};
+
+export const getCrimGetTopicQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetTopic>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetTopic>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetTopicQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof crimGetTopic>>> = ({
+    signal,
+  }) => crimGetTopic(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetTopic>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetTopicQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetTopic>>
+>;
+export type CrimGetTopicQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get topic by ID
+ */
+
+export function useCrimGetTopic<
+  TData = Awaited<ReturnType<typeof crimGetTopic>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetTopic>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetTopicQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all case laws
+ */
+export const getCrimListCaseLawsUrl = (params?: CrimListCaseLawsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/case-laws?${stringifiedParams}`
+    : `/api/crim/case-laws`;
+};
+
+export const crimListCaseLaws = async (
+  params?: CrimListCaseLawsParams,
+  options?: RequestInit,
+): Promise<CrimCaseLaw[]> => {
+  return customFetch<CrimCaseLaw[]>(getCrimListCaseLawsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListCaseLawsQueryKey = (
+  params?: CrimListCaseLawsParams,
+) => {
+  return [`/api/crim/case-laws`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListCaseLawsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListCaseLaws>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCaseLawsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCaseLaws>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListCaseLawsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListCaseLaws>>
+  > = ({ signal }) => crimListCaseLaws(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCaseLaws>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListCaseLawsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListCaseLaws>>
+>;
+export type CrimListCaseLawsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all case laws
+ */
+
+export function useCrimListCaseLaws<
+  TData = Awaited<ReturnType<typeof crimListCaseLaws>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCaseLawsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCaseLaws>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListCaseLawsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get case law by ID
+ */
+export const getCrimGetCaseLawUrl = (id: number) => {
+  return `/api/crim/case-laws/${id}`;
+};
+
+export const crimGetCaseLaw = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimCaseLaw> => {
+  return customFetch<CrimCaseLaw>(getCrimGetCaseLawUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetCaseLawQueryKey = (id: number) => {
+  return [`/api/crim/case-laws/${id}`] as const;
+};
+
+export const getCrimGetCaseLawQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetCaseLaw>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCaseLaw>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetCaseLawQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof crimGetCaseLaw>>> = ({
+    signal,
+  }) => crimGetCaseLaw(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetCaseLaw>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetCaseLawQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetCaseLaw>>
+>;
+export type CrimGetCaseLawQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get case law by ID
+ */
+
+export function useCrimGetCaseLaw<
+  TData = Awaited<ReturnType<typeof crimGetCaseLaw>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCaseLaw>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetCaseLawQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all cause papers
+ */
+export const getCrimListCausePapersUrl = (
+  params?: CrimListCausePapersParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/cause-papers?${stringifiedParams}`
+    : `/api/crim/cause-papers`;
+};
+
+export const crimListCausePapers = async (
+  params?: CrimListCausePapersParams,
+  options?: RequestInit,
+): Promise<CrimCausePaper[]> => {
+  return customFetch<CrimCausePaper[]>(getCrimListCausePapersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListCausePapersQueryKey = (
+  params?: CrimListCausePapersParams,
+) => {
+  return [`/api/crim/cause-papers`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListCausePapersQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListCausePapers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCausePapersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCausePapers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListCausePapersQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListCausePapers>>
+  > = ({ signal }) =>
+    crimListCausePapers(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCausePapers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListCausePapersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListCausePapers>>
+>;
+export type CrimListCausePapersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all cause papers
+ */
+
+export function useCrimListCausePapers<
+  TData = Awaited<ReturnType<typeof crimListCausePapers>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCausePapersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCausePapers>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListCausePapersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get cause paper by ID
+ */
+export const getCrimGetCausePaperUrl = (id: number) => {
+  return `/api/crim/cause-papers/${id}`;
+};
+
+export const crimGetCausePaper = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimCausePaper> => {
+  return customFetch<CrimCausePaper>(getCrimGetCausePaperUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetCausePaperQueryKey = (id: number) => {
+  return [`/api/crim/cause-papers/${id}`] as const;
+};
+
+export const getCrimGetCausePaperQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetCausePaper>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCausePaper>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetCausePaperQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimGetCausePaper>>
+  > = ({ signal }) => crimGetCausePaper(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetCausePaper>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetCausePaperQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetCausePaper>>
+>;
+export type CrimGetCausePaperQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get cause paper by ID
+ */
+
+export function useCrimGetCausePaper<
+  TData = Awaited<ReturnType<typeof crimGetCausePaper>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCausePaper>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetCausePaperQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all practice workflows
+ */
+export const getCrimListWorkflowsUrl = (params?: CrimListWorkflowsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/workflows?${stringifiedParams}`
+    : `/api/crim/workflows`;
+};
+
+export const crimListWorkflows = async (
+  params?: CrimListWorkflowsParams,
+  options?: RequestInit,
+): Promise<CrimWorkflow[]> => {
+  return customFetch<CrimWorkflow[]>(getCrimListWorkflowsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListWorkflowsQueryKey = (
+  params?: CrimListWorkflowsParams,
+) => {
+  return [`/api/crim/workflows`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListWorkflowsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListWorkflows>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListWorkflowsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListWorkflows>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListWorkflowsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListWorkflows>>
+  > = ({ signal }) => crimListWorkflows(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListWorkflows>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListWorkflowsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListWorkflows>>
+>;
+export type CrimListWorkflowsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all practice workflows
+ */
+
+export function useCrimListWorkflows<
+  TData = Awaited<ReturnType<typeof crimListWorkflows>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListWorkflowsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListWorkflows>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListWorkflowsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get workflow by ID
+ */
+export const getCrimGetWorkflowUrl = (id: number) => {
+  return `/api/crim/workflows/${id}`;
+};
+
+export const crimGetWorkflow = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimWorkflow> => {
+  return customFetch<CrimWorkflow>(getCrimGetWorkflowUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetWorkflowQueryKey = (id: number) => {
+  return [`/api/crim/workflows/${id}`] as const;
+};
+
+export const getCrimGetWorkflowQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetWorkflow>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetWorkflow>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetWorkflowQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof crimGetWorkflow>>> = ({
+    signal,
+  }) => crimGetWorkflow(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetWorkflow>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetWorkflowQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetWorkflow>>
+>;
+export type CrimGetWorkflowQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get workflow by ID
+ */
+
+export function useCrimGetWorkflow<
+  TData = Awaited<ReturnType<typeof crimGetWorkflow>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetWorkflow>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetWorkflowQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all sample documents
+ */
+export const getCrimListSampleDocumentsUrl = (
+  params?: CrimListSampleDocumentsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/sample-documents?${stringifiedParams}`
+    : `/api/crim/sample-documents`;
+};
+
+export const crimListSampleDocuments = async (
+  params?: CrimListSampleDocumentsParams,
+  options?: RequestInit,
+): Promise<CrimSampleDocument[]> => {
+  return customFetch<CrimSampleDocument[]>(
+    getCrimListSampleDocumentsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCrimListSampleDocumentsQueryKey = (
+  params?: CrimListSampleDocumentsParams,
+) => {
+  return [`/api/crim/sample-documents`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListSampleDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListSampleDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListSampleDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListSampleDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListSampleDocumentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListSampleDocuments>>
+  > = ({ signal }) =>
+    crimListSampleDocuments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListSampleDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListSampleDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListSampleDocuments>>
+>;
+export type CrimListSampleDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all sample documents
+ */
+
+export function useCrimListSampleDocuments<
+  TData = Awaited<ReturnType<typeof crimListSampleDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListSampleDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListSampleDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListSampleDocumentsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get sample document by ID
+ */
+export const getCrimGetSampleDocumentUrl = (id: number) => {
+  return `/api/crim/sample-documents/${id}`;
+};
+
+export const crimGetSampleDocument = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimSampleDocument> => {
+  return customFetch<CrimSampleDocument>(getCrimGetSampleDocumentUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetSampleDocumentQueryKey = (id: number) => {
+  return [`/api/crim/sample-documents/${id}`] as const;
+};
+
+export const getCrimGetSampleDocumentQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetSampleDocument>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetSampleDocument>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimGetSampleDocumentQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimGetSampleDocument>>
+  > = ({ signal }) => crimGetSampleDocument(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetSampleDocument>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetSampleDocumentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetSampleDocument>>
+>;
+export type CrimGetSampleDocumentQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get sample document by ID
+ */
+
+export function useCrimGetSampleDocument<
+  TData = Awaited<ReturnType<typeof crimGetSampleDocument>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetSampleDocument>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetSampleDocumentQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all glossary terms
+ */
+export const getCrimListGlossaryTermsUrl = (
+  params?: CrimListGlossaryTermsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/glossary?${stringifiedParams}`
+    : `/api/crim/glossary`;
+};
+
+export const crimListGlossaryTerms = async (
+  params?: CrimListGlossaryTermsParams,
+  options?: RequestInit,
+): Promise<CrimGlossaryTerm[]> => {
+  return customFetch<CrimGlossaryTerm[]>(getCrimListGlossaryTermsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListGlossaryTermsQueryKey = (
+  params?: CrimListGlossaryTermsParams,
+) => {
+  return [`/api/crim/glossary`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListGlossaryTermsQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListGlossaryTerms>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListGlossaryTermsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListGlossaryTerms>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListGlossaryTermsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListGlossaryTerms>>
+  > = ({ signal }) =>
+    crimListGlossaryTerms(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListGlossaryTerms>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListGlossaryTermsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListGlossaryTerms>>
+>;
+export type CrimListGlossaryTermsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all glossary terms
+ */
+
+export function useCrimListGlossaryTerms<
+  TData = Awaited<ReturnType<typeof crimListGlossaryTerms>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListGlossaryTermsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListGlossaryTerms>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListGlossaryTermsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get glossary term by ID
+ */
+export const getCrimGetGlossaryTermUrl = (id: number) => {
+  return `/api/crim/glossary/${id}`;
+};
+
+export const crimGetGlossaryTerm = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimGlossaryTerm> => {
+  return customFetch<CrimGlossaryTerm>(getCrimGetGlossaryTermUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetGlossaryTermQueryKey = (id: number) => {
+  return [`/api/crim/glossary/${id}`] as const;
+};
+
+export const getCrimGetGlossaryTermQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetGlossaryTerm>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetGlossaryTerm>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetGlossaryTermQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimGetGlossaryTerm>>
+  > = ({ signal }) => crimGetGlossaryTerm(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetGlossaryTerm>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetGlossaryTermQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetGlossaryTerm>>
+>;
+export type CrimGetGlossaryTermQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get glossary term by ID
+ */
+
+export function useCrimGetGlossaryTerm<
+  TData = Awaited<ReturnType<typeof crimGetGlossaryTerm>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetGlossaryTerm>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetGlossaryTermQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all costs and fees
+ */
+export const getCrimListCostsFeesUrl = (params?: CrimListCostsFeesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/costs-fees?${stringifiedParams}`
+    : `/api/crim/costs-fees`;
+};
+
+export const crimListCostsFees = async (
+  params?: CrimListCostsFeesParams,
+  options?: RequestInit,
+): Promise<CrimCostFee[]> => {
+  return customFetch<CrimCostFee[]>(getCrimListCostsFeesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListCostsFeesQueryKey = (
+  params?: CrimListCostsFeesParams,
+) => {
+  return [`/api/crim/costs-fees`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimListCostsFeesQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListCostsFees>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCostsFeesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCostsFees>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimListCostsFeesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListCostsFees>>
+  > = ({ signal }) => crimListCostsFees(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCostsFees>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListCostsFeesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListCostsFees>>
+>;
+export type CrimListCostsFeesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all costs and fees
+ */
+
+export function useCrimListCostsFees<
+  TData = Awaited<ReturnType<typeof crimListCostsFees>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimListCostsFeesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimListCostsFees>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListCostsFeesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get cost/fee by ID
+ */
+export const getCrimGetCostFeeUrl = (id: number) => {
+  return `/api/crim/costs-fees/${id}`;
+};
+
+export const crimGetCostFee = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CrimCostFee> => {
+  return customFetch<CrimCostFee>(getCrimGetCostFeeUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetCostFeeQueryKey = (id: number) => {
+  return [`/api/crim/costs-fees/${id}`] as const;
+};
+
+export const getCrimGetCostFeeQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetCostFee>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCostFee>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimGetCostFeeQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof crimGetCostFee>>> = ({
+    signal,
+  }) => crimGetCostFee(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetCostFee>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetCostFeeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetCostFee>>
+>;
+export type CrimGetCostFeeQueryError = ErrorType<CrimErrorResponse>;
+
+/**
+ * @summary Get cost/fee by ID
+ */
+
+export function useCrimGetCostFee<
+  TData = Awaited<ReturnType<typeof crimGetCostFee>>,
+  TError = ErrorType<CrimErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetCostFee>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetCostFeeQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the most recently added content across all types
+ * @summary Get recent content additions
+ */
+export const getCrimGetRecentActivityUrl = (
+  params?: CrimGetRecentActivityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/crim/recent-activity?${stringifiedParams}`
+    : `/api/crim/recent-activity`;
+};
+
+export const crimGetRecentActivity = async (
+  params?: CrimGetRecentActivityParams,
+  options?: RequestInit,
+): Promise<CrimActivityItem[]> => {
+  return customFetch<CrimActivityItem[]>(getCrimGetRecentActivityUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimGetRecentActivityQueryKey = (
+  params?: CrimGetRecentActivityParams,
+) => {
+  return [`/api/crim/recent-activity`, ...(params ? [params] : [])] as const;
+};
+
+export const getCrimGetRecentActivityQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimGetRecentActivity>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimGetRecentActivityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetRecentActivity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCrimGetRecentActivityQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimGetRecentActivity>>
+  > = ({ signal }) =>
+    crimGetRecentActivity(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimGetRecentActivity>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimGetRecentActivityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimGetRecentActivity>>
+>;
+export type CrimGetRecentActivityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get recent content additions
+ */
+
+export function useCrimGetRecentActivity<
+  TData = Awaited<ReturnType<typeof crimGetRecentActivity>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: CrimGetRecentActivityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof crimGetRecentActivity>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimGetRecentActivityQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all categories with counts
+ */
+export const getCrimListCategoriesUrl = () => {
+  return `/api/crim/categories`;
+};
+
+export const crimListCategories = async (
+  options?: RequestInit,
+): Promise<CrimCategoryWithCount[]> => {
+  return customFetch<CrimCategoryWithCount[]>(getCrimListCategoriesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCrimListCategoriesQueryKey = () => {
+  return [`/api/crim/categories`] as const;
+};
+
+export const getCrimListCategoriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof crimListCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCrimListCategoriesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof crimListCategories>>
+  > = ({ signal }) => crimListCategories({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCategories>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CrimListCategoriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof crimListCategories>>
+>;
+export type CrimListCategoriesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all categories with counts
+ */
+
+export function useCrimListCategories<
+  TData = Awaited<ReturnType<typeof crimListCategories>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof crimListCategories>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCrimListCategoriesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all conversations
+ */
+export const getCorpListGeminiConversationsUrl = () => {
+  return `/api/corp/gemini/conversations`;
+};
+
+export const corpListGeminiConversations = async (
+  options?: RequestInit,
+): Promise<CorpGeminiConversation[]> => {
+  return customFetch<CorpGeminiConversation[]>(
+    getCorpListGeminiConversationsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCorpListGeminiConversationsQueryKey = () => {
+  return [`/api/corp/gemini/conversations`] as const;
+};
+
+export const getCorpListGeminiConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof corpListGeminiConversations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof corpListGeminiConversations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCorpListGeminiConversationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof corpListGeminiConversations>>
+  > = ({ signal }) =>
+    corpListGeminiConversations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof corpListGeminiConversations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CorpListGeminiConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof corpListGeminiConversations>>
+>;
+export type CorpListGeminiConversationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all conversations
+ */
+
+export function useCorpListGeminiConversations<
+  TData = Awaited<ReturnType<typeof corpListGeminiConversations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof corpListGeminiConversations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCorpListGeminiConversationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new conversation
+ */
+export const getCorpCreateGeminiConversationUrl = () => {
+  return `/api/corp/gemini/conversations`;
+};
+
+export const corpCreateGeminiConversation = async (
+  corpCreateGeminiConversationBody: CorpCreateGeminiConversationBody,
+  options?: RequestInit,
+): Promise<CorpGeminiConversation> => {
+  return customFetch<CorpGeminiConversation>(
+    getCorpCreateGeminiConversationUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(corpCreateGeminiConversationBody),
+    },
+  );
+};
+
+export const getCorpCreateGeminiConversationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpCreateGeminiConversation>>,
+    TError,
+    { data: BodyType<CorpCreateGeminiConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpCreateGeminiConversation>>,
+  TError,
+  { data: BodyType<CorpCreateGeminiConversationBody> },
+  TContext
+> => {
+  const mutationKey = ["corpCreateGeminiConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpCreateGeminiConversation>>,
+    { data: BodyType<CorpCreateGeminiConversationBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return corpCreateGeminiConversation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpCreateGeminiConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpCreateGeminiConversation>>
+>;
+export type CorpCreateGeminiConversationMutationBody =
+  BodyType<CorpCreateGeminiConversationBody>;
+export type CorpCreateGeminiConversationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new conversation
+ */
+export const useCorpCreateGeminiConversation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpCreateGeminiConversation>>,
+    TError,
+    { data: BodyType<CorpCreateGeminiConversationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpCreateGeminiConversation>>,
+  TError,
+  { data: BodyType<CorpCreateGeminiConversationBody> },
+  TContext
+> => {
+  return useMutation(getCorpCreateGeminiConversationMutationOptions(options));
+};
+
+/**
+ * @summary Get conversation with messages
+ */
+export const getCorpGetGeminiConversationUrl = (id: number) => {
+  return `/api/corp/gemini/conversations/${id}`;
+};
+
+export const corpGetGeminiConversation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CorpGeminiConversationWithMessages> => {
+  return customFetch<CorpGeminiConversationWithMessages>(
+    getCorpGetGeminiConversationUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getCorpGetGeminiConversationQueryKey = (id: number) => {
+  return [`/api/corp/gemini/conversations/${id}`] as const;
+};
+
+export const getCorpGetGeminiConversationQueryOptions = <
+  TData = Awaited<ReturnType<typeof corpGetGeminiConversation>>,
+  TError = ErrorType<CorpGeminiError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof corpGetGeminiConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCorpGetGeminiConversationQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof corpGetGeminiConversation>>
+  > = ({ signal }) =>
+    corpGetGeminiConversation(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof corpGetGeminiConversation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CorpGetGeminiConversationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof corpGetGeminiConversation>>
+>;
+export type CorpGetGeminiConversationQueryError = ErrorType<CorpGeminiError>;
+
+/**
+ * @summary Get conversation with messages
+ */
+
+export function useCorpGetGeminiConversation<
+  TData = Awaited<ReturnType<typeof corpGetGeminiConversation>>,
+  TError = ErrorType<CorpGeminiError>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof corpGetGeminiConversation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCorpGetGeminiConversationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Delete a conversation
+ */
+export const getCorpDeleteGeminiConversationUrl = (id: number) => {
+  return `/api/corp/gemini/conversations/${id}`;
+};
+
+export const corpDeleteGeminiConversation = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCorpDeleteGeminiConversationUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getCorpDeleteGeminiConversationMutationOptions = <
+  TError = ErrorType<CorpGeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpDeleteGeminiConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpDeleteGeminiConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["corpDeleteGeminiConversation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpDeleteGeminiConversation>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return corpDeleteGeminiConversation(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpDeleteGeminiConversationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpDeleteGeminiConversation>>
+>;
+
+export type CorpDeleteGeminiConversationMutationError =
+  ErrorType<CorpGeminiError>;
+
+/**
+ * @summary Delete a conversation
+ */
+export const useCorpDeleteGeminiConversation = <
+  TError = ErrorType<CorpGeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpDeleteGeminiConversation>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpDeleteGeminiConversation>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getCorpDeleteGeminiConversationMutationOptions(options));
+};
+
+/**
+ * @summary List messages in a conversation
+ */
+export const getCorpListGeminiMessagesUrl = (id: number) => {
+  return `/api/corp/gemini/conversations/${id}/messages`;
+};
+
+export const corpListGeminiMessages = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CorpGeminiMessage[]> => {
+  return customFetch<CorpGeminiMessage[]>(getCorpListGeminiMessagesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCorpListGeminiMessagesQueryKey = (id: number) => {
+  return [`/api/corp/gemini/conversations/${id}/messages`] as const;
+};
+
+export const getCorpListGeminiMessagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof corpListGeminiMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof corpListGeminiMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getCorpListGeminiMessagesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof corpListGeminiMessages>>
+  > = ({ signal }) => corpListGeminiMessages(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof corpListGeminiMessages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type CorpListGeminiMessagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof corpListGeminiMessages>>
+>;
+export type CorpListGeminiMessagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List messages in a conversation
+ */
+
+export function useCorpListGeminiMessages<
+  TData = Awaited<ReturnType<typeof corpListGeminiMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof corpListGeminiMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getCorpListGeminiMessagesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Send a message and receive an AI response (SSE stream)
+ */
+export const getCorpSendGeminiMessageUrl = (id: number) => {
+  return `/api/corp/gemini/conversations/${id}/messages`;
+};
+
+export const corpSendGeminiMessage = async (
+  id: number,
+  corpSendGeminiMessageBody: CorpSendGeminiMessageBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getCorpSendGeminiMessageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(corpSendGeminiMessageBody),
+  });
+};
+
+export const getCorpSendGeminiMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpSendGeminiMessage>>,
+    TError,
+    { id: number; data: BodyType<CorpSendGeminiMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpSendGeminiMessage>>,
+  TError,
+  { id: number; data: BodyType<CorpSendGeminiMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["corpSendGeminiMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpSendGeminiMessage>>,
+    { id: number; data: BodyType<CorpSendGeminiMessageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return corpSendGeminiMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpSendGeminiMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpSendGeminiMessage>>
+>;
+export type CorpSendGeminiMessageMutationBody =
+  BodyType<CorpSendGeminiMessageBody>;
+export type CorpSendGeminiMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a message and receive an AI response (SSE stream)
+ */
+export const useCorpSendGeminiMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpSendGeminiMessage>>,
+    TError,
+    { id: number; data: BodyType<CorpSendGeminiMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpSendGeminiMessage>>,
+  TError,
+  { id: number; data: BodyType<CorpSendGeminiMessageBody> },
+  TContext
+> => {
+  return useMutation(getCorpSendGeminiMessageMutationOptions(options));
+};
+
+/**
+ * @summary Generate an image from a text prompt
+ */
+export const getCorpGenerateGeminiImageUrl = () => {
+  return `/api/corp/gemini/generate-image`;
+};
+
+export const corpGenerateGeminiImage = async (
+  corpGenerateGeminiImageBody: CorpGenerateGeminiImageBody,
+  options?: RequestInit,
+): Promise<CorpGenerateGeminiImageResponse> => {
+  return customFetch<CorpGenerateGeminiImageResponse>(
+    getCorpGenerateGeminiImageUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(corpGenerateGeminiImageBody),
+    },
+  );
+};
+
+export const getCorpGenerateGeminiImageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpGenerateGeminiImage>>,
+    TError,
+    { data: BodyType<CorpGenerateGeminiImageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpGenerateGeminiImage>>,
+  TError,
+  { data: BodyType<CorpGenerateGeminiImageBody> },
+  TContext
+> => {
+  const mutationKey = ["corpGenerateGeminiImage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpGenerateGeminiImage>>,
+    { data: BodyType<CorpGenerateGeminiImageBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return corpGenerateGeminiImage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpGenerateGeminiImageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpGenerateGeminiImage>>
+>;
+export type CorpGenerateGeminiImageMutationBody =
+  BodyType<CorpGenerateGeminiImageBody>;
+export type CorpGenerateGeminiImageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate an image from a text prompt
+ */
+export const useCorpGenerateGeminiImage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpGenerateGeminiImage>>,
+    TError,
+    { data: BodyType<CorpGenerateGeminiImageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpGenerateGeminiImage>>,
+  TError,
+  { data: BodyType<CorpGenerateGeminiImageBody> },
+  TContext
+> => {
+  return useMutation(getCorpGenerateGeminiImageMutationOptions(options));
+};
+
+/**
+ * @summary Verify access password
+ */
+export const getCorpVerifyPasswordUrl = () => {
+  return `/api/corp/legal/verify-password`;
+};
+
+export const corpVerifyPassword = async (
+  corpVerifyPasswordBody: CorpVerifyPasswordBody,
+  options?: RequestInit,
+): Promise<CorpVerifyPasswordResponse> => {
+  return customFetch<CorpVerifyPasswordResponse>(getCorpVerifyPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(corpVerifyPasswordBody),
+  });
+};
+
+export const getCorpVerifyPasswordMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpVerifyPassword>>,
+    TError,
+    { data: BodyType<CorpVerifyPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpVerifyPassword>>,
+  TError,
+  { data: BodyType<CorpVerifyPasswordBody> },
+  TContext
+> => {
+  const mutationKey = ["corpVerifyPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpVerifyPassword>>,
+    { data: BodyType<CorpVerifyPasswordBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return corpVerifyPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpVerifyPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpVerifyPassword>>
+>;
+export type CorpVerifyPasswordMutationBody = BodyType<CorpVerifyPasswordBody>;
+export type CorpVerifyPasswordMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify access password
+ */
+export const useCorpVerifyPassword = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpVerifyPassword>>,
+    TError,
+    { data: BodyType<CorpVerifyPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpVerifyPassword>>,
+  TError,
+  { data: BodyType<CorpVerifyPasswordBody> },
+  TContext
+> => {
+  return useMutation(getCorpVerifyPasswordMutationOptions(options));
+};
+
+/**
+ * @summary Send a message to one of the 5 AI tools (SSE stream)
+ */
+export const getCorpAiToolsChatUrl = () => {
+  return `/api/corp/legal/ai-tools/chat`;
+};
+
+export const corpAiToolsChat = async (
+  corpAiToolsChatBody: CorpAiToolsChatBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getCorpAiToolsChatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(corpAiToolsChatBody),
+  });
+};
+
+export const getCorpAiToolsChatMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpAiToolsChat>>,
+    TError,
+    { data: BodyType<CorpAiToolsChatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof corpAiToolsChat>>,
+  TError,
+  { data: BodyType<CorpAiToolsChatBody> },
+  TContext
+> => {
+  const mutationKey = ["corpAiToolsChat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof corpAiToolsChat>>,
+    { data: BodyType<CorpAiToolsChatBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return corpAiToolsChat(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorpAiToolsChatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof corpAiToolsChat>>
+>;
+export type CorpAiToolsChatMutationBody = BodyType<CorpAiToolsChatBody>;
+export type CorpAiToolsChatMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a message to one of the 5 AI tools (SSE stream)
+ */
+export const useCorpAiToolsChat = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof corpAiToolsChat>>,
+    TError,
+    { data: BodyType<CorpAiToolsChatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof corpAiToolsChat>>,
+  TError,
+  { data: BodyType<CorpAiToolsChatBody> },
+  TContext
+> => {
+  return useMutation(getCorpAiToolsChatMutationOptions(options));
+};
