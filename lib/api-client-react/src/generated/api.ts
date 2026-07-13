@@ -17,6 +17,17 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AccidentAccessCodeItem,
+  AccidentAdminDashboard,
+  AccidentAdminLoginBody,
+  AccidentAdminStatus,
+  AccidentCreateAccessCodeBody,
+  AccidentErrorResponse,
+  AccidentMessageResponse,
+  AccidentSessionStatus,
+  AccidentUpdateAccessCodeBody,
+  AccidentVerifyCodeBody,
+  AccidentVerifyCodeResponse,
   ActivityEntry,
   AdviseBankruptcySearchBody,
   AdviseBankruptcySearchResponse,
@@ -6751,3 +6762,831 @@ export const useDraftGuarantee = <
 > => {
   return useMutation(getDraftGuaranteeMutationOptions(options));
 };
+
+/**
+ * @summary Verify a MyAccidentAI access code
+ */
+export const getAccidentVerifyCodeUrl = () => {
+  return `/api/accident/auth/verify-code`;
+};
+
+export const accidentVerifyCode = async (
+  accidentVerifyCodeBody: AccidentVerifyCodeBody,
+  options?: RequestInit,
+): Promise<AccidentVerifyCodeResponse> => {
+  return customFetch<AccidentVerifyCodeResponse>(getAccidentVerifyCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accidentVerifyCodeBody),
+  });
+};
+
+export const getAccidentVerifyCodeMutationOptions = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentVerifyCode>>,
+    TError,
+    { data: BodyType<AccidentVerifyCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentVerifyCode>>,
+  TError,
+  { data: BodyType<AccidentVerifyCodeBody> },
+  TContext
+> => {
+  const mutationKey = ["accidentVerifyCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentVerifyCode>>,
+    { data: BodyType<AccidentVerifyCodeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return accidentVerifyCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentVerifyCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentVerifyCode>>
+>;
+export type AccidentVerifyCodeMutationBody = BodyType<AccidentVerifyCodeBody>;
+export type AccidentVerifyCodeMutationError = ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary Verify a MyAccidentAI access code
+ */
+export const useAccidentVerifyCode = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentVerifyCode>>,
+    TError,
+    { data: BodyType<AccidentVerifyCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentVerifyCode>>,
+  TError,
+  { data: BodyType<AccidentVerifyCodeBody> },
+  TContext
+> => {
+  return useMutation(getAccidentVerifyCodeMutationOptions(options));
+};
+
+/**
+ * @summary Check if current MyAccidentAI session is valid
+ */
+export const getAccidentCheckSessionUrl = () => {
+  return `/api/accident/auth/check-session`;
+};
+
+export const accidentCheckSession = async (
+  options?: RequestInit,
+): Promise<AccidentSessionStatus> => {
+  return customFetch<AccidentSessionStatus>(getAccidentCheckSessionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAccidentCheckSessionQueryKey = () => {
+  return [`/api/accident/auth/check-session`] as const;
+};
+
+export const getAccidentCheckSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof accidentCheckSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentCheckSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAccidentCheckSessionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof accidentCheckSession>>
+  > = ({ signal }) => accidentCheckSession({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof accidentCheckSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AccidentCheckSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof accidentCheckSession>>
+>;
+export type AccidentCheckSessionQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check if current MyAccidentAI session is valid
+ */
+
+export function useAccidentCheckSession<
+  TData = Awaited<ReturnType<typeof accidentCheckSession>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentCheckSession>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAccidentCheckSessionQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Logout and clear MyAccidentAI session
+ */
+export const getAccidentLogoutUrl = () => {
+  return `/api/accident/auth/logout`;
+};
+
+export const accidentLogout = async (
+  options?: RequestInit,
+): Promise<AccidentMessageResponse> => {
+  return customFetch<AccidentMessageResponse>(getAccidentLogoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAccidentLogoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["accidentLogout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentLogout>>,
+    void
+  > = () => {
+    return accidentLogout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentLogout>>
+>;
+
+export type AccidentLogoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Logout and clear MyAccidentAI session
+ */
+export const useAccidentLogout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getAccidentLogoutMutationOptions(options));
+};
+
+/**
+ * @summary MyAccidentAI admin login with password
+ */
+export const getAccidentAdminLoginUrl = () => {
+  return `/api/accident/admin/login`;
+};
+
+export const accidentAdminLogin = async (
+  accidentAdminLoginBody: AccidentAdminLoginBody,
+  options?: RequestInit,
+): Promise<AccidentMessageResponse> => {
+  return customFetch<AccidentMessageResponse>(getAccidentAdminLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accidentAdminLoginBody),
+  });
+};
+
+export const getAccidentAdminLoginMutationOptions = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentAdminLogin>>,
+    TError,
+    { data: BodyType<AccidentAdminLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentAdminLogin>>,
+  TError,
+  { data: BodyType<AccidentAdminLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["accidentAdminLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentAdminLogin>>,
+    { data: BodyType<AccidentAdminLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return accidentAdminLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentAdminLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentAdminLogin>>
+>;
+export type AccidentAdminLoginMutationBody = BodyType<AccidentAdminLoginBody>;
+export type AccidentAdminLoginMutationError = ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary MyAccidentAI admin login with password
+ */
+export const useAccidentAdminLogin = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentAdminLogin>>,
+    TError,
+    { data: BodyType<AccidentAdminLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentAdminLogin>>,
+  TError,
+  { data: BodyType<AccidentAdminLoginBody> },
+  TContext
+> => {
+  return useMutation(getAccidentAdminLoginMutationOptions(options));
+};
+
+/**
+ * @summary Check if MyAccidentAI admin session is valid
+ */
+export const getAccidentAdminCheckUrl = () => {
+  return `/api/accident/admin/check`;
+};
+
+export const accidentAdminCheck = async (
+  options?: RequestInit,
+): Promise<AccidentAdminStatus> => {
+  return customFetch<AccidentAdminStatus>(getAccidentAdminCheckUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAccidentAdminCheckQueryKey = () => {
+  return [`/api/accident/admin/check`] as const;
+};
+
+export const getAccidentAdminCheckQueryOptions = <
+  TData = Awaited<ReturnType<typeof accidentAdminCheck>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentAdminCheck>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAccidentAdminCheckQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof accidentAdminCheck>>
+  > = ({ signal }) => accidentAdminCheck({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof accidentAdminCheck>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AccidentAdminCheckQueryResult = NonNullable<
+  Awaited<ReturnType<typeof accidentAdminCheck>>
+>;
+export type AccidentAdminCheckQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Check if MyAccidentAI admin session is valid
+ */
+
+export function useAccidentAdminCheck<
+  TData = Awaited<ReturnType<typeof accidentAdminCheck>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentAdminCheck>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAccidentAdminCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all MyAccidentAI access codes
+ */
+export const getAccidentListAccessCodesUrl = () => {
+  return `/api/accident/admin/codes`;
+};
+
+export const accidentListAccessCodes = async (
+  options?: RequestInit,
+): Promise<AccidentAccessCodeItem[]> => {
+  return customFetch<AccidentAccessCodeItem[]>(
+    getAccidentListAccessCodesUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAccidentListAccessCodesQueryKey = () => {
+  return [`/api/accident/admin/codes`] as const;
+};
+
+export const getAccidentListAccessCodesQueryOptions = <
+  TData = Awaited<ReturnType<typeof accidentListAccessCodes>>,
+  TError = ErrorType<AccidentErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentListAccessCodes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAccidentListAccessCodesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof accidentListAccessCodes>>
+  > = ({ signal }) => accidentListAccessCodes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof accidentListAccessCodes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AccidentListAccessCodesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof accidentListAccessCodes>>
+>;
+export type AccidentListAccessCodesQueryError =
+  ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary List all MyAccidentAI access codes
+ */
+
+export function useAccidentListAccessCodes<
+  TData = Awaited<ReturnType<typeof accidentListAccessCodes>>,
+  TError = ErrorType<AccidentErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentListAccessCodes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAccidentListAccessCodesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new MyAccidentAI access code
+ */
+export const getAccidentCreateAccessCodeUrl = () => {
+  return `/api/accident/admin/codes`;
+};
+
+export const accidentCreateAccessCode = async (
+  accidentCreateAccessCodeBody: AccidentCreateAccessCodeBody,
+  options?: RequestInit,
+): Promise<AccidentAccessCodeItem> => {
+  return customFetch<AccidentAccessCodeItem>(getAccidentCreateAccessCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(accidentCreateAccessCodeBody),
+  });
+};
+
+export const getAccidentCreateAccessCodeMutationOptions = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentCreateAccessCode>>,
+    TError,
+    { data: BodyType<AccidentCreateAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentCreateAccessCode>>,
+  TError,
+  { data: BodyType<AccidentCreateAccessCodeBody> },
+  TContext
+> => {
+  const mutationKey = ["accidentCreateAccessCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentCreateAccessCode>>,
+    { data: BodyType<AccidentCreateAccessCodeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return accidentCreateAccessCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentCreateAccessCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentCreateAccessCode>>
+>;
+export type AccidentCreateAccessCodeMutationBody =
+  BodyType<AccidentCreateAccessCodeBody>;
+export type AccidentCreateAccessCodeMutationError =
+  ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary Create a new MyAccidentAI access code
+ */
+export const useAccidentCreateAccessCode = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentCreateAccessCode>>,
+    TError,
+    { data: BodyType<AccidentCreateAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentCreateAccessCode>>,
+  TError,
+  { data: BodyType<AccidentCreateAccessCodeBody> },
+  TContext
+> => {
+  return useMutation(getAccidentCreateAccessCodeMutationOptions(options));
+};
+
+/**
+ * @summary Delete a MyAccidentAI access code
+ */
+export const getAccidentDeleteAccessCodeUrl = (id: number) => {
+  return `/api/accident/admin/codes/${id}`;
+};
+
+export const accidentDeleteAccessCode = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAccidentDeleteAccessCodeUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAccidentDeleteAccessCodeMutationOptions = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentDeleteAccessCode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentDeleteAccessCode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["accidentDeleteAccessCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentDeleteAccessCode>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return accidentDeleteAccessCode(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentDeleteAccessCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentDeleteAccessCode>>
+>;
+
+export type AccidentDeleteAccessCodeMutationError =
+  ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary Delete a MyAccidentAI access code
+ */
+export const useAccidentDeleteAccessCode = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentDeleteAccessCode>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentDeleteAccessCode>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAccidentDeleteAccessCodeMutationOptions(options));
+};
+
+/**
+ * @summary Update a MyAccidentAI access code
+ */
+export const getAccidentUpdateAccessCodeUrl = (id: number) => {
+  return `/api/accident/admin/codes/${id}`;
+};
+
+export const accidentUpdateAccessCode = async (
+  id: number,
+  accidentUpdateAccessCodeBody: AccidentUpdateAccessCodeBody,
+  options?: RequestInit,
+): Promise<AccidentAccessCodeItem> => {
+  return customFetch<AccidentAccessCodeItem>(
+    getAccidentUpdateAccessCodeUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(accidentUpdateAccessCodeBody),
+    },
+  );
+};
+
+export const getAccidentUpdateAccessCodeMutationOptions = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentUpdateAccessCode>>,
+    TError,
+    { id: number; data: BodyType<AccidentUpdateAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof accidentUpdateAccessCode>>,
+  TError,
+  { id: number; data: BodyType<AccidentUpdateAccessCodeBody> },
+  TContext
+> => {
+  const mutationKey = ["accidentUpdateAccessCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof accidentUpdateAccessCode>>,
+    { id: number; data: BodyType<AccidentUpdateAccessCodeBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return accidentUpdateAccessCode(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AccidentUpdateAccessCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof accidentUpdateAccessCode>>
+>;
+export type AccidentUpdateAccessCodeMutationBody =
+  BodyType<AccidentUpdateAccessCodeBody>;
+export type AccidentUpdateAccessCodeMutationError =
+  ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary Update a MyAccidentAI access code
+ */
+export const useAccidentUpdateAccessCode = <
+  TError = ErrorType<AccidentErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof accidentUpdateAccessCode>>,
+    TError,
+    { id: number; data: BodyType<AccidentUpdateAccessCodeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof accidentUpdateAccessCode>>,
+  TError,
+  { id: number; data: BodyType<AccidentUpdateAccessCodeBody> },
+  TContext
+> => {
+  return useMutation(getAccidentUpdateAccessCodeMutationOptions(options));
+};
+
+/**
+ * @summary Get MyAccidentAI admin dashboard stats
+ */
+export const getAccidentGetAdminDashboardUrl = () => {
+  return `/api/accident/admin/dashboard`;
+};
+
+export const accidentGetAdminDashboard = async (
+  options?: RequestInit,
+): Promise<AccidentAdminDashboard> => {
+  return customFetch<AccidentAdminDashboard>(
+    getAccidentGetAdminDashboardUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAccidentGetAdminDashboardQueryKey = () => {
+  return [`/api/accident/admin/dashboard`] as const;
+};
+
+export const getAccidentGetAdminDashboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof accidentGetAdminDashboard>>,
+  TError = ErrorType<AccidentErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentGetAdminDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAccidentGetAdminDashboardQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof accidentGetAdminDashboard>>
+  > = ({ signal }) => accidentGetAdminDashboard({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof accidentGetAdminDashboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AccidentGetAdminDashboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof accidentGetAdminDashboard>>
+>;
+export type AccidentGetAdminDashboardQueryError =
+  ErrorType<AccidentErrorResponse>;
+
+/**
+ * @summary Get MyAccidentAI admin dashboard stats
+ */
+
+export function useAccidentGetAdminDashboard<
+  TData = Awaited<ReturnType<typeof accidentGetAdminDashboard>>,
+  TError = ErrorType<AccidentErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof accidentGetAdminDashboard>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAccidentGetAdminDashboardQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

@@ -12,6 +12,9 @@ import currencyRouter from "./currency";
 import conveyRouter from "./convey";
 import conveySubscriptionRouter from "./convey-subscription";
 import conveyAdminRouter from "./convey-admin";
+import accidentRouter from "./accident";
+import accidentAiRouter from "./accident-ai";
+import accidentAdminRouter from "./accident-admin";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -31,5 +34,8 @@ router.use("/admin", requireAuth, requireStaff, adminRouter);
 router.use(conveyRouter);
 router.use(conveySubscriptionRouter);
 router.use(conveyAdminRouter);
+router.use("/accident", accidentRouter);
+router.use("/accident", accidentAiRouter);
+router.use("/accident", accidentAdminRouter);
 
 export default router;

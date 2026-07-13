@@ -23,6 +23,7 @@ const ALLOWED_APP_REDIRECTS = new Set([
   "https://mycrimai.life/",
   "https://myccblitai.life/",
   "https://myaccidentai.life/",
+  "/myaccidentai/",
 ]);
 
 /**

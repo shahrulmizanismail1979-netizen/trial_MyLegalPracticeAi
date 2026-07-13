@@ -979,6 +979,76 @@ export interface DraftGuaranteeResponse {
   draft: string;
 }
 
+export interface AccidentErrorResponse {
+  error: string;
+}
+
+export interface AccidentMessageResponse {
+  message: string;
+}
+
+export interface AccidentVerifyCodeBody {
+  code: string;
+}
+
+export interface AccidentVerifyCodeResponse {
+  valid: boolean;
+  message: string;
+  sessionId?: string;
+}
+
+export interface AccidentSessionStatus {
+  authenticated: boolean;
+  /** @nullable */
+  codeLabel?: string | null;
+}
+
+export interface AccidentAdminLoginBody {
+  password: string;
+}
+
+export interface AccidentAdminStatus {
+  isAdmin: boolean;
+}
+
+export interface AccidentAccessCodeItem {
+  id: number;
+  code: string;
+  label: string;
+  maxUsers: number;
+  currentUsers: number;
+  isActive: boolean;
+  createdAt: string;
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export interface AccidentCreateAccessCodeBody {
+  label: string;
+  maxUsers: number;
+  code?: string;
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export interface AccidentUpdateAccessCodeBody {
+  isActive?: boolean;
+  maxUsers?: number;
+}
+
+export interface AccidentRecentUsageItem {
+  codeLabel: string;
+  sessionId: string;
+  usedAt: string;
+}
+
+export interface AccidentAdminDashboard {
+  totalCodes: number;
+  activeCodes: number;
+  totalUsage: number;
+  recentUsage: AccidentRecentUsageItem[];
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;

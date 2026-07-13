@@ -1370,3 +1370,122 @@ export const DraftGuaranteeBody = zod.object({
 export const DraftGuaranteeResponse = zod.object({
   draft: zod.string(),
 });
+
+/**
+ * @summary Verify a MyAccidentAI access code
+ */
+export const AccidentVerifyCodeBody = zod.object({
+  code: zod.string(),
+});
+
+export const AccidentVerifyCodeResponse = zod.object({
+  valid: zod.boolean(),
+  message: zod.string(),
+  sessionId: zod.string().optional(),
+});
+
+/**
+ * @summary Check if current MyAccidentAI session is valid
+ */
+export const AccidentCheckSessionResponse = zod.object({
+  authenticated: zod.boolean(),
+  codeLabel: zod.string().nullish(),
+});
+
+/**
+ * @summary Logout and clear MyAccidentAI session
+ */
+export const AccidentLogoutResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary MyAccidentAI admin login with password
+ */
+export const AccidentAdminLoginBody = zod.object({
+  password: zod.string(),
+});
+
+export const AccidentAdminLoginResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Check if MyAccidentAI admin session is valid
+ */
+export const AccidentAdminCheckResponse = zod.object({
+  isAdmin: zod.boolean(),
+});
+
+/**
+ * @summary List all MyAccidentAI access codes
+ */
+export const AccidentListAccessCodesResponseItem = zod.object({
+  id: zod.number(),
+  code: zod.string(),
+  label: zod.string(),
+  maxUsers: zod.number(),
+  currentUsers: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date().nullish(),
+});
+export const AccidentListAccessCodesResponse = zod.array(
+  AccidentListAccessCodesResponseItem,
+);
+
+/**
+ * @summary Create a new MyAccidentAI access code
+ */
+export const AccidentCreateAccessCodeBody = zod.object({
+  label: zod.string(),
+  maxUsers: zod.number(),
+  code: zod.string().optional(),
+  expiresAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Delete a MyAccidentAI access code
+ */
+export const AccidentDeleteAccessCodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Update a MyAccidentAI access code
+ */
+export const AccidentUpdateAccessCodeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AccidentUpdateAccessCodeBody = zod.object({
+  isActive: zod.boolean().optional(),
+  maxUsers: zod.number().optional(),
+});
+
+export const AccidentUpdateAccessCodeResponse = zod.object({
+  id: zod.number(),
+  code: zod.string(),
+  label: zod.string(),
+  maxUsers: zod.number(),
+  currentUsers: zod.number(),
+  isActive: zod.boolean(),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Get MyAccidentAI admin dashboard stats
+ */
+export const AccidentGetAdminDashboardResponse = zod.object({
+  totalCodes: zod.number(),
+  activeCodes: zod.number(),
+  totalUsage: zod.number(),
+  recentUsage: zod.array(
+    zod.object({
+      codeLabel: zod.string(),
+      sessionId: zod.string(),
+      usedAt: zod.coerce.date(),
+    }),
+  ),
+});

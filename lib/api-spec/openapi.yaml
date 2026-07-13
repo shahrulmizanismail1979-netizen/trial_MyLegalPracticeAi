@@ -1504,6 +1504,208 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DraftGuaranteeResponse"
+  /accident/auth/verify-code:
+    post:
+      operationId: accidentVerifyCode
+      tags: [accident]
+      summary: Verify a MyAccidentAI access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccidentVerifyCodeBody"
+      responses:
+        "200":
+          description: Access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentVerifyCodeResponse"
+        "401":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+
+  /accident/auth/check-session:
+    get:
+      operationId: accidentCheckSession
+      tags: [accident]
+      summary: Check if current MyAccidentAI session is valid
+      responses:
+        "200":
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentSessionStatus"
+
+  /accident/auth/logout:
+    post:
+      operationId: accidentLogout
+      tags: [accident]
+      summary: Logout and clear MyAccidentAI session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentMessageResponse"
+
+  /accident/admin/login:
+    post:
+      operationId: accidentAdminLogin
+      tags: [accident-admin]
+      summary: MyAccidentAI admin login with password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccidentAdminLoginBody"
+      responses:
+        "200":
+          description: Admin authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentMessageResponse"
+        "401":
+          description: Invalid admin password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+
+  /accident/admin/check:
+    get:
+      operationId: accidentAdminCheck
+      tags: [accident-admin]
+      summary: Check if MyAccidentAI admin session is valid
+      responses:
+        "200":
+          description: Admin status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentAdminStatus"
+
+  /accident/admin/codes:
+    get:
+      operationId: accidentListAccessCodes
+      tags: [accident-admin]
+      summary: List all MyAccidentAI access codes
+      responses:
+        "200":
+          description: List of access codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccidentAccessCodeItem"
+        "401":
+          description: Not authenticated as admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+    post:
+      operationId: accidentCreateAccessCode
+      tags: [accident-admin]
+      summary: Create a new MyAccidentAI access code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccidentCreateAccessCodeBody"
+      responses:
+        "201":
+          description: Access code created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentAccessCodeItem"
+        "401":
+          description: Not authenticated as admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+
+  /accident/admin/codes/{id}:
+    delete:
+      operationId: accidentDeleteAccessCode
+      tags: [accident-admin]
+      summary: Delete a MyAccidentAI access code
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Not authenticated as admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+    patch:
+      operationId: accidentUpdateAccessCode
+      tags: [accident-admin]
+      summary: Update a MyAccidentAI access code
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccidentUpdateAccessCodeBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentAccessCodeItem"
+        "401":
+          description: Not authenticated as admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+
+  /accident/admin/dashboard:
+    get:
+      operationId: accidentGetAdminDashboard
+      tags: [accident-admin]
+      summary: Get MyAccidentAI admin dashboard stats
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentAdminDashboard"
+        "401":
+          description: Not authenticated as admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccidentErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -3009,3 +3211,154 @@ components:
           type: string
       required:
         - draft
+
+    AccidentErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AccidentMessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    AccidentVerifyCodeBody:
+      type: object
+      properties:
+        code:
+          type: string
+      required:
+        - code
+
+    AccidentVerifyCodeResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        message:
+          type: string
+        sessionId:
+          type: string
+      required:
+        - valid
+        - message
+
+    AccidentSessionStatus:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        codeLabel:
+          type: ["string", "null"]
+      required:
+        - authenticated
+
+    AccidentAdminLoginBody:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+        - password
+
+    AccidentAdminStatus:
+      type: object
+      properties:
+        isAdmin:
+          type: boolean
+      required:
+        - isAdmin
+
+    AccidentAccessCodeItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        label:
+          type: string
+        maxUsers:
+          type: integer
+        currentUsers:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - code
+        - label
+        - maxUsers
+        - currentUsers
+        - isActive
+        - createdAt
+
+    AccidentCreateAccessCodeBody:
+      type: object
+      properties:
+        label:
+          type: string
+        maxUsers:
+          type: integer
+        code:
+          type: string
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - label
+        - maxUsers
+
+    AccidentUpdateAccessCodeBody:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+        maxUsers:
+          type: integer
+
+    AccidentAdminDashboard:
+      type: object
+      properties:
+        totalCodes:
+          type: integer
+        activeCodes:
+          type: integer
+        totalUsage:
+          type: integer
+        recentUsage:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccidentRecentUsageItem"
+      required:
+        - totalCodes
+        - activeCodes
+        - totalUsage
+        - recentUsage
+
+    AccidentRecentUsageItem:
+      type: object
+      properties:
+        codeLabel:
+          type: string
+        sessionId:
+          type: string
+        usedAt:
+          type: string
+          format: date-time
+      required:
+        - codeLabel
+        - sessionId
+        - usedAt

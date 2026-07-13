@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/myaccidentai/"
+title = "MyAccidentAI"
+version = "1.0.0"
+id = "artifacts/myaccidentai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/myaccidentai/" ]
+localPort = 18243
+
+[services.development]
+run = "pnpm --filter @workspace/myaccidentai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/myaccidentai", "run", "build" ]
+publicDir = "artifacts/myaccidentai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18243"
+BASE_PATH = "/myaccidentai/"

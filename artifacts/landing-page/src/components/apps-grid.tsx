@@ -73,7 +73,7 @@ const apps: App[] = [
   {
     title: "MyAccidentAi",
     description: "Draft personal injury claims, assess quantum of damages, and manage running-down cases.",
-    url: "https://myaccidentai.life/",
+    url: "/myaccidentai/",
     tag: "Accident & PI"
   },
   {

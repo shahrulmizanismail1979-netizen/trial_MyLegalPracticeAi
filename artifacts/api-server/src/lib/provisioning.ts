@@ -4,7 +4,13 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
-import { db, subscribersTable, activityTable, usersTable } from "@workspace/db";
+import {
+  db,
+  subscribersTable,
+  activityTable,
+  usersTable,
+  accessCodesTable,
+} from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody } from "./sms";
@@ -22,6 +28,9 @@ export const APP_NAME_BY_URL: Record<string, string> = {
   "https://mycrimai.life/": "MyCrimAI",
   "https://myccblitai.life/": "MyCCBLitAI",
   "https://myaccidentai.life/": "MyAccidentAI",
+  // The hosted MyAccidentAI app — keeps the canonical "MyAccidentAI" app
+  // name so admin stats/filters stay on one bucket.
+  "/myaccidentai/": "MyAccidentAI",
 };
 
 export const ALL_APP_NAMES = [
@@ -103,6 +112,43 @@ async function syncConveyUser(params: {
     );
   } catch (err) {
     logger.error({ err }, "Failed to sync MyConveyLitAI user for landing purchase");
+  }
+}
+
+// Landing purchases for the accident/PI product also unlock the hosted
+// MyAccidentAI app (one synced access-code system).
+function includesAccidentApp(apps: string[]): boolean {
+  return apps.includes("MyAccidentAI");
+}
+
+/**
+ * Upsert a MyAccidentAI access code so the landing-page access code also
+ * logs in to the hosted app. Idempotent via the unique code constraint.
+ * Best-effort: never fails provisioning.
+ */
+async function syncAccidentAccessCode(params: {
+  accessCode: string;
+  name: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(accessCodesTable)
+      .values({
+        code: params.accessCode,
+        label: params.name,
+        maxUsers: 2,
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: accessCodesTable.code,
+        set: { isActive: true },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyAccidentAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyAccidentAI access code for landing purchase");
   }
 }
 
@@ -211,6 +257,12 @@ export async function provisionFromCheckoutSession(
           email: existing.email,
         });
       }
+      if (existing.accessCode && includesAccidentApp(existing.apps)) {
+        await syncAccidentAccessCode({
+          accessCode: existing.accessCode,
+          name: existing.name,
+        });
+      }
       return {
         accessCode: existing.accessCode,
         apps: existing.apps,
@@ -270,6 +322,12 @@ export async function provisionFromCheckoutSession(
         email: existing.email,
       });
     }
+    if (existing.accessCode && includesAccidentApp(existing.apps)) {
+      await syncAccidentAccessCode({
+        accessCode: existing.accessCode,
+        name: existing.name,
+      });
+    }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -283,6 +341,10 @@ export async function provisionFromCheckoutSession(
 
   if (includesConveyApp(apps)) {
     await syncConveyUser({ accessCode, name, email });
+  }
+
+  if (includesAccidentApp(apps)) {
+    await syncAccidentAccessCode({ accessCode, name });
   }
 
   await db.insert(activityTable).values({
