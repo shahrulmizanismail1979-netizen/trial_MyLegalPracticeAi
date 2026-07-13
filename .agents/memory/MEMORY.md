@@ -3,6 +3,6 @@
 - [stripe-replit-sync bundling & credentials](stripe-replit-sync-bundling.md) — externalize stripe-replit-sync in esbuild (migrations use __dirname); connector field is `secret` not `secret_key`; return URLs must come from server env, not Origin header.
 - [Stripe promo codes for one-off rewards](stripe-reward-promo-codes.md) — v22 needs `promotion: {type:"coupon"}`; issue reward codes via atomic DB claim + deterministic code + idempotency keys.
 - [api-server testing pattern](api-server-testing.md) — how to write api-server integration tests (mocked object storage, real pdf-parse + live DB, RUN_ID cleanup).
+- [Stripe provisioning lessons](stripe-provisioning-lessons.md) — dev webhook registration deletes prod's webhook (gate to REPLIT_DEPLOYMENT + reconcile safety net); success_url placeholder, connector 429 retries, idempotency via unique stripe_subscription_id.
 - [Orval api-zod barrel collision](orval-api-zod-barrel.md) — lib/api-spec zod output uses indexFiles:false with a hand-written index.ts; don't let orval regenerate the barrel.
-- [Stripe provisioning lessons](stripe-provisioning-lessons.md) — keep {CHECKOUT_SESSION_ID} unencoded in success_url; retry connector 429s; idempotency via unique stripe_subscription_id + onConflictDoNothing.
 - [Stripe checkout currency](stripe-checkout-currency.md) — keep adaptive_pricing disabled; user wants USD-only checkout, no MYR auto-conversion.

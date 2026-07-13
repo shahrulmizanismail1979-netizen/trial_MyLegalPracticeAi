@@ -262,6 +262,92 @@ export async function provisionFromCheckoutSession(
   };
 }
 
+/** Emails used by automated tests — never provision/email these. */
+function isTestEmail(email: string): boolean {
+  return /@example\.(com|test|org|net)$/i.test(email) || email.startsWith("agent-test-");
+}
+
+export interface ReconcileResult {
+  checked: number;
+  provisioned: number;
+  skipped: number;
+  errors: number;
+}
+
+/**
+ * Safety net for missed webhooks: scan all live Stripe subscriptions and
+ * provision any that have no local subscriber record (access code + emails).
+ * Idempotent — already-provisioned subscriptions are skipped via the
+ * unique stripe_subscription_id constraint inside provisionFromCheckoutSession.
+ */
+export async function reconcileMissedProvisioning(): Promise<ReconcileResult> {
+  const stripe = await getUncachableStripeClient();
+  const result: ReconcileResult = { checked: 0, provisioned: 0, skipped: 0, errors: 0 };
+  // Customers sometimes retry checkout several times, leaving duplicate
+  // subscriptions. Only provision ONE subscription per email per run so the
+  // customer gets a single access-code email; duplicates are logged for
+  // admin review instead.
+  const provisionedEmailsThisRun = new Set<string>();
+
+  for (const status of ["trialing", "active", "past_due"] as const) {
+    for await (const sub of stripe.subscriptions.list({ status, limit: 100 })) {
+      result.checked++;
+
+      const [existing] = await db
+        .select({ id: subscribersTable.id })
+        .from(subscribersTable)
+        .where(eq(subscribersTable.stripeSubscriptionId, sub.id));
+      if (existing) {
+        result.skipped++;
+        continue;
+      }
+
+      try {
+        const sessions = await stripe.checkout.sessions.list({
+          subscription: sub.id,
+          limit: 1,
+        });
+        const session = sessions.data[0];
+        if (!session || session.status !== "complete") {
+          result.skipped++;
+          continue;
+        }
+        const email = session.customer_details?.email ?? "";
+        if (!email || isTestEmail(email)) {
+          result.skipped++;
+          continue;
+        }
+        const emailKey = email.toLowerCase();
+        if (provisionedEmailsThisRun.has(emailKey)) {
+          result.skipped++;
+          logger.warn(
+            { subscriptionId: sub.id, email },
+            "Reconciliation skipped duplicate subscription for same email — review in Stripe dashboard",
+          );
+          continue;
+        }
+        const provisioned = await provisionFromCheckoutSession(session.id);
+        if (provisioned && !provisioned.alreadyExisted) {
+          provisionedEmailsThisRun.add(emailKey);
+          result.provisioned++;
+          logger.info(
+            { subscriptionId: sub.id, email },
+            "Reconciliation provisioned a missed subscriber",
+          );
+        } else {
+          result.skipped++;
+        }
+      } catch (err) {
+        result.errors++;
+        logger.error({ err, subscriptionId: sub.id }, "Reconciliation failed for subscription");
+      }
+    }
+  }
+
+  logger.info(result, "Stripe provisioning reconciliation finished");
+  return result;
+}
+
 /** Handle a verified Stripe webhook event for provisioning side effects. */
 export async function handleStripeEventForProvisioning(payload: Buffer): Promise<void> {
   let event: Stripe.Event;
