@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "2VcRMcCAqcXifbp6E-Wst"
+uri = "file://exports/ai-web-books-app.zip"
+type = "unspecified"
+title = "AI Web Books — Complete App Source (ZIP)"
