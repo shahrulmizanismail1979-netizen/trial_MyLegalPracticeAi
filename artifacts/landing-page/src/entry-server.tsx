@@ -4,6 +4,7 @@ import { memoryLocation } from "wouter/memory-location";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
+import { CurrencyProvider } from "@/lib/currency";
 import Home from "@/pages/home";
 import ContributePage from "@/pages/contribute";
 
@@ -20,12 +21,14 @@ export function render(path: string = "/"): string {
 
   return renderToString(
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter hook={hook} base="">
-          <PageComponent />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <CurrencyProvider>
+        <TooltipProvider>
+          <WouterRouter hook={hook} base="">
+            <PageComponent />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </CurrencyProvider>
     </QueryClientProvider>
   );
 }

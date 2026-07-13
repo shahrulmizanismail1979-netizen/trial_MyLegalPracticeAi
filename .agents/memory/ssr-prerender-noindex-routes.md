@@ -32,3 +32,21 @@ change that added `/contribute` to the prerender list without verifying the buil
   @workspace/landing-page run build`. Always run the landing-page build
   (`PORT=... BASE_PATH=/ pnpm --filter @workspace/landing-page run build`) after
   any change to routing, SSR entry, or prerender before considering deploy-ready.
+
+# Dual provider trees: entry-server has its own copy
+
+The SSR entry does NOT reuse the client `App` — it builds its own provider tree
+and renders pages directly. **Any new global React context/provider added to the
+client provider tree must also wrap the SSR entry's render tree**, or the
+prerender of `/` throws ("useX must be used within XProvider") and blocks
+publish. This exact regression shipped once when a display-currency provider was
+added client-side only. Providers must also be SSR-safe: guard `localStorage` /
+`navigator` / `window` in try/catch or typeof checks (a bare `localStorage`
+reference is a ReferenceError in Node).
+
+# Vite config env requirements must be serve-only
+
+Vite configs that hard-throw on missing `PORT`/`BASE_PATH` break `vite build`
+in any context that doesn't provide workflow env (root build, deployment build
+of other artifacts). Gate such checks with `defineConfig(({ command }) => ...)`
+and only enforce when `command === "serve"`.
