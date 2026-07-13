@@ -4,7 +4,7 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
-import { db, subscribersTable, activityTable } from "@workspace/db";
+import { db, subscribersTable, activityTable, usersTable } from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody } from "./sms";
@@ -16,6 +16,9 @@ export const APP_NAME_BY_URL: Record<string, string> = {
   "https://mysyalitai.life": "MySyalitAI",
   "https://mycorpai.life": "MyCorpAI",
   "https://myconveyai.life": "MyConveyAI",
+  // The hosted MyConveyLitAI app (rebranded MyConveyAI) — keeps the canonical
+  // "MyConveyAI" app name so admin stats/filters stay on one bucket.
+  "/myconveylitai/": "MyConveyAI",
   "https://mycrimai.life/": "MyCrimAI",
   "https://myccblitai.life/": "MyCCBLitAI",
   "https://myaccidentai.life/": "MyAccidentAI",
@@ -52,6 +55,55 @@ export interface ProvisionResult {
   email: string | null;
   name: string | null;
   alreadyExisted: boolean;
+}
+
+// Landing purchases for the conveyancing product also unlock the hosted
+// MyConveyLitAI app (one synced access-code system).
+const CONVEY_APP_NAMES = new Set(["MyConveyAI", "MyConveyLitAI"]);
+
+function includesConveyApp(apps: string[]): boolean {
+  return apps.some((a) => CONVEY_APP_NAMES.has(a));
+}
+
+/**
+ * Upsert a MyConveyLitAI user so the landing-page access code also logs in
+ * to the hosted app. Idempotent via the unique access_code constraint.
+ * Best-effort: never fails provisioning. Stripe IDs are intentionally NOT
+ * copied — landing billing stays owned by the subscribers table, so the
+ * convey app's own Stripe reconciliation ignores these users.
+ */
+async function syncConveyUser(params: {
+  accessCode: string;
+  name: string;
+  email: string | null;
+}): Promise<void> {
+  try {
+    await db
+      .insert(usersTable)
+      .values({
+        accessCode: params.accessCode,
+        displayName: params.name,
+        email: params.email,
+        role: "user",
+        isActive: true,
+        subscriptionTier: "firm",
+        subscriptionStatus: "active",
+      })
+      .onConflictDoUpdate({
+        target: usersTable.accessCode,
+        set: {
+          isActive: true,
+          subscriptionTier: "firm",
+          subscriptionStatus: "active",
+        },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyConveyLitAI user for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyConveyLitAI user for landing purchase");
+  }
 }
 
 function appsForCheckout(tier: string | null, appUrl: string | null): string[] {
@@ -152,6 +204,13 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (existing) {
+      if (existing.accessCode && includesConveyApp(existing.apps)) {
+        await syncConveyUser({
+          accessCode: existing.accessCode,
+          name: existing.name,
+          email: existing.email,
+        });
+      }
       return {
         accessCode: existing.accessCode,
         apps: existing.apps,
@@ -204,6 +263,13 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (!existing) return null;
+    if (existing.accessCode && includesConveyApp(existing.apps)) {
+      await syncConveyUser({
+        accessCode: existing.accessCode,
+        name: existing.name,
+        email: existing.email,
+      });
+    }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -213,6 +279,10 @@ export async function provisionFromCheckoutSession(
       name: existing.name,
       alreadyExisted: true,
     };
+  }
+
+  if (includesConveyApp(apps)) {
+    await syncConveyUser({ accessCode, name, email });
   }
 
   await db.insert(activityTable).values({

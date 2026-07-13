@@ -551,6 +551,434 @@ export interface CurrencyRates {
   fetchedAt: string;
 }
 
+export interface VerifyPasswordBody {
+  accessCode?: string;
+  username?: string;
+  password?: string;
+}
+
+export type VerifyPasswordResponseUser = { [key: string]: unknown };
+
+export interface VerifyPasswordResponse {
+  success: boolean;
+  token?: string;
+  user?: VerifyPasswordResponseUser;
+}
+
+export type SendChatMessageBodyHistoryItemRole =
+  (typeof SendChatMessageBodyHistoryItemRole)[keyof typeof SendChatMessageBodyHistoryItemRole];
+
+export const SendChatMessageBodyHistoryItemRole = {
+  user: "user",
+  model: "model",
+} as const;
+
+export type SendChatMessageBodyHistoryItem = {
+  role: SendChatMessageBodyHistoryItemRole;
+  content: string;
+};
+
+export interface SendChatMessageBody {
+  history: SendChatMessageBodyHistoryItem[];
+  message: string;
+}
+
+export interface SendChatMessageResponse {
+  response: string;
+}
+
+export interface GenerateDraftBody {
+  clauseType: string;
+  variables?: string;
+  actingFor?: string;
+  tone?: string;
+  length?: string;
+}
+
+export interface GenerateDraftResponse {
+  draft: string;
+}
+
+export interface ScanTransactionRiskBody {
+  scenario: string;
+  transactionType?: string;
+}
+
+export interface ScanTransactionRiskResponse {
+  analysis: string;
+}
+
+export interface GenerateChecklistBody {
+  transactionType: string;
+  details?: string;
+}
+
+export interface GenerateChecklistResponse {
+  checklist: string;
+}
+
+export interface CalculateDeadlinesBody {
+  transactionType: string;
+  keyDate: string;
+  additionalDates?: string;
+}
+
+export interface CalculateDeadlinesResponse {
+  deadlines: string;
+}
+
+export interface ReviewSpaClauseBody {
+  clauseText: string;
+  actingFor?: string;
+  context?: string;
+}
+
+export interface ReviewSpaClauseResponse {
+  review: string;
+}
+
+export interface CompareClausesBody {
+  clauseA: string;
+  clauseB: string;
+  context?: string;
+}
+
+export interface CompareClausesResponse {
+  comparison: string;
+}
+
+export interface InterpretLandTitleBody {
+  titleDetails: string;
+  titleType?: string;
+}
+
+export interface InterpretLandTitleResponse {
+  interpretation: string;
+}
+
+export interface GenerateFeeQuotationBody {
+  transactionType: string;
+  purchasePrice: string;
+  clientName?: string;
+  additionalInfo?: string;
+}
+
+export interface GenerateFeeQuotationResponse {
+  quotation: string;
+}
+
+export interface GenerateAdviceLetterBody {
+  clientName: string;
+  transactionType: string;
+  keyFacts: string;
+  adviceArea?: string;
+}
+
+export interface GenerateAdviceLetterResponse {
+  letter: string;
+}
+
+export interface GenerateDueDiligenceBody {
+  propertyDetails: string;
+  transactionType?: string;
+  concerns?: string;
+}
+
+export interface GenerateDueDiligenceResponse {
+  report: string;
+}
+
+export interface GenerateLegalOpinionBody {
+  issue: string;
+  facts: string;
+  clientPosition?: string;
+}
+
+export interface GenerateLegalOpinionResponse {
+  opinion: string;
+}
+
+export interface GenerateRequisitionBody {
+  titleDetails: string;
+  issues: string;
+  vendorSolicitor?: string;
+}
+
+export interface GenerateRequisitionResponse {
+  requisition: string;
+}
+
+export interface GenerateCompletionStatementBody {
+  purchasePrice: string;
+  transactionType: string;
+  adjustments?: string;
+  completionDate?: string;
+}
+
+export interface GenerateCompletionStatementResponse {
+  statement: string;
+}
+
+export interface ResearchCaseLawBody {
+  topic: string;
+  jurisdiction?: string;
+  specificIssue?: string;
+}
+
+export interface ResearchCaseLawResponse {
+  research: string;
+}
+
+export interface CalculateStampDutyBody {
+  propertyPrice: string;
+  propertyType?: string;
+  buyerProfile?: string;
+  isFirstHome?: string;
+}
+
+export interface CalculateStampDutyResponse {
+  calculation: string;
+}
+
+export interface AnalyzeRPGTBody {
+  acquisitionDate: string;
+  disposalDate: string;
+  acquisitionPrice: string;
+  disposalPrice: string;
+  sellerProfile?: string;
+  expenses?: string;
+}
+
+export interface AnalyzeRPGTResponse {
+  analysis: string;
+}
+
+export interface DraftTenancyBody {
+  propertyDetails: string;
+  tenancyTerms: string;
+  specialConditions?: string;
+}
+
+export interface DraftTenancyResponse {
+  draft: string;
+}
+
+export interface DraftPowerOfAttorneyBody {
+  donorDetails: string;
+  doneeDetails: string;
+  powers: string;
+  purpose?: string;
+}
+
+export interface DraftPowerOfAttorneyResponse {
+  draft: string;
+}
+
+export interface AdviseCaveatBody {
+  situation: string;
+  caveatType?: string;
+  propertyDetails?: string;
+}
+
+export interface AdviseCaveatResponse {
+  advice: string;
+}
+
+export interface AnalyzeLandSearchBody {
+  searchResults: string;
+  purpose?: string;
+}
+
+export interface AnalyzeLandSearchResponse {
+  analysis: string;
+}
+
+export interface AdviseDeveloperClaimBody {
+  claimType: string;
+  details: string;
+  projectDetails?: string;
+}
+
+export interface AdviseDeveloperClaimResponse {
+  advice: string;
+}
+
+export interface AdviseBankruptcySearchBody {
+  searchResults: string;
+  transactionContext?: string;
+}
+
+export interface AdviseBankruptcySearchResponse {
+  advice: string;
+}
+
+export interface AdviseForeignPurchaseBody {
+  buyerNationality: string;
+  propertyType: string;
+  propertyState: string;
+  purchasePrice?: string;
+}
+
+export interface AdviseForeignPurchaseResponse {
+  advice: string;
+}
+
+export interface ReviewLoanDocBody {
+  documentText: string;
+  loanType?: string;
+  clientRole?: string;
+}
+
+export interface ReviewLoanDocResponse {
+  review: string;
+}
+
+export interface AdviseTaxComplianceBody {
+  transactionDetails: string;
+  transactionType?: string;
+  parties?: string;
+}
+
+export interface AdviseTaxComplianceResponse {
+  advice: string;
+}
+
+export interface AdviseStrataBody {
+  issue: string;
+  buildingType?: string;
+  managementBody?: string;
+}
+
+export interface AdviseStrataResponse {
+  advice: string;
+}
+
+export interface GenerateQuizBody {
+  topic: string;
+  difficulty?: string;
+  numQuestions?: number;
+}
+
+export interface GenerateQuizResponse {
+  quiz: string;
+}
+
+export interface SimulateTransactionBody {
+  scenario: string;
+  propertyType?: string;
+  transactionType?: string;
+}
+
+export interface SimulateTransactionResponse {
+  simulation: string;
+}
+
+export interface SearchClauseLibraryBody {
+  clauseType: string;
+  context?: string;
+  jurisdiction?: string;
+}
+
+export interface SearchClauseLibraryResponse {
+  clauses: string;
+}
+
+export interface AnalyzeDocumentBody {
+  documentText: string;
+  documentType?: string;
+}
+
+export interface AnalyzeDocumentResponse {
+  analysis: string;
+}
+
+export interface CheckComplianceBody {
+  transaction: string;
+  checkType?: string;
+}
+
+export interface CheckComplianceResponse {
+  result: string;
+}
+
+export interface GenerateTimelineBody {
+  transactionType: string;
+  startDate?: string;
+  specialConditions?: string;
+}
+
+export interface GenerateTimelineResponse {
+  timeline: string;
+}
+
+export interface GenerateMockExamBody {
+  subject: string;
+  examType?: string;
+  numQuestions?: number;
+}
+
+export interface GenerateMockExamResponse {
+  exam: string;
+}
+
+export interface AnalyzeCaseBody {
+  caseName: string;
+  caseDetails?: string;
+  legalIssue?: string;
+}
+
+export interface AnalyzeCaseResponse {
+  analysis: string;
+}
+
+export interface DraftCorpResolutionBody {
+  companyName: string;
+  companyNo?: string;
+  resolutionType: string;
+  transactionDetails: string;
+  signatories?: string;
+}
+
+export interface DraftCorpResolutionResponse {
+  resolution: string;
+}
+
+export interface GenerateCorpPropertyDDBody {
+  companyDetails: string;
+  propertyDetails: string;
+  transactionType?: string;
+  concerns?: string;
+}
+
+export interface GenerateCorpPropertyDDResponse {
+  report: string;
+}
+
+export interface DraftJVAgreementBody {
+  parties: string;
+  propertyDetails: string;
+  structureType: string;
+  commercialTerms?: string;
+  duration?: string;
+}
+
+export interface DraftJVAgreementResponse {
+  agreement: string;
+}
+
+export interface DraftGuaranteeBody {
+  guarantorType: string;
+  guarantorDetails: string;
+  principalDebtor: string;
+  lender: string;
+  facilityAmount: string;
+  propertySecurity?: string;
+}
+
+export interface DraftGuaranteeResponse {
+  draft: string;
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;

@@ -6,7 +6,7 @@ const APP_META: Record<string, { label: string; shortName: string; color: string
   MyLitAI:             { label: "Litigation",              shortName: "MyLitAI",        color: "#D4AF37" },
   MySyalitAI:          { label: "Syariah Litigation",      shortName: "MySyalitAI",     color: "#C8A02A" },
   MyCorpAI:            { label: "Corporate Secretary",     shortName: "MyCorpAI",       color: "#E0C050" },
-  MyConveyAI:          { label: "Conveyancing",            shortName: "MyConveyAI",     color: "#D4AF37" },
+  MyConveyAI:          { label: "Conveyancing",            shortName: "MyConveyLitAI",  color: "#D4AF37" },
   MyCrimAI:            { label: "Criminal Law",            shortName: "MyCrimAI",       color: "#C8A02A" },
   MyCorpCommBankLitAi: { label: "Corp / Comm / Banking",  shortName: "MyCCBLitAI",     color: "#E0C050" },
   MyAccidentAi:        { label: "Accident & PI",           shortName: "MyAccidentAI",   color: "#D4AF37" },

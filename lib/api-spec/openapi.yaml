@@ -784,6 +784,726 @@ paths:
         "204":
           description: Deleted
 
+  /convey/auth:
+    post:
+      operationId: verifyPassword
+      tags: [convey]
+      summary: MyConveyLitAI verifyPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyPasswordBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyPasswordResponse"
+  /convey/chat:
+    post:
+      operationId: sendChatMessage
+      tags: [convey]
+      summary: MyConveyLitAI sendChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendChatMessageResponse"
+  /convey/draft:
+    post:
+      operationId: generateDraft
+      tags: [convey]
+      summary: MyConveyLitAI generateDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateDraftBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateDraftResponse"
+  /convey/risk-scan:
+    post:
+      operationId: scanTransactionRisk
+      tags: [convey]
+      summary: MyConveyLitAI scanTransactionRisk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanTransactionRiskBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanTransactionRiskResponse"
+  /convey/checklist:
+    post:
+      operationId: generateChecklist
+      tags: [convey]
+      summary: MyConveyLitAI generateChecklist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateChecklistBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateChecklistResponse"
+  /convey/deadlines:
+    post:
+      operationId: calculateDeadlines
+      tags: [convey]
+      summary: MyConveyLitAI calculateDeadlines
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalculateDeadlinesBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalculateDeadlinesResponse"
+  /convey/review-spa:
+    post:
+      operationId: reviewSpaClause
+      tags: [convey]
+      summary: MyConveyLitAI reviewSpaClause
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewSpaClauseBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewSpaClauseResponse"
+  /convey/compare-clauses:
+    post:
+      operationId: compareClauses
+      tags: [convey]
+      summary: MyConveyLitAI compareClauses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompareClausesBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompareClausesResponse"
+  /convey/interpret-title:
+    post:
+      operationId: interpretLandTitle
+      tags: [convey]
+      summary: MyConveyLitAI interpretLandTitle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InterpretLandTitleBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InterpretLandTitleResponse"
+  /convey/fee-quotation:
+    post:
+      operationId: generateFeeQuotation
+      tags: [convey]
+      summary: MyConveyLitAI generateFeeQuotation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateFeeQuotationBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateFeeQuotationResponse"
+  /convey/advice-letter:
+    post:
+      operationId: generateAdviceLetter
+      tags: [convey]
+      summary: MyConveyLitAI generateAdviceLetter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateAdviceLetterBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateAdviceLetterResponse"
+  /convey/due-diligence:
+    post:
+      operationId: generateDueDiligence
+      tags: [convey]
+      summary: MyConveyLitAI generateDueDiligence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateDueDiligenceBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateDueDiligenceResponse"
+  /convey/legal-opinion:
+    post:
+      operationId: generateLegalOpinion
+      tags: [convey]
+      summary: MyConveyLitAI generateLegalOpinion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateLegalOpinionBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateLegalOpinionResponse"
+  /convey/requisition:
+    post:
+      operationId: generateRequisition
+      tags: [convey]
+      summary: MyConveyLitAI generateRequisition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateRequisitionBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateRequisitionResponse"
+  /convey/completion-statement:
+    post:
+      operationId: generateCompletionStatement
+      tags: [convey]
+      summary: MyConveyLitAI generateCompletionStatement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCompletionStatementBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateCompletionStatementResponse"
+  /convey/case-research:
+    post:
+      operationId: researchCaseLaw
+      tags: [convey]
+      summary: MyConveyLitAI researchCaseLaw
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchCaseLawBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchCaseLawResponse"
+  /convey/stamp-duty:
+    post:
+      operationId: calculateStampDuty
+      tags: [convey]
+      summary: MyConveyLitAI calculateStampDuty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalculateStampDutyBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalculateStampDutyResponse"
+  /convey/rpgt:
+    post:
+      operationId: analyzeRPGT
+      tags: [convey]
+      summary: MyConveyLitAI analyzeRPGT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRPGTBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeRPGTResponse"
+  /convey/tenancy:
+    post:
+      operationId: draftTenancy
+      tags: [convey]
+      summary: MyConveyLitAI draftTenancy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftTenancyBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftTenancyResponse"
+  /convey/power-of-attorney:
+    post:
+      operationId: draftPowerOfAttorney
+      tags: [convey]
+      summary: MyConveyLitAI draftPowerOfAttorney
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftPowerOfAttorneyBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftPowerOfAttorneyResponse"
+  /convey/caveat:
+    post:
+      operationId: adviseCaveat
+      tags: [convey]
+      summary: MyConveyLitAI adviseCaveat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseCaveatBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseCaveatResponse"
+  /convey/land-search:
+    post:
+      operationId: analyzeLandSearch
+      tags: [convey]
+      summary: MyConveyLitAI analyzeLandSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeLandSearchBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeLandSearchResponse"
+  /convey/developer-claim:
+    post:
+      operationId: adviseDeveloperClaim
+      tags: [convey]
+      summary: MyConveyLitAI adviseDeveloperClaim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseDeveloperClaimBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseDeveloperClaimResponse"
+  /convey/bankruptcy-search:
+    post:
+      operationId: adviseBankruptcySearch
+      tags: [convey]
+      summary: MyConveyLitAI adviseBankruptcySearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseBankruptcySearchBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseBankruptcySearchResponse"
+  /convey/foreign-purchase:
+    post:
+      operationId: adviseForeignPurchase
+      tags: [convey]
+      summary: MyConveyLitAI adviseForeignPurchase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseForeignPurchaseBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseForeignPurchaseResponse"
+  /convey/loan-doc:
+    post:
+      operationId: reviewLoanDoc
+      tags: [convey]
+      summary: MyConveyLitAI reviewLoanDoc
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewLoanDocBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewLoanDocResponse"
+  /convey/tax-compliance:
+    post:
+      operationId: adviseTaxCompliance
+      tags: [convey]
+      summary: MyConveyLitAI adviseTaxCompliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseTaxComplianceBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseTaxComplianceResponse"
+  /convey/strata:
+    post:
+      operationId: adviseStrata
+      tags: [convey]
+      summary: MyConveyLitAI adviseStrata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdviseStrataBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdviseStrataResponse"
+  /convey/quiz:
+    post:
+      operationId: generateQuiz
+      tags: [convey]
+      summary: MyConveyLitAI generateQuiz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateQuizBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateQuizResponse"
+  /convey/simulate:
+    post:
+      operationId: simulateTransaction
+      tags: [convey]
+      summary: MyConveyLitAI simulateTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulateTransactionBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulateTransactionResponse"
+  /convey/clause-library:
+    post:
+      operationId: searchClauseLibrary
+      tags: [convey]
+      summary: MyConveyLitAI searchClauseLibrary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchClauseLibraryBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchClauseLibraryResponse"
+  /convey/analyze-doc:
+    post:
+      operationId: analyzeDocument
+      tags: [convey]
+      summary: MyConveyLitAI analyzeDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeDocumentBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeDocumentResponse"
+  /convey/compliance:
+    post:
+      operationId: checkCompliance
+      tags: [convey]
+      summary: MyConveyLitAI checkCompliance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckComplianceBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckComplianceResponse"
+  /convey/timeline:
+    post:
+      operationId: generateTimeline
+      tags: [convey]
+      summary: MyConveyLitAI generateTimeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateTimelineBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTimelineResponse"
+  /convey/mock-exam:
+    post:
+      operationId: generateMockExam
+      tags: [convey]
+      summary: MyConveyLitAI generateMockExam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateMockExamBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateMockExamResponse"
+  /convey/analyze-case:
+    post:
+      operationId: analyzeCase
+      tags: [convey]
+      summary: MyConveyLitAI analyzeCase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeCaseBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeCaseResponse"
+  /convey/corp-resolution:
+    post:
+      operationId: draftCorpResolution
+      tags: [convey]
+      summary: MyConveyLitAI draftCorpResolution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftCorpResolutionBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftCorpResolutionResponse"
+  /convey/corp-due-diligence:
+    post:
+      operationId: generateCorpPropertyDD
+      tags: [convey]
+      summary: MyConveyLitAI generateCorpPropertyDD
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCorpPropertyDDBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateCorpPropertyDDResponse"
+  /convey/jv-agreement:
+    post:
+      operationId: draftJVAgreement
+      tags: [convey]
+      summary: MyConveyLitAI draftJVAgreement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftJVAgreementBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftJVAgreementResponse"
+  /convey/guarantee:
+    post:
+      operationId: draftGuarantee
+      tags: [convey]
+      summary: MyConveyLitAI draftGuarantee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftGuaranteeBody"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftGuaranteeResponse"
 components:
   schemas:
     HealthStatus:
@@ -1508,3 +2228,784 @@ components:
         - base
         - rates
         - fetchedAt
+    VerifyPasswordBody:
+      type: object
+      properties:
+        accessCode:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+    VerifyPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        token:
+          type: string
+        user:
+          type: object
+          additionalProperties: true
+      required:
+        - success
+    SendChatMessageBody:
+      type: object
+      properties:
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [user, model]
+              content:
+                type: string
+            required: [role, content]
+        message:
+          type: string
+      required:
+        - history
+        - message
+    SendChatMessageResponse:
+      type: object
+      properties:
+        response:
+          type: string
+      required:
+        - response
+    GenerateDraftBody:
+      type: object
+      properties:
+        clauseType:
+          type: string
+        variables:
+          type: string
+        actingFor:
+          type: string
+        tone:
+          type: string
+        length:
+          type: string
+      required:
+        - clauseType
+    GenerateDraftResponse:
+      type: object
+      properties:
+        draft:
+          type: string
+      required:
+        - draft
+    ScanTransactionRiskBody:
+      type: object
+      properties:
+        scenario:
+          type: string
+        transactionType:
+          type: string
+      required:
+        - scenario
+    ScanTransactionRiskResponse:
+      type: object
+      properties:
+        analysis:
+          type: string
+      required:
+        - analysis
+    GenerateChecklistBody:
+      type: object
+      properties:
+        transactionType:
+          type: string
+        details:
+          type: string
+      required:
+        - transactionType
+    GenerateChecklistResponse:
+      type: object
+      properties:
+        checklist:
+          type: string
+      required:
+        - checklist
+    CalculateDeadlinesBody:
+      type: object
+      properties:
+        transactionType:
+          type: string
+        keyDate:
+          type: string
+        additionalDates:
+          type: string
+      required:
+        - transactionType
+        - keyDate
+    CalculateDeadlinesResponse:
+      type: object
+      properties:
+        deadlines:
+          type: string
+      required:
+        - deadlines
+    ReviewSpaClauseBody:
+      type: object
+      properties:
+        clauseText:
+          type: string
+        actingFor:
+          type: string
+        context:
+          type: string
+      required:
+        - clauseText
+    ReviewSpaClauseResponse:
+      type: object
+      properties:
+        review:
+          type: string
+      required:
+        - review
+    CompareClausesBody:
+      type: object
+      properties:
+        clauseA:
+          type: string
+        clauseB:
+          type: string
+        context:
+          type: string
+      required:
+        - clauseA
+        - clauseB
+    CompareClausesResponse:
+      type: object
+      properties:
+        comparison:
+          type: string
+      required:
+        - comparison
+    InterpretLandTitleBody:
+      type: object
+      properties:
+        titleDetails:
+          type: string
+        titleType:
+          type: string
+      required:
+        - titleDetails
+    InterpretLandTitleResponse:
+      type: object
+      properties:
+        interpretation:
+          type: string
+      required:
+        - interpretation
+    GenerateFeeQuotationBody:
+      type: object
+      properties:
+        transactionType:
+          type: string
+        purchasePrice:
+          type: string
+        clientName:
+          type: string
+        additionalInfo:
+          type: string
+      required:
+        - transactionType
+        - purchasePrice
+    GenerateFeeQuotationResponse:
+      type: object
+      properties:
+        quotation:
+          type: string
+      required:
+        - quotation
+    GenerateAdviceLetterBody:
+      type: object
+      properties:
+        clientName:
+          type: string
+        transactionType:
+          type: string
+        keyFacts:
+          type: string
+        adviceArea:
+          type: string
+      required:
+        - clientName
+        - transactionType
+        - keyFacts
+    GenerateAdviceLetterResponse:
+      type: object
+      properties:
+        letter:
+          type: string
+      required:
+        - letter
+    GenerateDueDiligenceBody:
+      type: object
+      properties:
+        propertyDetails:
+          type: string
+        transactionType:
+          type: string
+        concerns:
+          type: string
+      required:
+        - propertyDetails
+    GenerateDueDiligenceResponse:
+      type: object
+      properties:
+        report:
+          type: string
+      required:
+        - report
+    GenerateLegalOpinionBody:
+      type: object
+      properties:
+        issue:
+          type: string
+        facts:
+          type: string
+        clientPosition:
+          type: string
+      required:
+        - issue
+        - facts
+    GenerateLegalOpinionResponse:
+      type: object
+      properties:
+        opinion:
+          type: string
+      required:
+        - opinion
+    GenerateRequisitionBody:
+      type: object
+      properties:
+        titleDetails:
+          type: string
+        issues:
+          type: string
+        vendorSolicitor:
+          type: string
+      required:
+        - titleDetails
+        - issues
+    GenerateRequisitionResponse:
+      type: object
+      properties:
+        requisition:
+          type: string
+      required:
+        - requisition
+    GenerateCompletionStatementBody:
+      type: object
+      properties:
+        purchasePrice:
+          type: string
+        transactionType:
+          type: string
+        adjustments:
+          type: string
+        completionDate:
+          type: string
+      required:
+        - purchasePrice
+        - transactionType
+    GenerateCompletionStatementResponse:
+      type: object
+      properties:
+        statement:
+          type: string
+      required:
+        - statement
+    ResearchCaseLawBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        jurisdiction:
+          type: string
+        specificIssue:
+          type: string
+      required:
+        - topic
+    ResearchCaseLawResponse:
+      type: object
+      properties:
+        research:
+          type: string
+      required:
+        - research
+    CalculateStampDutyBody:
+      type: object
+      properties:
+        propertyPrice:
+          type: string
+        propertyType:
+          type: string
+        buyerProfile:
+          type: string
+        isFirstHome:
+          type: string
+      required:
+        - propertyPrice
+    CalculateStampDutyResponse:
+      type: object
+      properties:
+        calculation:
+          type: string
+      required:
+        - calculation
+    AnalyzeRPGTBody:
+      type: object
+      properties:
+        acquisitionDate:
+          type: string
+        disposalDate:
+          type: string
+        acquisitionPrice:
+          type: string
+        disposalPrice:
+          type: string
+        sellerProfile:
+          type: string
+        expenses:
+          type: string
+      required:
+        - acquisitionDate
+        - disposalDate
+        - acquisitionPrice
+        - disposalPrice
+    AnalyzeRPGTResponse:
+      type: object
+      properties:
+        analysis:
+          type: string
+      required:
+        - analysis
+    DraftTenancyBody:
+      type: object
+      properties:
+        propertyDetails:
+          type: string
+        tenancyTerms:
+          type: string
+        specialConditions:
+          type: string
+      required:
+        - propertyDetails
+        - tenancyTerms
+    DraftTenancyResponse:
+      type: object
+      properties:
+        draft:
+          type: string
+      required:
+        - draft
+    DraftPowerOfAttorneyBody:
+      type: object
+      properties:
+        donorDetails:
+          type: string
+        doneeDetails:
+          type: string
+        powers:
+          type: string
+        purpose:
+          type: string
+      required:
+        - donorDetails
+        - doneeDetails
+        - powers
+    DraftPowerOfAttorneyResponse:
+      type: object
+      properties:
+        draft:
+          type: string
+      required:
+        - draft
+    AdviseCaveatBody:
+      type: object
+      properties:
+        situation:
+          type: string
+        caveatType:
+          type: string
+        propertyDetails:
+          type: string
+      required:
+        - situation
+    AdviseCaveatResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    AnalyzeLandSearchBody:
+      type: object
+      properties:
+        searchResults:
+          type: string
+        purpose:
+          type: string
+      required:
+        - searchResults
+    AnalyzeLandSearchResponse:
+      type: object
+      properties:
+        analysis:
+          type: string
+      required:
+        - analysis
+    AdviseDeveloperClaimBody:
+      type: object
+      properties:
+        claimType:
+          type: string
+        details:
+          type: string
+        projectDetails:
+          type: string
+      required:
+        - claimType
+        - details
+    AdviseDeveloperClaimResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    AdviseBankruptcySearchBody:
+      type: object
+      properties:
+        searchResults:
+          type: string
+        transactionContext:
+          type: string
+      required:
+        - searchResults
+    AdviseBankruptcySearchResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    AdviseForeignPurchaseBody:
+      type: object
+      properties:
+        buyerNationality:
+          type: string
+        propertyType:
+          type: string
+        propertyState:
+          type: string
+        purchasePrice:
+          type: string
+      required:
+        - buyerNationality
+        - propertyType
+        - propertyState
+    AdviseForeignPurchaseResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    ReviewLoanDocBody:
+      type: object
+      properties:
+        documentText:
+          type: string
+        loanType:
+          type: string
+        clientRole:
+          type: string
+      required:
+        - documentText
+    ReviewLoanDocResponse:
+      type: object
+      properties:
+        review:
+          type: string
+      required:
+        - review
+    AdviseTaxComplianceBody:
+      type: object
+      properties:
+        transactionDetails:
+          type: string
+        transactionType:
+          type: string
+        parties:
+          type: string
+      required:
+        - transactionDetails
+    AdviseTaxComplianceResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    AdviseStrataBody:
+      type: object
+      properties:
+        issue:
+          type: string
+        buildingType:
+          type: string
+        managementBody:
+          type: string
+      required:
+        - issue
+    AdviseStrataResponse:
+      type: object
+      properties:
+        advice:
+          type: string
+      required:
+        - advice
+    GenerateQuizBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        difficulty:
+          type: string
+        numQuestions:
+          type: number
+      required:
+        - topic
+    GenerateQuizResponse:
+      type: object
+      properties:
+        quiz:
+          type: string
+      required:
+        - quiz
+    SimulateTransactionBody:
+      type: object
+      properties:
+        scenario:
+          type: string
+        propertyType:
+          type: string
+        transactionType:
+          type: string
+      required:
+        - scenario
+    SimulateTransactionResponse:
+      type: object
+      properties:
+        simulation:
+          type: string
+      required:
+        - simulation
+    SearchClauseLibraryBody:
+      type: object
+      properties:
+        clauseType:
+          type: string
+        context:
+          type: string
+        jurisdiction:
+          type: string
+      required:
+        - clauseType
+    SearchClauseLibraryResponse:
+      type: object
+      properties:
+        clauses:
+          type: string
+      required:
+        - clauses
+    AnalyzeDocumentBody:
+      type: object
+      properties:
+        documentText:
+          type: string
+        documentType:
+          type: string
+      required:
+        - documentText
+    AnalyzeDocumentResponse:
+      type: object
+      properties:
+        analysis:
+          type: string
+      required:
+        - analysis
+    CheckComplianceBody:
+      type: object
+      properties:
+        transaction:
+          type: string
+        checkType:
+          type: string
+      required:
+        - transaction
+    CheckComplianceResponse:
+      type: object
+      properties:
+        result:
+          type: string
+      required:
+        - result
+    GenerateTimelineBody:
+      type: object
+      properties:
+        transactionType:
+          type: string
+        startDate:
+          type: string
+        specialConditions:
+          type: string
+      required:
+        - transactionType
+    GenerateTimelineResponse:
+      type: object
+      properties:
+        timeline:
+          type: string
+      required:
+        - timeline
+    GenerateMockExamBody:
+      type: object
+      properties:
+        subject:
+          type: string
+        examType:
+          type: string
+        numQuestions:
+          type: number
+      required:
+        - subject
+    GenerateMockExamResponse:
+      type: object
+      properties:
+        exam:
+          type: string
+      required:
+        - exam
+    AnalyzeCaseBody:
+      type: object
+      properties:
+        caseName:
+          type: string
+        caseDetails:
+          type: string
+        legalIssue:
+          type: string
+      required:
+        - caseName
+    AnalyzeCaseResponse:
+      type: object
+      properties:
+        analysis:
+          type: string
+      required:
+        - analysis
+    DraftCorpResolutionBody:
+      type: object
+      properties:
+        companyName:
+          type: string
+        companyNo:
+          type: string
+        resolutionType:
+          type: string
+        transactionDetails:
+          type: string
+        signatories:
+          type: string
+      required:
+        - companyName
+        - resolutionType
+        - transactionDetails
+    DraftCorpResolutionResponse:
+      type: object
+      properties:
+        resolution:
+          type: string
+      required:
+        - resolution
+    GenerateCorpPropertyDDBody:
+      type: object
+      properties:
+        companyDetails:
+          type: string
+        propertyDetails:
+          type: string
+        transactionType:
+          type: string
+        concerns:
+          type: string
+      required:
+        - companyDetails
+        - propertyDetails
+    GenerateCorpPropertyDDResponse:
+      type: object
+      properties:
+        report:
+          type: string
+      required:
+        - report
+    DraftJVAgreementBody:
+      type: object
+      properties:
+        parties:
+          type: string
+        propertyDetails:
+          type: string
+        structureType:
+          type: string
+        commercialTerms:
+          type: string
+        duration:
+          type: string
+      required:
+        - parties
+        - propertyDetails
+        - structureType
+    DraftJVAgreementResponse:
+      type: object
+      properties:
+        agreement:
+          type: string
+      required:
+        - agreement
+    DraftGuaranteeBody:
+      type: object
+      properties:
+        guarantorType:
+          type: string
+        guarantorDetails:
+          type: string
+        principalDebtor:
+          type: string
+        lender:
+          type: string
+        facilityAmount:
+          type: string
+        propertySecurity:
+          type: string
+      required:
+        - guarantorType
+        - guarantorDetails
+        - principalDebtor
+        - lender
+        - facilityAmount
+    DraftGuaranteeResponse:
+      type: object
+      properties:
+        draft:
+          type: string
+      required:
+        - draft

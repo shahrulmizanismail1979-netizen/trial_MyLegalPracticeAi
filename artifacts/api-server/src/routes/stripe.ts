@@ -19,6 +19,7 @@ const ALLOWED_APP_REDIRECTS = new Set([
   "https://mysyalitai.life",
   "https://mycorpai.life",
   "https://myconveyai.life",
+  "/myconveylitai/",
   "https://mycrimai.life/",
   "https://myccblitai.life/",
   "https://myaccidentai.life/",

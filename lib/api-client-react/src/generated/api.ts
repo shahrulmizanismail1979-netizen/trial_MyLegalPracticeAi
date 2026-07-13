@@ -18,9 +18,37 @@ import type {
 
 import type {
   ActivityEntry,
+  AdviseBankruptcySearchBody,
+  AdviseBankruptcySearchResponse,
+  AdviseCaveatBody,
+  AdviseCaveatResponse,
+  AdviseDeveloperClaimBody,
+  AdviseDeveloperClaimResponse,
+  AdviseForeignPurchaseBody,
+  AdviseForeignPurchaseResponse,
+  AdviseStrataBody,
+  AdviseStrataResponse,
+  AdviseTaxComplianceBody,
+  AdviseTaxComplianceResponse,
+  AnalyzeCaseBody,
+  AnalyzeCaseResponse,
+  AnalyzeDocumentBody,
+  AnalyzeDocumentResponse,
+  AnalyzeLandSearchBody,
+  AnalyzeLandSearchResponse,
+  AnalyzeRPGTBody,
+  AnalyzeRPGTResponse,
   AppStat,
   AppSubscriberStat,
   AssistantChatBody,
+  CalculateDeadlinesBody,
+  CalculateDeadlinesResponse,
+  CalculateStampDutyBody,
+  CalculateStampDutyResponse,
+  CheckComplianceBody,
+  CheckComplianceResponse,
+  CompareClausesBody,
+  CompareClausesResponse,
   Contribution,
   CreateContributionBody,
   CreateKohortBody,
@@ -29,16 +57,66 @@ import type {
   CreateVoucherBody,
   CurrencyRates,
   DashboardStats,
+  DraftCorpResolutionBody,
+  DraftCorpResolutionResponse,
+  DraftGuaranteeBody,
+  DraftGuaranteeResponse,
+  DraftJVAgreementBody,
+  DraftJVAgreementResponse,
+  DraftPowerOfAttorneyBody,
+  DraftPowerOfAttorneyResponse,
+  DraftTenancyBody,
+  DraftTenancyResponse,
   ErrorEnvelope,
+  GenerateAdviceLetterBody,
+  GenerateAdviceLetterResponse,
+  GenerateChecklistBody,
+  GenerateChecklistResponse,
+  GenerateCompletionStatementBody,
+  GenerateCompletionStatementResponse,
+  GenerateCorpPropertyDDBody,
+  GenerateCorpPropertyDDResponse,
+  GenerateDraftBody,
+  GenerateDraftResponse,
+  GenerateDueDiligenceBody,
+  GenerateDueDiligenceResponse,
+  GenerateFeeQuotationBody,
+  GenerateFeeQuotationResponse,
+  GenerateLegalOpinionBody,
+  GenerateLegalOpinionResponse,
+  GenerateMockExamBody,
+  GenerateMockExamResponse,
+  GenerateQuizBody,
+  GenerateQuizResponse,
+  GenerateRequisitionBody,
+  GenerateRequisitionResponse,
+  GenerateTimelineBody,
+  GenerateTimelineResponse,
   GetRecentActivityParams,
   HealthStatus,
+  InterpretLandTitleBody,
+  InterpretLandTitleResponse,
   KnowledgeBaseEntry,
   Kohort,
   ListContributionsParams,
   ListKnowledgeBaseParams,
   ListSubscribersParams,
   PricingEntry,
+  ResearchCaseLawBody,
+  ResearchCaseLawResponse,
   RevenueByApp,
+  ReviewLoanDocBody,
+  ReviewLoanDocResponse,
+  ReviewSpaClauseBody,
+  ReviewSpaClauseResponse,
+  ScanTransactionRiskBody,
+  ScanTransactionRiskResponse,
+  SearchClauseLibraryBody,
+  SearchClauseLibraryResponse,
+  SendChatMessageBody,
+  SendChatMessageResponse,
+  SimulateTransactionBody,
+  SimulateTransactionResponse,
   Subscriber,
   UpdateAppStatBody,
   UpdateContributionBody,
@@ -48,6 +126,8 @@ import type {
   UpdateVoucherBody,
   UploadUrlRequest,
   UploadUrlResponse,
+  VerifyPasswordBody,
+  VerifyPasswordResponse,
   Voucher,
 } from "./api.schemas";
 
@@ -3190,4 +3270,3484 @@ export const useDeleteContribution = <
   TContext
 > => {
   return useMutation(getDeleteContributionMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI verifyPassword
+ */
+export const getVerifyPasswordUrl = () => {
+  return `/api/convey/auth`;
+};
+
+export const verifyPassword = async (
+  verifyPasswordBody: VerifyPasswordBody,
+  options?: RequestInit,
+): Promise<VerifyPasswordResponse> => {
+  return customFetch<VerifyPasswordResponse>(getVerifyPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(verifyPasswordBody),
+  });
+};
+
+export const getVerifyPasswordMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyPassword>>,
+    TError,
+    { data: BodyType<VerifyPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyPassword>>,
+  TError,
+  { data: BodyType<VerifyPasswordBody> },
+  TContext
+> => {
+  const mutationKey = ["verifyPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyPassword>>,
+    { data: BodyType<VerifyPasswordBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyPassword>>
+>;
+export type VerifyPasswordMutationBody = BodyType<VerifyPasswordBody>;
+export type VerifyPasswordMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI verifyPassword
+ */
+export const useVerifyPassword = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyPassword>>,
+    TError,
+    { data: BodyType<VerifyPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyPassword>>,
+  TError,
+  { data: BodyType<VerifyPasswordBody> },
+  TContext
+> => {
+  return useMutation(getVerifyPasswordMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI sendChatMessage
+ */
+export const getSendChatMessageUrl = () => {
+  return `/api/convey/chat`;
+};
+
+export const sendChatMessage = async (
+  sendChatMessageBody: SendChatMessageBody,
+  options?: RequestInit,
+): Promise<SendChatMessageResponse> => {
+  return customFetch<SendChatMessageResponse>(getSendChatMessageUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendChatMessageBody),
+  });
+};
+
+export const getSendChatMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    TError,
+    { data: BodyType<SendChatMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendChatMessage>>,
+  TError,
+  { data: BodyType<SendChatMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["sendChatMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    { data: BodyType<SendChatMessageBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendChatMessage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendChatMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendChatMessage>>
+>;
+export type SendChatMessageMutationBody = BodyType<SendChatMessageBody>;
+export type SendChatMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI sendChatMessage
+ */
+export const useSendChatMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    TError,
+    { data: BodyType<SendChatMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendChatMessage>>,
+  TError,
+  { data: BodyType<SendChatMessageBody> },
+  TContext
+> => {
+  return useMutation(getSendChatMessageMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateDraft
+ */
+export const getGenerateDraftUrl = () => {
+  return `/api/convey/draft`;
+};
+
+export const generateDraft = async (
+  generateDraftBody: GenerateDraftBody,
+  options?: RequestInit,
+): Promise<GenerateDraftResponse> => {
+  return customFetch<GenerateDraftResponse>(getGenerateDraftUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateDraftBody),
+  });
+};
+
+export const getGenerateDraftMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDraft>>,
+    TError,
+    { data: BodyType<GenerateDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateDraft>>,
+  TError,
+  { data: BodyType<GenerateDraftBody> },
+  TContext
+> => {
+  const mutationKey = ["generateDraft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateDraft>>,
+    { data: BodyType<GenerateDraftBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateDraft(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateDraftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateDraft>>
+>;
+export type GenerateDraftMutationBody = BodyType<GenerateDraftBody>;
+export type GenerateDraftMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateDraft
+ */
+export const useGenerateDraft = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDraft>>,
+    TError,
+    { data: BodyType<GenerateDraftBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateDraft>>,
+  TError,
+  { data: BodyType<GenerateDraftBody> },
+  TContext
+> => {
+  return useMutation(getGenerateDraftMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI scanTransactionRisk
+ */
+export const getScanTransactionRiskUrl = () => {
+  return `/api/convey/risk-scan`;
+};
+
+export const scanTransactionRisk = async (
+  scanTransactionRiskBody: ScanTransactionRiskBody,
+  options?: RequestInit,
+): Promise<ScanTransactionRiskResponse> => {
+  return customFetch<ScanTransactionRiskResponse>(getScanTransactionRiskUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scanTransactionRiskBody),
+  });
+};
+
+export const getScanTransactionRiskMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanTransactionRisk>>,
+    TError,
+    { data: BodyType<ScanTransactionRiskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof scanTransactionRisk>>,
+  TError,
+  { data: BodyType<ScanTransactionRiskBody> },
+  TContext
+> => {
+  const mutationKey = ["scanTransactionRisk"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof scanTransactionRisk>>,
+    { data: BodyType<ScanTransactionRiskBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return scanTransactionRisk(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ScanTransactionRiskMutationResult = NonNullable<
+  Awaited<ReturnType<typeof scanTransactionRisk>>
+>;
+export type ScanTransactionRiskMutationBody = BodyType<ScanTransactionRiskBody>;
+export type ScanTransactionRiskMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI scanTransactionRisk
+ */
+export const useScanTransactionRisk = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof scanTransactionRisk>>,
+    TError,
+    { data: BodyType<ScanTransactionRiskBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof scanTransactionRisk>>,
+  TError,
+  { data: BodyType<ScanTransactionRiskBody> },
+  TContext
+> => {
+  return useMutation(getScanTransactionRiskMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateChecklist
+ */
+export const getGenerateChecklistUrl = () => {
+  return `/api/convey/checklist`;
+};
+
+export const generateChecklist = async (
+  generateChecklistBody: GenerateChecklistBody,
+  options?: RequestInit,
+): Promise<GenerateChecklistResponse> => {
+  return customFetch<GenerateChecklistResponse>(getGenerateChecklistUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateChecklistBody),
+  });
+};
+
+export const getGenerateChecklistMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateChecklist>>,
+    TError,
+    { data: BodyType<GenerateChecklistBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateChecklist>>,
+  TError,
+  { data: BodyType<GenerateChecklistBody> },
+  TContext
+> => {
+  const mutationKey = ["generateChecklist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateChecklist>>,
+    { data: BodyType<GenerateChecklistBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateChecklist(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateChecklistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateChecklist>>
+>;
+export type GenerateChecklistMutationBody = BodyType<GenerateChecklistBody>;
+export type GenerateChecklistMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateChecklist
+ */
+export const useGenerateChecklist = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateChecklist>>,
+    TError,
+    { data: BodyType<GenerateChecklistBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateChecklist>>,
+  TError,
+  { data: BodyType<GenerateChecklistBody> },
+  TContext
+> => {
+  return useMutation(getGenerateChecklistMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI calculateDeadlines
+ */
+export const getCalculateDeadlinesUrl = () => {
+  return `/api/convey/deadlines`;
+};
+
+export const calculateDeadlines = async (
+  calculateDeadlinesBody: CalculateDeadlinesBody,
+  options?: RequestInit,
+): Promise<CalculateDeadlinesResponse> => {
+  return customFetch<CalculateDeadlinesResponse>(getCalculateDeadlinesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(calculateDeadlinesBody),
+  });
+};
+
+export const getCalculateDeadlinesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof calculateDeadlines>>,
+    TError,
+    { data: BodyType<CalculateDeadlinesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof calculateDeadlines>>,
+  TError,
+  { data: BodyType<CalculateDeadlinesBody> },
+  TContext
+> => {
+  const mutationKey = ["calculateDeadlines"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof calculateDeadlines>>,
+    { data: BodyType<CalculateDeadlinesBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return calculateDeadlines(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CalculateDeadlinesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof calculateDeadlines>>
+>;
+export type CalculateDeadlinesMutationBody = BodyType<CalculateDeadlinesBody>;
+export type CalculateDeadlinesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI calculateDeadlines
+ */
+export const useCalculateDeadlines = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof calculateDeadlines>>,
+    TError,
+    { data: BodyType<CalculateDeadlinesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof calculateDeadlines>>,
+  TError,
+  { data: BodyType<CalculateDeadlinesBody> },
+  TContext
+> => {
+  return useMutation(getCalculateDeadlinesMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI reviewSpaClause
+ */
+export const getReviewSpaClauseUrl = () => {
+  return `/api/convey/review-spa`;
+};
+
+export const reviewSpaClause = async (
+  reviewSpaClauseBody: ReviewSpaClauseBody,
+  options?: RequestInit,
+): Promise<ReviewSpaClauseResponse> => {
+  return customFetch<ReviewSpaClauseResponse>(getReviewSpaClauseUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reviewSpaClauseBody),
+  });
+};
+
+export const getReviewSpaClauseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewSpaClause>>,
+    TError,
+    { data: BodyType<ReviewSpaClauseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reviewSpaClause>>,
+  TError,
+  { data: BodyType<ReviewSpaClauseBody> },
+  TContext
+> => {
+  const mutationKey = ["reviewSpaClause"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reviewSpaClause>>,
+    { data: BodyType<ReviewSpaClauseBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reviewSpaClause(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReviewSpaClauseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reviewSpaClause>>
+>;
+export type ReviewSpaClauseMutationBody = BodyType<ReviewSpaClauseBody>;
+export type ReviewSpaClauseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI reviewSpaClause
+ */
+export const useReviewSpaClause = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewSpaClause>>,
+    TError,
+    { data: BodyType<ReviewSpaClauseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reviewSpaClause>>,
+  TError,
+  { data: BodyType<ReviewSpaClauseBody> },
+  TContext
+> => {
+  return useMutation(getReviewSpaClauseMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI compareClauses
+ */
+export const getCompareClausesUrl = () => {
+  return `/api/convey/compare-clauses`;
+};
+
+export const compareClauses = async (
+  compareClausesBody: CompareClausesBody,
+  options?: RequestInit,
+): Promise<CompareClausesResponse> => {
+  return customFetch<CompareClausesResponse>(getCompareClausesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(compareClausesBody),
+  });
+};
+
+export const getCompareClausesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof compareClauses>>,
+    TError,
+    { data: BodyType<CompareClausesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof compareClauses>>,
+  TError,
+  { data: BodyType<CompareClausesBody> },
+  TContext
+> => {
+  const mutationKey = ["compareClauses"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof compareClauses>>,
+    { data: BodyType<CompareClausesBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return compareClauses(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompareClausesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof compareClauses>>
+>;
+export type CompareClausesMutationBody = BodyType<CompareClausesBody>;
+export type CompareClausesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI compareClauses
+ */
+export const useCompareClauses = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof compareClauses>>,
+    TError,
+    { data: BodyType<CompareClausesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof compareClauses>>,
+  TError,
+  { data: BodyType<CompareClausesBody> },
+  TContext
+> => {
+  return useMutation(getCompareClausesMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI interpretLandTitle
+ */
+export const getInterpretLandTitleUrl = () => {
+  return `/api/convey/interpret-title`;
+};
+
+export const interpretLandTitle = async (
+  interpretLandTitleBody: InterpretLandTitleBody,
+  options?: RequestInit,
+): Promise<InterpretLandTitleResponse> => {
+  return customFetch<InterpretLandTitleResponse>(getInterpretLandTitleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(interpretLandTitleBody),
+  });
+};
+
+export const getInterpretLandTitleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof interpretLandTitle>>,
+    TError,
+    { data: BodyType<InterpretLandTitleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof interpretLandTitle>>,
+  TError,
+  { data: BodyType<InterpretLandTitleBody> },
+  TContext
+> => {
+  const mutationKey = ["interpretLandTitle"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof interpretLandTitle>>,
+    { data: BodyType<InterpretLandTitleBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return interpretLandTitle(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type InterpretLandTitleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof interpretLandTitle>>
+>;
+export type InterpretLandTitleMutationBody = BodyType<InterpretLandTitleBody>;
+export type InterpretLandTitleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI interpretLandTitle
+ */
+export const useInterpretLandTitle = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof interpretLandTitle>>,
+    TError,
+    { data: BodyType<InterpretLandTitleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof interpretLandTitle>>,
+  TError,
+  { data: BodyType<InterpretLandTitleBody> },
+  TContext
+> => {
+  return useMutation(getInterpretLandTitleMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateFeeQuotation
+ */
+export const getGenerateFeeQuotationUrl = () => {
+  return `/api/convey/fee-quotation`;
+};
+
+export const generateFeeQuotation = async (
+  generateFeeQuotationBody: GenerateFeeQuotationBody,
+  options?: RequestInit,
+): Promise<GenerateFeeQuotationResponse> => {
+  return customFetch<GenerateFeeQuotationResponse>(
+    getGenerateFeeQuotationUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateFeeQuotationBody),
+    },
+  );
+};
+
+export const getGenerateFeeQuotationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateFeeQuotation>>,
+    TError,
+    { data: BodyType<GenerateFeeQuotationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateFeeQuotation>>,
+  TError,
+  { data: BodyType<GenerateFeeQuotationBody> },
+  TContext
+> => {
+  const mutationKey = ["generateFeeQuotation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateFeeQuotation>>,
+    { data: BodyType<GenerateFeeQuotationBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateFeeQuotation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateFeeQuotationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateFeeQuotation>>
+>;
+export type GenerateFeeQuotationMutationBody =
+  BodyType<GenerateFeeQuotationBody>;
+export type GenerateFeeQuotationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateFeeQuotation
+ */
+export const useGenerateFeeQuotation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateFeeQuotation>>,
+    TError,
+    { data: BodyType<GenerateFeeQuotationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateFeeQuotation>>,
+  TError,
+  { data: BodyType<GenerateFeeQuotationBody> },
+  TContext
+> => {
+  return useMutation(getGenerateFeeQuotationMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateAdviceLetter
+ */
+export const getGenerateAdviceLetterUrl = () => {
+  return `/api/convey/advice-letter`;
+};
+
+export const generateAdviceLetter = async (
+  generateAdviceLetterBody: GenerateAdviceLetterBody,
+  options?: RequestInit,
+): Promise<GenerateAdviceLetterResponse> => {
+  return customFetch<GenerateAdviceLetterResponse>(
+    getGenerateAdviceLetterUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateAdviceLetterBody),
+    },
+  );
+};
+
+export const getGenerateAdviceLetterMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateAdviceLetter>>,
+    TError,
+    { data: BodyType<GenerateAdviceLetterBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateAdviceLetter>>,
+  TError,
+  { data: BodyType<GenerateAdviceLetterBody> },
+  TContext
+> => {
+  const mutationKey = ["generateAdviceLetter"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateAdviceLetter>>,
+    { data: BodyType<GenerateAdviceLetterBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateAdviceLetter(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateAdviceLetterMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateAdviceLetter>>
+>;
+export type GenerateAdviceLetterMutationBody =
+  BodyType<GenerateAdviceLetterBody>;
+export type GenerateAdviceLetterMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateAdviceLetter
+ */
+export const useGenerateAdviceLetter = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateAdviceLetter>>,
+    TError,
+    { data: BodyType<GenerateAdviceLetterBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateAdviceLetter>>,
+  TError,
+  { data: BodyType<GenerateAdviceLetterBody> },
+  TContext
+> => {
+  return useMutation(getGenerateAdviceLetterMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateDueDiligence
+ */
+export const getGenerateDueDiligenceUrl = () => {
+  return `/api/convey/due-diligence`;
+};
+
+export const generateDueDiligence = async (
+  generateDueDiligenceBody: GenerateDueDiligenceBody,
+  options?: RequestInit,
+): Promise<GenerateDueDiligenceResponse> => {
+  return customFetch<GenerateDueDiligenceResponse>(
+    getGenerateDueDiligenceUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateDueDiligenceBody),
+    },
+  );
+};
+
+export const getGenerateDueDiligenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDueDiligence>>,
+    TError,
+    { data: BodyType<GenerateDueDiligenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateDueDiligence>>,
+  TError,
+  { data: BodyType<GenerateDueDiligenceBody> },
+  TContext
+> => {
+  const mutationKey = ["generateDueDiligence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateDueDiligence>>,
+    { data: BodyType<GenerateDueDiligenceBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateDueDiligence(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateDueDiligenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateDueDiligence>>
+>;
+export type GenerateDueDiligenceMutationBody =
+  BodyType<GenerateDueDiligenceBody>;
+export type GenerateDueDiligenceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateDueDiligence
+ */
+export const useGenerateDueDiligence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDueDiligence>>,
+    TError,
+    { data: BodyType<GenerateDueDiligenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateDueDiligence>>,
+  TError,
+  { data: BodyType<GenerateDueDiligenceBody> },
+  TContext
+> => {
+  return useMutation(getGenerateDueDiligenceMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateLegalOpinion
+ */
+export const getGenerateLegalOpinionUrl = () => {
+  return `/api/convey/legal-opinion`;
+};
+
+export const generateLegalOpinion = async (
+  generateLegalOpinionBody: GenerateLegalOpinionBody,
+  options?: RequestInit,
+): Promise<GenerateLegalOpinionResponse> => {
+  return customFetch<GenerateLegalOpinionResponse>(
+    getGenerateLegalOpinionUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateLegalOpinionBody),
+    },
+  );
+};
+
+export const getGenerateLegalOpinionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateLegalOpinion>>,
+    TError,
+    { data: BodyType<GenerateLegalOpinionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateLegalOpinion>>,
+  TError,
+  { data: BodyType<GenerateLegalOpinionBody> },
+  TContext
+> => {
+  const mutationKey = ["generateLegalOpinion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateLegalOpinion>>,
+    { data: BodyType<GenerateLegalOpinionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateLegalOpinion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateLegalOpinionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateLegalOpinion>>
+>;
+export type GenerateLegalOpinionMutationBody =
+  BodyType<GenerateLegalOpinionBody>;
+export type GenerateLegalOpinionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateLegalOpinion
+ */
+export const useGenerateLegalOpinion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateLegalOpinion>>,
+    TError,
+    { data: BodyType<GenerateLegalOpinionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateLegalOpinion>>,
+  TError,
+  { data: BodyType<GenerateLegalOpinionBody> },
+  TContext
+> => {
+  return useMutation(getGenerateLegalOpinionMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateRequisition
+ */
+export const getGenerateRequisitionUrl = () => {
+  return `/api/convey/requisition`;
+};
+
+export const generateRequisition = async (
+  generateRequisitionBody: GenerateRequisitionBody,
+  options?: RequestInit,
+): Promise<GenerateRequisitionResponse> => {
+  return customFetch<GenerateRequisitionResponse>(getGenerateRequisitionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateRequisitionBody),
+  });
+};
+
+export const getGenerateRequisitionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateRequisition>>,
+    TError,
+    { data: BodyType<GenerateRequisitionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateRequisition>>,
+  TError,
+  { data: BodyType<GenerateRequisitionBody> },
+  TContext
+> => {
+  const mutationKey = ["generateRequisition"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateRequisition>>,
+    { data: BodyType<GenerateRequisitionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateRequisition(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateRequisitionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateRequisition>>
+>;
+export type GenerateRequisitionMutationBody = BodyType<GenerateRequisitionBody>;
+export type GenerateRequisitionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateRequisition
+ */
+export const useGenerateRequisition = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateRequisition>>,
+    TError,
+    { data: BodyType<GenerateRequisitionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateRequisition>>,
+  TError,
+  { data: BodyType<GenerateRequisitionBody> },
+  TContext
+> => {
+  return useMutation(getGenerateRequisitionMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateCompletionStatement
+ */
+export const getGenerateCompletionStatementUrl = () => {
+  return `/api/convey/completion-statement`;
+};
+
+export const generateCompletionStatement = async (
+  generateCompletionStatementBody: GenerateCompletionStatementBody,
+  options?: RequestInit,
+): Promise<GenerateCompletionStatementResponse> => {
+  return customFetch<GenerateCompletionStatementResponse>(
+    getGenerateCompletionStatementUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateCompletionStatementBody),
+    },
+  );
+};
+
+export const getGenerateCompletionStatementMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCompletionStatement>>,
+    TError,
+    { data: BodyType<GenerateCompletionStatementBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateCompletionStatement>>,
+  TError,
+  { data: BodyType<GenerateCompletionStatementBody> },
+  TContext
+> => {
+  const mutationKey = ["generateCompletionStatement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateCompletionStatement>>,
+    { data: BodyType<GenerateCompletionStatementBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateCompletionStatement(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateCompletionStatementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateCompletionStatement>>
+>;
+export type GenerateCompletionStatementMutationBody =
+  BodyType<GenerateCompletionStatementBody>;
+export type GenerateCompletionStatementMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateCompletionStatement
+ */
+export const useGenerateCompletionStatement = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCompletionStatement>>,
+    TError,
+    { data: BodyType<GenerateCompletionStatementBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateCompletionStatement>>,
+  TError,
+  { data: BodyType<GenerateCompletionStatementBody> },
+  TContext
+> => {
+  return useMutation(getGenerateCompletionStatementMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI researchCaseLaw
+ */
+export const getResearchCaseLawUrl = () => {
+  return `/api/convey/case-research`;
+};
+
+export const researchCaseLaw = async (
+  researchCaseLawBody: ResearchCaseLawBody,
+  options?: RequestInit,
+): Promise<ResearchCaseLawResponse> => {
+  return customFetch<ResearchCaseLawResponse>(getResearchCaseLawUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(researchCaseLawBody),
+  });
+};
+
+export const getResearchCaseLawMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof researchCaseLaw>>,
+    TError,
+    { data: BodyType<ResearchCaseLawBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof researchCaseLaw>>,
+  TError,
+  { data: BodyType<ResearchCaseLawBody> },
+  TContext
+> => {
+  const mutationKey = ["researchCaseLaw"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof researchCaseLaw>>,
+    { data: BodyType<ResearchCaseLawBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return researchCaseLaw(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResearchCaseLawMutationResult = NonNullable<
+  Awaited<ReturnType<typeof researchCaseLaw>>
+>;
+export type ResearchCaseLawMutationBody = BodyType<ResearchCaseLawBody>;
+export type ResearchCaseLawMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI researchCaseLaw
+ */
+export const useResearchCaseLaw = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof researchCaseLaw>>,
+    TError,
+    { data: BodyType<ResearchCaseLawBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof researchCaseLaw>>,
+  TError,
+  { data: BodyType<ResearchCaseLawBody> },
+  TContext
+> => {
+  return useMutation(getResearchCaseLawMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI calculateStampDuty
+ */
+export const getCalculateStampDutyUrl = () => {
+  return `/api/convey/stamp-duty`;
+};
+
+export const calculateStampDuty = async (
+  calculateStampDutyBody: CalculateStampDutyBody,
+  options?: RequestInit,
+): Promise<CalculateStampDutyResponse> => {
+  return customFetch<CalculateStampDutyResponse>(getCalculateStampDutyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(calculateStampDutyBody),
+  });
+};
+
+export const getCalculateStampDutyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof calculateStampDuty>>,
+    TError,
+    { data: BodyType<CalculateStampDutyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof calculateStampDuty>>,
+  TError,
+  { data: BodyType<CalculateStampDutyBody> },
+  TContext
+> => {
+  const mutationKey = ["calculateStampDuty"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof calculateStampDuty>>,
+    { data: BodyType<CalculateStampDutyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return calculateStampDuty(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CalculateStampDutyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof calculateStampDuty>>
+>;
+export type CalculateStampDutyMutationBody = BodyType<CalculateStampDutyBody>;
+export type CalculateStampDutyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI calculateStampDuty
+ */
+export const useCalculateStampDuty = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof calculateStampDuty>>,
+    TError,
+    { data: BodyType<CalculateStampDutyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof calculateStampDuty>>,
+  TError,
+  { data: BodyType<CalculateStampDutyBody> },
+  TContext
+> => {
+  return useMutation(getCalculateStampDutyMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI analyzeRPGT
+ */
+export const getAnalyzeRPGTUrl = () => {
+  return `/api/convey/rpgt`;
+};
+
+export const analyzeRPGT = async (
+  analyzeRPGTBody: AnalyzeRPGTBody,
+  options?: RequestInit,
+): Promise<AnalyzeRPGTResponse> => {
+  return customFetch<AnalyzeRPGTResponse>(getAnalyzeRPGTUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeRPGTBody),
+  });
+};
+
+export const getAnalyzeRPGTMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeRPGT>>,
+    TError,
+    { data: BodyType<AnalyzeRPGTBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeRPGT>>,
+  TError,
+  { data: BodyType<AnalyzeRPGTBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeRPGT"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeRPGT>>,
+    { data: BodyType<AnalyzeRPGTBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeRPGT(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeRPGTMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeRPGT>>
+>;
+export type AnalyzeRPGTMutationBody = BodyType<AnalyzeRPGTBody>;
+export type AnalyzeRPGTMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI analyzeRPGT
+ */
+export const useAnalyzeRPGT = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeRPGT>>,
+    TError,
+    { data: BodyType<AnalyzeRPGTBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeRPGT>>,
+  TError,
+  { data: BodyType<AnalyzeRPGTBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeRPGTMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI draftTenancy
+ */
+export const getDraftTenancyUrl = () => {
+  return `/api/convey/tenancy`;
+};
+
+export const draftTenancy = async (
+  draftTenancyBody: DraftTenancyBody,
+  options?: RequestInit,
+): Promise<DraftTenancyResponse> => {
+  return customFetch<DraftTenancyResponse>(getDraftTenancyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(draftTenancyBody),
+  });
+};
+
+export const getDraftTenancyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftTenancy>>,
+    TError,
+    { data: BodyType<DraftTenancyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof draftTenancy>>,
+  TError,
+  { data: BodyType<DraftTenancyBody> },
+  TContext
+> => {
+  const mutationKey = ["draftTenancy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof draftTenancy>>,
+    { data: BodyType<DraftTenancyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return draftTenancy(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DraftTenancyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof draftTenancy>>
+>;
+export type DraftTenancyMutationBody = BodyType<DraftTenancyBody>;
+export type DraftTenancyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI draftTenancy
+ */
+export const useDraftTenancy = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftTenancy>>,
+    TError,
+    { data: BodyType<DraftTenancyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof draftTenancy>>,
+  TError,
+  { data: BodyType<DraftTenancyBody> },
+  TContext
+> => {
+  return useMutation(getDraftTenancyMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI draftPowerOfAttorney
+ */
+export const getDraftPowerOfAttorneyUrl = () => {
+  return `/api/convey/power-of-attorney`;
+};
+
+export const draftPowerOfAttorney = async (
+  draftPowerOfAttorneyBody: DraftPowerOfAttorneyBody,
+  options?: RequestInit,
+): Promise<DraftPowerOfAttorneyResponse> => {
+  return customFetch<DraftPowerOfAttorneyResponse>(
+    getDraftPowerOfAttorneyUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(draftPowerOfAttorneyBody),
+    },
+  );
+};
+
+export const getDraftPowerOfAttorneyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftPowerOfAttorney>>,
+    TError,
+    { data: BodyType<DraftPowerOfAttorneyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof draftPowerOfAttorney>>,
+  TError,
+  { data: BodyType<DraftPowerOfAttorneyBody> },
+  TContext
+> => {
+  const mutationKey = ["draftPowerOfAttorney"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof draftPowerOfAttorney>>,
+    { data: BodyType<DraftPowerOfAttorneyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return draftPowerOfAttorney(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DraftPowerOfAttorneyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof draftPowerOfAttorney>>
+>;
+export type DraftPowerOfAttorneyMutationBody =
+  BodyType<DraftPowerOfAttorneyBody>;
+export type DraftPowerOfAttorneyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI draftPowerOfAttorney
+ */
+export const useDraftPowerOfAttorney = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftPowerOfAttorney>>,
+    TError,
+    { data: BodyType<DraftPowerOfAttorneyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof draftPowerOfAttorney>>,
+  TError,
+  { data: BodyType<DraftPowerOfAttorneyBody> },
+  TContext
+> => {
+  return useMutation(getDraftPowerOfAttorneyMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseCaveat
+ */
+export const getAdviseCaveatUrl = () => {
+  return `/api/convey/caveat`;
+};
+
+export const adviseCaveat = async (
+  adviseCaveatBody: AdviseCaveatBody,
+  options?: RequestInit,
+): Promise<AdviseCaveatResponse> => {
+  return customFetch<AdviseCaveatResponse>(getAdviseCaveatUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adviseCaveatBody),
+  });
+};
+
+export const getAdviseCaveatMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseCaveat>>,
+    TError,
+    { data: BodyType<AdviseCaveatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseCaveat>>,
+  TError,
+  { data: BodyType<AdviseCaveatBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseCaveat"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseCaveat>>,
+    { data: BodyType<AdviseCaveatBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseCaveat(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseCaveatMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseCaveat>>
+>;
+export type AdviseCaveatMutationBody = BodyType<AdviseCaveatBody>;
+export type AdviseCaveatMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseCaveat
+ */
+export const useAdviseCaveat = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseCaveat>>,
+    TError,
+    { data: BodyType<AdviseCaveatBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseCaveat>>,
+  TError,
+  { data: BodyType<AdviseCaveatBody> },
+  TContext
+> => {
+  return useMutation(getAdviseCaveatMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI analyzeLandSearch
+ */
+export const getAnalyzeLandSearchUrl = () => {
+  return `/api/convey/land-search`;
+};
+
+export const analyzeLandSearch = async (
+  analyzeLandSearchBody: AnalyzeLandSearchBody,
+  options?: RequestInit,
+): Promise<AnalyzeLandSearchResponse> => {
+  return customFetch<AnalyzeLandSearchResponse>(getAnalyzeLandSearchUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeLandSearchBody),
+  });
+};
+
+export const getAnalyzeLandSearchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeLandSearch>>,
+    TError,
+    { data: BodyType<AnalyzeLandSearchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeLandSearch>>,
+  TError,
+  { data: BodyType<AnalyzeLandSearchBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeLandSearch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeLandSearch>>,
+    { data: BodyType<AnalyzeLandSearchBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeLandSearch(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeLandSearchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeLandSearch>>
+>;
+export type AnalyzeLandSearchMutationBody = BodyType<AnalyzeLandSearchBody>;
+export type AnalyzeLandSearchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI analyzeLandSearch
+ */
+export const useAnalyzeLandSearch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeLandSearch>>,
+    TError,
+    { data: BodyType<AnalyzeLandSearchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeLandSearch>>,
+  TError,
+  { data: BodyType<AnalyzeLandSearchBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeLandSearchMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseDeveloperClaim
+ */
+export const getAdviseDeveloperClaimUrl = () => {
+  return `/api/convey/developer-claim`;
+};
+
+export const adviseDeveloperClaim = async (
+  adviseDeveloperClaimBody: AdviseDeveloperClaimBody,
+  options?: RequestInit,
+): Promise<AdviseDeveloperClaimResponse> => {
+  return customFetch<AdviseDeveloperClaimResponse>(
+    getAdviseDeveloperClaimUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adviseDeveloperClaimBody),
+    },
+  );
+};
+
+export const getAdviseDeveloperClaimMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseDeveloperClaim>>,
+    TError,
+    { data: BodyType<AdviseDeveloperClaimBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseDeveloperClaim>>,
+  TError,
+  { data: BodyType<AdviseDeveloperClaimBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseDeveloperClaim"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseDeveloperClaim>>,
+    { data: BodyType<AdviseDeveloperClaimBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseDeveloperClaim(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseDeveloperClaimMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseDeveloperClaim>>
+>;
+export type AdviseDeveloperClaimMutationBody =
+  BodyType<AdviseDeveloperClaimBody>;
+export type AdviseDeveloperClaimMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseDeveloperClaim
+ */
+export const useAdviseDeveloperClaim = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseDeveloperClaim>>,
+    TError,
+    { data: BodyType<AdviseDeveloperClaimBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseDeveloperClaim>>,
+  TError,
+  { data: BodyType<AdviseDeveloperClaimBody> },
+  TContext
+> => {
+  return useMutation(getAdviseDeveloperClaimMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseBankruptcySearch
+ */
+export const getAdviseBankruptcySearchUrl = () => {
+  return `/api/convey/bankruptcy-search`;
+};
+
+export const adviseBankruptcySearch = async (
+  adviseBankruptcySearchBody: AdviseBankruptcySearchBody,
+  options?: RequestInit,
+): Promise<AdviseBankruptcySearchResponse> => {
+  return customFetch<AdviseBankruptcySearchResponse>(
+    getAdviseBankruptcySearchUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adviseBankruptcySearchBody),
+    },
+  );
+};
+
+export const getAdviseBankruptcySearchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseBankruptcySearch>>,
+    TError,
+    { data: BodyType<AdviseBankruptcySearchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseBankruptcySearch>>,
+  TError,
+  { data: BodyType<AdviseBankruptcySearchBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseBankruptcySearch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseBankruptcySearch>>,
+    { data: BodyType<AdviseBankruptcySearchBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseBankruptcySearch(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseBankruptcySearchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseBankruptcySearch>>
+>;
+export type AdviseBankruptcySearchMutationBody =
+  BodyType<AdviseBankruptcySearchBody>;
+export type AdviseBankruptcySearchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseBankruptcySearch
+ */
+export const useAdviseBankruptcySearch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseBankruptcySearch>>,
+    TError,
+    { data: BodyType<AdviseBankruptcySearchBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseBankruptcySearch>>,
+  TError,
+  { data: BodyType<AdviseBankruptcySearchBody> },
+  TContext
+> => {
+  return useMutation(getAdviseBankruptcySearchMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseForeignPurchase
+ */
+export const getAdviseForeignPurchaseUrl = () => {
+  return `/api/convey/foreign-purchase`;
+};
+
+export const adviseForeignPurchase = async (
+  adviseForeignPurchaseBody: AdviseForeignPurchaseBody,
+  options?: RequestInit,
+): Promise<AdviseForeignPurchaseResponse> => {
+  return customFetch<AdviseForeignPurchaseResponse>(
+    getAdviseForeignPurchaseUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(adviseForeignPurchaseBody),
+    },
+  );
+};
+
+export const getAdviseForeignPurchaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseForeignPurchase>>,
+    TError,
+    { data: BodyType<AdviseForeignPurchaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseForeignPurchase>>,
+  TError,
+  { data: BodyType<AdviseForeignPurchaseBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseForeignPurchase"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseForeignPurchase>>,
+    { data: BodyType<AdviseForeignPurchaseBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseForeignPurchase(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseForeignPurchaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseForeignPurchase>>
+>;
+export type AdviseForeignPurchaseMutationBody =
+  BodyType<AdviseForeignPurchaseBody>;
+export type AdviseForeignPurchaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseForeignPurchase
+ */
+export const useAdviseForeignPurchase = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseForeignPurchase>>,
+    TError,
+    { data: BodyType<AdviseForeignPurchaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseForeignPurchase>>,
+  TError,
+  { data: BodyType<AdviseForeignPurchaseBody> },
+  TContext
+> => {
+  return useMutation(getAdviseForeignPurchaseMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI reviewLoanDoc
+ */
+export const getReviewLoanDocUrl = () => {
+  return `/api/convey/loan-doc`;
+};
+
+export const reviewLoanDoc = async (
+  reviewLoanDocBody: ReviewLoanDocBody,
+  options?: RequestInit,
+): Promise<ReviewLoanDocResponse> => {
+  return customFetch<ReviewLoanDocResponse>(getReviewLoanDocUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reviewLoanDocBody),
+  });
+};
+
+export const getReviewLoanDocMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewLoanDoc>>,
+    TError,
+    { data: BodyType<ReviewLoanDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reviewLoanDoc>>,
+  TError,
+  { data: BodyType<ReviewLoanDocBody> },
+  TContext
+> => {
+  const mutationKey = ["reviewLoanDoc"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reviewLoanDoc>>,
+    { data: BodyType<ReviewLoanDocBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reviewLoanDoc(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReviewLoanDocMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reviewLoanDoc>>
+>;
+export type ReviewLoanDocMutationBody = BodyType<ReviewLoanDocBody>;
+export type ReviewLoanDocMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI reviewLoanDoc
+ */
+export const useReviewLoanDoc = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewLoanDoc>>,
+    TError,
+    { data: BodyType<ReviewLoanDocBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reviewLoanDoc>>,
+  TError,
+  { data: BodyType<ReviewLoanDocBody> },
+  TContext
+> => {
+  return useMutation(getReviewLoanDocMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseTaxCompliance
+ */
+export const getAdviseTaxComplianceUrl = () => {
+  return `/api/convey/tax-compliance`;
+};
+
+export const adviseTaxCompliance = async (
+  adviseTaxComplianceBody: AdviseTaxComplianceBody,
+  options?: RequestInit,
+): Promise<AdviseTaxComplianceResponse> => {
+  return customFetch<AdviseTaxComplianceResponse>(getAdviseTaxComplianceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adviseTaxComplianceBody),
+  });
+};
+
+export const getAdviseTaxComplianceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseTaxCompliance>>,
+    TError,
+    { data: BodyType<AdviseTaxComplianceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseTaxCompliance>>,
+  TError,
+  { data: BodyType<AdviseTaxComplianceBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseTaxCompliance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseTaxCompliance>>,
+    { data: BodyType<AdviseTaxComplianceBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseTaxCompliance(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseTaxComplianceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseTaxCompliance>>
+>;
+export type AdviseTaxComplianceMutationBody = BodyType<AdviseTaxComplianceBody>;
+export type AdviseTaxComplianceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseTaxCompliance
+ */
+export const useAdviseTaxCompliance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseTaxCompliance>>,
+    TError,
+    { data: BodyType<AdviseTaxComplianceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseTaxCompliance>>,
+  TError,
+  { data: BodyType<AdviseTaxComplianceBody> },
+  TContext
+> => {
+  return useMutation(getAdviseTaxComplianceMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI adviseStrata
+ */
+export const getAdviseStrataUrl = () => {
+  return `/api/convey/strata`;
+};
+
+export const adviseStrata = async (
+  adviseStrataBody: AdviseStrataBody,
+  options?: RequestInit,
+): Promise<AdviseStrataResponse> => {
+  return customFetch<AdviseStrataResponse>(getAdviseStrataUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adviseStrataBody),
+  });
+};
+
+export const getAdviseStrataMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseStrata>>,
+    TError,
+    { data: BodyType<AdviseStrataBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adviseStrata>>,
+  TError,
+  { data: BodyType<AdviseStrataBody> },
+  TContext
+> => {
+  const mutationKey = ["adviseStrata"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adviseStrata>>,
+    { data: BodyType<AdviseStrataBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adviseStrata(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdviseStrataMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adviseStrata>>
+>;
+export type AdviseStrataMutationBody = BodyType<AdviseStrataBody>;
+export type AdviseStrataMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI adviseStrata
+ */
+export const useAdviseStrata = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adviseStrata>>,
+    TError,
+    { data: BodyType<AdviseStrataBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adviseStrata>>,
+  TError,
+  { data: BodyType<AdviseStrataBody> },
+  TContext
+> => {
+  return useMutation(getAdviseStrataMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateQuiz
+ */
+export const getGenerateQuizUrl = () => {
+  return `/api/convey/quiz`;
+};
+
+export const generateQuiz = async (
+  generateQuizBody: GenerateQuizBody,
+  options?: RequestInit,
+): Promise<GenerateQuizResponse> => {
+  return customFetch<GenerateQuizResponse>(getGenerateQuizUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateQuizBody),
+  });
+};
+
+export const getGenerateQuizMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateQuiz>>,
+    TError,
+    { data: BodyType<GenerateQuizBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateQuiz>>,
+  TError,
+  { data: BodyType<GenerateQuizBody> },
+  TContext
+> => {
+  const mutationKey = ["generateQuiz"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateQuiz>>,
+    { data: BodyType<GenerateQuizBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateQuiz(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateQuizMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateQuiz>>
+>;
+export type GenerateQuizMutationBody = BodyType<GenerateQuizBody>;
+export type GenerateQuizMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateQuiz
+ */
+export const useGenerateQuiz = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateQuiz>>,
+    TError,
+    { data: BodyType<GenerateQuizBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateQuiz>>,
+  TError,
+  { data: BodyType<GenerateQuizBody> },
+  TContext
+> => {
+  return useMutation(getGenerateQuizMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI simulateTransaction
+ */
+export const getSimulateTransactionUrl = () => {
+  return `/api/convey/simulate`;
+};
+
+export const simulateTransaction = async (
+  simulateTransactionBody: SimulateTransactionBody,
+  options?: RequestInit,
+): Promise<SimulateTransactionResponse> => {
+  return customFetch<SimulateTransactionResponse>(getSimulateTransactionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(simulateTransactionBody),
+  });
+};
+
+export const getSimulateTransactionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateTransaction>>,
+    TError,
+    { data: BodyType<SimulateTransactionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof simulateTransaction>>,
+  TError,
+  { data: BodyType<SimulateTransactionBody> },
+  TContext
+> => {
+  const mutationKey = ["simulateTransaction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof simulateTransaction>>,
+    { data: BodyType<SimulateTransactionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return simulateTransaction(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SimulateTransactionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof simulateTransaction>>
+>;
+export type SimulateTransactionMutationBody = BodyType<SimulateTransactionBody>;
+export type SimulateTransactionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI simulateTransaction
+ */
+export const useSimulateTransaction = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateTransaction>>,
+    TError,
+    { data: BodyType<SimulateTransactionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof simulateTransaction>>,
+  TError,
+  { data: BodyType<SimulateTransactionBody> },
+  TContext
+> => {
+  return useMutation(getSimulateTransactionMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI searchClauseLibrary
+ */
+export const getSearchClauseLibraryUrl = () => {
+  return `/api/convey/clause-library`;
+};
+
+export const searchClauseLibrary = async (
+  searchClauseLibraryBody: SearchClauseLibraryBody,
+  options?: RequestInit,
+): Promise<SearchClauseLibraryResponse> => {
+  return customFetch<SearchClauseLibraryResponse>(getSearchClauseLibraryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(searchClauseLibraryBody),
+  });
+};
+
+export const getSearchClauseLibraryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof searchClauseLibrary>>,
+    TError,
+    { data: BodyType<SearchClauseLibraryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof searchClauseLibrary>>,
+  TError,
+  { data: BodyType<SearchClauseLibraryBody> },
+  TContext
+> => {
+  const mutationKey = ["searchClauseLibrary"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof searchClauseLibrary>>,
+    { data: BodyType<SearchClauseLibraryBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return searchClauseLibrary(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SearchClauseLibraryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof searchClauseLibrary>>
+>;
+export type SearchClauseLibraryMutationBody = BodyType<SearchClauseLibraryBody>;
+export type SearchClauseLibraryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI searchClauseLibrary
+ */
+export const useSearchClauseLibrary = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof searchClauseLibrary>>,
+    TError,
+    { data: BodyType<SearchClauseLibraryBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof searchClauseLibrary>>,
+  TError,
+  { data: BodyType<SearchClauseLibraryBody> },
+  TContext
+> => {
+  return useMutation(getSearchClauseLibraryMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI analyzeDocument
+ */
+export const getAnalyzeDocumentUrl = () => {
+  return `/api/convey/analyze-doc`;
+};
+
+export const analyzeDocument = async (
+  analyzeDocumentBody: AnalyzeDocumentBody,
+  options?: RequestInit,
+): Promise<AnalyzeDocumentResponse> => {
+  return customFetch<AnalyzeDocumentResponse>(getAnalyzeDocumentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeDocumentBody),
+  });
+};
+
+export const getAnalyzeDocumentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeDocument>>,
+    TError,
+    { data: BodyType<AnalyzeDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeDocument>>,
+  TError,
+  { data: BodyType<AnalyzeDocumentBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeDocument>>,
+    { data: BodyType<AnalyzeDocumentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeDocument(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeDocument>>
+>;
+export type AnalyzeDocumentMutationBody = BodyType<AnalyzeDocumentBody>;
+export type AnalyzeDocumentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI analyzeDocument
+ */
+export const useAnalyzeDocument = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeDocument>>,
+    TError,
+    { data: BodyType<AnalyzeDocumentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeDocument>>,
+  TError,
+  { data: BodyType<AnalyzeDocumentBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeDocumentMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI checkCompliance
+ */
+export const getCheckComplianceUrl = () => {
+  return `/api/convey/compliance`;
+};
+
+export const checkCompliance = async (
+  checkComplianceBody: CheckComplianceBody,
+  options?: RequestInit,
+): Promise<CheckComplianceResponse> => {
+  return customFetch<CheckComplianceResponse>(getCheckComplianceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkComplianceBody),
+  });
+};
+
+export const getCheckComplianceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkCompliance>>,
+    TError,
+    { data: BodyType<CheckComplianceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof checkCompliance>>,
+  TError,
+  { data: BodyType<CheckComplianceBody> },
+  TContext
+> => {
+  const mutationKey = ["checkCompliance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof checkCompliance>>,
+    { data: BodyType<CheckComplianceBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return checkCompliance(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CheckComplianceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof checkCompliance>>
+>;
+export type CheckComplianceMutationBody = BodyType<CheckComplianceBody>;
+export type CheckComplianceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI checkCompliance
+ */
+export const useCheckCompliance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkCompliance>>,
+    TError,
+    { data: BodyType<CheckComplianceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof checkCompliance>>,
+  TError,
+  { data: BodyType<CheckComplianceBody> },
+  TContext
+> => {
+  return useMutation(getCheckComplianceMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateTimeline
+ */
+export const getGenerateTimelineUrl = () => {
+  return `/api/convey/timeline`;
+};
+
+export const generateTimeline = async (
+  generateTimelineBody: GenerateTimelineBody,
+  options?: RequestInit,
+): Promise<GenerateTimelineResponse> => {
+  return customFetch<GenerateTimelineResponse>(getGenerateTimelineUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateTimelineBody),
+  });
+};
+
+export const getGenerateTimelineMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTimeline>>,
+    TError,
+    { data: BodyType<GenerateTimelineBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateTimeline>>,
+  TError,
+  { data: BodyType<GenerateTimelineBody> },
+  TContext
+> => {
+  const mutationKey = ["generateTimeline"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateTimeline>>,
+    { data: BodyType<GenerateTimelineBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateTimeline(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateTimelineMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateTimeline>>
+>;
+export type GenerateTimelineMutationBody = BodyType<GenerateTimelineBody>;
+export type GenerateTimelineMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateTimeline
+ */
+export const useGenerateTimeline = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTimeline>>,
+    TError,
+    { data: BodyType<GenerateTimelineBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateTimeline>>,
+  TError,
+  { data: BodyType<GenerateTimelineBody> },
+  TContext
+> => {
+  return useMutation(getGenerateTimelineMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateMockExam
+ */
+export const getGenerateMockExamUrl = () => {
+  return `/api/convey/mock-exam`;
+};
+
+export const generateMockExam = async (
+  generateMockExamBody: GenerateMockExamBody,
+  options?: RequestInit,
+): Promise<GenerateMockExamResponse> => {
+  return customFetch<GenerateMockExamResponse>(getGenerateMockExamUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateMockExamBody),
+  });
+};
+
+export const getGenerateMockExamMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateMockExam>>,
+    TError,
+    { data: BodyType<GenerateMockExamBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateMockExam>>,
+  TError,
+  { data: BodyType<GenerateMockExamBody> },
+  TContext
+> => {
+  const mutationKey = ["generateMockExam"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateMockExam>>,
+    { data: BodyType<GenerateMockExamBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateMockExam(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateMockExamMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateMockExam>>
+>;
+export type GenerateMockExamMutationBody = BodyType<GenerateMockExamBody>;
+export type GenerateMockExamMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateMockExam
+ */
+export const useGenerateMockExam = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateMockExam>>,
+    TError,
+    { data: BodyType<GenerateMockExamBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateMockExam>>,
+  TError,
+  { data: BodyType<GenerateMockExamBody> },
+  TContext
+> => {
+  return useMutation(getGenerateMockExamMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI analyzeCase
+ */
+export const getAnalyzeCaseUrl = () => {
+  return `/api/convey/analyze-case`;
+};
+
+export const analyzeCase = async (
+  analyzeCaseBody: AnalyzeCaseBody,
+  options?: RequestInit,
+): Promise<AnalyzeCaseResponse> => {
+  return customFetch<AnalyzeCaseResponse>(getAnalyzeCaseUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeCaseBody),
+  });
+};
+
+export const getAnalyzeCaseMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeCase>>,
+    TError,
+    { data: BodyType<AnalyzeCaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeCase>>,
+  TError,
+  { data: BodyType<AnalyzeCaseBody> },
+  TContext
+> => {
+  const mutationKey = ["analyzeCase"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeCase>>,
+    { data: BodyType<AnalyzeCaseBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeCase(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeCaseMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeCase>>
+>;
+export type AnalyzeCaseMutationBody = BodyType<AnalyzeCaseBody>;
+export type AnalyzeCaseMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI analyzeCase
+ */
+export const useAnalyzeCase = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeCase>>,
+    TError,
+    { data: BodyType<AnalyzeCaseBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeCase>>,
+  TError,
+  { data: BodyType<AnalyzeCaseBody> },
+  TContext
+> => {
+  return useMutation(getAnalyzeCaseMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI draftCorpResolution
+ */
+export const getDraftCorpResolutionUrl = () => {
+  return `/api/convey/corp-resolution`;
+};
+
+export const draftCorpResolution = async (
+  draftCorpResolutionBody: DraftCorpResolutionBody,
+  options?: RequestInit,
+): Promise<DraftCorpResolutionResponse> => {
+  return customFetch<DraftCorpResolutionResponse>(getDraftCorpResolutionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(draftCorpResolutionBody),
+  });
+};
+
+export const getDraftCorpResolutionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftCorpResolution>>,
+    TError,
+    { data: BodyType<DraftCorpResolutionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof draftCorpResolution>>,
+  TError,
+  { data: BodyType<DraftCorpResolutionBody> },
+  TContext
+> => {
+  const mutationKey = ["draftCorpResolution"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof draftCorpResolution>>,
+    { data: BodyType<DraftCorpResolutionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return draftCorpResolution(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DraftCorpResolutionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof draftCorpResolution>>
+>;
+export type DraftCorpResolutionMutationBody = BodyType<DraftCorpResolutionBody>;
+export type DraftCorpResolutionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI draftCorpResolution
+ */
+export const useDraftCorpResolution = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftCorpResolution>>,
+    TError,
+    { data: BodyType<DraftCorpResolutionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof draftCorpResolution>>,
+  TError,
+  { data: BodyType<DraftCorpResolutionBody> },
+  TContext
+> => {
+  return useMutation(getDraftCorpResolutionMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI generateCorpPropertyDD
+ */
+export const getGenerateCorpPropertyDDUrl = () => {
+  return `/api/convey/corp-due-diligence`;
+};
+
+export const generateCorpPropertyDD = async (
+  generateCorpPropertyDDBody: GenerateCorpPropertyDDBody,
+  options?: RequestInit,
+): Promise<GenerateCorpPropertyDDResponse> => {
+  return customFetch<GenerateCorpPropertyDDResponse>(
+    getGenerateCorpPropertyDDUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(generateCorpPropertyDDBody),
+    },
+  );
+};
+
+export const getGenerateCorpPropertyDDMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCorpPropertyDD>>,
+    TError,
+    { data: BodyType<GenerateCorpPropertyDDBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateCorpPropertyDD>>,
+  TError,
+  { data: BodyType<GenerateCorpPropertyDDBody> },
+  TContext
+> => {
+  const mutationKey = ["generateCorpPropertyDD"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateCorpPropertyDD>>,
+    { data: BodyType<GenerateCorpPropertyDDBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateCorpPropertyDD(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateCorpPropertyDDMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateCorpPropertyDD>>
+>;
+export type GenerateCorpPropertyDDMutationBody =
+  BodyType<GenerateCorpPropertyDDBody>;
+export type GenerateCorpPropertyDDMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI generateCorpPropertyDD
+ */
+export const useGenerateCorpPropertyDD = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateCorpPropertyDD>>,
+    TError,
+    { data: BodyType<GenerateCorpPropertyDDBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateCorpPropertyDD>>,
+  TError,
+  { data: BodyType<GenerateCorpPropertyDDBody> },
+  TContext
+> => {
+  return useMutation(getGenerateCorpPropertyDDMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI draftJVAgreement
+ */
+export const getDraftJVAgreementUrl = () => {
+  return `/api/convey/jv-agreement`;
+};
+
+export const draftJVAgreement = async (
+  draftJVAgreementBody: DraftJVAgreementBody,
+  options?: RequestInit,
+): Promise<DraftJVAgreementResponse> => {
+  return customFetch<DraftJVAgreementResponse>(getDraftJVAgreementUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(draftJVAgreementBody),
+  });
+};
+
+export const getDraftJVAgreementMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftJVAgreement>>,
+    TError,
+    { data: BodyType<DraftJVAgreementBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof draftJVAgreement>>,
+  TError,
+  { data: BodyType<DraftJVAgreementBody> },
+  TContext
+> => {
+  const mutationKey = ["draftJVAgreement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof draftJVAgreement>>,
+    { data: BodyType<DraftJVAgreementBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return draftJVAgreement(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DraftJVAgreementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof draftJVAgreement>>
+>;
+export type DraftJVAgreementMutationBody = BodyType<DraftJVAgreementBody>;
+export type DraftJVAgreementMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI draftJVAgreement
+ */
+export const useDraftJVAgreement = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftJVAgreement>>,
+    TError,
+    { data: BodyType<DraftJVAgreementBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof draftJVAgreement>>,
+  TError,
+  { data: BodyType<DraftJVAgreementBody> },
+  TContext
+> => {
+  return useMutation(getDraftJVAgreementMutationOptions(options));
+};
+
+/**
+ * @summary MyConveyLitAI draftGuarantee
+ */
+export const getDraftGuaranteeUrl = () => {
+  return `/api/convey/guarantee`;
+};
+
+export const draftGuarantee = async (
+  draftGuaranteeBody: DraftGuaranteeBody,
+  options?: RequestInit,
+): Promise<DraftGuaranteeResponse> => {
+  return customFetch<DraftGuaranteeResponse>(getDraftGuaranteeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(draftGuaranteeBody),
+  });
+};
+
+export const getDraftGuaranteeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftGuarantee>>,
+    TError,
+    { data: BodyType<DraftGuaranteeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof draftGuarantee>>,
+  TError,
+  { data: BodyType<DraftGuaranteeBody> },
+  TContext
+> => {
+  const mutationKey = ["draftGuarantee"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof draftGuarantee>>,
+    { data: BodyType<DraftGuaranteeBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return draftGuarantee(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DraftGuaranteeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof draftGuarantee>>
+>;
+export type DraftGuaranteeMutationBody = BodyType<DraftGuaranteeBody>;
+export type DraftGuaranteeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary MyConveyLitAI draftGuarantee
+ */
+export const useDraftGuarantee = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof draftGuarantee>>,
+    TError,
+    { data: BodyType<DraftGuaranteeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof draftGuarantee>>,
+  TError,
+  { data: BodyType<DraftGuaranteeBody> },
+  TContext
+> => {
+  return useMutation(getDraftGuaranteeMutationOptions(options));
 };

@@ -12,6 +12,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
 import { handleStripeEventForProvisioning } from "./lib/provisioning";
+import { handleConveyStripeEvent } from "./lib/conveyStripe";
+import { attachUser } from "./middlewares/conveyAuth";
 
 const app: Express = express();
 
@@ -37,6 +39,10 @@ app.post(
       // Auto-provision subscribers (access code + emails) on completed checkouts.
       void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
         logger.error({ err }, "Stripe provisioning hook failed");
+      });
+      // Mirror subscription state onto MyConveyLitAI user records.
+      void handleConveyStripeEvent(req.body as Buffer).catch((err) => {
+        logger.error({ err }, "Convey Stripe hook failed");
       });
       res.status(200).json({ received: true });
     } catch (error) {
@@ -83,6 +89,9 @@ app.use(
     ),
   })),
 );
+
+// Parse the MyConveyLitAI Bearer token (if any) and attach the live user record.
+app.use(attachUser);
 
 app.use("/api", router);
 

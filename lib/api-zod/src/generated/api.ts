@@ -832,3 +832,541 @@ export const UpdateContributionResponse = zod.object({
 export const DeleteContributionParams = zod.object({
   id: zod.coerce.number(),
 });
+
+/**
+ * @summary MyConveyLitAI verifyPassword
+ */
+export const VerifyPasswordBody = zod.object({
+  accessCode: zod.string().optional(),
+  username: zod.string().optional(),
+  password: zod.string().optional(),
+});
+
+export const VerifyPasswordResponse = zod.object({
+  success: zod.boolean(),
+  token: zod.string().optional(),
+  user: zod.record(zod.string(), zod.unknown()).optional(),
+});
+
+/**
+ * @summary MyConveyLitAI sendChatMessage
+ */
+export const SendChatMessageBody = zod.object({
+  history: zod.array(
+    zod.object({
+      role: zod.enum(["user", "model"]),
+      content: zod.string(),
+    }),
+  ),
+  message: zod.string(),
+});
+
+export const SendChatMessageResponse = zod.object({
+  response: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateDraft
+ */
+export const GenerateDraftBody = zod.object({
+  clauseType: zod.string(),
+  variables: zod.string().optional(),
+  actingFor: zod.string().optional(),
+  tone: zod.string().optional(),
+  length: zod.string().optional(),
+});
+
+export const GenerateDraftResponse = zod.object({
+  draft: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI scanTransactionRisk
+ */
+export const ScanTransactionRiskBody = zod.object({
+  scenario: zod.string(),
+  transactionType: zod.string().optional(),
+});
+
+export const ScanTransactionRiskResponse = zod.object({
+  analysis: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateChecklist
+ */
+export const GenerateChecklistBody = zod.object({
+  transactionType: zod.string(),
+  details: zod.string().optional(),
+});
+
+export const GenerateChecklistResponse = zod.object({
+  checklist: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI calculateDeadlines
+ */
+export const CalculateDeadlinesBody = zod.object({
+  transactionType: zod.string(),
+  keyDate: zod.string(),
+  additionalDates: zod.string().optional(),
+});
+
+export const CalculateDeadlinesResponse = zod.object({
+  deadlines: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI reviewSpaClause
+ */
+export const ReviewSpaClauseBody = zod.object({
+  clauseText: zod.string(),
+  actingFor: zod.string().optional(),
+  context: zod.string().optional(),
+});
+
+export const ReviewSpaClauseResponse = zod.object({
+  review: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI compareClauses
+ */
+export const CompareClausesBody = zod.object({
+  clauseA: zod.string(),
+  clauseB: zod.string(),
+  context: zod.string().optional(),
+});
+
+export const CompareClausesResponse = zod.object({
+  comparison: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI interpretLandTitle
+ */
+export const InterpretLandTitleBody = zod.object({
+  titleDetails: zod.string(),
+  titleType: zod.string().optional(),
+});
+
+export const InterpretLandTitleResponse = zod.object({
+  interpretation: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateFeeQuotation
+ */
+export const GenerateFeeQuotationBody = zod.object({
+  transactionType: zod.string(),
+  purchasePrice: zod.string(),
+  clientName: zod.string().optional(),
+  additionalInfo: zod.string().optional(),
+});
+
+export const GenerateFeeQuotationResponse = zod.object({
+  quotation: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateAdviceLetter
+ */
+export const GenerateAdviceLetterBody = zod.object({
+  clientName: zod.string(),
+  transactionType: zod.string(),
+  keyFacts: zod.string(),
+  adviceArea: zod.string().optional(),
+});
+
+export const GenerateAdviceLetterResponse = zod.object({
+  letter: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateDueDiligence
+ */
+export const GenerateDueDiligenceBody = zod.object({
+  propertyDetails: zod.string(),
+  transactionType: zod.string().optional(),
+  concerns: zod.string().optional(),
+});
+
+export const GenerateDueDiligenceResponse = zod.object({
+  report: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateLegalOpinion
+ */
+export const GenerateLegalOpinionBody = zod.object({
+  issue: zod.string(),
+  facts: zod.string(),
+  clientPosition: zod.string().optional(),
+});
+
+export const GenerateLegalOpinionResponse = zod.object({
+  opinion: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateRequisition
+ */
+export const GenerateRequisitionBody = zod.object({
+  titleDetails: zod.string(),
+  issues: zod.string(),
+  vendorSolicitor: zod.string().optional(),
+});
+
+export const GenerateRequisitionResponse = zod.object({
+  requisition: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateCompletionStatement
+ */
+export const GenerateCompletionStatementBody = zod.object({
+  purchasePrice: zod.string(),
+  transactionType: zod.string(),
+  adjustments: zod.string().optional(),
+  completionDate: zod.string().optional(),
+});
+
+export const GenerateCompletionStatementResponse = zod.object({
+  statement: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI researchCaseLaw
+ */
+export const ResearchCaseLawBody = zod.object({
+  topic: zod.string(),
+  jurisdiction: zod.string().optional(),
+  specificIssue: zod.string().optional(),
+});
+
+export const ResearchCaseLawResponse = zod.object({
+  research: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI calculateStampDuty
+ */
+export const CalculateStampDutyBody = zod.object({
+  propertyPrice: zod.string(),
+  propertyType: zod.string().optional(),
+  buyerProfile: zod.string().optional(),
+  isFirstHome: zod.string().optional(),
+});
+
+export const CalculateStampDutyResponse = zod.object({
+  calculation: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI analyzeRPGT
+ */
+export const AnalyzeRPGTBody = zod.object({
+  acquisitionDate: zod.string(),
+  disposalDate: zod.string(),
+  acquisitionPrice: zod.string(),
+  disposalPrice: zod.string(),
+  sellerProfile: zod.string().optional(),
+  expenses: zod.string().optional(),
+});
+
+export const AnalyzeRPGTResponse = zod.object({
+  analysis: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI draftTenancy
+ */
+export const DraftTenancyBody = zod.object({
+  propertyDetails: zod.string(),
+  tenancyTerms: zod.string(),
+  specialConditions: zod.string().optional(),
+});
+
+export const DraftTenancyResponse = zod.object({
+  draft: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI draftPowerOfAttorney
+ */
+export const DraftPowerOfAttorneyBody = zod.object({
+  donorDetails: zod.string(),
+  doneeDetails: zod.string(),
+  powers: zod.string(),
+  purpose: zod.string().optional(),
+});
+
+export const DraftPowerOfAttorneyResponse = zod.object({
+  draft: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseCaveat
+ */
+export const AdviseCaveatBody = zod.object({
+  situation: zod.string(),
+  caveatType: zod.string().optional(),
+  propertyDetails: zod.string().optional(),
+});
+
+export const AdviseCaveatResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI analyzeLandSearch
+ */
+export const AnalyzeLandSearchBody = zod.object({
+  searchResults: zod.string(),
+  purpose: zod.string().optional(),
+});
+
+export const AnalyzeLandSearchResponse = zod.object({
+  analysis: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseDeveloperClaim
+ */
+export const AdviseDeveloperClaimBody = zod.object({
+  claimType: zod.string(),
+  details: zod.string(),
+  projectDetails: zod.string().optional(),
+});
+
+export const AdviseDeveloperClaimResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseBankruptcySearch
+ */
+export const AdviseBankruptcySearchBody = zod.object({
+  searchResults: zod.string(),
+  transactionContext: zod.string().optional(),
+});
+
+export const AdviseBankruptcySearchResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseForeignPurchase
+ */
+export const AdviseForeignPurchaseBody = zod.object({
+  buyerNationality: zod.string(),
+  propertyType: zod.string(),
+  propertyState: zod.string(),
+  purchasePrice: zod.string().optional(),
+});
+
+export const AdviseForeignPurchaseResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI reviewLoanDoc
+ */
+export const ReviewLoanDocBody = zod.object({
+  documentText: zod.string(),
+  loanType: zod.string().optional(),
+  clientRole: zod.string().optional(),
+});
+
+export const ReviewLoanDocResponse = zod.object({
+  review: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseTaxCompliance
+ */
+export const AdviseTaxComplianceBody = zod.object({
+  transactionDetails: zod.string(),
+  transactionType: zod.string().optional(),
+  parties: zod.string().optional(),
+});
+
+export const AdviseTaxComplianceResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI adviseStrata
+ */
+export const AdviseStrataBody = zod.object({
+  issue: zod.string(),
+  buildingType: zod.string().optional(),
+  managementBody: zod.string().optional(),
+});
+
+export const AdviseStrataResponse = zod.object({
+  advice: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateQuiz
+ */
+export const GenerateQuizBody = zod.object({
+  topic: zod.string(),
+  difficulty: zod.string().optional(),
+  numQuestions: zod.number().optional(),
+});
+
+export const GenerateQuizResponse = zod.object({
+  quiz: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI simulateTransaction
+ */
+export const SimulateTransactionBody = zod.object({
+  scenario: zod.string(),
+  propertyType: zod.string().optional(),
+  transactionType: zod.string().optional(),
+});
+
+export const SimulateTransactionResponse = zod.object({
+  simulation: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI searchClauseLibrary
+ */
+export const SearchClauseLibraryBody = zod.object({
+  clauseType: zod.string(),
+  context: zod.string().optional(),
+  jurisdiction: zod.string().optional(),
+});
+
+export const SearchClauseLibraryResponse = zod.object({
+  clauses: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI analyzeDocument
+ */
+export const AnalyzeDocumentBody = zod.object({
+  documentText: zod.string(),
+  documentType: zod.string().optional(),
+});
+
+export const AnalyzeDocumentResponse = zod.object({
+  analysis: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI checkCompliance
+ */
+export const CheckComplianceBody = zod.object({
+  transaction: zod.string(),
+  checkType: zod.string().optional(),
+});
+
+export const CheckComplianceResponse = zod.object({
+  result: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateTimeline
+ */
+export const GenerateTimelineBody = zod.object({
+  transactionType: zod.string(),
+  startDate: zod.string().optional(),
+  specialConditions: zod.string().optional(),
+});
+
+export const GenerateTimelineResponse = zod.object({
+  timeline: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateMockExam
+ */
+export const GenerateMockExamBody = zod.object({
+  subject: zod.string(),
+  examType: zod.string().optional(),
+  numQuestions: zod.number().optional(),
+});
+
+export const GenerateMockExamResponse = zod.object({
+  exam: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI analyzeCase
+ */
+export const AnalyzeCaseBody = zod.object({
+  caseName: zod.string(),
+  caseDetails: zod.string().optional(),
+  legalIssue: zod.string().optional(),
+});
+
+export const AnalyzeCaseResponse = zod.object({
+  analysis: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI draftCorpResolution
+ */
+export const DraftCorpResolutionBody = zod.object({
+  companyName: zod.string(),
+  companyNo: zod.string().optional(),
+  resolutionType: zod.string(),
+  transactionDetails: zod.string(),
+  signatories: zod.string().optional(),
+});
+
+export const DraftCorpResolutionResponse = zod.object({
+  resolution: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI generateCorpPropertyDD
+ */
+export const GenerateCorpPropertyDDBody = zod.object({
+  companyDetails: zod.string(),
+  propertyDetails: zod.string(),
+  transactionType: zod.string().optional(),
+  concerns: zod.string().optional(),
+});
+
+export const GenerateCorpPropertyDDResponse = zod.object({
+  report: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI draftJVAgreement
+ */
+export const DraftJVAgreementBody = zod.object({
+  parties: zod.string(),
+  propertyDetails: zod.string(),
+  structureType: zod.string(),
+  commercialTerms: zod.string().optional(),
+  duration: zod.string().optional(),
+});
+
+export const DraftJVAgreementResponse = zod.object({
+  agreement: zod.string(),
+});
+
+/**
+ * @summary MyConveyLitAI draftGuarantee
+ */
+export const DraftGuaranteeBody = zod.object({
+  guarantorType: zod.string(),
+  guarantorDetails: zod.string(),
+  principalDebtor: zod.string(),
+  lender: zod.string(),
+  facilityAmount: zod.string(),
+  propertySecurity: zod.string().optional(),
+});
+
+export const DraftGuaranteeResponse = zod.object({
+  draft: zod.string(),
+});
