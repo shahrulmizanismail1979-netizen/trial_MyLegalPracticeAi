@@ -76,6 +76,7 @@ CHOOSING A PORTAL — quick matcher:
 - Mixed practice or a firm → recommend the Complete Bundle (all 7, big saving).
 
 ═══ INDIVIDUAL PRICING (USD, monthly, via Stripe) ═══
+NOTE: The page can DISPLAY prices in local currencies (RM/MYR, SGD, etc. via the currency selector in the Pricing section), but ALL billing is charged in USD by Stripe. If asked "berapa dalam Ringgit?", explain the RM figure shown is an estimate at current rates and the card is charged in USD.
 - Free Trial: 7 days FULL access to 1 portal of choice. Card required up front but NOT charged during the trial; auto-bills $25/month after 7 days unless cancelled. Cancel anytime during the trial at no charge.
 - Single App: $25/month, unlimited use of one portal.
 - Complete Bundle: $79/month for ALL 7 portals — vs $175 if bought separately (save ~55%).
@@ -101,8 +102,8 @@ CHOOSING A PORTAL — quick matcher:
 
 ═══ HOW IT WORKS ═══
 1. Choose a plan on this page and pay securely by card (Stripe checkout).
-2. After payment, an access code arrives by email.
-3. Use the access code to sign into the chosen portal(s) and start working immediately.
+2. Immediately after checkout (including the free trial), the access code is issued and sent by email right away.
+3. Use the access code to sign into the chosen portal(s) and start working immediately. Trial users get instant full access for 7 days.
 
 ═══ FREE ACCESS — CONTRIBUTION PROGRAMME ═══
 Practising lawyers can earn FREE subscription time instead of paying:

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Check, AlertCircle, Sparkles, Loader2, Clock, Zap, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useCurrency } from "@/lib/currency";
+import { CurrencySelector, BilledInUsdNote } from "@/components/currency-selector";
 
 type CheckoutTier = "bundle" | "single" | "standard";
 type LoadingKey = CheckoutTier | "trial";
@@ -9,6 +11,7 @@ type LoadingKey = CheckoutTier | "trial";
 export function Pricing() {
   const [loadingTier, setLoadingTier] = useState<LoadingKey | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const { format } = useCurrency();
 
   const startCheckout = async (tier: CheckoutTier, trial = false) => {
     setCheckoutError(null);
@@ -45,6 +48,9 @@ export function Pricing() {
             Start free. Upgrade when you are ready. Every tier is designed to deliver real value
             for Malaysian legal professionals.
           </p>
+          <div className="mt-6 flex justify-center">
+            <CurrencySelector />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -64,19 +70,20 @@ export function Pricing() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">$0</span>
+                  <span className="text-4xl font-bold text-foreground">{format(0)}</span>
                   <span className="text-lg text-muted-foreground">/ 7 days</span>
                 </div>
-                <p className="text-muted-foreground mb-6">
-                  Then $25/month unless cancelled
+                <p className="text-muted-foreground mb-1">
+                  Then {format(25)}/month unless cancelled
                 </p>
+                <BilledInUsdNote />
 
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3 mb-6 mt-5">
                   {[
+                    "Instant access — code emailed the moment you sign up",
                     "7-day full access to 1 AI Portal",
-                    "All features included",
                     "Card required — not charged during trial",
-                    "Auto-bills $25/mo after 7 days unless you cancel",
+                    `Auto-bills ${format(25)}/mo after 7 days unless you cancel`,
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -117,10 +124,12 @@ export function Pricing() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">$25</span>
+                  <span className="text-4xl font-bold text-foreground">{format(25)}</span>
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
-                <p className="text-muted-foreground mb-6">Billed monthly · cancel anytime</p>
+                <p className="text-muted-foreground mb-1">Billed monthly · cancel anytime</p>
+                <BilledInUsdNote />
+                <div className="mb-5" />
 
                 <ul className="space-y-3 mb-6">
                   {[
@@ -170,12 +179,13 @@ export function Pricing() {
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-5xl font-bold text-foreground">$79</span>
+                <span className="text-5xl font-bold text-foreground">{format(79)}</span>
                 <span className="text-lg text-muted-foreground">/month</span>
               </div>
-              <p className="text-muted-foreground mb-2">Billed monthly · cancel anytime</p>
-              <p className="text-sm text-muted-foreground mb-6">
-                <span className="line-through opacity-60">$175</span> if bought individually — you save $96
+              <p className="text-muted-foreground mb-1">Billed monthly · cancel anytime</p>
+              <BilledInUsdNote />
+              <p className="text-sm text-muted-foreground mb-6 mt-2">
+                <span className="line-through opacity-60">{format(175)}</span> if bought individually — you save {format(96)}
               </p>
 
               <ul className="space-y-3 mb-6">

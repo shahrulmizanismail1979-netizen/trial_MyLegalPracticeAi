@@ -141,6 +141,9 @@ router.post("/checkout", async (req, res) => {
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
+    // Collect the customer's phone number so the access code can also be
+    // sent by SMS immediately after checkout.
+    phone_number_collection: { enabled: true },
     // Disable Stripe Adaptive Pricing so checkout always shows USD
     // instead of auto-converting to the customer's local currency (e.g. MYR).
     adaptive_pricing: { enabled: false },

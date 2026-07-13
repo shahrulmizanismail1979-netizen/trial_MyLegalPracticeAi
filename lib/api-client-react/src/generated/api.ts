@@ -27,6 +27,7 @@ import type {
   CreatePricingBody,
   CreateSubscriberBody,
   CreateVoucherBody,
+  CurrencyRates,
   DashboardStats,
   ErrorEnvelope,
   GetRecentActivityParams,
@@ -145,6 +146,82 @@ export const useAssistantChat = <
 > => {
   return useMutation(getAssistantChatMutationOptions(options));
 };
+
+/**
+ * Returns cached USD-based exchange rates for supported display currencies. Public endpoint.
+ * @summary USD exchange rates for display currencies
+ */
+export const getGetCurrencyRatesUrl = () => {
+  return `/api/currency/rates`;
+};
+
+export const getCurrencyRates = async (
+  options?: RequestInit,
+): Promise<CurrencyRates> => {
+  return customFetch<CurrencyRates>(getGetCurrencyRatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCurrencyRatesQueryKey = () => {
+  return [`/api/currency/rates`] as const;
+};
+
+export const getGetCurrencyRatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCurrencyRates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrencyRates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCurrencyRatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCurrencyRates>>
+  > = ({ signal }) => getCurrencyRates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrencyRates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCurrencyRatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCurrencyRates>>
+>;
+export type GetCurrencyRatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary USD exchange rates for display currencies
+ */
+
+export function useGetCurrencyRates<
+  TData = Awaited<ReturnType<typeof getCurrencyRates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCurrencyRates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCurrencyRatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns server health status

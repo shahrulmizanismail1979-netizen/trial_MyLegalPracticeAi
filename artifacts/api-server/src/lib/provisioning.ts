@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import { db, subscribersTable, activityTable } from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
+import { sendSms, accessCodeSmsBody } from "./sms";
 import { logger } from "./logger";
 
 export const APP_NAME_BY_URL: Record<string, string> = {
@@ -224,8 +225,17 @@ export async function provisionFromCheckoutSession(
     "Subscriber auto-provisioned from Stripe checkout",
   );
 
-  // Emails are best-effort: provisioning must not fail if Gmail is down.
+  // Emails/SMS are best-effort: provisioning must not fail if delivery is down.
   void (async () => {
+    if (phone) {
+      const smsResult = await sendSms(phone, accessCodeSmsBody({ accessCode, trial }));
+      if (smsResult === "failed") {
+        await db.insert(activityTable).values({
+          type: "sms_failed",
+          description: `FAILED to SMS access code ${accessCode} to ${phone} — send manually`,
+        });
+      }
+    }
     const sent = await sendEmail({
       to: email,
       subject: trial

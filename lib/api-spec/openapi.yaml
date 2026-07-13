@@ -49,6 +49,20 @@ paths:
         "400":
           description: Invalid request body
 
+  /currency/rates:
+    get:
+      operationId: getCurrencyRates
+      tags: [currency]
+      summary: USD exchange rates for display currencies
+      description: Returns cached USD-based exchange rates for supported display currencies. Public endpoint.
+      responses:
+        "200":
+          description: Exchange rates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrencyRates"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -1474,3 +1488,23 @@ components:
             $ref: "#/components/schemas/AssistantChatMessage"
       required:
         - messages
+
+    CurrencyRates:
+      type: object
+      properties:
+        base:
+          type: string
+          description: Base currency (always USD)
+        rates:
+          type: object
+          additionalProperties:
+            type: number
+          description: Map of currency code to USD conversion rate
+        fetchedAt:
+          type: string
+          format: date-time
+          description: When the rates were last refreshed upstream
+      required:
+        - base
+        - rates
+        - fetchedAt

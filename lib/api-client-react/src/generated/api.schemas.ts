@@ -537,6 +537,20 @@ export interface AssistantChatBody {
   messages: AssistantChatMessage[];
 }
 
+/**
+ * Map of currency code to USD conversion rate
+ */
+export type CurrencyRatesRates = { [key: string]: number };
+
+export interface CurrencyRates {
+  /** Base currency (always USD) */
+  base: string;
+  /** Map of currency code to USD conversion rate */
+  rates: CurrencyRatesRates;
+  /** When the rates were last refreshed upstream */
+  fetchedAt: string;
+}
+
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;
   app?: string;

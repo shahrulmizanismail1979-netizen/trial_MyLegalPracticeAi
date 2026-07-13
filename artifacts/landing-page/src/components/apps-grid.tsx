@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ExternalLink, Sparkles, ChevronDown, X, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCurrency } from "@/lib/currency";
 
 type AppVersion = {
   label: string;
@@ -126,6 +127,7 @@ async function startCheckout(appUrl: string): Promise<void> {
 }
 
 function VersionCard({ version }: { version: AppVersion }) {
+  const { format, isConverted } = useCurrency();
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +151,7 @@ function VersionCard({ version }: { version: AppVersion }) {
           {version.badge}
         </span>
         <span className="text-xs font-semibold text-foreground">
-          $25<span className="text-muted-foreground font-normal">/month</span>
+          {format(25)}<span className="text-muted-foreground font-normal">/month</span>
         </span>
       </div>
       <p className="text-sm font-semibold text-foreground">{version.label}</p>
@@ -173,7 +175,7 @@ function VersionCard({ version }: { version: AppVersion }) {
             Single App plan — {version.label}
           </p>
           <p className="text-xs text-muted-foreground">
-            $25 USD/month · unlimited access to this portal · billed monthly, cancel anytime.
+            {format(25)}/month{isConverted ? " (billed in USD, $25)" : ""} · unlimited access to this portal · billed monthly, cancel anytime.
           </p>
           <div className="flex gap-2">
             <button

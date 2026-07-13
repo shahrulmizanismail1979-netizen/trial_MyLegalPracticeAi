@@ -31,6 +31,20 @@ export const AssistantChatBody = zod.object({
 });
 
 /**
+ * Returns cached USD-based exchange rates for supported display currencies. Public endpoint.
+ * @summary USD exchange rates for display currencies
+ */
+export const GetCurrencyRatesResponse = zod.object({
+  base: zod.string().describe("Base currency (always USD)"),
+  rates: zod
+    .record(zod.string(), zod.number())
+    .describe("Map of currency code to USD conversion rate"),
+  fetchedAt: zod.coerce
+    .date()
+    .describe("When the rates were last refreshed upstream"),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

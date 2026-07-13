@@ -1,6 +1,8 @@
 import { Check, Building2, Factory, Briefcase, Crown, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useCurrency } from "@/lib/currency";
+import { BilledInUsdNote } from "@/components/currency-selector";
 
 const INDIVIDUAL_BUNDLE_PRICE = 79;
 
@@ -79,6 +81,7 @@ const tiers = [
 const ENTERPRISE_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent("Hi, I'd like to discuss group/enterprise licensing of the AI Portals for our company.")}`;
 
 export function CorporateBundles() {
+  const { format } = useCurrency();
   const scrollToPayment = () => {
     document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -145,12 +148,13 @@ your organisation.
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-bold text-foreground">${tier.monthlyPrice}</span>
+                        <span className="text-3xl font-bold text-foreground">{format(tier.monthlyPrice!)}</span>
                         <span className="text-sm text-muted-foreground">/month</span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        ${(tier.monthlyPrice! * 12).toLocaleString()} / year
+                        {format(tier.monthlyPrice! * 12)} / year
                       </p>
+                      <BilledInUsdNote />
                     </>
                   )}
                 </div>
@@ -161,15 +165,15 @@ your organisation.
                       {tier.seats} user licenses · all 7 portals each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Equivalent to ~${perUser}/user when shared across {tier.seats} licenses
+                      Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses
                     </p>
                   </>
                 )}
 
                 {yearlySavings && yearlySavings > 0 && (
                   <p className="text-xs text-primary mt-3 mb-4">
-                    Save ${yearlySavings.toLocaleString()}/yr vs {tier.seats} individual Complete Bundle
-                    subscriptions at ${INDIVIDUAL_BUNDLE_PRICE}/mo each
+                    Save {format(yearlySavings!)}/yr vs {tier.seats} individual Complete Bundle
+                    subscriptions at {format(INDIVIDUAL_BUNDLE_PRICE)}/mo each
                   </p>
                 )}
                 {isEnterprise && <div className="mt-2 mb-4" />}

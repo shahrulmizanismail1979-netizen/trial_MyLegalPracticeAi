@@ -8,6 +8,7 @@ import stripeRouter from "./stripe";
 import accessRouter from "./access";
 import statsRouter from "./stats";
 import assistantRouter from "./assistant";
+import currencyRouter from "./currency";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -20,6 +21,7 @@ router.use(statsRouter);
 router.use("/stripe", stripeRouter);
 router.use("/access", accessRouter);
 router.use("/assistant", assistantRouter);
+router.use("/currency", currencyRouter);
 router.use("/admin", requireAuth, requireStaff, adminRouter);
 
 export default router;
