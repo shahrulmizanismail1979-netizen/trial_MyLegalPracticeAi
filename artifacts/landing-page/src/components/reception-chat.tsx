@@ -15,13 +15,15 @@ interface GotoAction {
 }
 
 const GREETING =
-  "Welcome! I'm the AI reception counter for My Legal Practice AI. Ask me anything — which portal suits your practice, how pricing and the free trial work, or how to get started — and I'll point you to the right place.";
+  "Hello and welcome! 👋 I'm your AI receptionist at My Legal Practice AI. Whether you're a litigator, syarie counsel, company secretary, conveyancer, or in-house counsel — I can help you find the right AI portal, explain pricing and the 7-day free trial, or show you how to earn free months. Saya juga boleh membantu dalam Bahasa Malaysia. How can I help you today?";
 
 const SUGGESTIONS = [
-  "Which portal is right for me?",
-  "How much does it cost?",
-  "How does the free trial work?",
-  "What is the Complete Bundle?",
+  "Which portal is right for my practice?",
+  "How does the 7-day free trial work?",
+  "What do I get in the Complete Bundle?",
+  "How can I get free access?",
+  "Do you have plans for law firms?",
+  "Is my data confidential?",
 ];
 
 const GOTO_PATTERN = /\[\[goto:([a-z-]+)\|([^\]]+)\]\]/g;
@@ -102,7 +104,11 @@ export function ReceptionChat() {
         body: JSON.stringify({ messages: payload }),
       });
       if (!response.ok || !response.body) {
-        throw new Error(`Request failed (${response.status})`);
+        throw new Error(
+          response.status === 429
+            ? "You're sending messages a little quickly — please wait a moment and try again."
+            : "I couldn't reach the reception desk just now. Please try again.",
+        );
       }
 
       const reader = response.body.getReader();
@@ -161,7 +167,8 @@ export function ReceptionChat() {
           <div className="text-left">
             <p className="font-serif font-semibold leading-tight">AI Reception Counter</p>
             <p className="text-xs text-muted-foreground">
-              Ask anything — portals, pricing, free trial. English / Bahasa Malaysia.
+              Happy to help with anything — portals, pricing, free trial, free access. English /
+              Bahasa Malaysia.
             </p>
           </div>
           <span className="ml-auto flex items-center gap-1.5 text-xs text-primary">
@@ -175,7 +182,7 @@ export function ReceptionChat() {
 
         <div
           ref={scrollRef}
-          className="max-h-80 overflow-y-auto px-5 py-4 space-y-4 text-sm text-left"
+          className="max-h-96 overflow-y-auto px-5 py-4 space-y-4 text-sm text-left"
           aria-live="polite"
         >
           {showGreeting && (
@@ -261,7 +268,7 @@ export function ReceptionChat() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your question here…"
+            placeholder="Ask me anything — I'm happy to help…"
             maxLength={4000}
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/70 px-2 py-1.5"
             aria-label="Ask the AI reception counter"
