@@ -7,3 +7,4 @@
 - [Orval api-zod barrel collision](orval-api-zod-barrel.md) — lib/api-spec zod output uses indexFiles:false with a hand-written index.ts; don't let orval regenerate the barrel.
 - [MyConveyLitAI access-code sync & auth secrets](convey-access-code-sync.md) — landing purchases upsert convey users by access code (no Stripe IDs); ADMIN_PASSWORD/MASTER_ACCESS_CODE fail closed in prod.
 - [Stripe checkout currency](stripe-checkout-currency.md) — keep adaptive_pricing disabled; user wants USD-only checkout, no MYR auto-conversion.
+- [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.

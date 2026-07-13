@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
 import { db } from "@workspace/db";
 import { aiUsageTable, usersTable } from "@workspace/db/schema";
-import { sql, desc, eq, count, sum, avg } from "drizzle-orm";
+import { sql, desc, eq, or, count, sum, avg } from "drizzle-orm";
 import { generateAccessCode } from "../lib/access";
 
 const router: IRouter = Router();
@@ -240,6 +240,156 @@ router.delete("/convey-admin/users/:id", requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error({ err: error }, "Convey delete user error");
     res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+// One-time bulk import of legacy MyConveyAI accounts (exported from the old
+// project). Idempotent: rows matching an existing access code, username, or
+// email are skipped; nothing is updated or deleted. Old admin/master rows and
+// Stripe IDs are never imported. Mirrors scripts/src/import-convey-users.ts
+// so the same import can run against production through the deployed app.
+router.post("/convey-admin/import-users", requireAdmin, async (req, res) => {
+  const body = req.body ?? {};
+  const rows: unknown = body.users;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    res.status(400).json({ error: "Body must be { users: [...] } with at least one row" });
+    return;
+  }
+  if (rows.length > 1000) {
+    res.status(400).json({ error: "Too many rows (max 1000 per request)" });
+    return;
+  }
+
+  const str = (v: unknown): string | null => {
+    if (v === null || v === undefined) return null;
+    const s = String(v).trim();
+    return s === "" || s === "NULL" || s === "\\N" ? null : s;
+  };
+  const bool = (v: unknown, dflt: boolean): boolean => {
+    if (typeof v === "boolean") return v;
+    const s = String(v ?? "").trim().toLowerCase();
+    if (["t", "true", "1", "yes"].includes(s)) return true;
+    if (["f", "false", "0", "no"].includes(s)) return false;
+    return dflt;
+  };
+  const date = (v: unknown): Date | null => {
+    const s = str(v);
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  let imported = 0;
+  let skippedExisting = 0;
+  let skippedAdmin = 0;
+  let skippedInvalid = 0;
+  let updatedPasswords = 0;
+  const errors: string[] = [];
+  const seen = new Set<string>();
+
+  try {
+    for (const [idx, raw] of rows.entries()) {
+      const r = (raw ?? {}) as Record<string, unknown>;
+      const get = (camel: string, snake: string) => r[camel] ?? r[snake];
+
+      const role = str(get("role", "role")) || "user";
+      if (role === "admin") {
+        skippedAdmin++;
+        continue;
+      }
+
+      const accessCode = str(get("accessCode", "access_code"));
+      const username = str(get("username", "username"));
+      const passwordHash = str(get("passwordHash", "password_hash"));
+      const email = str(get("email", "email"));
+
+      if (!accessCode && !(username && passwordHash)) {
+        skippedInvalid++;
+        errors.push(`row ${idx + 1}: no access code and no username+password hash`);
+        continue;
+      }
+
+      const keys = [accessCode && `c:${accessCode}`, username && `u:${username.toLowerCase()}`].filter(
+        Boolean,
+      ) as string[];
+      if (keys.some((k) => seen.has(k))) {
+        skippedInvalid++;
+        errors.push(`row ${idx + 1}: duplicate access code or username within the request`);
+        continue;
+      }
+      keys.forEach((k) => seen.add(k));
+
+      const conditions = [];
+      if (accessCode) conditions.push(eq(usersTable.accessCode, accessCode));
+      if (username) conditions.push(eq(usersTable.username, username));
+      if (email) conditions.push(eq(usersTable.email, email));
+      const existing = await db
+        .select({ id: usersTable.id, passwordHash: usersTable.passwordHash, username: usersTable.username })
+        .from(usersTable)
+        .where(or(...conditions))
+        .limit(1);
+      if (existing.length > 0) {
+        // Fill in a missing password hash on an already-imported account
+        // (follow-up export that includes password_hash). Never overwrite one.
+        if (passwordHash && !existing[0].passwordHash) {
+          await db
+            .update(usersTable)
+            .set({
+              passwordHash,
+              ...(username && !existing[0].username ? { username } : {}),
+            })
+            .where(eq(usersTable.id, existing[0].id));
+          updatedPasswords++;
+        } else {
+          skippedExisting++;
+        }
+        continue;
+      }
+
+      const displayName =
+        str(get("displayName", "display_name")) || username || email || accessCode || `Legacy user ${idx + 1}`;
+      const createdAt = date(get("createdAt", "created_at"));
+
+      try {
+        await db.insert(usersTable).values({
+          accessCode,
+          email,
+          username,
+          passwordHash,
+          displayName,
+          role: "user",
+          isActive: bool(get("isActive", "is_active"), true),
+          grandfathered: bool(get("grandfathered", "grandfathered"), false),
+          subscriptionTier: str(get("subscriptionTier", "subscription_tier")) || "free",
+          subscriptionStatus: str(get("subscriptionStatus", "subscription_status")),
+          currentPeriodEnd: date(get("currentPeriodEnd", "current_period_end")),
+          ...(createdAt ? { createdAt } : {}),
+          lastLoginAt: date(get("lastLoginAt", "last_login_at")),
+        });
+        imported++;
+      } catch (e) {
+        skippedInvalid++;
+        errors.push(`row ${idx + 1}: insert failed — ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    logger.info(
+      { total: rows.length, imported, updatedPasswords, skippedExisting, skippedAdmin, skippedInvalid },
+      "Legacy user import completed",
+    );
+    res.json({
+      success: true,
+      total: rows.length,
+      imported,
+      updatedPasswords,
+      skippedExisting,
+      skippedAdmin,
+      skippedInvalid,
+      errors: errors.slice(0, 50),
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Convey import users error");
+    res.status(500).json({ error: "Import failed" });
   }
 });
 
