@@ -5,6 +5,7 @@
 - [api-server testing pattern](api-server-testing.md) — how to write api-server integration tests (mocked object storage, real pdf-parse + live DB, RUN_ID cleanup).
 - [Stripe provisioning lessons](stripe-provisioning-lessons.md) — dev webhook registration deletes prod's webhook (gate to REPLIT_DEPLOYMENT + reconcile safety net); success_url placeholder, connector 429 retries, idempotency via unique stripe_subscription_id.
 - [Orval api-zod barrel collision](orval-api-zod-barrel.md) — lib/api-spec zod output uses indexFiles:false with a hand-written index.ts; don't let orval regenerate the barrel.
+- [CCB-style JWT auth integration pattern](ccb-integration-pattern.md) — JWT/localStorage auth (no session middleware); drizzle-kit push needs direct SQL for new tables; zod must be added explicitly to api-server; remove tsconfig references when dropping api-client-react.
 - [zod hoisting breaks @hookform/resolvers@3](zod-hoist-hookform-resolvers.md) — adding zod v4 anywhere in the monorepo breaks resolvers@3 typechecks; fix via packageExtensions optional zod peer.
 - [MyConveyLitAI access-code sync & auth secrets](convey-access-code-sync.md) — landing purchases upsert convey users by access code (no Stripe IDs); ADMIN_PASSWORD/MASTER_ACCESS_CODE fail closed in prod.
 - [Stripe checkout currency](stripe-checkout-currency.md) — keep adaptive_pricing disabled; user wants USD-only checkout, no MYR auto-conversion.

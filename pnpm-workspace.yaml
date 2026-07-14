@@ -41,18 +41,6 @@ onlyBuiltDependencies:
   - msw
   - unrs-resolver
 
-packageExtensions:
-  # resolvers v3 imports `zod` types without declaring it, so TypeScript falls
-  # back to the hoisted zod (currently v4 via the OpenAI lib) and every
-  # zodResolver(...) call fails to typecheck. Declaring zod as an optional peer
-  # makes pnpm link each consumer's own zod version instead.
-  '@hookform/resolvers@3':
-    peerDependencies:
-      zod: '*'
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
 overrides:
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64': '-'
@@ -135,3 +123,11 @@ overrides:
   rollup>@rollup/rollup-win32-ia32-msvc: '-'
   rollup>@rollup/rollup-win32-x64-gnu: '-'
   rollup>@rollup/rollup-win32-x64-msvc: '-'
+
+packageExtensions:
+  '@hookform/resolvers@3':
+    peerDependencies:
+      zod: '*'
+    peerDependenciesMeta:
+      zod:
+        optional: true

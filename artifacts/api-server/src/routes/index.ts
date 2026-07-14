@@ -20,6 +20,7 @@ import { crimSession } from "../crim/session";
 import corpRouter from "../corp/routes";
 import litRouter from "../lit/routes";
 import { litSession } from "../lit/session";
+import ccbRouter from "../ccb/routes";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -53,5 +54,8 @@ router.use("/corp", corpRouter);
 // MyLitAI (litigation app): /lit/*. Uses express-session (Postgres-backed),
 // scoped to this mount so the rest of the API is unaffected.
 router.use("/lit", litSession, litRouter);
+
+// MyCorpCommBankLitAI (CCB): /ccb/*. JWT-based auth stored in localStorage.
+router.use("/ccb", ccbRouter);
 
 export default router;

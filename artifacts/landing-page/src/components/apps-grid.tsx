@@ -67,7 +67,7 @@ const apps: App[] = [
   {
     title: "MyCorpCommBankLitAi",
     description: "Handle corporate disputes, draft commercial agreements, and manage banking litigation matters.",
-    url: "https://myccblitai.life/",
+    url: "/myccblitai/",
     tag: "Corp/Comm/Banking"
   },
   {
