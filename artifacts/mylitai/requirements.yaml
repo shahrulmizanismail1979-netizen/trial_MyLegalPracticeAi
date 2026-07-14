@@ -1,0 +1,19 @@
+packages:
+  "framer-motion": "For page transitions, modal animations, and polished interactions"
+  "lucide-react": "Beautiful consistent iconography for the dashboard"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+  "date-fns": "For formatting dates in chat and workflows"
+
+images:
+  - path: "artifacts/legal-platform/public/images/hero-bg.png"
+    description: "Dark academic aesthetic, elegant law library with deep navy blue shadows and glowing golden amber light, subtle scales of justice motif, premium cinematic lighting"
+    aspect_ratio: "16:9"
+  - path: "artifacts/legal-platform/public/images/auth-bg.png"
+    description: "Abstract geometric pattern in dark slate and gold, representing structure, law, and order, premium dark mode aesthetic"
+    aspect_ratio: "4:3"
+
+notes:
+  - Using generated Orval hooks from @workspace/api-client-react
+  - AI Tutor uses SSE streaming via fetch and ReadableStream
+  - Authentication uses client-side localStorage check for simple password gating as specified

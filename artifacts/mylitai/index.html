@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script>
+      (function () {
+        var h = location.hostname;
+        var atIrac = location.pathname.indexOf("/irac") === 0;
+        // Domains whose IRAC home should now live under mylitai.life/irac.
+        // Forward them cross-domain so old links keep working.
+        var movedToMyLitAi = ["bentaraai.life", "www.bentaraai.life"];
+        // Domains that still serve the IRAC app from this deployment root.
+        var localIracHosts = ["mycivlitai.life", "www.mycivlitai.life"];
+        if (movedToMyLitAi.indexOf(h) !== -1) {
+          location.replace(
+            "https://mylitai.life/irac/" + location.search + location.hash
+          );
+        } else if (localIracHosts.indexOf(h) !== -1 && !atIrac) {
+          location.replace("/irac/" + location.search + location.hash);
+        }
+      })();
+    </script>
+    <title>MyLitAi — Malaysian Banking Litigation Practice</title>
+    <meta
+      name="description"
+      content="MyLitAi is an AI-powered Malaysian civil litigation practice platform covering banking litigation theory, case law, cause papers, workflows, costs and an Oral Advocacy practice suite."
+    />
+    <meta property="og:title" content="MyLitAi — Malaysian Banking Litigation Practice" />
+    <meta
+      property="og:description"
+      content="AI-powered Malaysian civil litigation practice platform: theory, case law, cause papers, workflows, costs and Oral Advocacy practice."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/opengraph.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

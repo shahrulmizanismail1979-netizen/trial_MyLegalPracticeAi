@@ -23,19 +23,19 @@ const apps: App[] = [
   {
     title: "MyLitAI",
     description: "Draft cause papers, analyse case strategies, and navigate Malaysian civil procedure with an AI litigation assistant.",
-    url: "https://mylitai.life",
+    url: "/mylitai/",
     tag: "Litigation",
     versions: [
       {
         label: "Standard",
         badge: "Version 1",
-        url: "https://mylitai.life",
+        url: "/mylitai/",
         description: "Classic AI litigation assistant. Ask any question, get instant guidance on civil procedure, pleadings, case strategy, and court practice — conversational and open-ended.",
       },
       {
         label: "IRAC Method",
         badge: "Version 2",
-        url: "https://mylitai.life/irac/",
+        url: "/mylitai-irac/",
         description: "Structured legal analysis using the IRAC framework (Issue → Rule → Application → Conclusion). Best for systematically breaking down legal problems, preparing written submissions, and structured advocacy.",
       },
     ],

@@ -18,6 +18,8 @@ import accidentAdminRouter from "./accident-admin";
 import crimRouter from "../crim/routes";
 import { crimSession } from "../crim/session";
 import corpRouter from "../corp/routes";
+import litRouter from "../lit/routes";
+import { litSession } from "../lit/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -47,5 +49,9 @@ router.use("/crim", crimSession, crimRouter);
 // MyCorpLegalAI (corporate secretary app): /corp/*. Uses Bearer-token sessions
 // stored in corp_sessions — no express-session middleware needed.
 router.use("/corp", corpRouter);
+
+// MyLitAI (litigation app): /lit/*. Uses express-session (Postgres-backed),
+// scoped to this mount so the rest of the API is unaffected.
+router.use("/lit", litSession, litRouter);
 
 export default router;

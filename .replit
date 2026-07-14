@@ -20,6 +20,14 @@ author = "agent"
 task = "workflow.run"
 args = "api-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/mylitai: web"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/mylitai-irac: web"
+
 [[workflows.workflow]]
 name = "api-tests"
 author = "agent"
@@ -30,6 +38,28 @@ args = "pnpm --filter @workspace/api-server run test"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "artifacts/mylitai: web"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=25300 BASE_PATH=/mylitai/ pnpm --filter @workspace/mylitai run dev"
+
+[[workflows.workflow]]
+name = "artifacts/mylitai-irac: web"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=25400 BASE_PATH=/mylitai-irac/ pnpm --filter @workspace/mylitai-irac run dev"
 
 [agent]
 stack = "PNPM_WORKSPACE"
