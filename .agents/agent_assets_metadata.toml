@@ -6,3 +6,9 @@ id = "2VcRMcCAqcXifbp6E-Wst"
 uri = "file://exports/ai-web-books-app.zip"
 type = "unspecified"
 title = "AI Web Books — Complete App Source (ZIP)"
+
+[[outputs]]
+id = "CEIZDBwl-MHNk178UzBe3"
+uri = "file://exports/ai-web-books-source.zip"
+type = "unspecified"
+title = "AI Web Books — Full Source Code"
