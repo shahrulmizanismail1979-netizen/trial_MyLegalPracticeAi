@@ -81,7 +81,9 @@ export const GetDashboardStatsResponse = zod.object({
  * @summary List all subscribers
  */
 export const ListSubscribersQueryParams = zod.object({
-  status: zod.enum(["pending", "confirmed", "rejected"]).optional(),
+  status: zod
+    .enum(["pending", "confirmed", "rejected", "cancelled"])
+    .optional(),
   app: zod.coerce.string().optional(),
   search: zod.coerce.string().optional(),
 });
@@ -101,7 +103,7 @@ export const ListSubscribersResponseItem = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
@@ -171,7 +173,7 @@ export const GetSubscriberResponse = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
@@ -211,7 +213,9 @@ export const UpdateSubscriberBody = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]).optional(),
+  paymentStatus: zod
+    .enum(["pending", "confirmed", "rejected", "cancelled"])
+    .optional(),
   paymentAmount: zod.string().optional(),
   paymentProvider: zod
     .union([zod.literal("stripe"), zod.literal("manual"), zod.literal(null)])
@@ -239,7 +243,7 @@ export const UpdateSubscriberResponse = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
@@ -474,7 +478,7 @@ export const ConfirmSubscriberResponse = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
@@ -515,7 +519,7 @@ export const RejectSubscriberResponse = zod.object({
       zod.literal(null),
     ])
     .nullish(),
-  paymentStatus: zod.enum(["pending", "confirmed", "rejected"]),
+  paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
   paymentProvider: zod
@@ -549,6 +553,7 @@ export const GetRecentActivityResponseItem = zod.object({
     "subscriber_added",
     "payment_confirmed",
     "payment_rejected",
+    "subscription_cancelled",
     "voucher_created",
     "kohort_updated",
     "price_changed",

@@ -124,6 +124,7 @@ paths:
               - pending
               - confirmed
               - rejected
+              - cancelled
         - name: app
           in: query
           schema:
@@ -2459,6 +2460,7 @@ components:
             - pending
             - confirmed
             - rejected
+            - cancelled
         paymentAmount:
           type: string
         paymentDate:
@@ -2612,6 +2614,7 @@ components:
             - pending
             - confirmed
             - rejected
+            - cancelled
         paymentAmount:
           type: string
         paymentProvider:
@@ -2915,6 +2918,7 @@ components:
             - subscriber_added
             - payment_confirmed
             - payment_rejected
+            - subscription_cancelled
             - voucher_created
             - kohort_updated
             - price_changed

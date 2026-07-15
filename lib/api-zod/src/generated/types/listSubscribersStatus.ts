@@ -13,4 +13,5 @@ export const ListSubscribersStatus = {
   pending: "pending",
   confirmed: "confirmed",
   rejected: "rejected",
+  cancelled: "cancelled",
 } as const;

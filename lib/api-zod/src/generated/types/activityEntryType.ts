@@ -13,6 +13,7 @@ export const ActivityEntryType = {
   subscriber_added: "subscriber_added",
   payment_confirmed: "payment_confirmed",
   payment_rejected: "payment_rejected",
+  subscription_cancelled: "subscription_cancelled",
   voucher_created: "voucher_created",
   kohort_updated: "kohort_updated",
   price_changed: "price_changed",

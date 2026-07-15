@@ -29,6 +29,7 @@ export const SubscriberPaymentStatus = {
   pending: "pending",
   confirmed: "confirmed",
   rejected: "rejected",
+  cancelled: "cancelled",
 } as const;
 
 /**
@@ -144,6 +145,7 @@ export const UpdateSubscriberBodyPaymentStatus = {
   pending: "pending",
   confirmed: "confirmed",
   rejected: "rejected",
+  cancelled: "cancelled",
 } as const;
 
 /**
@@ -323,6 +325,7 @@ export const ActivityEntryType = {
   subscriber_added: "subscriber_added",
   payment_confirmed: "payment_confirmed",
   payment_rejected: "payment_rejected",
+  subscription_cancelled: "subscription_cancelled",
   voucher_created: "voucher_created",
   kohort_updated: "kohort_updated",
   price_changed: "price_changed",
@@ -1298,6 +1301,7 @@ export const ListSubscribersStatus = {
   pending: "pending",
   confirmed: "confirmed",
   rejected: "rejected",
+  cancelled: "cancelled",
 } as const;
 
 export type GetRecentActivityParams = {

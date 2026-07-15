@@ -396,6 +396,135 @@ export async function syncPortalAccessCodes(subscriber: {
 }
 
 /**
+ * Deactivate a subscriber's access code on every portal covered by their
+ * plan — used when their Stripe subscription is cancelled (e.g. a trial
+ * user cancels, or payment ultimately fails). Best-effort per portal.
+ */
+export async function deactivatePortalAccessCodes(subscriber: {
+  accessCode: string | null;
+  apps: string[];
+}): Promise<void> {
+  const { accessCode, apps } = subscriber;
+  if (!accessCode) return;
+  const attempts: Array<[string, () => Promise<unknown>]> = [];
+  if (includesConveyApp(apps)) {
+    attempts.push([
+      "MyConveyLitAI",
+      () =>
+        db
+          .update(usersTable)
+          .set({ isActive: false, subscriptionStatus: "canceled" })
+          .where(eq(usersTable.accessCode, accessCode)),
+    ]);
+  }
+  if (includesAccidentApp(apps)) {
+    attempts.push([
+      "MyAccidentAI",
+      () =>
+        db
+          .update(accessCodesTable)
+          .set({ isActive: false })
+          .where(eq(accessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesCrimApp(apps)) {
+    attempts.push([
+      "MyCrimAI",
+      () =>
+        db
+          .update(crimAccessCodesTable)
+          .set({ isActive: false })
+          .where(eq(crimAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesCorpApp(apps)) {
+    attempts.push([
+      "MyCorpLegalAI",
+      () =>
+        db
+          .update(corpAccessCodesTable)
+          .set({ isActive: false })
+          .where(eq(corpAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesLitApp(apps)) {
+    attempts.push([
+      "MyLitAI",
+      () =>
+        db
+          .update(litAccessCodesTable)
+          .set({ status: "inactive" })
+          .where(eq(litAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesSyaApp(apps)) {
+    attempts.push([
+      "MySyalitAI",
+      () =>
+        db
+          .update(syaAccessCodesTable)
+          .set({ isActive: false })
+          .where(eq(syaAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesCcbApp(apps)) {
+    attempts.push([
+      "MyCCBLitAI",
+      () =>
+        db
+          .update(ccbAccessCodesTable)
+          .set({ active: false })
+          .where(eq(ccbAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  for (const [app, run] of attempts) {
+    try {
+      await run();
+      logger.info({ accessCode, app }, "Deactivated portal access code after cancellation");
+    } catch (err) {
+      logger.error({ err, accessCode, app }, "Failed to deactivate portal access code");
+    }
+  }
+}
+
+/**
+ * Handle a cancelled Stripe subscription: mark the landing subscriber as
+ * cancelled and switch off their access code on every portal in the plan.
+ */
+export async function handleSubscriptionCancelled(subscriptionId: string): Promise<void> {
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
+  if (!subscriber) {
+    logger.warn({ subscriptionId }, "Cancelled subscription has no matching subscriber");
+    return;
+  }
+  const alreadyCancelled = subscriber.paymentStatus === "cancelled";
+  // Deactivate portal codes FIRST and on every delivery (idempotent updates),
+  // so a transient failure on one portal is retried on the next webhook retry
+  // even if the subscriber row was already marked cancelled.
+  await deactivatePortalAccessCodes(subscriber);
+  if (alreadyCancelled) return;
+  await db
+    .update(subscribersTable)
+    .set({ paymentStatus: "cancelled" })
+    .where(eq(subscribersTable.id, subscriber.id));
+  try {
+    await db.insert(activityTable).values({
+      type: "subscription_cancelled",
+      description: `Subscription cancelled for ${subscriber.name} — portal access deactivated`,
+    });
+  } catch (err) {
+    logger.error({ err }, "Failed to log cancellation activity");
+  }
+  logger.info(
+    { subscriptionId, subscriberId: subscriber.id },
+    "Subscriber cancelled and portal access deactivated",
+  );
+}
+
+/**
  * Backfill: sync every confirmed subscriber's access code into the portal
  * tables. Run at startup so codes created before this sync existed (or
  * added manually via the admin page) work on all portals. Idempotent.
@@ -513,7 +642,11 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (existing) {
-      await syncPortalAccessCodes(existing);
+      // Never re-activate portal access for a cancelled subscriber — a
+      // replayed/out-of-order checkout webhook must not undo a cancellation.
+      if (existing.paymentStatus !== "cancelled") {
+        await syncPortalAccessCodes(existing);
+      }
       return {
         accessCode: existing.accessCode,
         apps: existing.apps,
@@ -566,7 +699,9 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (!existing) return null;
-    await syncPortalAccessCodes(existing);
+    if (existing.paymentStatus !== "cancelled") {
+      await syncPortalAccessCodes(existing);
+    }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -729,6 +864,20 @@ export async function handleStripeEventForProvisioning(payload: Buffer): Promise
   try {
     event = JSON.parse(payload.toString("utf-8")) as Stripe.Event;
   } catch {
+    return;
+  }
+  if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+    const sub = event.data.object as Stripe.Subscription;
+    const terminalStatuses = ["canceled", "unpaid", "incomplete_expired"];
+    const isTerminal =
+      event.type === "customer.subscription.deleted" || terminalStatuses.includes(sub.status);
+    if (isTerminal) {
+      try {
+        await handleSubscriptionCancelled(sub.id);
+      } catch (err) {
+        logger.error({ err, subscriptionId: sub.id }, "Cancellation handling from webhook failed");
+      }
+    }
     return;
   }
   if (event.type !== "checkout.session.completed") return;
