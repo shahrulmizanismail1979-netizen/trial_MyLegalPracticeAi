@@ -21,6 +21,8 @@ import corpRouter from "../corp/routes";
 import litRouter from "../lit/routes";
 import { litSession } from "../lit/session";
 import ccbRouter from "../ccb/routes";
+import syaRouter from "../sya/routes";
+import { syaSession } from "../sya/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -57,5 +59,9 @@ router.use("/lit", litSession, litRouter);
 
 // MyCorpCommBankLitAI (CCB): /ccb/*. JWT-based auth stored in localStorage.
 router.use("/ccb", ccbRouter);
+
+// MySyariahAi (Shariah law app): /sya/*. Uses express-session (Postgres-backed),
+// scoped to this mount so the rest of the API is unaffected.
+router.use("/sya", syaSession, syaRouter);
 
 export default router;

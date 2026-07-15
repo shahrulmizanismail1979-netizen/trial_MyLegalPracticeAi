@@ -28,6 +28,7 @@ export const APP_LOGIN_PATHS: Record<string, string> = {
   accident: "/myaccidentai/login",
   convey: "/myconveylitai/login",
   ccb: "/myccblitai/access",
+  sya: "/mysyariahai/",
 };
 
 let msalClient: ConfidentialClientApplication | null = null;

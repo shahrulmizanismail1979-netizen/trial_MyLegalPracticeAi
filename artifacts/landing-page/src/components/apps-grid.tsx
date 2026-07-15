@@ -43,7 +43,7 @@ const apps: App[] = [
   {
     title: "MySyalitAI",
     description: "Draft syarie pleadings, check Syariah procedure rules, and prepare submissions for Syariah Court matters.",
-    url: "https://mysyalitai.life",
+    url: "/mysyariahai/",
     tag: "Syariah"
   },
   {

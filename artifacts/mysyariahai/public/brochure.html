@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MySyariahAI - Brochure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  @page{size:A4;margin:0}
+  body{font-family:'Inter',sans-serif;background:#0a1f1a;color:#d4e8e0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:210mm;margin:0 auto;background:linear-gradient(170deg,#0d2a22 0%,#081c15 40%,#0a2119 70%,#071a12 100%);position:relative;overflow:hidden;padding:20mm 16mm 16mm}
+  .page::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 15% 5%,rgba(193,163,98,0.06) 0%,transparent 50%),radial-gradient(ellipse at 85% 95%,rgba(16,185,129,0.04) 0%,transparent 40%);pointer-events:none}
+
+  /* Header */
+  .header{text-align:center;margin-bottom:14px;position:relative;z-index:1}
+  .logo-row{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:4px}
+  .logo-icon{width:40px;height:40px;border:2px solid #c1a362;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(193,163,98,0.06)}
+  .logo-icon svg{width:20px;height:20px;color:#c1a362}
+  .brand{font-family:'Playfair Display',serif;font-size:30px;font-weight:900;color:#e8f0ec;letter-spacing:-0.5px}
+  .brand em{font-style:normal;color:#c1a362}
+  .tagline{font-size:9px;color:#c1a362;letter-spacing:3px;text-transform:uppercase}
+  .tagline-bm{font-size:8px;color:#6b9485;margin-top:1px}
+
+  /* Hero */
+  .hero{text-align:center;padding:16px 20px;margin:10px 0 14px;background:linear-gradient(135deg,rgba(193,163,98,0.1),rgba(16,185,129,0.05));border:1px solid rgba(193,163,98,0.25);border-radius:10px;position:relative;z-index:1}
+  .hero h2{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#c1a362;line-height:1.35}
+  .hero-sub{font-size:9.5px;color:#9abcae;margin-top:6px;line-height:1.55}
+
+  /* Divider */
+  .div-r{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0}
+  .div-line{height:0.5px;width:50px;background:linear-gradient(90deg,transparent,rgba(193,163,98,0.35),transparent)}
+  .div-dot{width:5px;height:5px;background:rgba(193,163,98,0.45);transform:rotate(45deg)}
+
+  /* Section headers */
+  .sec-head{display:flex;align-items:center;gap:8px;margin:12px 0 8px}
+  .sec-num{width:22px;height:22px;border-radius:50%;background:rgba(193,163,98,0.12);border:1px solid rgba(193,163,98,0.25);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#c1a362;flex-shrink:0}
+  .sec-title{font-family:'Playfair Display',serif;font-size:12px;font-weight:700;color:#e0ede7}
+  .sec-title-bm{font-size:8px;color:#6b9485;margin-left:6px;font-weight:400}
+
+  /* Feature cards */
+  .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
+  .f-card{padding:9px 10px;border:1px solid rgba(193,163,98,0.1);border-radius:7px;background:rgba(10,35,28,0.7)}
+  .f-card.gold{border-color:rgba(193,163,98,0.25);background:linear-gradient(135deg,rgba(193,163,98,0.06),rgba(10,35,28,0.7))}
+  .f-head{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .f-icon{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .f-icon svg{width:12px;height:12px}
+  .ic-em{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.22)}.ic-em svg{color:#34d399}
+  .ic-gd{background:rgba(193,163,98,0.12);border:1px solid rgba(193,163,98,0.22)}.ic-gd svg{color:#c1a362}
+  .ic-tl{background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.18)}.ic-tl svg{color:#2dd4bf}
+  .ic-sk{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.18)}.ic-sk svg{color:#38bdf8}
+  .ic-vt{background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.18)}.ic-vt svg{color:#a78bfa}
+  .ic-or{background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.18)}.ic-or svg{color:#fb923c}
+  .ic-rs{background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.18)}.ic-rs svg{color:#fb7185}
+  .f-name{font-size:9.5px;font-weight:700;color:#e0ede7;line-height:1.2}
+  .f-name-bm{font-size:7.5px;color:#6b9485}
+  .f-how{font-size:8px;color:#c1a362;font-weight:600;margin:3px 0 1px;text-transform:uppercase;letter-spacing:0.5px}
+  .f-desc{font-size:8px;color:#8aac9e;line-height:1.45}
+  .f-desc strong{color:#b0cfc2;font-weight:600}
+  .f-full{grid-column:1/-1}
+
+  /* AI Showcase */
+  .ai-box{padding:12px;border:1.5px solid rgba(193,163,98,0.3);border-radius:9px;background:linear-gradient(135deg,rgba(193,163,98,0.08),rgba(16,185,129,0.04),rgba(10,35,28,0.8));margin-bottom:8px}
+  .ai-badge{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0a1a13;background:#c1a362;border-radius:3px;padding:2.5px 7px;margin-bottom:5px}
+  .ai-title{font-family:'Playfair Display',serif;font-size:11px;font-weight:700;color:#e0ede7}
+  .ai-title-bm{font-size:8px;color:#6b9485;margin-top:1px}
+
+  /* How it works steps */
+  .steps{display:flex;gap:6px;margin:8px 0 4px}
+  .step{flex:1;padding:7px 8px;border-radius:6px;background:rgba(193,163,98,0.04);border:1px solid rgba(193,163,98,0.1);text-align:center}
+  .step-n{font-size:7px;font-weight:800;color:#c1a362;margin-bottom:2px}
+  .step-t{font-size:7.5px;color:#b0cfc2;line-height:1.3}
+
+  /* Stats */
+  .stats{display:flex;justify-content:center;gap:16px;padding:8px 0;border-top:1px solid rgba(193,163,98,0.1);border-bottom:1px solid rgba(193,163,98,0.1);margin:10px 0}
+  .st{text-align:center}
+  .st-n{font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:#c1a362}
+  .st-l{font-size:6.5px;color:#6b9485;text-transform:uppercase;letter-spacing:0.6px;margin-top:1px}
+
+  /* Badges */
+  .badges{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .badge{font-size:7px;font-weight:600;padding:3px 9px;border-radius:4px}
+  .badge-teal{color:#2dd4bf;background:rgba(45,212,191,0.08);border:1px solid rgba(45,212,191,0.15)}
+  .badge-gold{color:#c1a362;background:rgba(193,163,98,0.08);border:1px solid rgba(193,163,98,0.15)}
+
+  /* Pricing */
+  .pricing{text-align:center;padding:14px 20px;background:linear-gradient(135deg,rgba(193,163,98,0.12),rgba(16,185,129,0.05));border:2px solid rgba(193,163,98,0.35);border-radius:12px;margin:10px 0;position:relative}
+  .ribbon{position:absolute;top:-1px;right:20px;background:#c1a362;color:#0a1a13;font-size:7px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 10px 4px;border-radius:0 0 5px 5px}
+  .price-label{font-size:8px;color:#8aac9e;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px}
+  .price-row{display:flex;align-items:center;justify-content:center;gap:12px}
+  .old-price{font-family:'Playfair Display',serif;font-size:20px;color:#4a6e60;text-decoration:line-through;text-decoration-color:#fb7185;text-decoration-thickness:2px}
+  .new-price{font-family:'Playfair Display',serif;font-size:38px;font-weight:900;color:#c1a362;line-height:1}
+  .new-price sup{font-size:16px;vertical-align:super;margin-right:1px}
+  .price-note{font-size:8.5px;color:#9abcae;margin-top:4px}
+  .price-note strong{color:#c1a362}
+  .urgency{display:inline-block;margin-top:5px;font-size:8px;font-weight:700;color:#fb7185;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.18);border-radius:4px;padding:3px 10px}
+
+  /* Footer */
+  .footer{text-align:center;padding-top:8px;border-top:1px solid rgba(193,163,98,0.1);margin-top:8px}
+  .ft-dev{font-size:7px;color:rgba(193,163,98,0.5);letter-spacing:1.5px;text-transform:uppercase}
+  .ft-name{font-family:'Playfair Display',serif;font-size:11px;font-weight:700;color:#d4e8e0;margin-top:2px}
+  .ft-fac{font-size:8px;color:#7da897;margin-top:2px}
+  .ft-uni{font-size:8px;font-weight:700;color:#8aac9e;letter-spacing:1px;margin-top:1px}
+  .ft-disc{font-size:6.5px;color:#3d5c50;margin-top:6px;line-height:1.4}
+
+  @media print{body{background:none}.page{width:100%;min-height:auto;margin:0;box-shadow:none}}
+  @media screen and (max-width:800px){.page{width:100%;padding:16px 14px}.f-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <span class="brand">MySyariah<em>AI</em></span>
+    </div>
+    <div class="tagline">AI-Powered Shariah Legal Practice Platform</div>
+    <div class="tagline-bm">Platform Amalan Undang-Undang Syariah Berkuasa AI</div>
+  </div>
+
+  <div class="hero">
+    <h2>Stop Spending Hours on Legal Research.<br>Let AI Do the Heavy Lifting in Seconds.</h2>
+    <div class="hero-sub">MySyariahAI is the first AI-powered platform built specifically for Malaysian Shariah legal practitioners. Search provisions, cross-reference cases with Quranic authority, draft court documents, and consult an AI counsel -- all from one bilingual interface. <strong style="color:#c1a362">No more switching between books, databases, and websites.</strong></div>
+  </div>
+
+  <div class="stats">
+    <div class="st"><div class="st-n">52</div><div class="st-l">Legal Provisions</div></div>
+    <div class="st"><div class="st-n">86</div><div class="st-l">Case Laws</div></div>
+    <div class="st"><div class="st-n">40</div><div class="st-l">Quranic Verses</div></div>
+    <div class="st"><div class="st-n">15</div><div class="st-l">Gazetted Fatwas</div></div>
+    <div class="st"><div class="st-n">11</div><div class="st-l">Total Modules</div></div>
+  </div>
+
+  <!-- Section 1 -->
+  <div class="sec-head">
+    <div class="sec-num">1</div>
+    <div class="sec-title">Research & Reference Library<span class="sec-title-bm">Perpustakaan Penyelidikan & Rujukan</span></div>
+  </div>
+  <div class="f-grid">
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div><div><div class="f-name">Legal Provisions</div><div class="f-name-bm">Peruntukan Undang-Undang</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Type any keyword in the <strong>search bar</strong> or filter by <strong>category</strong> (e.g., Marriage, Divorce, Property). Click any provision to view its <strong>full text, section reference, and related commentary</strong>. Then hit "Cross-Reference with AI" to find every case, fatwa, and verse connected to it.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-gd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg></div><div><div class="f-name">Case Laws</div><div class="f-name-bm">Kes Undang-Undang</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Browse <strong>86 reported Shariah court cases</strong>. Each case is structured into <strong>4 tabs: Facts, Issues, Held, and Significance</strong> -- so you can jump straight to the part you need. Search by keyword or filter by category. One click sends any case to the AI Analyzer for full cross-referencing.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div><div><div class="f-name">Quranic Verses</div><div class="f-name-bm">Ayat Al-Quran</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc"><strong>40 key Quranic verses</strong> with full <strong>Arabic text, English and Malay translations</strong>, and a detailed explanation of their legal relevance. Filter by categories like <strong>Family Law, Criminal Law, Property, Evidence</strong>, and more. Every verse links directly to the AI Analyzer.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-gd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div><div class="f-name">Gazetted Fatwas</div><div class="f-name-bm">Fatwa Bergazet</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc"><strong>15 officially gazetted Malaysian fatwas</strong> with summary and detailed views. See the <strong>issuing authority, gazette reference number, full reasoning</strong>, and legal implications. Filter by category. Use "Cross-Reference with AI" to find supporting provisions and cases.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-tl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg></div><div><div class="f-name">Legislation Reference</div><div class="f-name-bm">Rujukan Perundangan</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Quick-access directory of <strong>Malaysian Islamic law statutes and enactments</strong>. Covers both <strong>federal-level and state-level</strong> Shariah legislation including Act 303 and state enactments. Search by keyword to find the right statute instantly.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-sk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg></div><div><div class="f-name">Legal Glossary</div><div class="f-name-bm">Glosari Undang-Undang</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Comprehensive trilingual glossary of <strong>Arabic, English, and Malay legal terms</strong>. Browse <strong>alphabetically</strong> using the letter filter or type any term in the search bar. Each entry includes a full definition and context in Shariah legal practice.</div>
+    </div>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="sec-head">
+    <div class="sec-num">2</div>
+    <div class="sec-title">Practice & Drafting Tools<span class="sec-title-bm">Alat Amalan & Penggubalan</span></div>
+  </div>
+  <div class="f-grid">
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-vt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div><div class="f-name">Cause Papers & AI Paralegal</div><div class="f-name-bm">Kertas Kausa & Paralegal AI</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Browse court document <strong>templates in both English and Bahasa Melayu</strong> with official form numbers. Click any template to view it in full. Need a custom draft? Use the <strong>built-in AI Paralegal</strong> -- describe what you need in plain language and it drafts the document for you in real-time.</div>
+    </div>
+    <div class="f-card">
+      <div class="f-head"><div class="f-icon ic-or"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div><div><div class="f-name">Procedural Workflows</div><div class="f-name-bm">Tatacara Prosedur</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Never miss a step in court proceedings. Follow <strong>step-by-step procedure guides</strong> with <strong>timelines, filing fees, and required documents</strong> for each stage -- from initial filing through hearing to judgment. Search by case type to find the right workflow.</div>
+    </div>
+  </div>
+
+  <!-- Section 3: AI -->
+  <div class="sec-head">
+    <div class="sec-num">3</div>
+    <div class="sec-title">AI-Powered Intelligence<span class="sec-title-bm">Kecerdasan Berkuasa AI</span></div>
+  </div>
+  <div class="f-grid">
+    <div class="f-card gold">
+      <div style="margin-bottom:4px"><span class="ai-badge">Gemini 2.5 Flash AI</span></div>
+      <div class="f-head"><div class="f-icon ic-gd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div><div><div class="f-name">AI Shariah Legal Analyzer</div><div class="f-name-bm">Penganalisis Undang-Undang Syariah AI</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Describe any legal scenario in plain language. The AI instantly <strong>cross-references all 52 provisions, 86 cases, 40 Quranic verses, and 15 fatwas</strong> in the database. Results stream in real-time with <strong>"View" buttons that deep-link</strong> to every source cited. Choose from <strong>6 pre-built scenarios</strong> or write your own.</div>
+    </div>
+    <div class="f-card gold">
+      <div style="margin-bottom:4px"><span class="ai-badge">Real-Time Streaming</span></div>
+      <div class="f-head"><div class="f-icon ic-rs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg></div><div><div class="f-name">AI Senior Shariah Counsel</div><div class="f-name-bm">Peguam Kanan Syariah AI</div></div></div>
+      <div class="f-how">How to use:</div>
+      <div class="f-desc">Chat directly with an AI Senior Shariah Counsel. Ask <strong>complex legal questions</strong> and receive <strong>streaming responses with citations, case references, and practical advice</strong>. Conversations are saved, so you can continue a previous discussion anytime. Like having a senior partner available 24/7.</div>
+    </div>
+  </div>
+
+  <!-- How the AI Works -->
+  <div class="steps">
+    <div class="step"><div class="step-n">Step 1</div><div class="step-t">Describe your case or question in plain language</div></div>
+    <div class="step"><div class="step-n">Step 2</div><div class="step-t">AI scans all provisions, cases, verses & fatwas</div></div>
+    <div class="step"><div class="step-n">Step 3</div><div class="step-t">Get cited analysis with direct links to sources</div></div>
+  </div>
+
+  <!-- Badges -->
+  <div class="badges">
+    <div class="badge badge-teal">Fully Bilingual: English + Bahasa Melayu</div>
+    <div class="badge badge-gold">Switch Languages Anytime from Sidebar</div>
+    <div class="badge badge-teal">Admin Dashboard for Access Code Management</div>
+    <div class="badge badge-gold">Interactive Dashboard with Case Analytics</div>
+    <div class="badge badge-teal">Secure Access Code Authentication</div>
+    <div class="badge badge-gold">Dark Islamic-Inspired Professional Theme</div>
+  </div>
+
+  <!-- Pricing -->
+  <div class="pricing">
+    <div class="ribbon">Early Bird -- Limited Offer</div>
+    <div class="price-label">Introductory Price / Harga Perkenalan</div>
+    <div class="price-row">
+      <div class="old-price">RM148</div>
+      <div style="color:#c1a362;font-size:16px">&#10132;</div>
+      <div class="new-price"><sup>RM</sup>98</div>
+    </div>
+    <div class="price-note">Save <strong>RM50</strong> -- exclusively for the <strong>first 100 subscribers</strong></div>
+    <div class="urgency">Terhad kepada 100 pelanggan pertama sahaja / Limited to first 100 customers only</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="ft-dev">Dibangunkan oleh</div>
+    <div class="ft-name">Prof Madya Dr Shahrul Mizan Ismail</div>
+    <div class="ft-fac">Fakulti Undang-Undang</div>
+    <div class="ft-uni">UNIVERSITI KEBANGSAAN MALAYSIA</div>
+    <div class="ft-disc">Semua rujukan kes dan perundangan mesti disahkan secara bebas terhadap sumber primer / All case and legislative references must be independently verified against primary sources</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/mysyariahai/"
+title = "MySyalitAI"
+version = "1.0.0"
+id = "artifacts/mysyariahai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/mysyariahai/" ]
+localPort = 25600
+
+[services.development]
+run = "pnpm --filter @workspace/mysyariahai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mysyariahai", "run", "build" ]
+publicDir = "artifacts/mysyariahai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25600"
+BASE_PATH = "/mysyariahai/"
