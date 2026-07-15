@@ -1,0 +1,456 @@
+
+Azure SSO service options
+Shared by Aiman
+This is a copy of a chat between Claude and Aiman. Content may include unverified or unsafe content that do not represent the views of Anthropic. Shared snapshot may contain attachments and data not displayed here.
+
+Files hidden in shared chats
+which service offered by microsoft azure will output in me having SSO Method
+
+Microsoft Entra ID (formerly Azure Active Directory) is the service you're looking for — it's visible right there in your screenshot, both highlighted in the top row of services and in your left sidebar.
+
+Microsoft Entra ID is Azure's identity and access management service, and Single Sign-On (SSO) is one of its core features. With it, you can:
+
+Set up SSO so users log in once and access multiple applications (Microsoft 365, Salesforce, custom apps, etc.) without re-entering credentials
+Choose SSO methods like SAML, OpenID Connect/OAuth, password-based SSO, or linked sign-on
+Add security layers like multi-factor authentication (MFA) and conditional access policies
+To get started, click Microsoft Entra ID in your portal, then go to Enterprise applications — that's where you register apps and configure their SSO settings. You'll find the "Single sign-on" option in the left menu of each enterprise application you add.
+
+If you're in the "Identity" category shown in your filter list, Entra ID falls under that grouping too.
+
+Files hidden in shared chats
+where is it  guide me how
+
+You're very close! You're currently in App registrations, but for setting up SSO, the place you want is Enterprise applications — it's just two items above "App registrations" in that same left menu (you can see it in your screenshot).
+
+Quick distinction: App registrations is for apps you're developing yourself, while Enterprise applications is where you add existing apps (like Google Workspace, Dropbox, Salesforce, etc.) and configure SSO for them.
+
+Open Enterprise applications
+In the left menu under 'Manage' (where you currently see App registrations highlighted), click 'Enterprise applications' instead. It's listed just above Devices.
+1
+2
+3
+4
+5
+6
+One thing to note: your tenant is on the Microsoft Entra ID Free license (visible in your first screenshot). Free tier supports SSO for unlimited apps, but some advanced features like conditional access policies require a P1 or P2 license. For basic SAML/OIDC SSO though, Free works fine.
+
+Which app are you trying to set up SSO for? I can give you more specific configuration values if you tell me.
+
+Files hidden in shared chats
+here?
+
+Yes, exactly! You're in the Microsoft Entra App Gallery now — this is the right place. You've made it through steps 1 and 2.
+
+From here, what you do depends on which app you want SSO for:
+
+If it's a popular app (like the AWS, Google Cloud, Oracle, or SAP tiles you're seeing, or anything else like Salesforce, Dropbox, Zoom, Canva, etc.):
+
+Type its name in the Search application box at the top
+Click the app's tile from the results
+A panel slides in from the right — give it a name (or keep the default) and click Create
+Wait a few seconds while it provisions, then you'll land on the app's overview page
+In the app's left menu, click Single sign-on → pick SAML (most common) and configure
+If your app isn't in the gallery (e.g., a custom internal app):
+
+Click + Create your own application at the top left
+Give it a name, select "Integrate any other application you don't find in the gallery (Non-gallery)"
+Click Create, then go to Single sign-on the same way
+So — which app are you setting up SSO for? If you tell me (for example, AWS or Google Cloud from those tiles), I can walk you through the exact SAML values that app expects on the configuration page.
+
+my own app
+
+Since it's your own app, click + Create your own application (top left of the gallery page you're on now).
+
+A panel will slide in asking two things:
+
+Name — type your app's name (whatever you want to call it)
+What are you looking to do? — select the third option: "Integrate any other application you don't find in the gallery (Non-gallery)"
+Click Create
+After it provisions, you'll land on your app's overview page. Go to Single sign-on in its left menu, and you'll see the SSO method options (this is the "SSO Method" screen you were originally looking for). Choose SAML, and you'll get the configuration page with these fields to fill in:
+
+Identifier (Entity ID) — a unique ID for your app, usually your app's URL (e.g., https://myapp.com)
+Reply URL (Assertion Consumer Service URL) — where Entra sends the SAML token after login, e.g., https://myapp.com/saml/callback (this depends on how your app is built)
+Then download the Certificate (Base64) and copy the Login URL / Entra Identifier from section 3-4 into your app's SAML settings
+One important question before you proceed though: how does your app handle authentication?
+
+If your app supports SAML → the path above is correct
+If your app uses OpenID Connect / OAuth (common for modern web apps, e.g., built with libraries like MSAL, passport.js, NextAuth) → you actually want App registrations instead (where you were two screenshots ago!). There you'd click + New registration, set a redirect URI, and get a Client ID + Secret for your code.
+Which one is your app built with — SAML or OpenID Connect/OAuth? Or if you're not sure, tell me what framework/language your app uses and I'll point you to the right one.
+
+i need SSO Sign in method to become like the idp provider to a service provider
+
+That's exactly what you're set up for — you want Entra ID as the Identity Provider (IdP) and your app as the Service Provider (SP). That's the classic SAML SSO setup, and the non-gallery app path is correct. Here's how the pieces map:
+
+SAML Role	Who
+Identity Provider (IdP)	Microsoft Entra ID (your Default Directory)
+Service Provider (SP)	Your own app
+So continue where you are:
+
+1. Create the app
+
+Click + Create your own application → name it → select "Integrate any other application you don't find in the gallery (Non-gallery)" → Create
+2. Open Single sign-on → select SAML
+This is the moment your tenant officially becomes an IdP for this app. You'll see a page with numbered sections:
+
+3. Section 1 — Basic SAML Configuration (this is the SP side info you give Entra):
+
+Identifier (Entity ID): your app's SP entity ID — e.g., https://yourapp.com/saml/metadata
+Reply URL (ACS URL): where your app receives the SAML assertion — e.g., https://yourapp.com/saml/acs
+Optionally Sign on URL if you want SP-initiated login
+4. Section 3 — SAML Certificates (this is the IdP side info you give your app):
+
+Download Certificate (Base64) — your app uses this to verify tokens signed by Entra
+Or better: copy the App Federation Metadata Url — most SAML libraries can consume this URL directly and auto-configure everything
+5. Section 4 — Set up [your app name]:
+
+Login URL → this is the IdP's SSO endpoint (goes into your app's SAML config as the "IdP SSO URL")
+Microsoft Entra Identifier → this is the IdP Entity ID
+Logout URL → for single logout
+6. Assign users: Go to Users and groups in the app's menu and add yourself (your Aiman Haziq account) — otherwise Entra will block the login even if everything is configured correctly. This trips up almost everyone on their first try.
+
+Then in your app's code/config, plug in the three IdP values from step 5 plus the certificate, and test by hitting your app's login — it should redirect to the Microsoft login page and bounce back with a signed SAML assertion.
+
+What is your app built with (e.g., Node/Express, Python/Flask, PHP, .NET)? I can suggest the right SAML library and show you the config snippet for it.
+
+my app is mylegalpracticeai.life try to browse it and determine the what are you looking to do with your app
+
+
+Searched the web
+Searched the web
+I browsed it — nice work on the site! So My Legal Practice AI / AI Portals is a subscription SaaS: seven AI legal portals (MyLitAI, MyCorpAI, MyConveyLitAI, etc.) living under one domain, sold to individual lawyers, firms, corporates, and universities. I even noticed your Institution academic tier explicitly promises "SSO & API integration" as a feature — so this makes total sense.
+
+This changes my recommendation in an important way. In that "What are you looking to do with your application?" panel, the right choice for you is actually:
+
+Option 2: "Register an application to integrate with Microsoft Entra ID (App you're developing)" — not the Non-gallery option.
+
+Here's why:
+
+The Non-gallery SAML path won't work for your business model. That setup makes your Default Directory the IdP — but your tenant has exactly 1 user (you). Only accounts inside your tenant could sign in. Your customers (lawyers at firms, university students) aren't in your tenant, so nobody could actually use that SSO.
+
+What your SaaS actually needs is one or both of these:
+
+1. "Sign in with Microsoft" for all customers (OIDC, multi-tenant) — the standard SaaS approach:
+
+Go back to App registrations → + New registration
+Name: e.g., AI Portals
+Supported account types: "Accounts in any organizational directory and personal Microsoft accounts" — this is the crucial setting; it lets any lawyer with a work Microsoft 365 account or personal Outlook account sign in
+Redirect URI (Web): e.g., https://mylegalpracticeai.life/auth/callback
+After creation: note the Application (client) ID, then go to Certificates & secrets → create a client secret
+In your app code, use an OIDC library with authority https://login.microsoftonline.com/common
+Since all seven portals live under one domain, one app registration with multiple redirect URIs (one per portal path) gives you SSO across all your portals too — sign in once, access MyLitAI, MyCorpAI, and the rest.
+
+2. Per-institution SAML SSO (for that Institution tier) — here the roles flip: the university's IdP (their own Entra tenant, Google Workspace, etc.) is the IdP, and your app is the SP. You'd implement SAML SP support in your app (libraries like passport-saml for Node or python3-saml) and each institutional client gives you their metadata. Nothing gets created in your own Azure tenant for this — the config lives in your app.
+
+For a solo-built SaaS at your stage, I'd do #1 now (it covers individuals, firms, and most corporate users with Microsoft accounts) and build #2 later when an actual university signs the Institution tier.
+
+What's your app's backend built with (Node, PHP, Python, or is it on a platform like Firebase/Supabase)? I'll give you the exact integration code for the "Sign in with Microsoft" flow.
+
+i created the app
+
+Great — now let's grab the credentials and finish the setup. On your app's Overview page you should see it. Here's what to do next:
+
+1. Copy your IDs (from the Overview page):
+
+Application (client) ID — copy and save this
+Directory (tenant) ID — you'll only need this if you chose single-tenant; for multi-tenant you'll use common instead
+2. Check "Supported account types" on that same Overview page. It should say "All Microsoft account users" or "Multiple organizations". If it says "My organization only", go to Manage → Authentication, scroll to Supported account types, and switch it — otherwise your customers can't sign in.
+
+3. Add your Redirect URI (if you skipped it during creation):
+
+Go to Manage → Authentication → + Add a platform → Web
+Enter: https://mylegalpracticeai.life/auth/callback (or whatever route your app will handle the login response on)
+Under "Implicit grant", leave the checkboxes off — modern auth code flow doesn't need them
+4. Create a Client Secret:
+
+Go to Manage → Certificates & secrets → + New client secret
+Give it a description, pick an expiry (24 months max)
+Copy the "Value" immediately — it's shown only once, and it's the Value column you need, not the Secret ID. Store it somewhere safe; never commit it to code or expose it in frontend JavaScript.
+5. API permissions — the defaults are fine. You should already see User.Read (Microsoft Graph, delegated), which lets your app read the signed-in user's name and email. No admin consent needed for that.
+
+That's everything on the Azure side. The sign-in URL your app will send users to looks like this:
+
+https://login.microsoftonline.com/common/oauth2/v2.0/authorize?
+  client_id=YOUR_CLIENT_ID
+  &response_type=code
+  &redirect_uri=https://mylegalpracticeai.life/auth/callback
+  &scope=openid profile email User.Read
+  &state=random_value
+Microsoft redirects back to your callback with a code, your backend exchanges it for tokens using the client secret, and you've got the user's identity — that's your SSO.
+
+Now, to give you the actual working code for that callback: what's your backend? Node/Express, PHP, Python, or something like Firebase/Supabase/WordPress?
+
+i want to set up SSO
+
+Good news: on the Azure side, you've essentially already set it up. This is the part that confuses almost everyone, so let me clarify:
+
+With an App registration (OIDC), there is no "Single sign-on" menu to click. The SSO is the sign-in flow itself. That SAML "Select a single sign-on method" screen you saw referenced earlier only exists for Enterprise/gallery apps — you don't need it. Your app registration with a redirect URI + client secret is the complete SSO configuration on Microsoft's side.
+
+(Technical footnote: when you created the app registration, Azure automatically created a matching entry under Enterprise applications too. If you open it there and click Single sign-on, it will just tell you SSO is handled by the OpenID Connect configuration — confirming there's nothing more to click in the portal.)
+
+What remains is the other half — your website. SSO comes alive when your app implements this flow:
+
+User clicks "Sign in with Microsoft" on mylegalpracticeai.life
+Your site redirects them to login.microsoftonline.com (the authorize URL from my last message)
+They log in with their Microsoft account (work M365 or personal)
+Microsoft redirects back to https://mylegalpracticeai.life/auth/callback?code=...
+Your backend exchanges the code + your client secret for an ID token
+You read the user's email/name from the token, create their session, and they're in — and because the session is on your domain, that one login covers MyLitAI, MyCorpAI, and all seven portals
+So the checklist right now:
+
+✅ App registered
+✅ Client ID copied
+✅ Client secret created (the Value, saved somewhere safe)
+✅ Redirect URI added under Authentication → Web
+✅ Supported account types = multi-tenant + personal accounts
+⬜ Add the sign-in button + callback handler to your app's code ← you are here
+That last step is code in your app, not clicks in Azure. So I need to know: what is mylegalpracticeai.life built with? For example:
+
+Node.js/Express → I'll give you an @azure/msal-node setup
+PHP → a plain OAuth2 implementation or league/oauth2-client
+Python (Flask/Django) → msal Python library
+WordPress → there are plugins that just take your Client ID/Secret
+A no-code/site builder → tell me which one and we'll see what it supports
+Which is it?
+
+built using replit
+
+Replit — nice, that works fine. A couple of Replit-specific things first, then the code.
+
+First, figure out your stack (Replit Agent usually builds Node.js/Express + React, but sometimes Python/Flask): look at your file list — if you see package.json, it's Node; if you see main.py or app.py, it's Python. Or just ask the Replit Agent "what backend framework is this app using?"
+
+Replit-specific setup:
+
+1. Store your credentials in Replit Secrets (the 🔒 lock icon in the left toolbar) — never paste them into code:
+
+AZURE_CLIENT_ID = your Application (client) ID
+AZURE_CLIENT_SECRET = the secret Value you copied
+2. Add BOTH redirect URIs in Azure (Authentication → Web → Add URI):
+
+https://mylegalpracticeai.life/auth/callback (production)
+Your Replit dev URL too, e.g. https://your-repl-name.replit.dev/auth/callback — so you can test before deploying. You can find this URL in Replit's webview address bar.
+3. The code (Node/Express version):
+
+javascript
+// npm install @azure/msal-node express-session
+const msal = require('@azure/msal-node');
+
+const msalClient = new msal.ConfidentialClientApplication({
+  auth: {
+    clientId: process.env.AZURE_CLIENT_ID,
+    authority: 'https://login.microsoftonline.com/common',
+    clientSecret: process.env.AZURE_CLIENT_SECRET,
+  }
+});
+
+const REDIRECT_URI = 'https://mylegalpracticeai.life/auth/callback';
+
+// Step 1: "Sign in with Microsoft" button points here
+app.get('/auth/login', async (req, res) => {
+  const url = await msalClient.getAuthCodeUrl({
+    scopes: ['openid', 'profile', 'email', 'User.Read'],
+    redirectUri: REDIRECT_URI,
+  });
+  res.redirect(url);
+});
+
+// Step 2: Microsoft sends the user back here
+app.get('/auth/callback', async (req, res) => {
+  try {
+    const result = await msalClient.acquireTokenByCode({
+      code: req.query.code,
+      scopes: ['openid', 'profile', 'email', 'User.Read'],
+      redirectUri: REDIRECT_URI,
+    });
+    // The user's identity:
+    req.session.user = {
+      email: result.account.username,
+      name: result.account.name,
+    };
+    res.redirect('/'); // logged in — send them to the portal
+  } catch (err) {
+    console.error(err);
+    res.redirect('/?login=failed');
+  }
+});
+Then your "Sign in with Microsoft" button is just a link to /auth/login.
+
+Honestly, the fastest path on Replit: paste this into the Replit Agent chat:
+
+"Add Microsoft Entra ID SSO login to this app using the OAuth2 authorization code flow. Use the MSAL library. Client ID and secret are in Secrets as AZURE_CLIENT_ID and AZURE_CLIENT_SECRET. Authority is https://login.microsoftonline.com/common. Redirect URI is https://mylegalpracticeai.life/auth/callback. On successful login, store the user's email and name in the session and link it to my existing user/subscription system."
+
+The Agent will wire it into your existing code structure, whatever the stack is — that last part about linking to your subscription system matters, since you'll want to match the Microsoft email against your Stripe subscribers.
+
+To test: run the app, click your sign-in button, log in with any Microsoft account (try your own aimanhaziqedu@gmail.com — wait, that's Gmail; use any Outlook/Hotmail/M365 account), and you should bounce back logged in.
+
+Want me to also cover how to match the logged-in Microsoft email to your existing subscribers so only paying users get portal access?
+
+Turn on web search in Search and tools menu. Otherwise, links provided may not be accurate or up to date.
+
+Files hidden in shared chats
+what to do in this page?
+
+Two things are happening here, and both are easy to fix:
+
+1. You don't visit this page directly. /auth/callback isn't a page for humans — it's an endpoint that only Microsoft's servers redirect to, carrying a ?code=... parameter after a user logs in. You never type it into the browser yourself. The correct flow always starts from your "Sign in with Microsoft" button (or the /auth/login route).
+
+2. But the 404 also reveals a real problem: if the callback code existed, visiting it directly would show an error like "login failed" or "missing code" — not 404 page not found. A 404 means the route doesn't exist in your deployed app yet. So either:
+
+The SSO code hasn't been added to your Replit project yet, or
+It was added but you haven't redeployed — this catches a lot of people on Replit: changes work in the dev preview, but your live domain (mylegalpracticeai.life) runs the deployment, which only updates when you hit Redeploy
+What to do now, in order:
+
+In Replit, ask the Agent to add the SSO code (the prompt I gave you in my last message), or confirm it's already in your code — search your project for auth/callback
+Test in the dev preview first: open your Replit dev URL, click your sign-in button, and complete a Microsoft login (make sure the dev URL's /auth/callback was added as a redirect URI in Azure)
+Once it works in dev, click Redeploy in Replit so the live site gets the new code
+Then test on the real domain — again, starting from the sign-in button, not by typing the callback URL
+After redeploying, if you visit /auth/callback directly you'd see an error message instead of a 404 — that's actually how you'll know the route now exists. But the real test is always: click sign-in button → Microsoft login page → bounced back and logged in.
+
+Does your site currently have a "Sign in with Microsoft" button anywhere, or does it still use another login method (email/password)? That tells me whether the Agent has actually started the integration or not.
+
+it doesnt have sign in with microsoft button yet, it just has access codes that replit itself generate for one user one access code i want to add SSO method also. What steps i need to do in Microsoft Azure i have added mylegalpracticeai.life as an app. Also do i need to set up SAML Configuration??
+
+Clear answer first: No, you do NOT need SAML configuration. SAML is only for the Enterprise application path we abandoned earlier. Your app registration uses OpenID Connect (OIDC), which is the modern replacement — same SSO result, much simpler. If you see a "SAML" option anywhere in your app registration, just ignore it.
+
+Here is the complete Azure checklist. Since you've already registered the app, some of these may be done — verify each one:
+
+In portal.azure.com → Microsoft Entra ID → App registrations → your app:
+
+Step 1 — Overview page: copy the Application (client) ID
+Save it somewhere; you'll paste it into Replit Secrets.
+
+Step 2 — Authentication (left menu):
+
+Click + Add a platform → Web (if not done already)
+Add these Redirect URIs:
+https://mylegalpracticeai.life/auth/callback
+Your Replit dev URL + /auth/callback (for testing, e.g. https://xxxx.replit.dev/auth/callback)
+Scroll down to Supported account types — must be set to "Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts". If it says "single tenant / my organization only," change it and Save. This is the #1 thing that breaks customer logins.
+Step 3 — Certificates & secrets (left menu):
+
++ New client secret → description like "replit-prod" → expiry 24 months → Add
+Immediately copy the Value column (not Secret ID) — it's shown only once
+Step 4 — API permissions (left menu):
+
+Confirm Microsoft Graph → User.Read (Delegated) is listed. It's there by default. Nothing else needed, no admin consent required.
+That's it for Azure. Done. There is no SSO toggle, no SAML page, nothing else to configure there.
+
+The remaining work is 100% in Replit. Since your app currently uses generated access codes, the smart design is: keep the access codes as your authorization layer, add Microsoft as an authentication layer on top. Meaning: Microsoft login proves who the user is (their email), and then either their email is already linked to a valid access code/subscription, or you prompt them once to enter their access code to link it.
+
+Paste this into your Replit Agent:
+
+"Add 'Sign in with Microsoft' SSO alongside the existing access-code login. Use the OAuth2 authorization code flow with MSAL. Client ID and secret are in Secrets as AZURE_CLIENT_ID and AZURE_CLIENT_SECRET. Authority: https://login.microsoftonline.com/common. Redirect URI: https://mylegalpracticeai.life/auth/callback (and the dev URL equivalent for testing). Flow: when a user signs in with Microsoft for the first time, ask them to enter their access code once and store the link between their Microsoft email and that access code in the database. On future logins, if their email is already linked to a valid access code, log them straight in with no code needed. Keep the plain access-code login working as a fallback. Add a 'Sign in with Microsoft' button to the login page."
+
+Then add the two secrets in Replit (🔒 Secrets): AZURE_CLIENT_ID and AZURE_CLIENT_SECRET, test in the dev preview, and Redeploy to push it live.
+
+That linking design also sets you up nicely for the future: when a law firm buys a 15-seat bundle, each lawyer just signs in with their firm's Microsoft 365 account — one click, no codes to distribute after the first login.
+
+Turn on web search in Search and tools menu. Otherwise, links provided may not be accurate or up to date.
+
+what if their monthly subscription ends?
+
+This is exactly why the two-layer design matters. The key principle:
+
+Microsoft SSO answers "who are you?" — it never answers "are you allowed in?" That second question is your app's job, checked on every login (and ideally every request), against your subscription records.
+
+So when a subscription ends, nothing changes in Azure at all. Microsoft will still happily authenticate them — they'll prove they're lawyer@firm.com — but your app then looks up that email, sees the linked subscription is expired, and blocks access. The flow:
+
+Microsoft login succeeds
+        ↓
+Your app: look up email → linked access code / subscription
+        ↓
+   Is it still active?
+   ├─ Yes → let them into the portals
+   └─ No  → show "Your subscription has ended" page
+            with a Renew button → Stripe checkout
+How your app knows the subscription ended — since you're using Stripe, there are two approaches:
+
+Stripe webhooks (the proper way): Stripe sends your app an event like customer.subscription.deleted or invoice.payment_failed the moment a subscription lapses or a card fails. Your app receives it and marks that access code/email as inactive in the database. Instant, automatic.
+Expiry date check (the simple way): store an expires_at date with each access code, extend it each time a payment succeeds, and on every login just check expires_at > today. Works fine, slightly less real-time on failed payments.
+A couple of design details worth getting right:
+
+Don't delete the link between their Microsoft email and account when the subscription lapses — just mark it inactive. When they renew, everything reactivates without re-linking. And if they resubscribe months later, their history is intact.
+Show a renewal page, not a login failure. An expired user who logs in should land on "Your subscription ended on X — renew to continue" with a checkout button. That's a re-conversion opportunity, not an error.
+Check on every request, not just login, for anything sensitive — otherwise someone with an active session at 11:59pm keeps access after expiry until they log out. A simple middleware that checks subscription status (cached for a few minutes) handles this.
+Grace period (optional): many SaaS give 3–7 days after a failed payment before cutting access, with a "payment failed, please update your card" banner. Reduces churn from expired cards.
+Prompt for your Replit Agent:
+
+"Add subscription enforcement: every access code in the database should have a status (active/expired) and an expires_at date. On every login (both access-code and Microsoft SSO) and on protected routes, check the linked subscription status. If expired, redirect to a renewal page showing when it ended and a Stripe checkout link to renew. Set up a Stripe webhook endpoint that listens for invoice.paid (extend expires_at by one month), invoice.payment_failed, and customer.subscription.deleted (mark as expired). Keep the Microsoft email link intact when expired so renewal reactivates the same account. Add a 5-day grace period after payment failure with a warning banner before locking access."
+
+One thing to verify on the Stripe side: in your Stripe dashboard you'll need to add the webhook endpoint URL (e.g., https://mylegalpracticeai.life/webhooks/stripe) and copy the webhook signing secret into Replit Secrets — the Agent will tell you the exact URL once it builds it.
+
+okay now give me step by step from copying the application ID until giving the first prompt to replit, and then the second one and stripe side give me the full walkthrough steps
+
+Here's the full walkthrough, in the exact order you should do things.
+
+Phase 1 — Azure (get your credentials)
+Step 1: Copy the Application (client) ID
+Go to portal.azure.com → Microsoft Entra ID → App registrations → click your app → on the Overview page, copy Application (client) ID (there's a copy icon next to it). Paste it into a temporary notepad.
+
+Step 2: Verify supported account types
+Still on Overview, check "Supported account types." It must say multitenant + personal Microsoft accounts. If it says "My organization only": left menu → Authentication → scroll to Supported account types → select "Accounts in any organizational directory and personal Microsoft accounts" → Save.
+
+Step 3: Add redirect URIs
+Left menu → Authentication → if no Web platform exists, click + Add a platform → Web. Add:
+
+https://mylegalpracticeai.life/auth/callback
+Click Add URI to add a second one — your Replit dev URL + /auth/callback. To find it: open your Replit project, hit Run, and copy the URL from the webview address bar (looks like https://something.replit.dev). So e.g. https://something.replit.dev/auth/callback. Save.
+
+Step 4: Create the client secret
+Left menu → Certificates & secrets → + New client secret → description: replit-prod, expires: 24 months → Add. Immediately copy the Value column (NOT Secret ID) into your notepad. It disappears forever after you leave this page.
+
+Step 5: Confirm API permissions
+Left menu → API permissions → confirm Microsoft Graph / User.Read / Delegated is listed (it's there by default). Done — close Azure, you won't need it again.
+
+Phase 2 — Replit secrets
+Step 6: Add secrets
+Open your Replit project → click the 🔒 Secrets icon in the left toolbar (or Tools → Secrets). Add two:
+
+Key	Value
+AZURE_CLIENT_ID	the Application (client) ID from Step 1
+AZURE_CLIENT_SECRET	the secret Value from Step 4
+Now delete them from your notepad.
+
+Phase 3 — First Replit prompt (SSO login)
+Step 7: Paste this into the Replit Agent chat:
+
+Add "Sign in with Microsoft" SSO alongside the existing access-code login. Use the OAuth2 authorization code flow with the MSAL library. Client ID and secret are stored in Secrets as AZURE_CLIENT_ID and AZURE_CLIENT_SECRET. Authority: https://login.microsoftonline.com/common. Redirect URIs: https://mylegalpracticeai.life/auth/callback for production, and this repl's dev URL + /auth/callback for testing — detect the environment automatically. Flow: when a user signs in with Microsoft for the first time, prompt them to enter their access code once, then store the link between their Microsoft email and that access code in the database. On future logins, if their email is already linked to a valid access code, log them in directly with no code needed. Keep the existing access-code login working as a fallback. Add a "Sign in with Microsoft" button to the login page.
+
+Step 8: Test in dev
+When the Agent finishes, open the dev preview → you should see the new button → click it → Microsoft login page appears → sign in with any Microsoft account (Outlook/Hotmail/M365 — your Gmail won't work unless it's linked to a Microsoft account; if you don't have one, create a free Outlook account for testing) → you should bounce back and be asked for your access code → enter a valid one → you're in. Log out, sign in with Microsoft again → this time no code prompt. That's the linking working.
+
+If Microsoft shows an error like AADSTS50011: redirect URI mismatch, the dev URL in Azure (Step 3) doesn't exactly match — copy the exact URL from the error message and add it in Azure → Authentication.
+
+Step 9: Deploy
+Click Redeploy (Deployments tab) so mylegalpracticeai.life gets the new code. Test once on the live domain.
+
+Phase 4 — Second Replit prompt (subscription enforcement)
+Step 10: Paste this into the Agent:
+
+Add subscription enforcement. Every access code in the database gets a status (active/expired) and an expires_at date. On every login (both access-code and Microsoft SSO) and on all protected routes via middleware, check the linked subscription status. If expired, redirect to a renewal page showing when it ended and a Stripe checkout link to renew. Create a Stripe webhook endpoint at /webhooks/stripe with signature verification (signing secret in Secrets as STRIPE_WEBHOOK_SECRET) that handles: invoice.paid → extend expires_at by one month and set status active; invoice.payment_failed → start a 5-day grace period and show a "payment failed, update your card" banner; customer.subscription.deleted → mark expired. Never delete the Microsoft email link when expired, so renewal reactivates the same account. Store the Stripe customer ID against each access code so webhooks can find the right account. Tell me the exact webhook URL when done.
+
+Step 11: The Agent will likely ask how your existing Stripe checkout creates access codes (so it can attach the Stripe customer ID). Answer its questions — it can read your existing code, so this usually goes smoothly. When it finishes, note the webhook URL it gives you (should be https://mylegalpracticeai.life/webhooks/stripe).
+
+Phase 5 — Stripe dashboard
+Step 12: Create the webhook
+Go to dashboard.stripe.com → Developers → Webhooks → + Add endpoint (if you see "Event destinations" instead, same thing). Endpoint URL: https://mylegalpracticeai.life/webhooks/stripe. Under "Select events," add exactly these three:
+
+invoice.paid
+invoice.payment_failed
+customer.subscription.deleted
+Click Add endpoint.
+
+Step 13: Copy the signing secret
+On the webhook's detail page, click Reveal under "Signing secret" — it starts with whsec_. Copy it → back in Replit Secrets, add key STRIPE_WEBHOOK_SECRET with that value. Redeploy again so the app picks it up.
+
+Step 14: Test the webhook
+On the same Stripe webhook page, click Send test event → choose invoice.paid → send. Check the webhook page shows a 200 response. If it shows an error, tell the Replit Agent the error message.
+
+Step 15: End-to-end test (optional but worth it)
+Use Stripe test mode with card 4242 4242 4242 4242 to buy a subscription, confirm an access code is issued with an expires_at date one month out, log in with Microsoft, link the code, then in Stripe test mode cancel the subscription — refresh your portal and you should hit the renewal page.
+
+That's the complete circuit: Azure proves identity → Replit links identity to an access code → Stripe keeps the code alive or kills it. One caution for the future: when your client secret expires (24 months), logins will suddenly fail — set a calendar reminder for June 2028 to create a new secret and update the Replit Secret.
+
+Go step by step and tell me where anything looks different from what I described — screenshots welcome.
+
+Turn on web search in Search and tools menu. Otherwise, links provided may not be accurate or up to date.
+
