@@ -175,9 +175,9 @@ function VersionCard({ version }: { version: AppVersion }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 transition-colors inline-flex items-center justify-center gap-1.5"
+            className="shrink-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 px-4 transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
           >
-            Open {version.badge}
+            Open
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>
