@@ -1,0 +1,10 @@
+---
+name: Portal access-code sync
+description: Any path that confirms a subscriber must sync their code to ALL portal tables via syncPortalAccessCodes
+---
+
+Rule: every path that creates or confirms a subscriber (Stripe provisioning, admin create/update/confirm) must call the unified `syncPortalAccessCodes()` so the code works on every portal in the plan; a startup backfill covers historical rows.
+
+**Why:** codes used to sync only for 4 of 7 portals and only on the Stripe path — admin-created codes silently failed at portal logins. Also, app-name lists can contain variants ("MyLitAI" AND "MyLitAI (Versi 2)"), so inclusion checks must match all variants, not one literal name.
+
+**How to apply:** when adding a new portal or a new subscriber-mutation path, extend `syncPortalAccessCodes` and its per-app include check; never re-add per-path sync blocks.

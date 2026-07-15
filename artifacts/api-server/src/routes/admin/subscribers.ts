@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and, sql } from "drizzle-orm";
 import { db, subscribersTable, activityTable } from "@workspace/db";
+import { syncPortalAccessCodes } from "../../lib/provisioning";
 import {
   CreateSubscriberBody,
   GetSubscriberParams,
@@ -64,6 +65,11 @@ router.post("/subscribers", async (req, res): Promise<void> => {
     description: `New subscriber: ${parsed.data.name} for ${parsed.data.apps.join(", ")}`,
   });
 
+  // Make the code usable on every portal in the plan right away.
+  if (subscriber && subscriber.paymentStatus === "confirmed") {
+    await syncPortalAccessCodes(subscriber);
+  }
+
   res.status(201).json(GetSubscriberResponse.parse(subscriber));
 });
 
@@ -111,6 +117,11 @@ router.patch("/subscribers/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  // Keep portal login tables in sync with any code/apps changes.
+  if (subscriber.paymentStatus === "confirmed") {
+    await syncPortalAccessCodes(subscriber);
+  }
+
   res.json(UpdateSubscriberResponse.parse(subscriber));
 });
 
@@ -151,6 +162,9 @@ router.patch("/subscribers/:id/confirm", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Subscriber not found" });
     return;
   }
+
+  // Payment is confirmed — activate the code on every portal in the plan.
+  await syncPortalAccessCodes(subscriber);
 
   await db.insert(activityTable).values({
     type: "payment_confirmed",

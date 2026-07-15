@@ -1,7 +1,10 @@
 import { runMigrations } from "stripe-replit-sync";
 import app from "./app";
 import { logger } from "./lib/logger";
-import { reconcileMissedProvisioning } from "./lib/provisioning";
+import {
+  reconcileMissedProvisioning,
+  backfillPortalAccessCodes,
+} from "./lib/provisioning";
 import { getStripeSync } from "./stripeClient";
 
 async function initStripe(): Promise<void> {
@@ -75,6 +78,12 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
+
+// Best-effort backfill: make every confirmed subscriber's access code work
+// on all portals in their plan (idempotent upserts, no emails sent).
+void backfillPortalAccessCodes().catch((err) =>
+  logger.error({ err }, "Portal access-code backfill failed"),
+);
 
 app.listen(port, (err) => {
   if (err) {

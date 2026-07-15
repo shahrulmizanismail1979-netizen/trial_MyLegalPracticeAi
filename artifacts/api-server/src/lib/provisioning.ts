@@ -12,7 +12,10 @@ import {
   accessCodesTable,
   crimAccessCodesTable,
   corpAccessCodes as corpAccessCodesTable,
+  litAccessCodes as litAccessCodesTable,
+  ccbAccessCodes as ccbAccessCodesTable,
 } from "@workspace/db";
+import { accessCodesTable as syaAccessCodesTable } from "@workspace/db/sya";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody } from "./sms";
@@ -237,6 +240,161 @@ async function syncCorpAccessCode(params: {
   }
 }
 
+// Landing purchases for the litigation product also unlock the hosted
+// MyLitAI apps (Version 1 + Version 2 share lit_access_codes).
+// Both MyLitAI names may appear in a subscriber's app list ("MyLitAI" and
+// "MyLitAI (Versi 2)") — both share the same lit_access_codes table.
+const LIT_APP_NAMES = new Set(["MyLitAI", "MyLitAI (Versi 2)"]);
+
+function includesLitApp(apps: string[]): boolean {
+  return apps.some((a) => LIT_APP_NAMES.has(a));
+}
+
+/**
+ * Upsert a MyLitAI access code (shared by Version 1 and Version 2 / IRAC).
+ * Idempotent via the unique code constraint. Best-effort: never fails
+ * provisioning.
+ */
+async function syncLitAccessCode(params: {
+  accessCode: string;
+  name: string;
+  email: string | null;
+}): Promise<void> {
+  try {
+    await db
+      .insert(litAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        recipientName: params.name,
+        recipientEmail: params.email ?? "",
+        status: "active",
+      })
+      .onConflictDoUpdate({
+        target: litAccessCodesTable.code,
+        set: { status: "active" },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyLitAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyLitAI access code for landing purchase");
+  }
+}
+
+// Landing purchases for the syariah product also unlock the hosted
+// MySyalitAI app.
+function includesSyaApp(apps: string[]): boolean {
+  return apps.includes("MySyalitAI");
+}
+
+/**
+ * Upsert a MySyalitAI access code. Idempotent via the unique code
+ * constraint. Best-effort: never fails provisioning.
+ */
+async function syncSyaAccessCode(params: {
+  accessCode: string;
+  name: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(syaAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        name: params.name,
+        role: "practitioner",
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: syaAccessCodesTable.code,
+        set: { isActive: true },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MySyalitAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MySyalitAI access code for landing purchase");
+  }
+}
+
+// Landing purchases for the construction-law product also unlock the hosted
+// MyCCBLitAI app.
+function includesCcbApp(apps: string[]): boolean {
+  return apps.includes("MyCCBLitAI");
+}
+
+/**
+ * Upsert a MyCCBLitAI access code. Idempotent via the unique code
+ * constraint. Best-effort: never fails provisioning.
+ */
+async function syncCcbAccessCode(params: {
+  accessCode: string;
+  name: string;
+}): Promise<void> {
+  try {
+    await db
+      .insert(ccbAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        label: params.name,
+        active: true,
+      })
+      .onConflictDoUpdate({
+        target: ccbAccessCodesTable.code,
+        set: { active: true },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyCCBLitAI access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyCCBLitAI access code for landing purchase");
+  }
+}
+
+/**
+ * Sync a subscriber's access code into every portal-specific access-code
+ * table covered by their plan, so the code works on all their apps.
+ * Idempotent and best-effort — safe to call repeatedly.
+ */
+export async function syncPortalAccessCodes(subscriber: {
+  accessCode: string | null;
+  name: string;
+  email: string | null;
+  apps: string[];
+}): Promise<void> {
+  const { accessCode, name, email, apps } = subscriber;
+  if (!accessCode) return;
+  if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email });
+  if (includesAccidentApp(apps)) await syncAccidentAccessCode({ accessCode, name });
+  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name });
+  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name });
+  if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email });
+  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name });
+  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name });
+}
+
+/**
+ * Backfill: sync every confirmed subscriber's access code into the portal
+ * tables. Run at startup so codes created before this sync existed (or
+ * added manually via the admin page) work on all portals. Idempotent.
+ */
+export async function backfillPortalAccessCodes(): Promise<number> {
+  const confirmed = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.paymentStatus, "confirmed"));
+  let synced = 0;
+  for (const sub of confirmed) {
+    if (!sub.accessCode) continue;
+    await syncPortalAccessCodes(sub);
+    synced++;
+  }
+  logger.info({ synced }, "Portal access-code backfill finished");
+  return synced;
+}
+
 function appsForCheckout(tier: string | null, appUrl: string | null): string[] {
   if (tier === "bundle") return [...ALL_APP_NAMES];
   if (appUrl && APP_NAME_BY_URL[appUrl]) return [APP_NAME_BY_URL[appUrl]!];
@@ -335,31 +493,7 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (existing) {
-      if (existing.accessCode && includesConveyApp(existing.apps)) {
-        await syncConveyUser({
-          accessCode: existing.accessCode,
-          name: existing.name,
-          email: existing.email,
-        });
-      }
-      if (existing.accessCode && includesAccidentApp(existing.apps)) {
-        await syncAccidentAccessCode({
-          accessCode: existing.accessCode,
-          name: existing.name,
-        });
-      }
-      if (existing.accessCode && includesCrimApp(existing.apps)) {
-        await syncCrimAccessCode({
-          accessCode: existing.accessCode,
-          name: existing.name,
-        });
-      }
-      if (existing.accessCode && includesCorpApp(existing.apps)) {
-        await syncCorpAccessCode({
-          accessCode: existing.accessCode,
-          name: existing.name,
-        });
-      }
+      await syncPortalAccessCodes(existing);
       return {
         accessCode: existing.accessCode,
         apps: existing.apps,
@@ -412,31 +546,7 @@ export async function provisionFromCheckoutSession(
       .from(subscribersTable)
       .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
     if (!existing) return null;
-    if (existing.accessCode && includesConveyApp(existing.apps)) {
-      await syncConveyUser({
-        accessCode: existing.accessCode,
-        name: existing.name,
-        email: existing.email,
-      });
-    }
-    if (existing.accessCode && includesAccidentApp(existing.apps)) {
-      await syncAccidentAccessCode({
-        accessCode: existing.accessCode,
-        name: existing.name,
-      });
-    }
-    if (existing.accessCode && includesCrimApp(existing.apps)) {
-      await syncCrimAccessCode({
-        accessCode: existing.accessCode,
-        name: existing.name,
-      });
-    }
-    if (existing.accessCode && includesCorpApp(existing.apps)) {
-      await syncCorpAccessCode({
-        accessCode: existing.accessCode,
-        name: existing.name,
-      });
-    }
+    await syncPortalAccessCodes(existing);
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -448,21 +558,7 @@ export async function provisionFromCheckoutSession(
     };
   }
 
-  if (includesConveyApp(apps)) {
-    await syncConveyUser({ accessCode, name, email });
-  }
-
-  if (includesAccidentApp(apps)) {
-    await syncAccidentAccessCode({ accessCode, name });
-  }
-
-  if (includesCrimApp(apps)) {
-    await syncCrimAccessCode({ accessCode, name });
-  }
-
-  if (includesCorpApp(apps)) {
-    await syncCorpAccessCode({ accessCode, name });
-  }
+  await syncPortalAccessCodes({ accessCode, name, email, apps });
 
   await db.insert(activityTable).values({
     type: "subscriber_added",

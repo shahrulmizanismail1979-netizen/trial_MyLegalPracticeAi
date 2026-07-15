@@ -10,5 +10,6 @@
 - [zod hoisting breaks @hookform/resolvers@3](zod-hoist-hookform-resolvers.md) — adding zod v4 anywhere in the monorepo breaks resolvers@3 typechecks; fix via packageExtensions optional zod peer.
 - [MyConveyLitAI access-code sync & auth secrets](convey-access-code-sync.md) — landing purchases upsert convey users by access code (no Stripe IDs); ADMIN_PASSWORD/MASTER_ACCESS_CODE fail closed in prod.
 - [Stripe checkout currency](stripe-checkout-currency.md) — keep adaptive_pricing disabled; user wants USD-only checkout, no MYR auto-conversion.
+- [Portal access-code sync](portal-code-sync.md) — every subscriber create/confirm path must call the unified sync so codes work on all 7 portals; match app-name variants like "MyLitAI (Versi 2)".
 - [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.
 - [Donor-app portal integration](donor-portal-integration.md) — porting an external app into this monorepo: sya_-style table prefixing renames constraint names too; artifact-count limit workaround via hand-written artifact.toml + verifyAndReplaceArtifactToml.
