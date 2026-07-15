@@ -160,15 +160,27 @@ function VersionCard({ version }: { version: AppVersion }) {
       </p>
 
       {!confirming ? (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setConfirming(true);
-          }}
-          className="mt-2 w-full rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold py-2 transition-colors"
-        >
-          Choose {version.badge}
-        </button>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirming(true);
+            }}
+            className="flex-1 rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold py-2 transition-colors"
+          >
+            Choose {version.badge}
+          </button>
+          <a
+            href={version.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 transition-colors inline-flex items-center justify-center gap-1.5"
+          >
+            Open {version.badge}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
       ) : (
         <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
           <p className="text-xs text-foreground font-semibold">
