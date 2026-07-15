@@ -177,6 +177,14 @@ export default function Login() {
               >
                 {msLoading ? "Linking..." : "Link & Continue"}
               </Button>
+              <button
+                type="button"
+                onClick={() => { window.location.href = "/auth/microsoft/login?app=accident&prompt=select_account"; }}
+                className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                data-testid="button-switch-ms-account"
+              >
+                Use another Microsoft account?
+              </button>
             </form>
           ) : (
           <>

@@ -126,6 +126,7 @@ router.get("/microsoft/login", async (req, res) => {
       scopes: SCOPES,
       redirectUri: `${baseUrl(req)}/auth/callback`,
       state,
+      ...(req.query.prompt === "select_account" ? { prompt: "select_account" } : {}),
     });
     res.redirect(url);
   } catch (err) {

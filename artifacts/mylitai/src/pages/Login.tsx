@@ -140,6 +140,13 @@ export default function Login() {
                 <Button type="submit" size="lg" className="w-full text-lg" disabled={loading || !linkCode.trim()}>
                   {loading ? (lang === 'ms' ? 'Mengesahkan...' : 'Verifying...') : t('cta.enter')}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = `/auth/microsoft/login?app=${APP_SLUG}&prompt=select_account`; }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                >
+                  {lang === 'ms' ? 'Guna akaun Microsoft lain?' : 'Use another Microsoft account?'}
+                </button>
               </form>
             ) : (
               <>

@@ -192,6 +192,13 @@ export default function LoginPage() {
             >
               {msLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Link & Continue"}
             </Button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = `${API_BASE}/auth/microsoft/login?app=corp&prompt=select_account`; }}
+              className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            >
+              Use another Microsoft account?
+            </button>
           </form>
         ) : (
           <>

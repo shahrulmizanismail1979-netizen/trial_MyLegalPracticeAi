@@ -156,6 +156,13 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   {t("gate.signIn")}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = `/auth/microsoft/login?app=${APP_SLUG}&prompt=select_account`; }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                >
+                  Use another Microsoft account?
+                </button>
               </form>
             ) : (
               <>

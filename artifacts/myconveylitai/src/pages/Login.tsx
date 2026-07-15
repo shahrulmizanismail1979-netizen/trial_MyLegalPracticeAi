@@ -246,6 +246,14 @@ export function Login() {
             >
               {msLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Link & Continue'}
             </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = `${API_BASE}/auth/microsoft/login?app=convey&prompt=select_account`; }}
+              className="w-full text-xs text-slate-400 hover:text-slate-200 underline underline-offset-4 transition-colors"
+              data-testid="button-switch-ms-account"
+            >
+              Use another Microsoft account?
+            </button>
           </form>
         ) : (
         <>

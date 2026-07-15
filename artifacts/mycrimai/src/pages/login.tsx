@@ -163,6 +163,13 @@ export function LoginPage() {
                   {msLoading ? "Linking..." : "Link & Continue"}
                   {!msLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = "/auth/microsoft/login?app=crim&prompt=select_account"; }}
+                  className="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+                >
+                  Use another Microsoft account?
+                </button>
               </form>
             ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
