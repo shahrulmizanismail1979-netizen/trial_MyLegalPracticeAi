@@ -3,6 +3,7 @@ import { and, arrayContains, desc, eq, ilike, isNull, or, sql } from "drizzle-or
 import { createHash } from "node:crypto";
 import { db, contributionsTable, activityTable, vouchersTable } from "@workspace/db";
 import { getUncachableStripeClient } from "../../stripeClient";
+import { anonymizeContribution } from "../../lib/anonymization";
 import {
   ListContributionsQueryParams,
   ListContributionsResponse,
@@ -129,6 +130,22 @@ router.patch("/contributions/:id", async (req, res): Promise<void> => {
   // Respond immediately with the approved contribution — reward issuance is
   // best-effort and must not gate the status transition.
   res.json(UpdateContributionResponse.parse(contribution));
+
+  // Safety net: if anonymisation hasn't succeeded yet (or failed earlier),
+  // retry it on approval. The public corpus only serves anonymised text, so
+  // until this completes the entry simply has no text — never raw details.
+  if (
+    parsed.data.status === "approved" &&
+    contribution.anonymizationStatus !== "done" &&
+    contribution.anonymizationStatus !== "skipped"
+  ) {
+    void anonymizeContribution(contribution.id).catch((err) => {
+      req.log.error(
+        { err, contributionId: contribution.id },
+        "Anonymisation retry on approval failed",
+      );
+    });
+  }
 
   // Best-effort reward: first approval of a contribution earns a single-use
   // "1 free month" promo code created in Stripe and mirrored to vouchers.

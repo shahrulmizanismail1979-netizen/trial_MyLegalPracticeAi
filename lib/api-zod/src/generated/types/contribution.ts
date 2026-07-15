@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ContributionAnonymizationStatus } from "./contributionAnonymizationStatus";
 import type { ContributionExtractionStatus } from "./contributionExtractionStatus";
 import type { ContributionStatus } from "./contributionStatus";
 
@@ -28,6 +29,9 @@ export interface Contribution {
   /** @nullable */
   extractedText?: string | null;
   extractionStatus: ContributionExtractionStatus;
+  /** @nullable */
+  anonymizedText?: string | null;
+  anonymizationStatus: ContributionAnonymizationStatus;
   status: ContributionStatus;
   /** @nullable */
   adminNotes?: string | null;

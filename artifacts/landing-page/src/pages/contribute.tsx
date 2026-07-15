@@ -229,8 +229,11 @@ export default function ContributePage() {
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-start gap-3 mb-8">
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            Contributions are reviewed before being adopted into the knowledge base. Please
-            only upload documents you are entitled to share.{" "}
+            Contributions are reviewed before being adopted into the knowledge base.
+            Client confidentiality is protected automatically: all personal details are
+            removed and every real name is replaced with a fictitious one before any text
+            enters the shared knowledge base. The original file stays private to our
+            review team. Please only upload documents you are entitled to share.{" "}
             <span className="text-foreground font-medium">
               Every approved contribution earns you a voucher for 1 month free — once your
               contribution is approved, our team will send the voucher code to the email

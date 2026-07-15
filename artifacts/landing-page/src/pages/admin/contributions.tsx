@@ -73,6 +73,20 @@ const EXTRACTION_LABELS: Record<string, string> = {
   failed: "Extraction failed",
 };
 
+const ANONYMIZATION_LABELS: Record<string, string> = {
+  done: "Anonymised",
+  pending: "Anonymising…",
+  failed: "Anonymisation failed",
+  skipped: "No text to anonymise",
+};
+
+const ANONYMIZATION_STYLES: Record<string, string> = {
+  done: "bg-green-500/10 text-green-500 border-green-500/20",
+  pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  failed: "bg-red-500/10 text-red-500 border-red-500/20",
+  skipped: "bg-secondary text-muted-foreground border-border",
+};
+
 type Contribution = {
   id: number;
   title: string;
@@ -87,6 +101,8 @@ type Contribution = {
   contentType?: string | null;
   extractedText?: string | null;
   extractionStatus: string;
+  anonymizedText?: string | null;
+  anonymizationStatus: string;
   status: string;
   adminNotes?: string | null;
   rewardVoucherCode?: string | null;
@@ -267,9 +283,18 @@ export default function ContributionsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {EXTRACTION_LABELS[c.extractionStatus] ?? c.extractionStatus}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-muted-foreground">
+                          {EXTRACTION_LABELS[c.extractionStatus] ?? c.extractionStatus}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={`w-fit text-[10px] ${ANONYMIZATION_STYLES[c.anonymizationStatus] ?? ""}`}
+                        >
+                          {ANONYMIZATION_LABELS[c.anonymizationStatus] ??
+                            c.anonymizationStatus}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -356,6 +381,13 @@ export default function ContributionsPage() {
                     viewing.extractionStatus
                   }
                 />
+                <Info
+                  label="Anonymisation"
+                  value={
+                    ANONYMIZATION_LABELS[viewing.anonymizationStatus] ??
+                    viewing.anonymizationStatus
+                  }
+                />
               </div>
               {viewing.rewardVoucherCode && (
                 <div className="rounded-md border border-green-500/20 bg-green-500/10 p-3">
@@ -393,7 +425,23 @@ export default function ContributionsPage() {
               )}
               <div>
                 <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-                  Extracted text
+                  Anonymised text (what the public corpus will see)
+                </div>
+                {viewing.anonymizedText ? (
+                  <pre className="whitespace-pre-wrap text-xs bg-secondary/50 border border-border rounded-md p-3 max-h-64 overflow-y-auto font-mono">
+                    {viewing.anonymizedText}
+                  </pre>
+                ) : (
+                  <p className="text-muted-foreground text-xs">
+                    {viewing.anonymizationStatus === "pending"
+                      ? "Anonymisation is still running — refresh in a moment."
+                      : "No anonymised text available for this document."}
+                  </p>
+                )}
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                  Original extracted text (staff only — may contain real names)
                 </div>
                 {viewing.extractedText ? (
                   <pre className="whitespace-pre-wrap text-xs bg-secondary/50 border border-border rounded-md p-3 max-h-64 overflow-y-auto font-mono">

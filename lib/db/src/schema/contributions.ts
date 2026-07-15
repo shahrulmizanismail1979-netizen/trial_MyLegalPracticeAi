@@ -22,6 +22,13 @@ export const EXTRACTION_STATUSES = [
   "failed",
 ] as const;
 
+export const ANONYMIZATION_STATUSES = [
+  "pending",
+  "done",
+  "failed",
+  "skipped",
+] as const;
+
 export const contributionsTable = pgTable("contributions", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -36,6 +43,8 @@ export const contributionsTable = pgTable("contributions", {
   contentType: text("content_type"),
   extractedText: text("extracted_text"),
   extractionStatus: text("extraction_status").notNull().default("pending"),
+  anonymizedText: text("anonymized_text"),
+  anonymizationStatus: text("anonymization_status").notNull().default("pending"),
   status: text("status").notNull().default("pending"),
   adminNotes: text("admin_notes"),
   rewardVoucherCode: text("reward_voucher_code"),

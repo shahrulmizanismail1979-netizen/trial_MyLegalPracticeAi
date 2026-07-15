@@ -388,6 +388,16 @@ export const ContributionExtractionStatus = {
   failed: "failed",
 } as const;
 
+export type ContributionAnonymizationStatus =
+  (typeof ContributionAnonymizationStatus)[keyof typeof ContributionAnonymizationStatus];
+
+export const ContributionAnonymizationStatus = {
+  pending: "pending",
+  done: "done",
+  failed: "failed",
+  skipped: "skipped",
+} as const;
+
 export type ContributionStatus =
   (typeof ContributionStatus)[keyof typeof ContributionStatus];
 
@@ -417,6 +427,9 @@ export interface Contribution {
   /** @nullable */
   extractedText?: string | null;
   extractionStatus: ContributionExtractionStatus;
+  /** @nullable */
+  anonymizedText?: string | null;
+  anonymizationStatus: ContributionAnonymizationStatus;
   status: ContributionStatus;
   /** @nullable */
   adminNotes?: string | null;

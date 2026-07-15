@@ -3039,6 +3039,17 @@ components:
             - extracted
             - unsupported
             - failed
+        anonymizedText:
+          type:
+            - string
+            - "null"
+        anonymizationStatus:
+          type: string
+          enum:
+            - pending
+            - done
+            - failed
+            - skipped
         status:
           type: string
           enum:
@@ -3068,6 +3079,7 @@ components:
         - fileName
         - objectPath
         - extractionStatus
+        - anonymizationStatus
         - status
         - createdAt
         - updatedAt

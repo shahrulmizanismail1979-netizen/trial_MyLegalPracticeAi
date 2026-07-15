@@ -113,7 +113,13 @@ beforeEach(() => {
 });
 
 describe("GET /api/storage/objects/* access control", () => {
-  it("serves an approved contribution's file to anonymous callers (public corpus)", async () => {
+  it("returns 401 for an approved contribution's file when anonymous (originals stay private)", async () => {
+    const res = await request(app).get(urlFor(APPROVED_PATH));
+    expect(res.status).toBe(401);
+  });
+
+  it("serves an approved contribution's file to a staff member", async () => {
+    signInAs("user_staff", "staff@example.com");
     const res = await request(app).get(urlFor(APPROVED_PATH));
     expect(res.status).toBe(200);
     expect(res.text).toBe("file-bytes");

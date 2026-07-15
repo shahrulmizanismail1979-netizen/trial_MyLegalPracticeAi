@@ -131,11 +131,17 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
     expect(createdIds.length).toBe(2);
     const [approvedId, pendingId] = createdIds;
 
-    // Approve exactly one of the two contributions created above.
+    // Approve exactly one of the two contributions created above. Simulate a
+    // completed anonymisation pass — the public corpus only serves
+    // anonymisedText, never the raw extracted text.
     const { eq } = await import("drizzle-orm");
     await db
       .update(contributionsTable)
-      .set({ status: "approved" })
+      .set({
+        status: "approved",
+        anonymizedText: `ANON ${PDF_TEXT}`,
+        anonymizationStatus: "done",
+      })
       .where(eq(contributionsTable.id, approvedId));
 
     const res = await request(app).get("/api/knowledge-base");
@@ -149,7 +155,8 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
     const approvedEntry = res.body.find(
       (e: { id: number }) => e.id === approvedId,
     );
-    expect(approvedEntry.extractedText).toContain(PDF_TEXT);
+    // Served text is the anonymised version, not the raw extraction.
+    expect(approvedEntry.extractedText).toBe(`ANON ${PDF_TEXT}`);
   });
 
   it("accepts multiple categories and filters knowledge-base by any of them", async () => {

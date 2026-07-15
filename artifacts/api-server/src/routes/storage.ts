@@ -1,7 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
-import { eq } from "drizzle-orm";
-import { db, contributionsTable } from "@workspace/db";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -82,14 +80,14 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 /**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR under a status-based policy:
- * - Files belonging to an APPROVED contribution are part of the public
- *   knowledge-base corpus and may be downloaded by anyone (e.g. downstream apps).
- * - Every other object (files of pending/rejected contributions, or objects not
- *   tied to any contribution) is private and requires an authenticated staff
- *   member. This prevents anonymous download of legal documents still under
- *   review. Staff access works over the browser because the web app carries the
- *   Clerk session as a cookie, which is sent on ordinary navigations too.
+ * Serve object entities from PRIVATE_OBJECT_DIR.
+ *
+ * ALL contribution files are staff-only, including approved ones: the original
+ * uploads contain real client names and personal details. The public
+ * knowledge-base corpus only ever exposes the AI-anonymised text, never the
+ * original document. Staff access works over the browser because the web app
+ * carries the Clerk session as a cookie, which is sent on ordinary
+ * navigations too.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
@@ -97,23 +95,15 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
 
-    const [row] = await db
-      .select({ status: contributionsTable.status })
-      .from(contributionsTable)
-      .where(eq(contributionsTable.objectPath, objectPath))
-      .limit(1);
-
-    const isPublicCorpus = row?.status === "approved";
-    if (!isPublicCorpus) {
-      const access = await checkStaff(req);
-      if (access === "anonymous") {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-      }
-      if (access !== "staff") {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-      }
+    // Original documents may contain real client details — staff only.
+    const access = await checkStaff(req);
+    if (access === "anonymous") {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (access !== "staff") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
     }
 
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);

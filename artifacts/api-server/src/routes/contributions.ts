@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { extractTextFromObject } from "../lib/textExtraction";
+import { anonymizeContribution } from "../lib/anonymization";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -73,6 +74,14 @@ router.post("/contributions", async (req, res): Promise<void> => {
   });
 
   res.status(201).json(GetContributionResponse.parse(contribution));
+
+  // Anonymise in the background — client details and real names are replaced
+  // with fictitious ones before the text can ever reach the public corpus.
+  if (contribution) {
+    void anonymizeContribution(contribution.id).catch((err) => {
+      req.log.error({ err, contributionId: contribution.id }, "Background anonymisation failed");
+    });
+  }
 });
 
 /**
@@ -93,11 +102,13 @@ router.get("/knowledge-base", async (req, res): Promise<void> => {
     conditions.push(
       sql`(${or(
         ilike(contributionsTable.title, term),
-        ilike(contributionsTable.extractedText, term),
+        ilike(contributionsTable.anonymizedText, term),
       )})`,
     );
   }
 
+  // The public corpus only ever exposes the anonymised text — never the raw
+  // extracted text, which may contain real client details.
   const entries = await db
     .select({
       id: contributionsTable.id,
@@ -107,7 +118,7 @@ router.get("/knowledge-base", async (req, res): Promise<void> => {
       fileName: contributionsTable.fileName,
       objectPath: contributionsTable.objectPath,
       contentType: contributionsTable.contentType,
-      extractedText: contributionsTable.extractedText,
+      extractedText: contributionsTable.anonymizedText,
       createdAt: contributionsTable.createdAt,
     })
     .from(contributionsTable)
@@ -138,7 +149,7 @@ router.get("/knowledge-base/:id", async (req, res): Promise<void> => {
       fileName: contributionsTable.fileName,
       objectPath: contributionsTable.objectPath,
       contentType: contributionsTable.contentType,
-      extractedText: contributionsTable.extractedText,
+      extractedText: contributionsTable.anonymizedText,
       createdAt: contributionsTable.createdAt,
     })
     .from(contributionsTable)
