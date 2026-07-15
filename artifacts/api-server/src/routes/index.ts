@@ -12,6 +12,7 @@ import currencyRouter from "./currency";
 import conveyRouter from "./convey";
 import conveySubscriptionRouter from "./convey-subscription";
 import conveyAdminRouter from "./convey-admin";
+import legacyCodesRouter from "./legacy-codes";
 import accidentRouter from "./accident";
 import accidentAiRouter from "./accident-ai";
 import accidentAdminRouter from "./accident-admin";
@@ -42,6 +43,8 @@ router.use("/admin", requireAuth, requireStaff, adminRouter);
 router.use(conveyRouter);
 router.use(conveySubscriptionRouter);
 router.use(conveyAdminRouter);
+// Legacy access-code import (x-admin-token auth): /legacy-codes/import.
+router.use(legacyCodesRouter);
 router.use("/accident", accidentRouter);
 router.use("/accident", accidentAiRouter);
 router.use("/accident", accidentAdminRouter);

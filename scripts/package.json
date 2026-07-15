@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "import-convey-users": "tsx ./src/import-convey-users.ts",
+    "import-legacy-codes": "tsx ./src/import-legacy-codes.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "push-convey-users-to-prod": "tsx ./src/push-convey-users-to-prod.ts"
   },
