@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and, sql } from "drizzle-orm";
 import { db, subscribersTable, activityTable } from "@workspace/db";
-import { syncPortalAccessCodes } from "../../lib/provisioning";
+import { syncPortalAccessCodes, normalizeAppNames } from "../../lib/provisioning";
 import {
   CreateSubscriberBody,
   GetSubscriberParams,
@@ -57,7 +57,7 @@ router.post("/subscribers", async (req, res): Promise<void> => {
 
   const [subscriber] = await db
     .insert(subscribersTable)
-    .values(parsed.data)
+    .values({ ...parsed.data, apps: normalizeAppNames(parsed.data.apps) })
     .returning();
 
   await db.insert(activityTable).values({
@@ -108,7 +108,7 @@ router.patch("/subscribers/:id", async (req, res): Promise<void> => {
 
   const [subscriber] = await db
     .update(subscribersTable)
-    .set(parsed.data)
+    .set(parsed.data.apps ? { ...parsed.data, apps: normalizeAppNames(parsed.data.apps) } : parsed.data)
     .where(eq(subscribersTable.id, params.data.id))
     .returning();
 

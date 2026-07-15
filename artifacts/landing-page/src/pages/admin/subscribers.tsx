@@ -43,7 +43,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const ALL_APPS = [
-  "MyLitAI", "MySyalitAI", "MyCorpAI", "MyConveyAI", "MyCrimAI", "MyCorpCommBankLitAi", "MyAccidentAi"
+  "MyLitAI", "MyLitAI (Versi 2)", "MySyalitAI", "MyCorpAI", "MyConveyLitAI", "MyCrimAI", "MyCCBLitAI", "MyAccidentAI"
 ];
 
 const subscriberSchema = z.object({

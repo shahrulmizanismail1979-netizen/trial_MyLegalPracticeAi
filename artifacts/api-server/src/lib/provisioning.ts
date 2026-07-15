@@ -76,6 +76,18 @@ export interface ProvisionResult {
   alreadyExisted: boolean;
 }
 
+// Older UI surfaces used slightly different app spellings. Normalize to the
+// canonical names before persisting so DB data stays consistent.
+const APP_NAME_ALIASES: Record<string, string> = {
+  MyConveyAI: "MyConveyLitAI",
+  MyCorpCommBankLitAi: "MyCCBLitAI",
+  MyAccidentAi: "MyAccidentAI",
+};
+
+export function normalizeAppNames(apps: string[]): string[] {
+  return [...new Set(apps.map((a) => APP_NAME_ALIASES[a] ?? a))];
+}
+
 // Landing purchases for the conveyancing product also unlock the hosted
 // MyConveyLitAI app (one synced access-code system).
 const CONVEY_APP_NAMES = new Set(["MyConveyAI", "MyConveyLitAI"]);
@@ -127,8 +139,12 @@ async function syncConveyUser(params: {
 
 // Landing purchases for the accident/PI product also unlock the hosted
 // MyAccidentAI app (one synced access-code system).
+// Both spellings appear in admin UI history ("MyAccidentAi") and canonical
+// data ("MyAccidentAI") — accept either so sync never silently skips.
+const ACCIDENT_APP_NAMES = new Set(["MyAccidentAI", "MyAccidentAi"]);
+
 function includesAccidentApp(apps: string[]): boolean {
-  return apps.includes("MyAccidentAI");
+  return apps.some((a) => ACCIDENT_APP_NAMES.has(a));
 }
 
 /**
@@ -320,8 +336,12 @@ async function syncSyaAccessCode(params: {
 
 // Landing purchases for the construction-law product also unlock the hosted
 // MyCCBLitAI app.
+// Accept the legacy admin-UI spelling ("MyCorpCommBankLitAi") alongside the
+// canonical name so sync never silently skips.
+const CCB_APP_NAMES = new Set(["MyCCBLitAI", "MyCorpCommBankLitAi"]);
+
 function includesCcbApp(apps: string[]): boolean {
-  return apps.includes("MyCCBLitAI");
+  return apps.some((a) => CCB_APP_NAMES.has(a));
 }
 
 /**

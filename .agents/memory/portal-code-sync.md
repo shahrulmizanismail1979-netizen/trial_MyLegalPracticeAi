@@ -7,4 +7,6 @@ Rule: every path that creates or confirms a subscriber (Stripe provisioning, adm
 
 **Why:** codes used to sync only for 4 of 7 portals and only on the Stripe path — admin-created codes silently failed at portal logins. Also, app-name lists can contain variants ("MyLitAI" AND "MyLitAI (Versi 2)"), so inclusion checks must match all variants, not one literal name.
 
+Spelling variants: admin UI historically saved "MyAccidentAi", "MyCorpCommBankLitAi", "MyConveyAI" while sync checked canonical "MyAccidentAI", "MyCCBLitAI", "MyConveyLitAI" — sync silently skipped those portals. Fix: `normalizeAppNames()` canonicalizes before persisting, and include checks accept both spellings as a safety net.
+
 **How to apply:** when adding a new portal or a new subscriber-mutation path, extend `syncPortalAccessCodes` and its per-app include check; never re-add per-path sync blocks.
