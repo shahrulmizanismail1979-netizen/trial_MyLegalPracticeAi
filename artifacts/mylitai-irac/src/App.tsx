@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Link, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Link, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,8 +42,53 @@ import LibraryGlossary from "@/pages/LibraryGlossary";
 import LibraryPracticeDirections from "@/pages/LibraryPracticeDirections";
 import LibraryBarCouncil from "@/pages/LibraryBarCouncil";
 import Pricing from "@/pages/Pricing";
+import Login from "@/pages/Login";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { vaultVerify } from "@/lib/irac-api";
 
 const queryClient = new QueryClient();
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const [phase, setPhase] = useState<"checking" | "login" | "ok">("checking");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ms_ticket")) {
+      // Actively completing a Microsoft sign-in — let the Login page handle it.
+      setPhase("login");
+      return;
+    }
+    let live = true;
+    vaultVerify()
+      .then((ok) => {
+        if (!live) return;
+        if (ok && params.get("ms_error")) {
+          // Already signed in; drop the stale error param instead of blocking.
+          history.replaceState(null, "", window.location.pathname);
+        }
+        setPhase(ok ? "ok" : "login");
+      })
+      .catch(() => live && setPhase("login"));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (phase === "checking") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" /> Loading...
+      </div>
+    );
+  }
+
+  if (phase === "login") {
+    return <Login onSuccess={() => setPhase("ok")} />;
+  }
+
+  return <>{children}</>;
+}
 
 function Navbar() {
   const [location] = useLocation();
@@ -203,6 +248,9 @@ function Router() {
   return (
     <Layout>
       <Switch>
+        <Route path="/login">
+          <Redirect to="/" />
+        </Route>
         <Route path="/" component={Home} />
         <Route path="/matter" component={Matter} />
         <Route path="/analyzer" component={Analyzer} />
@@ -248,7 +296,9 @@ function App() {
         <MatterProvider>
           <TooltipProvider>
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
+              <AuthGate>
+                <Router />
+              </AuthGate>
             </WouterRouter>
             <Toaster />
           </TooltipProvider>
