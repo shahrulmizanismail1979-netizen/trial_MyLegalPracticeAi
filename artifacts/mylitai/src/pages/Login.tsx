@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Scale, Lock } from 'lucide-react';
@@ -6,13 +6,60 @@ import { Button, Input, Card, CardContent } from '@/components/ui';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
+const APP_SLUG = 'lit';
+
+function MicrosoftLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true" className="shrink-0">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
+
 export default function Login() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [needsLink, setNeedsLink] = useState(false);
+  const [msTicket, setMsTicket] = useState('');
+  const [msEmail, setMsEmail] = useState('');
+  const [linkCode, setLinkCode] = useState('');
+  const { login, ssoLogin } = useAuth();
   const [, setLocation] = useLocation();
   const { t, lang } = useLanguage();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const msError = params.get('ms_error');
+    const ticket = params.get('ms_ticket');
+    const email = params.get('ms_email') || '';
+    if (!msError && !ticket) return;
+
+    history.replaceState(null, '', window.location.pathname);
+
+    if (msError) {
+      setError(msError);
+      return;
+    }
+    if (ticket) {
+      setMsEmail(email);
+      setLoading(true);
+      ssoLogin(ticket).then((result) => {
+        setLoading(false);
+        if (result.success) {
+          setLocation('/app');
+        } else if (result.needsLink) {
+          setMsTicket(ticket);
+          setNeedsLink(true);
+        } else {
+          setError(result.error || (lang === 'ms' ? 'Log masuk Microsoft gagal. Sila cuba lagi.' : 'Microsoft sign-in failed. Please try again.'));
+        }
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +67,24 @@ export default function Login() {
     setLoading(true);
     setError('');
     const result = await login(code.trim());
+    setLoading(false);
+    if (result.success) {
+      setLocation('/app');
+    } else {
+      setError(result.error || (lang === 'ms' ? 'Kod akses tidak sah atau telah tamat tempoh. Sila cuba lagi.' : 'Invalid or expired access code. Please try again.'));
+    }
+  };
+
+  const handleMicrosoft = () => {
+    window.location.href = `/auth/microsoft/login?app=${APP_SLUG}`;
+  };
+
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkCode.trim()) return;
+    setLoading(true);
+    setError('');
+    const result = await ssoLogin(msTicket, linkCode.trim());
     setLoading(false);
     if (result.success) {
       setLocation('/app');
@@ -50,26 +115,74 @@ export default function Login() {
 
         <Card className="border-primary/20 shadow-2xl">
           <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-primary" /> {lang === 'ms' ? 'Kod Akses' : 'Access Code'}
-                </label>
-                <Input 
-                  type="password"
-                  placeholder={lang === 'ms' ? 'Masukkan kod akses anda' : 'Enter your access code'}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  autoFocus
+            {needsLink ? (
+              <form onSubmit={handleLinkSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-primary" /> {lang === 'ms' ? 'Kod Akses' : 'Access Code'}
+                  </label>
+                  <p className="text-sm text-muted-foreground">
+                    {lang === 'ms'
+                      ? `Kali pertama log masuk dengan Microsoft${msEmail ? ` (${msEmail})` : ''} — masukkan kod akses anda sekali untuk memautkannya.`
+                      : `First time signing in with Microsoft${msEmail ? ` (${msEmail})` : ''} — enter your access code once to link it.`}
+                  </p>
+                  <Input
+                    type="password"
+                    placeholder={lang === 'ms' ? 'Masukkan kod akses anda' : 'Enter your access code'}
+                    value={linkCode}
+                    onChange={(e) => setLinkCode(e.target.value)}
+                    autoFocus
+                    disabled={loading}
+                    className="h-12 text-lg"
+                  />
+                  {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                </div>
+                <Button type="submit" size="lg" className="w-full text-lg" disabled={loading || !linkCode.trim()}>
+                  {loading ? (lang === 'ms' ? 'Mengesahkan...' : 'Verifying...') : t('cta.enter')}
+                </Button>
+              </form>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-primary" /> {lang === 'ms' ? 'Kod Akses' : 'Access Code'}
+                    </label>
+                    <Input 
+                      type="password"
+                      placeholder={lang === 'ms' ? 'Masukkan kod akses anda' : 'Enter your access code'}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      autoFocus
+                      disabled={loading}
+                      className="h-12 text-lg"
+                    />
+                    {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                  </div>
+                  <Button type="submit" size="lg" className="w-full text-lg" disabled={loading || !code.trim()}>
+                    {loading ? (lang === 'ms' ? 'Mengesahkan...' : 'Verifying...') : t('cta.enter')}
+                  </Button>
+                </form>
+
+                <div className="flex items-center gap-3 my-6">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs uppercase text-muted-foreground">{lang === 'ms' ? 'atau' : 'or'}</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full text-base gap-2"
+                  onClick={handleMicrosoft}
                   disabled={loading}
-                  className="h-12 text-lg"
-                />
-                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-              </div>
-              <Button type="submit" size="lg" className="w-full text-lg" disabled={loading || !code.trim()}>
-                {loading ? (lang === 'ms' ? 'Mengesahkan...' : 'Verifying...') : t('cta.enter')}
-              </Button>
-            </form>
+                >
+                  <MicrosoftLogo />
+                  {lang === 'ms' ? 'Log masuk dengan Microsoft' : 'Sign in with Microsoft'}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

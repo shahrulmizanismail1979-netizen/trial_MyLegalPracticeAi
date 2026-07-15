@@ -10,6 +10,7 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import microsoftRouter from "./microsoft";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
 import { handleStripeEventForProvisioning } from "./lib/provisioning";
@@ -94,6 +95,10 @@ app.use(
 
 // Parse the MyConveyLitAI Bearer token (if any) and attach the live user record.
 app.use(attachUser);
+
+// Microsoft Entra ID SSO (shared across all portals). Lives at /auth so the
+// registered Azure redirect URI https://<domain>/auth/callback resolves here.
+app.use("/auth", microsoftRouter);
 
 app.use("/api", router);
 

@@ -6,6 +6,7 @@ import { aiUsageTable, usersTable } from "@workspace/db/schema";
 import { eq, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signToken } from "../lib/auth";
+import { verifyMsTicket, getLinkedCode, saveLink } from "../microsoft";
 import { conveyGate } from "../middlewares/conveyGate";
 import { accessSummary, isBeforeCutoff, generateAccessCode, PLANS, CURRENCIES, CURRENCY_LABELS, CURRENCY_SYMBOLS } from "../lib/access";
 import { synthesizeSpeech } from "../lib/elevenlabs";
@@ -240,6 +241,61 @@ router.post("/convey/auth", async (req, res) => {
     });
   } catch (e) {
     logger.error({ err: e }, "Convey auth error");
+    res.status(500).json({ error: "Authentication failed" });
+  }
+});
+
+// Microsoft SSO exchange: log in with the access code linked to the Microsoft
+// email in the ticket, or link a newly provided code.
+router.post("/convey/auth/sso", async (req, res) => {
+  const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
+  if (!ticket || typeof ticket !== "string") {
+    res.status(400).json({ error: "Ticket is required" });
+    return;
+  }
+  const email = verifyMsTicket(ticket, "convey");
+  if (!email) {
+    res.status(401).json({ error: "Your Microsoft sign-in expired. Please try again." });
+    return;
+  }
+
+  try {
+    const providedCode = typeof code === "string" ? code.trim().toUpperCase() : "";
+    const codeToUse = providedCode || (await getLinkedCode(email, "convey"));
+    if (!codeToUse) {
+      res.status(404).json({ needsLink: true });
+      return;
+    }
+
+    const rows = await db.select().from(usersTable).where(eq(usersTable.accessCode, codeToUse));
+    const user = rows[0];
+    if (!user) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+    if (!user.isActive) {
+      res.status(403).json({ error: "Account is deactivated. Contact your administrator." });
+      return;
+    }
+
+    await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
+    if (providedCode) {
+      await saveLink(email, "convey", providedCode);
+    }
+
+    res.json({
+      success: true,
+      token: signToken(user.id),
+      user: {
+        id: user.id,
+        displayName: user.displayName,
+        role: user.role,
+        email: user.email,
+        ...accessSummary(user),
+      },
+    });
+  } catch (e) {
+    logger.error({ err: e }, "Convey SSO error");
     res.status(500).json({ error: "Authentication failed" });
   }
 });

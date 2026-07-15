@@ -10,6 +10,7 @@ import {
 } from "@workspace/api-zod";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
+import { verifyMsTicket, getLinkedCode, saveLink } from "../microsoft";
 
 const router: IRouter = Router();
 
@@ -76,18 +77,13 @@ function setSessionCookies(res: Response, sessionId: string, label: string): voi
   });
 }
 
-router.post("/auth/verify-code", async (req, res): Promise<void> => {
-  const parsed = AccidentVerifyCodeBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const code = parsed.data.code.trim().toUpperCase();
+// Shared by the normal access-code login and the Microsoft SSO exchange.
+async function verifyCodeAndStartSession(res: Response, rawCode: string): Promise<boolean> {
+  const code = rawCode.trim().toUpperCase();
 
   if (
     MASTER_ACCESS_CODE &&
-    (parsed.data.code.trim() === MASTER_ACCESS_CODE ||
+    (rawCode.trim() === MASTER_ACCESS_CODE ||
       code === MASTER_ACCESS_CODE.trim().toUpperCase())
   ) {
     const masterToken = createMasterToken();
@@ -99,7 +95,7 @@ router.post("/auth/verify-code", async (req, res): Promise<void> => {
         sessionId: masterToken,
       }),
     );
-    return;
+    return true;
   }
 
   const [accessCode] = await db
@@ -109,17 +105,17 @@ router.post("/auth/verify-code", async (req, res): Promise<void> => {
 
   if (!accessCode) {
     res.status(401).json({ error: "Invalid access code" });
-    return;
+    return false;
   }
 
   if (accessCode.expiresAt && new Date(accessCode.expiresAt) < new Date()) {
     res.status(401).json({ error: "This access code has expired" });
-    return;
+    return false;
   }
 
   if (accessCode.currentUsers >= accessCode.maxUsers) {
     res.status(401).json({ error: "This access code has reached its maximum number of users" });
-    return;
+    return false;
   }
 
   const sessionId = crypto.randomUUID();
@@ -143,6 +139,41 @@ router.post("/auth/verify-code", async (req, res): Promise<void> => {
       sessionId,
     }),
   );
+  return true;
+}
+
+router.post("/auth/verify-code", async (req, res): Promise<void> => {
+  const parsed = AccidentVerifyCodeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  await verifyCodeAndStartSession(res, parsed.data.code);
+});
+
+// Microsoft SSO exchange: log in with the access code linked to the Microsoft
+// email in the ticket, or link a newly provided code.
+router.post("/auth/sso", async (req, res): Promise<void> => {
+  const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
+  if (!ticket || typeof ticket !== "string") {
+    res.status(400).json({ error: "Ticket is required" });
+    return;
+  }
+  const email = verifyMsTicket(ticket, "accident");
+  if (!email) {
+    res.status(401).json({ error: "Your Microsoft sign-in expired. Please try again." });
+    return;
+  }
+  const providedCode = typeof code === "string" ? code.trim() : "";
+  const codeToUse = providedCode || (await getLinkedCode(email, "accident"));
+  if (!codeToUse) {
+    res.status(404).json({ needsLink: true });
+    return;
+  }
+  const ok = await verifyCodeAndStartSession(res, codeToUse);
+  if (ok && providedCode) {
+    await saveLink(email, "accident", providedCode.toUpperCase());
+  }
 });
 
 router.get("/auth/check-session", async (req, res): Promise<void> => {

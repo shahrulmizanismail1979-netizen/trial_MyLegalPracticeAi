@@ -50,6 +50,34 @@ export function useAuth() {
     }
   };
 
+  const ssoLogin = async (
+    ticket: string,
+    code?: string,
+  ): Promise<{ success: boolean; needsLink?: boolean; error?: string }> => {
+    try {
+      const res = await fetch('/api/lit/auth/sso', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(code ? { ticket, code } : { ticket }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        // Fresh sign-in: wipe any drafts left by a previous user on this device.
+        clearAllDrafts();
+        localStorage.setItem(AUTH_KEY, 'true');
+        setIsAuthenticated(true);
+        return { success: true };
+      }
+      if (res.status === 404 && data.needsLink) {
+        return { success: false, needsLink: true };
+      }
+      return { success: false, error: data.error || 'Microsoft sign-in failed. Please try again.' };
+    } catch {
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+
   const logout = async () => {
     try {
       await fetch('/api/lit/auth/logout', { method: 'POST', credentials: 'include' });
@@ -61,5 +89,5 @@ export function useAuth() {
     setLocation('/');
   };
 
-  return { isAuthenticated, login, logout, isLoading: isAuthenticated === null };
+  return { isAuthenticated, login, ssoLogin, logout, isLoading: isAuthenticated === null };
 }

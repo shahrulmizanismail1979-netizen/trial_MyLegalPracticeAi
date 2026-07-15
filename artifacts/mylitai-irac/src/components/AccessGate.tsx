@@ -5,7 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { vaultVerify, vaultLogin } from "@/lib/irac-api";
+import { vaultVerify, vaultLogin, vaultSsoLogin } from "@/lib/irac-api";
+
+const APP_SLUG = "lit-irac";
+
+function MicrosoftLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true" className="shrink-0">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
 
 // Wraps resources that require a signed-in access code even to read (matters,
 // bundles, the deadline diary). Shows a passcode prompt when not authenticated,
@@ -16,9 +29,44 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const [passcode, setPasscode] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [needsLink, setNeedsLink] = useState(false);
+  const [msTicket, setMsTicket] = useState("");
+  const [msEmail, setMsEmail] = useState("");
+  const [linkCode, setLinkCode] = useState("");
 
   useEffect(() => {
     let live = true;
+    const params = new URLSearchParams(window.location.search);
+    const msError = params.get("ms_error");
+    const ticket = params.get("ms_ticket");
+    const email = params.get("ms_email") || "";
+
+    if (msError || ticket) {
+      history.replaceState(null, "", window.location.pathname);
+      if (msError) {
+        setErr(msError);
+        setPhase("login");
+        return;
+      }
+      if (ticket) {
+        setMsEmail(email);
+        vaultSsoLogin(ticket).then((result) => {
+          if (!live) return;
+          if (result.success) {
+            setPhase("ok");
+          } else if (result.needsLink) {
+            setMsTicket(ticket);
+            setNeedsLink(true);
+            setPhase("login");
+          } else {
+            setErr(result.error || t("gate.error"));
+            setPhase("login");
+          }
+        });
+        return;
+      }
+    }
+
     vaultVerify()
       .then((ok) => live && setPhase(ok ? "ok" : "login"))
       .catch(() => live && setPhase("login"));
@@ -39,6 +87,24 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
       setErr((ex as Error).message || t("gate.error"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleMicrosoft = () => {
+    window.location.href = `/auth/microsoft/login?app=${APP_SLUG}`;
+  };
+
+  const submitLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkCode.trim()) return;
+    setBusy(true);
+    setErr(null);
+    const result = await vaultSsoLogin(msTicket, linkCode.trim());
+    setBusy(false);
+    if (result.success) {
+      setPhase("ok");
+    } else {
+      setErr(result.error || t("gate.error"));
     }
   };
 
@@ -64,29 +130,77 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-muted-foreground">{t("gate.subtitle")}</p>
               </div>
             </div>
-            <form onSubmit={submit} className="space-y-3">
-              <div>
-                <Label>{t("gate.passcode")}</Label>
-                <Input
-                  className="mt-1"
-                  type="password"
-                  autoFocus
-                  placeholder={t("gate.passcodeHint")}
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                />
-              </div>
-              {err && (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <CircleAlert className="h-4 w-4" />
-                  {err}
+            {needsLink ? (
+              <form onSubmit={submitLink} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {`First time signing in with Microsoft${msEmail ? ` (${msEmail})` : ""} — enter your access code once to link it.`}
+                </p>
+                <div>
+                  <Label>{t("gate.passcode")}</Label>
+                  <Input
+                    className="mt-1"
+                    type="password"
+                    autoFocus
+                    placeholder={t("gate.passcodeHint")}
+                    value={linkCode}
+                    onChange={(e) => setLinkCode(e.target.value)}
+                  />
                 </div>
-              )}
-              <Button type="submit" disabled={busy || !passcode.trim()} className="w-full gap-2">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                {t("gate.signIn")}
-              </Button>
-            </form>
+                {err && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <CircleAlert className="h-4 w-4" />
+                    {err}
+                  </div>
+                )}
+                <Button type="submit" disabled={busy || !linkCode.trim()} className="w-full gap-2">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                  {t("gate.signIn")}
+                </Button>
+              </form>
+            ) : (
+              <>
+                <form onSubmit={submit} className="space-y-3">
+                  <div>
+                    <Label>{t("gate.passcode")}</Label>
+                    <Input
+                      className="mt-1"
+                      type="password"
+                      autoFocus
+                      placeholder={t("gate.passcodeHint")}
+                      value={passcode}
+                      onChange={(e) => setPasscode(e.target.value)}
+                    />
+                  </div>
+                  {err && (
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <CircleAlert className="h-4 w-4" />
+                      {err}
+                    </div>
+                  )}
+                  <Button type="submit" disabled={busy || !passcode.trim()} className="w-full gap-2">
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                    {t("gate.signIn")}
+                  </Button>
+                </form>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs uppercase text-muted-foreground">or</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleMicrosoft}
+                  disabled={busy}
+                  className="w-full gap-2"
+                >
+                  <MicrosoftLogo />
+                  Sign in with Microsoft
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

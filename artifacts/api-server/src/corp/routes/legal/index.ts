@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import crypto from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db, corpAccessCodes, corpSessions } from "@workspace/db";
@@ -12,16 +12,17 @@ import {
 } from "../../lib/access";
 import { synthesizeSpeech, DEFAULT_VOICE_ID } from "../../lib/elevenlabsClient";
 import { requireSession } from "../../lib/requireSession";
+import { verifyMsTicket, getLinkedCode, saveLink } from "../../../microsoft";
 
 const router: IRouter = Router();
 
-router.post("/legal/verify-password", async (req, res): Promise<void> => {
-  const { password } = req.body;
-  if (!password || typeof password !== "string") {
-    res.status(400).json({ error: "Password is required" });
-    return;
-  }
-
+// Shared by the normal password login and the Microsoft SSO exchange.
+// Returns true when a session was issued.
+async function verifyPasswordAndCreateSession(
+  req: Request,
+  res: Response,
+  password: string,
+): Promise<boolean> {
   try {
     // Master override: grants permanent full (legacy_full) access, no payment.
     // Backed by a dedicated access-code row so the rest of the session/auth
@@ -38,7 +39,7 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
         isActive: true,
       });
       res.json({ success: true, token: sessionToken, tier: "legacy_full" });
-      return;
+      return true;
     }
 
     const [codeRecord] = await db
@@ -48,7 +49,7 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
 
     if (!codeRecord) {
       res.json({ success: false, token: "" });
-      return;
+      return false;
     }
 
     // For paid codes, block login if the synced subscription is no longer active.
@@ -57,7 +58,7 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
       const blocked = status !== null && !["active", "trialing", "past_due"].includes(status);
       if (blocked) {
         res.json({ success: false, token: "", reason: "subscription_inactive" });
-        return;
+        return false;
       }
     }
 
@@ -81,9 +82,45 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
       token: sessionToken,
       tier: effectiveTierForCode(codeRecord),
     });
+    return true;
   } catch (err) {
     req.log.error({ err }, "Auth error");
     res.status(500).json({ error: "Authentication failed" });
+    return false;
+  }
+}
+
+router.post("/legal/verify-password", async (req, res): Promise<void> => {
+  const { password } = req.body;
+  if (!password || typeof password !== "string") {
+    res.status(400).json({ error: "Password is required" });
+    return;
+  }
+  await verifyPasswordAndCreateSession(req, res, password);
+});
+
+// Microsoft SSO exchange: log in with the access code linked to the Microsoft
+// email in the ticket, or link a newly provided code.
+router.post("/legal/sso", async (req, res): Promise<void> => {
+  const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
+  if (!ticket || typeof ticket !== "string") {
+    res.status(400).json({ error: "Ticket is required" });
+    return;
+  }
+  const email = verifyMsTicket(ticket, "corp");
+  if (!email) {
+    res.status(401).json({ error: "Your Microsoft sign-in expired. Please try again." });
+    return;
+  }
+  const providedCode = typeof code === "string" ? code.trim() : "";
+  const codeToUse = providedCode || (await getLinkedCode(email, "corp"));
+  if (!codeToUse) {
+    res.status(404).json({ needsLink: true });
+    return;
+  }
+  const ok = await verifyPasswordAndCreateSession(req, res, codeToUse);
+  if (ok && providedCode) {
+    await saveLink(email, "corp", providedCode);
   }
 });
 

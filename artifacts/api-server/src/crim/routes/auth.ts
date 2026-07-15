@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { db, crimAccessCodesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../lib/accessCodes";
 import { entitlementsFor, effectiveTier, isGrandfathered } from "@workspace/entitlements";
 import { isSubscriptionActive } from "../lib/subscriptionStatus";
+import { verifyMsTicket, getLinkedCode, saveLink } from "../../microsoft";
 
 const LEGACY_ACCESS_CODE = process.env.ACCESS_CODE || "MYCRIMAI2024";
 
@@ -26,7 +27,42 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     res.status(400).json({ authenticated: false, message: "Access code is required." });
     return;
   }
+  await verifyCodeAndLogin(req, res, accessCode);
+});
 
+// Microsoft SSO exchange: log in with the access code linked to the Microsoft
+// email in the ticket, or link a newly provided code.
+router.post("/auth/sso", async (req, res): Promise<void> => {
+  const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
+  if (!ticket || typeof ticket !== "string") {
+    res.status(400).json({ authenticated: false, message: "Ticket is required." });
+    return;
+  }
+  const email = verifyMsTicket(ticket, "crim");
+  if (!email) {
+    res.status(401).json({
+      authenticated: false,
+      message: "Your Microsoft sign-in expired. Please try again.",
+    });
+    return;
+  }
+  const providedCode = typeof code === "string" ? code.trim() : "";
+  const codeToUse = providedCode || (await getLinkedCode(email, "crim"));
+  if (!codeToUse) {
+    res.status(404).json({ authenticated: false, needsLink: true });
+    return;
+  }
+  await verifyCodeAndLogin(req, res, codeToUse, async () => {
+    if (providedCode) await saveLink(email, "crim", providedCode);
+  });
+});
+
+async function verifyCodeAndLogin(
+  req: Request,
+  res: Response,
+  accessCode: string,
+  onSuccess?: () => Promise<void>,
+): Promise<void> {
   const ensureSession = (): Promise<void> =>
     new Promise((resolve, reject) => {
       req.session.regenerate((err) => (err ? reject(err) : resolve()));
@@ -44,6 +80,7 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     }
     (req.session as any).isMaster = true;
     (req.session as any).authenticated = true;
+    if (onSuccess) await onSuccess();
     res.json({
       authenticated: true,
       message: "Access granted",
@@ -116,6 +153,8 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
   (req.session as any).accessCodeId = row.id;
   (req.session as any).authenticated = true;
 
+  if (onSuccess) await onSuccess();
+
   const tier = effectiveTier(row.tier, row.createdAt);
   res.json({
     authenticated: true,
@@ -123,7 +162,7 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     tier,
     entitlements: entitlementsFor(tier),
   });
-});
+}
 
 router.get("/auth/session", async (req, res): Promise<void> => {
   const codeId = (req.session as any)?.accessCodeId;

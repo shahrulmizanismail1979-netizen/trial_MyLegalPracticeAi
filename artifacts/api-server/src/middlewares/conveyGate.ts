@@ -7,6 +7,7 @@ import { hasTier, effectiveTier, STUDENT_DAILY_AI_LIMIT, type Tier } from "../li
 // Paths under /convey that anyone (even logged-out) may call.
 const PUBLIC_PATHS = new Set<string>([
   "/convey/auth",
+  "/convey/auth/sso",
   "/convey/signup",
   "/convey/plans",
 ]);

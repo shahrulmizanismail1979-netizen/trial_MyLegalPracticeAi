@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { Scale, KeyRound, Mail, Lock, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -6,7 +6,18 @@ import { useVerifyPassword } from '@workspace/api-client-react';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 type Mode = 'password' | 'code';
+
+const MicrosoftLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+    <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+    <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+    <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+  </svg>
+);
 
 export function Login() {
   const [mode, setMode] = useState<Mode>('password');
@@ -16,6 +27,110 @@ export function Login() {
   const { setIsAuthenticated, setCurrentUser, setAuthToken } = useApp();
   const verifyMutation = useVerifyPassword();
   const { toast } = useToast();
+
+  const [msLoading, setMsLoading] = useState(false);
+  const [needsLink, setNeedsLink] = useState(false);
+  const [msTicket, setMsTicket] = useState('');
+  const [msEmail, setMsEmail] = useState('');
+  const [linkCode, setLinkCode] = useState('');
+
+  const applyLoginPayload = (payload: any) => {
+    if (payload?.success && payload?.user) {
+      if (payload.token) setAuthToken(payload.token);
+      setCurrentUser(payload.user as any);
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  };
+
+  const postSso = async (body: Record<string, string>) => {
+    const res = await fetch(`${API_BASE}/api/convey/auth/sso`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      /* ignore */
+    }
+    return { res, data };
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ticket = params.get('ms_ticket');
+    const msError = params.get('ms_error');
+    const emailParam = params.get('ms_email') || '';
+
+    if (msError || ticket) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (msError) {
+      toast({ variant: 'destructive', title: 'Microsoft Sign-in Failed', description: msError });
+      return;
+    }
+
+    if (ticket) {
+      setMsTicket(ticket);
+      setMsEmail(emailParam);
+      setMsLoading(true);
+      (async () => {
+        try {
+          const { res, data } = await postSso({ ticket });
+          if (res.ok) {
+            if (!applyLoginPayload(data)) {
+              toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid login details.' });
+            }
+          } else if (res.status === 404 && data?.needsLink) {
+            setNeedsLink(true);
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Microsoft Sign-in Failed',
+              description: data?.message || data?.error || 'Please try again.',
+            });
+          }
+        } catch {
+          toast({ variant: 'destructive', title: 'Microsoft Sign-in Failed', description: 'Please try again.' });
+        } finally {
+          setMsLoading(false);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleMicrosoftLogin = () => {
+    window.location.href = `${API_BASE}/auth/microsoft/login?app=convey`;
+  };
+
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkCode.trim()) return;
+    setMsLoading(true);
+    try {
+      const { res, data } = await postSso({ ticket: msTicket, code: linkCode.trim() });
+      if (res.ok) {
+        if (!applyLoginPayload(data)) {
+          toast({ variant: 'destructive', title: 'Login Failed', description: 'Invalid access code.' });
+        }
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Linking Failed',
+          description: data?.message || data?.error || 'Invalid access code.',
+        });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Linking Failed', description: 'Please try again.' });
+    } finally {
+      setMsLoading(false);
+    }
+  };
 
   const canSubmit =
     mode === 'password'
@@ -100,6 +215,40 @@ export function Login() {
           </div>
         </div>
 
+        {needsLink ? (
+          <form onSubmit={handleLinkSubmit} className="max-w-sm mx-auto space-y-4">
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-slate-300">
+              First time signing in with Microsoft{msEmail ? ` as ${msEmail}` : ''} — enter your access code once to link it.
+            </div>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                <KeyRound className="h-5 w-5 text-slate-500 group-focus-within:text-amber-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                required
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                value={linkCode}
+                onChange={(e) => setLinkCode(e.target.value.toUpperCase())}
+                disabled={msLoading}
+                className={`${inputClass} font-mono tracking-widest`}
+                placeholder="MYCV-XXXX-XXXX-XXXX"
+                data-testid="input-link-code"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={msLoading || !linkCode.trim()}
+              className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.2)] text-base font-bold text-slate-900 bg-amber-500 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950 focus:ring-amber-500 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+              data-testid="button-link-account"
+            >
+              {msLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Link & Continue'}
+            </button>
+          </form>
+        ) : (
+        <>
         {/* Mode switch */}
         <div className="max-w-sm mx-auto mb-6 grid grid-cols-2 gap-2 p-1 bg-gold-950/50 border border-gold-800 rounded-2xl">
           <button
@@ -207,6 +356,33 @@ export function Login() {
             </Link>
           </p>
         </form>
+
+        <div className="max-w-sm mx-auto">
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1 bg-gold-800" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+            <div className="h-px flex-1 bg-gold-800" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            disabled={msLoading}
+            className="w-full flex items-center justify-center gap-3 py-4 px-4 border border-gold-700 rounded-2xl text-base font-semibold text-slate-100 bg-gold-950/50 hover:bg-gold-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            data-testid="button-microsoft-login"
+          >
+            {msLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <MicrosoftLogo />
+                Sign in with Microsoft
+              </>
+            )}
+          </button>
+        </div>
+        </>
+        )}
       </motion.div>
     </div>
   );

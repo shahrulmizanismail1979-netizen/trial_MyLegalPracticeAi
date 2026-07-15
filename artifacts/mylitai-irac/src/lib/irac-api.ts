@@ -971,6 +971,39 @@ export async function vaultVerify(): Promise<boolean> {
   }
 }
 
+export interface SsoLoginResult {
+  success: boolean;
+  needsLink?: boolean;
+  error?: string;
+}
+
+// Microsoft SSO exchange. Posts the ticket (and optionally a one-time access code
+// to link) to the shared /api/lit/sso endpoint. Returns needsLink when the
+// Microsoft email hasn't been linked to an access code yet.
+export async function vaultSsoLogin(ticket: string, code?: string): Promise<SsoLoginResult> {
+  try {
+    const res = await fetch(`${ROOT_API}/lit/auth/sso`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(code ? { ticket, code } : { ticket }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && (data as { success?: boolean }).success) {
+      return { success: true };
+    }
+    if (res.status === 404 && (data as { needsLink?: boolean }).needsLink) {
+      return { success: false, needsLink: true };
+    }
+    return {
+      success: false,
+      error: (data as { error?: string }).error || "Microsoft sign-in failed. Please try again.",
+    };
+  } catch {
+    return { success: false, error: "Network error. Please try again." };
+  }
+}
+
 export async function vaultLogout(): Promise<void> {
   await fetch(`${AUTH_API}/logout`, { method: "POST", credentials: "include" }).catch(() => {});
 }
