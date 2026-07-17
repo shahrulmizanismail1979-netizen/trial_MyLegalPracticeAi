@@ -1,7 +1,11 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and, sql } from "drizzle-orm";
 import { db, subscribersTable, activityTable } from "@workspace/db";
-import { syncPortalAccessCodes, normalizeAppNames } from "../../lib/provisioning";
+import {
+  syncPortalAccessCodes,
+  normalizeAppNames,
+  generateAccessCode,
+} from "../../lib/provisioning";
 import {
   CreateSubscriberBody,
   GetSubscriberParams,
@@ -57,7 +61,13 @@ router.post("/subscribers", async (req, res): Promise<void> => {
 
   const [subscriber] = await db
     .insert(subscribersTable)
-    .values({ ...parsed.data, apps: normalizeAppNames(parsed.data.apps) })
+    .values({
+      ...parsed.data,
+      apps: normalizeAppNames(parsed.data.apps),
+      // Manually added subscribers get a portal access code automatically,
+      // just like Stripe checkout purchases do.
+      accessCode: generateAccessCode(),
+    })
     .returning();
 
   await db.insert(activityTable).values({
@@ -152,11 +162,25 @@ router.patch("/subscribers/:id/confirm", async (req, res): Promise<void> => {
     return;
   }
 
-  const [subscriber] = await db
+  let [subscriber] = await db
     .update(subscribersTable)
     .set({ paymentStatus: "confirmed", paymentDate: new Date() })
     .where(eq(subscribersTable.id, params.data.id))
     .returning();
+
+  if (!subscriber) {
+    res.status(404).json({ error: "Subscriber not found" });
+    return;
+  }
+
+  // Backfill an access code for older manually-added subscribers.
+  if (!subscriber.accessCode) {
+    [subscriber] = await db
+      .update(subscribersTable)
+      .set({ accessCode: generateAccessCode() })
+      .where(eq(subscribersTable.id, params.data.id))
+      .returning();
+  }
 
   if (!subscriber) {
     res.status(404).json({ error: "Subscriber not found" });
