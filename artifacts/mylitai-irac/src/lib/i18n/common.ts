@@ -14,6 +14,7 @@ export const common = {
     "nav.group.drafting": "Drafting",
     "nav.group.practice": "Practice",
     "nav.group.caseFiles": "Case Files",
+    "nav.logout": "Log Out",
 
     // Guided journey
     "journey.label": "Your guided journey",
@@ -71,6 +72,7 @@ export const common = {
     "nav.group.drafting": "Drafan",
     "nav.group.practice": "Amalan",
     "nav.group.caseFiles": "Fail Kes",
+    "nav.logout": "Log Keluar",
 
     // Guided journey
     "journey.label": "Perjalanan berpandu anda",

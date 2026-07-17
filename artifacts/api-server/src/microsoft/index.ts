@@ -126,7 +126,9 @@ router.get("/microsoft/login", async (req, res) => {
       scopes: SCOPES,
       redirectUri: `${baseUrl(req)}/auth/callback`,
       state,
-      ...(req.query.prompt === "select_account" ? { prompt: "select_account" } : {}),
+      // Always show the Microsoft account picker so users can switch to a
+      // different Microsoft account after logging out of a portal.
+      prompt: "select_account",
     });
     res.redirect(url);
   } catch (err) {

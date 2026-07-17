@@ -1004,8 +1004,13 @@ export async function vaultSsoLogin(ticket: string, code?: string): Promise<SsoL
   }
 }
 
-export async function vaultLogout(): Promise<void> {
-  await fetch(`${AUTH_API}/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+export async function vaultLogout(): Promise<boolean> {
+  try {
+    const res = await fetch(`${AUTH_API}/logout`, { method: "POST", credentials: "include" });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 // ─── Authenticated JSON helper (session-cookie; writes need a subscription) ───

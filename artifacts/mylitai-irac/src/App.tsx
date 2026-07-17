@@ -45,7 +45,8 @@ import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { vaultVerify } from "@/lib/irac-api";
+import { vaultVerify, vaultLogout } from "@/lib/irac-api";
+import { LogOut } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -226,6 +227,23 @@ function Navbar() {
 
           <AIProviderSwitcher className="ml-1" />
           <LanguageSwitcher className="ml-1" />
+          <button
+            type="button"
+            onClick={async () => {
+              const ok = await vaultLogout();
+              if (!ok) {
+                alert(t("common.errorRetry"));
+                return;
+              }
+              window.location.assign(import.meta.env.BASE_URL || "/");
+            }}
+            className="ml-1 flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title={t("nav.logout")}
+            aria-label={t("nav.logout")}
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden lg:inline">{t("nav.logout")}</span>
+          </button>
         </div>
       </div>
       <div className="rule-gold" />
