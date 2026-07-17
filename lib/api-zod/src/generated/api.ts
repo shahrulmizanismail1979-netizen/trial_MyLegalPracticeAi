@@ -149,6 +149,7 @@ export const CreateSubscriberBody = zod.object({
   coursesUsed: zod.number().optional(),
   voucherCode: zod.string().nullish(),
   notes: zod.string().nullish(),
+  subscriptionExpiry: zod.coerce.date().nullish(),
 });
 
 /**

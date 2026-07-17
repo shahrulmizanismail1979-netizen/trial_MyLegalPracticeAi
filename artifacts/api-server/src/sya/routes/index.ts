@@ -27,6 +27,7 @@ import voiceRouter from "./voice";
 
 import practiceDirectionsRouter from "./practice-directions";
 import { tierHasFeature, type FeatureKey } from "../lib/tiers";
+import { ensureCodeNotExpired } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -45,7 +46,7 @@ const GATES: Array<{ prefix: string; feature: FeatureKey }> = [
   { prefix: "/client-intake", feature: "aiToolkit" },
 ];
 
-router.use((req, res, next) => {
+router.use(async (req, res, next) => {
   const gate = GATES.find(
     (g) => req.path === g.prefix || req.path.startsWith(g.prefix + "/"),
   );
@@ -57,6 +58,7 @@ router.use((req, res, next) => {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
+  if (!(await ensureCodeNotExpired(req, res))) return;
   const tier = req.session.userTier ?? "starter";
   if (!tierHasFeature(tier, gate.feature)) {
     res.status(402).json({

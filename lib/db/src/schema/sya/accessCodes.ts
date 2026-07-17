@@ -8,6 +8,7 @@ export const accessCodesTable = pgTable("sya_access_codes", {
   name: text("name").notNull(),
   role: text("role").notNull().default("practitioner"),
   isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

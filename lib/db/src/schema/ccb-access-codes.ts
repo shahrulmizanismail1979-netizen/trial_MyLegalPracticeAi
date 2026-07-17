@@ -7,6 +7,7 @@ export const ccbAccessCodes = pgTable("ccb_access_codes", {
   code: text("code").notNull().unique(),
   label: text("label"),
   active: boolean("active").default(true).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 });

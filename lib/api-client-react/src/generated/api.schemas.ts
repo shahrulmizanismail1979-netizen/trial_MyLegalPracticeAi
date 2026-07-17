@@ -123,6 +123,8 @@ export interface CreateSubscriberBody {
   voucherCode?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  subscriptionExpiry?: string | null;
 }
 
 /**

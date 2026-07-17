@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Wand2 } from "lucide-react";
-import { isAuthenticated, getToken } from "@/lib/auth";
+import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 
 export default function ToolPage() {
@@ -23,7 +23,7 @@ export default function ToolPage() {
   const { data: tools, isLoading: isToolsLoading } = useQuery({
     queryKey: ["ccb-tools"],
     queryFn: async () => {
-      const res = await fetch("/api/ccb/tools/list");
+      const res = await fetch("/api/ccb/tools/list", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load tools");
       return res.json() as Promise<Array<{id:string;name:string;description:string;category:string;icon:string;fields:any[];example?:Record<string,string>;sampleNote?:string}>>;
     },

@@ -13,5 +13,6 @@
 - [Portal access-code sync](portal-code-sync.md) — every subscriber create/confirm path must call the unified sync so codes work on all 7 portals; match app-name variants like "MyLitAI (Versi 2)".
 - [Stripe cancellation revokes portal access](stripe-cancellation-revocation.md) — handle deleted + terminal updated statuses; deactivation runs every delivery; never re-sync codes for cancelled subscribers.
 - [Contribution anonymization pipeline](contribution-anonymization.md) — public corpus serves only anonymised text; LLM anonymiser must use strict JSON output + leak guard, never delimiter stripping.
+- [Portal access-code expiry enforcement](portal-expiry-enforcement.md) — expiry must be re-checked per-request (sessions/JWTs outlive codes); gate middlewares and JWT routes need DB re-checks, not just login.
 - [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.
 - [Donor-app portal integration](donor-portal-integration.md) — porting an external app into this monorepo: sya_-style table prefixing renames constraint names too; artifact-count limit workaround via hand-written artifact.toml + verifyAndReplaceArtifactToml.

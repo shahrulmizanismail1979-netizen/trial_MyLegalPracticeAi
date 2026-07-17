@@ -137,6 +137,13 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
+  // Expired codes (e.g. manually-added subscribers past their plan) can't log in.
+  if (user.expiresAt && new Date(user.expiresAt) < new Date()) {
+    recordVerifyFailure(ip);
+    res.status(401).json({ error: "Access code expired" });
+    return;
+  }
+
   clearVerifyAttempts(ip);
 
   await db
@@ -171,6 +178,12 @@ async function loginWithAccessCode(
 
   if (!user || !user.isActive) {
     res.status(401).json({ error: "Invalid access code" });
+    return false;
+  }
+
+  // Expired codes (e.g. manually-added subscribers past their plan) can't log in.
+  if (user.expiresAt && new Date(user.expiresAt) < new Date()) {
+    res.status(401).json({ error: "Access code expired" });
     return false;
   }
 

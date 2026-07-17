@@ -58,6 +58,7 @@ const subscriberSchema = z.object({
   coursesUsed: z.coerce.number().int().min(0),
   voucherCode: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  subscriptionExpiry: z.string().optional().nullable(),
 });
 
 type SubscriberFormValues = z.infer<typeof subscriberSchema>;
@@ -291,10 +292,21 @@ function SubscriberDialog({ mode, subscriber, asDropdownItem }: { mode: "add" | 
       coursesUsed: subscriber?.coursesUsed ?? 0,
       voucherCode: subscriber?.voucherCode || "",
       notes: subscriber?.notes || "",
+      subscriptionExpiry: subscriber?.subscriptionExpiry
+        ? new Date(subscriber.subscriptionExpiry).toISOString().slice(0, 10)
+        : "",
     }
   });
 
-  const onSubmit = (values: SubscriberFormValues) => {
+  const onSubmit = (rawValues: SubscriberFormValues) => {
+    const values = {
+      ...rawValues,
+      // Convert the date input (YYYY-MM-DD) to end-of-day so the code works
+      // for the whole final day; empty = no expiry.
+      subscriptionExpiry: rawValues.subscriptionExpiry
+        ? new Date(`${rawValues.subscriptionExpiry}T23:59:59`).toISOString()
+        : null,
+    };
     if (mode === "add") {
       createSubscriber.mutate({ data: values }, {
         onSuccess: () => {
@@ -424,6 +436,14 @@ function SubscriberDialog({ mode, subscriber, asDropdownItem }: { mode: "add" | 
               </div>
             </div>
 
+            <FormField control={form.control} name="subscriptionExpiry" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Access Expiry Date (Optional)</FormLabel>
+                <FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl>
+                <p className="text-xs text-muted-foreground">The access code stops working after this date. Leave empty for no expiry.</p>
+                <FormMessage />
+              </FormItem>
+            )} />
             <FormField control={form.control} name="voucherCode" render={({ field }) => (
               <FormItem><FormLabel>Voucher Code (Optional)</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
             )} />

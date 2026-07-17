@@ -2576,6 +2576,11 @@ components:
           type:
             - string
             - "null"
+        subscriptionExpiry:
+          type:
+            - string
+            - "null"
+          format: date-time
       required:
         - name
         - email

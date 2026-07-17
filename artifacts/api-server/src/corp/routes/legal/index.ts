@@ -52,6 +52,12 @@ async function verifyPasswordAndCreateSession(
       return false;
     }
 
+    // Expired codes (e.g. manually-added subscribers past their plan) can't log in.
+    if (codeRecord.expiresAt && new Date(codeRecord.expiresAt) < new Date()) {
+      res.json({ success: false, token: "", reason: "code_expired" });
+      return false;
+    }
+
     // For paid codes, block login if the synced subscription is no longer active.
     if (codeRecord.stripeSubscriptionId) {
       const status = await getSyncedSubscriptionStatus(codeRecord.stripeSubscriptionId);
@@ -141,6 +147,12 @@ router.get("/legal/validate-session", async (req, res): Promise<void> => {
       .where(and(eq(corpSessions.sessionToken, token), eq(corpSessions.isActive, true)));
 
     if (!row) {
+      res.json({ valid: false });
+      return;
+    }
+
+    // Cut off existing sessions once the access code itself has expired.
+    if (row.code.expiresAt && new Date(row.code.expiresAt) < new Date()) {
       res.json({ valid: false });
       return;
     }

@@ -27,6 +27,11 @@ export async function requireSession(
       res.status(401).json({ error: "Session expired or invalid" });
       return;
     }
+    // Cut off existing sessions once the access code itself has expired.
+    if (row.code.expiresAt && new Date(row.code.expiresAt) < new Date()) {
+      res.status(401).json({ error: "Access code expired" });
+      return;
+    }
     res.locals.accessTier = effectiveTierForCode(row.code);
     res.locals.accessCodeId = row.code.id;
     next();

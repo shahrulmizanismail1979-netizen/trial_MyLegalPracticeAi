@@ -10,7 +10,7 @@ import {
   AlertTriangle, Search, Cpu, Type, Target, Clock,
   FileEdit, BookMarked, Calculator as CalculatorIcon, Sparkles
 } from "lucide-react";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, authHeaders } from "@/lib/auth";
 import { motion } from "framer-motion";
 
 // Helper to map string icon name to a Lucide React component
@@ -41,7 +41,7 @@ export default function WorkspaceIndex() {
   const { data: tools, isLoading } = useQuery({
     queryKey: ["ccb-tools"],
     queryFn: async () => {
-      const res = await fetch("/api/ccb/tools/list");
+      const res = await fetch("/api/ccb/tools/list", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load tools");
       return res.json() as Promise<Array<{id:string;name:string;description:string;category:string;icon:string;fields:any[];example?:Record<string,string>;sampleNote?:string}>>;
     },

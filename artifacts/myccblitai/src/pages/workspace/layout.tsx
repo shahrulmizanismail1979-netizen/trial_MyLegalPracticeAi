@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, Target, Grid } from "lucide-react";
-import { clearToken } from "@/lib/auth";
+import { clearToken, authHeaders } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 
 interface WorkspaceLayoutProps {
@@ -15,7 +15,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const { data: tools } = useQuery({
     queryKey: ["ccb-tools"],
     queryFn: async () => {
-      const res = await fetch("/api/ccb/tools/list");
+      const res = await fetch("/api/ccb/tools/list", { headers: authHeaders() });
       if (!res.ok) return [];
       return res.json() as Promise<Array<{ id: string }>>;
     },

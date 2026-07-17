@@ -29,6 +29,54 @@ const STATIC_CODES = [MASTER_CODE, ...ENV_CODES]
 
 const VerifyAccessCodeBody = z.object({ code: z.string().min(1) });
 
+/**
+ * Per-request guard for practitioner routes: verifies the Bearer JWT, then
+ * re-checks the access code against the DB so a deactivated or expired code
+ * is cut off immediately — even if the 7-day token is still valid.
+ * Static/env codes have no DB row and are always allowed.
+ */
+export async function requirePractitioner(
+  req: import("express").Request,
+  res: Response,
+  next: import("express").NextFunction,
+): Promise<void> {
+  const auth = req.headers.authorization ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  let payload: { role?: string; code?: string };
+  try {
+    payload = jwt.verify(token, SECRET) as { role?: string; code?: string };
+  } catch {
+    res.status(401).json({ error: "Session expired or invalid" });
+    return;
+  }
+  if (payload.role !== "practitioner" && payload.role !== "admin") {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+  const code = (payload.code ?? "").trim().toUpperCase();
+  if (code && !STATIC_CODES.includes(code)) {
+    try {
+      const rows = await db.select().from(ccbAccessCodes).where(eq(ccbAccessCodes.code, code));
+      const row = rows[0];
+      if (!row || !row.active) {
+        res.status(401).json({ error: "Access code no longer active" });
+        return;
+      }
+      if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+        res.status(401).json({ error: "Access code expired" });
+        return;
+      }
+    } catch {
+      // Best-effort — don't block requests on a transient DB error.
+    }
+  }
+  next();
+}
+
 // Shared by the normal access-code login and the Microsoft SSO exchange.
 async function verifyCodeAndIssueToken(res: Response, rawCode: string): Promise<boolean> {
   const code = rawCode.trim().toUpperCase();
@@ -40,6 +88,11 @@ async function verifyCodeAndIssueToken(res: Response, rawCode: string): Promise<
     const rows = await db.select().from(ccbAccessCodes).where(eq(ccbAccessCodes.code, code));
     const row = rows[0];
     if (row && row.active) {
+      // Expired codes (e.g. manually-added subscribers past their plan) can't log in.
+      if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+        res.status(401).json({ error: "Access code expired" });
+        return false;
+      }
       valid = true;
       dbCodeId = row.id;
     }

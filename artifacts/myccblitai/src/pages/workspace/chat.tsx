@@ -13,7 +13,7 @@ import {
   MessageSquare, Plus, Send, Trash2, StopCircle, 
   User, Bot, Clock, AlertCircle, Loader2
 } from "lucide-react";
-import { isAuthenticated, getToken } from "@/lib/auth";
+import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import { format } from "date-fns";
 
@@ -41,7 +41,7 @@ export default function ChatPage() {
   const { data: conversations, isLoading: isLoadingConversations } = useQuery({
     queryKey: ["ccb-conversations"],
     queryFn: async () => {
-      const res = await fetch("/api/ccb/gemini/conversations");
+      const res = await fetch("/api/ccb/gemini/conversations", { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load conversations");
       return res.json() as Promise<Array<{id:number;title:string;createdAt:string}>>;
     },
@@ -50,7 +50,7 @@ export default function ChatPage() {
   const { data: activeConversation, isLoading: isLoadingConversation } = useQuery({
     queryKey: ["ccb-conversation", activeConversationId],
     queryFn: async () => {
-      const res = await fetch(`/api/ccb/gemini/conversations/${activeConversationId}`);
+      const res = await fetch(`/api/ccb/gemini/conversations/${activeConversationId}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to load conversation");
       return res.json() as Promise<{id:number;title:string;createdAt:string;messages:Array<{id:number;conversationId:number;role:string;content:string;createdAt:string}>}>;
     },
@@ -61,7 +61,7 @@ export default function ChatPage() {
     mutationFn: async (data: { title: string }) => {
       const res = await fetch("/api/ccb/gemini/conversations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to create conversation");
@@ -70,7 +70,7 @@ export default function ChatPage() {
   });
   const deleteConversation = useMutation({
     mutationFn: async ({ id }: { id: number }) => {
-      const res = await fetch(`/api/ccb/gemini/conversations/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/ccb/gemini/conversations/${id}`, { method: "DELETE", headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to delete conversation");
       return res.json();
     },

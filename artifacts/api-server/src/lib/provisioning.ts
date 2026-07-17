@@ -155,6 +155,7 @@ function includesAccidentApp(apps: string[]): boolean {
 async function syncAccidentAccessCode(params: {
   accessCode: string;
   name: string;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -164,10 +165,11 @@ async function syncAccidentAccessCode(params: {
         label: params.name,
         maxUsers: 2,
         isActive: true,
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: accessCodesTable.code,
-        set: { isActive: true },
+        set: { isActive: true, expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -194,6 +196,7 @@ function includesCrimApp(apps: string[]): boolean {
 async function syncCrimAccessCode(params: {
   accessCode: string;
   name: string;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -203,10 +206,11 @@ async function syncCrimAccessCode(params: {
         label: params.name,
         tier: "full",
         isActive: true,
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: crimAccessCodesTable.code,
-        set: { isActive: true, tier: "full" },
+        set: { isActive: true, tier: "full", expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -233,6 +237,7 @@ function includesCorpApp(apps: string[]): boolean {
 async function syncCorpAccessCode(params: {
   accessCode: string;
   name: string;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -242,10 +247,11 @@ async function syncCorpAccessCode(params: {
         label: params.name,
         tier: "firm",
         isActive: true,
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: corpAccessCodesTable.code,
-        set: { isActive: true, tier: "firm" },
+        set: { isActive: true, tier: "firm", expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -275,6 +281,7 @@ async function syncLitAccessCode(params: {
   accessCode: string;
   name: string;
   email: string | null;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -284,10 +291,11 @@ async function syncLitAccessCode(params: {
         recipientName: params.name,
         recipientEmail: params.email ?? "",
         status: "active",
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: litAccessCodesTable.code,
-        set: { status: "active" },
+        set: { status: "active", expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -311,6 +319,7 @@ function includesSyaApp(apps: string[]): boolean {
 async function syncSyaAccessCode(params: {
   accessCode: string;
   name: string;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -320,10 +329,11 @@ async function syncSyaAccessCode(params: {
         name: params.name,
         role: "practitioner",
         isActive: true,
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: syaAccessCodesTable.code,
-        set: { isActive: true },
+        set: { isActive: true, expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -351,6 +361,7 @@ function includesCcbApp(apps: string[]): boolean {
 async function syncCcbAccessCode(params: {
   accessCode: string;
   name: string;
+  expiresAt?: Date | null;
 }): Promise<void> {
   try {
     await db
@@ -359,10 +370,11 @@ async function syncCcbAccessCode(params: {
         code: params.accessCode,
         label: params.name,
         active: true,
+        expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: ccbAccessCodesTable.code,
-        set: { active: true },
+        set: { active: true, expiresAt: params.expiresAt ?? null },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -383,16 +395,20 @@ export async function syncPortalAccessCodes(subscriber: {
   name: string;
   email: string | null;
   apps: string[];
+  subscriptionExpiry?: Date | null;
 }): Promise<void> {
   const { accessCode, name, email, apps } = subscriber;
   if (!accessCode) return;
+  // Propagate the subscriber's expiry date into every portal table that
+  // supports one, so the code stops working when the subscription ends.
+  const expiresAt = subscriber.subscriptionExpiry ?? null;
   if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email });
-  if (includesAccidentApp(apps)) await syncAccidentAccessCode({ accessCode, name });
-  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name });
-  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name });
-  if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email });
-  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name });
-  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name });
+  if (includesAccidentApp(apps)) await syncAccidentAccessCode({ accessCode, name, expiresAt });
+  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name, expiresAt });
+  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name, expiresAt });
+  if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email, expiresAt });
+  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name, expiresAt });
+  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name, expiresAt });
 }
 
 /**
