@@ -218,33 +218,9 @@ export default function Pricing() {
     })();
   }, []);
 
-  async function startCheckout(tier: PlanKey) {
-    const plan = plans?.[tier];
-    if (!plan) return;
-    setBusy(tier);
-    setCheckoutError(null);
-    try {
-      const res = await fetch("/api/lit/billing/checkout-public", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          priceId: plan.price_id,
-          successUrl: `${pricingUrl}?status=success`,
-          cancelUrl: `${pricingUrl}?status=cancelled`,
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json.url) {
-        window.location.href = json.url as string;
-        return;
-      }
-      setCheckoutError(c.checkoutError);
-      setBusy(null);
-    } catch {
-      setCheckoutError(c.checkoutError);
-      setBusy(null);
-    }
+  async function startCheckout(_tier: PlanKey) {
+    // Purchases are handled centrally on the AI Web Books landing page.
+    window.location.href = "/#pricing";
   }
 
   function copyCode() {

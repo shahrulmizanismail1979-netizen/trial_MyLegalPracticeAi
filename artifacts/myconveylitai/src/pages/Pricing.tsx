@@ -42,29 +42,9 @@ export function Pricing() {
   const currentTier = currentUser?.tier;
   const grandfathered = !!currentUser?.grandfathered;
 
-  const handleSubscribe = async (tier: Exclude<Tier, 'free'>) => {
-    if (!isAuthenticated) {
-      navigate('/signup');
-      return;
-    }
-    setBusyTier(tier);
-    try {
-      const url = await createCheckout({
-        tier,
-        interval,
-        currency,
-        successUrl: appOrigin('/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}'),
-        cancelUrl: appOrigin('/pricing?checkout=cancel'),
-      });
-      window.location.href = url;
-    } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Checkout failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
-      });
-      setBusyTier(null);
-    }
+  const handleSubscribe = async (_tier: Exclude<Tier, 'free'>) => {
+    // Purchases are handled centrally on the AI Web Books landing page.
+    window.location.href = '/#pricing';
   };
 
   return (

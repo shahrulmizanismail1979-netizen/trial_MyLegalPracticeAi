@@ -45,60 +45,13 @@ async function resolvePriceId(
   return list.data[0]?.id ?? null;
 }
 
-// Create a Stripe Checkout session for a subscription.
-router.post("/convey/checkout", requireAuth, async (req, res) => {
-  const user = req.currentUser!;
-  const { tier, interval, currency, successUrl, cancelUrl } = (req.body ?? {}) as {
-    tier?: string;
-    interval?: string;
-    currency?: string;
-    successUrl?: string;
-    cancelUrl?: string;
-  };
-
-  if (!isPaidTier(tier) || !isInterval(interval) || !isCurrency(currency)) {
-    res.status(400).json({ error: "Invalid tier, interval, or currency." });
-    return;
-  }
-  if (!successUrl || !cancelUrl) {
-    res.status(400).json({ error: "Missing success/cancel URL." });
-    return;
-  }
-
-  try {
-    const stripe = await getUncachableStripeClient();
-
-    const priceId = await resolvePriceId(stripe, tier, interval);
-    if (!priceId) {
-      req.log.error({ tier, interval }, "No Stripe price found — run seed-products");
-      res.status(503).json({ error: "Plans are not yet available. Please try again later." });
-      return;
-    }
-
-    const customerId = await ensureCustomer(stripe, user.id);
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      client_reference_id: String(user.id),
-      // The price carries currency_options for every supported currency; setting
-      // the session currency selects the right one.
-      currency,
-      line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: {
-        metadata: { userId: String(user.id), tier },
-      },
-      metadata: { userId: String(user.id), tier },
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      allow_promotion_codes: true,
-    });
-
-    res.json({ url: session.url });
-  } catch (e) {
-    req.log.error({ err: e }, "Checkout session creation failed");
-    res.status(502).json({ error: "Could not start checkout. Please try again." });
-  }
+// Checkout is centralised on the AI Web Books landing page. This endpoint is
+// intentionally disabled so nobody can purchase at an outdated portal price.
+router.post("/convey/checkout", requireAuth, (_req, res) => {
+  res.status(410).json({
+    error: "Checkout has moved to the AI Web Books landing page.",
+    url: "/#pricing",
+  });
 });
 
 // Open the Stripe customer billing portal (manage / cancel subscription).

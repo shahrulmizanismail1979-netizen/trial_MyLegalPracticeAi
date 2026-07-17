@@ -56,38 +56,9 @@ export default function Subscribe() {
   const base = import.meta.env.BASE_URL;
   const subscribePageUrl = `${window.location.origin}${base}app/subscribe`;
 
-  const handleSubscribe = async (priceId: string) => {
-    setBusyPrice(priceId);
-    try {
-      const res = await fetch('/api/lit/billing/checkout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId,
-          successUrl: `${subscribePageUrl}?status=success`,
-          cancelUrl: `${subscribePageUrl}?status=cancelled`,
-        }),
-      });
-      const json = await res.json();
-      if (res.ok && json.url) {
-        window.location.href = json.url;
-        return;
-      }
-      toast({
-        title: 'Could not start checkout',
-        description: json.error || 'Please try again.',
-        variant: 'destructive',
-      });
-    } catch {
-      toast({
-        title: 'Network error',
-        description: 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setBusyPrice(null);
-    }
+  const handleSubscribe = async (_priceId: string) => {
+    // Purchases are handled centrally on the AI Web Books landing page.
+    window.location.href = '/#pricing';
   };
 
   const handleManage = async () => {

@@ -45,19 +45,9 @@ export default function PricingPage() {
 
   const currentRank = user ? TIER_ORDER.indexOf(user.tier) : -1;
 
-  const handleSubscribe = async (tier: string) => {
-    setBusyTier(tier);
-    try {
-      const { url } = await api.billing.checkout(tier);
-      window.location.href = url;
-    } catch (e) {
-      toast({
-        title: isBm ? "Tidak dapat memulakan pembayaran" : "Could not start checkout",
-        description: e instanceof Error ? e.message : "Please try again.",
-        variant: "destructive",
-      });
-      setBusyTier(null);
-    }
+  const handleSubscribe = async (_tier: string) => {
+    // Purchases are handled centrally on the AI Web Books landing page.
+    window.location.href = "/#pricing";
   };
 
   return (
