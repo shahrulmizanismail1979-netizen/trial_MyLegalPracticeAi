@@ -159,6 +159,7 @@ export default function SubscribersPage() {
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Expiry</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -232,6 +233,22 @@ export default function SubscribersPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(sub.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {sub.subscriptionExpiry ? (
+                        <span
+                          className={
+                            new Date(sub.subscriptionExpiry) < new Date()
+                              ? "text-red-500"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {new Date(sub.subscriptionExpiry).toLocaleDateString()}
+                          {new Date(sub.subscriptionExpiry) < new Date() && " (expired)"}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
