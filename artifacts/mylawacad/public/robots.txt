@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /examiner/dashboard
+Disallow: /examiner/new
+Disallow: /examiner/templates/
+Disallow: /studio/dashboard
+Disallow: /studio/assessments/
+Disallow: /studio/marking
+Disallow: /studio/attempts/
+Disallow: /exam/
+Disallow: /billing
+Disallow: /api/
+
+

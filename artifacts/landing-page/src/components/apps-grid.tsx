@@ -99,10 +99,9 @@ const apps: App[] = [
   },
   {
     title: "MyLawAcad",
-    description: "Plan lessons, draft assessments, manage student supervision, and handle academic administration.",
-    url: "#",
+    description: "AI-proctored exams and educator-built assessments — plan lessons, draft assessments, and manage academic administration.",
+    url: "/mylawacad/",
     tag: "Lecturers",
-    comingSoon: true,
   },
   {
     title: "MyLawResearch",

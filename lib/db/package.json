@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./sya": "./src/schema/sya/index.ts"
+    "./sya": "./src/schema/sya/index.ts",
+    "./acad": "./src/schema/acad/index.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

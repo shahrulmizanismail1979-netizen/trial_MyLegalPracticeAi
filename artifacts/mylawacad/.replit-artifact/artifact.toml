@@ -1,0 +1,55 @@
+kind = "web"
+previewPath = "/mylawacad/"
+title = "MyLawAcad"
+version = "1.0.0"
+id = "artifacts/mylawacad"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/mylawacad/" ]
+localPort = 25700
+
+[services.development]
+run = "pnpm --filter @workspace/mylawacad run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mylawacad", "run", "build" ]
+publicDir = "artifacts/mylawacad/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/examiner"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/candidate"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/exam"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/studio"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/billing"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/summary"
+to = "/index.html"
+
+[services.env]
+PORT = "25700"
+BASE_PATH = "/mylawacad/"

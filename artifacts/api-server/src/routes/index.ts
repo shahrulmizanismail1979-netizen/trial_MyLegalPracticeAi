@@ -24,6 +24,8 @@ import { litSession } from "../lit/session";
 import ccbRouter from "../ccb/routes";
 import syaRouter from "../sya/routes";
 import { syaSession } from "../sya/session";
+import acadRouter from "../acad/routes";
+import { acadSession } from "../acad/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
@@ -66,5 +68,10 @@ router.use("/ccb", ccbRouter);
 // MySyariahAi (Shariah law app): /sya/*. Uses express-session (Postgres-backed),
 // scoped to this mount so the rest of the API is unaffected.
 router.use("/sya", syaSession, syaRouter);
+
+// MyLawAcad (legal assessment app): /acad/*. Uses express-session
+// (Postgres-backed, acad_user_sessions), scoped to this mount so the rest of
+// the API is unaffected.
+router.use("/acad", acadSession, acadRouter);
 
 export default router;

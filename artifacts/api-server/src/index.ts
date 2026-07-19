@@ -6,6 +6,7 @@ import {
   backfillPortalAccessCodes,
 } from "./lib/provisioning";
 import { getStripeSync } from "./stripeClient";
+import { seedApps } from "./acad/lib/seed";
 
 async function initStripe(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -83,6 +84,12 @@ await initStripe();
 // on all portals in their plan (idempotent upserts, no emails sent).
 void backfillPortalAccessCodes().catch((err) =>
   logger.error({ err }, "Portal access-code backfill failed"),
+);
+
+// MyLawAcad: seed the apps catalog (acad_apps) once at boot. Best-effort — a
+// failure here must not crash the shared api-server.
+void seedApps().catch((err) =>
+  logger.error({ err }, "MyLawAcad apps seed failed"),
 );
 
 app.listen(port, (err) => {
