@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Wand2 } from "lucide-react";
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { apiUrl } from "@/lib/api";
 
 export default function ToolPage() {
@@ -389,6 +390,7 @@ export default function ToolPage() {
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reset
                 </Button>
+                <DraftExportButtons title={tool?.name || "Result"} content={output} className="items-center" />
               </div>
             </div>
             

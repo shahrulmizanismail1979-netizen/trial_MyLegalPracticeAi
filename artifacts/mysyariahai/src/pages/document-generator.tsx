@@ -199,7 +199,7 @@ function DocumentGeneratorPageInner() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentType: selectedType, language: docLanguage, details: fieldValues }),
+        body: JSON.stringify({ documentType: selectedType, language: docLanguage, details: fieldValues, gate }),
         signal: controller.signal,
       });
 

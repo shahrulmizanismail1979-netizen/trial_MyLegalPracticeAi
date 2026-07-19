@@ -47,7 +47,7 @@ router.get("/document-generator/types", (_req, res): void => {
 });
 
 router.post("/document-generator/generate", async (req, res): Promise<void> => {
-  const { documentType, language, details } = req.body;
+  const { documentType, language, details, gate } = req.body;
   if (!documentType || !details || typeof details !== "object") {
     res.status(400).json({ error: "documentType and details are required" });
     return;
@@ -102,6 +102,14 @@ CRITICAL RESTRICTIONS:
 
 DOCUMENT TYPE: ${docType.titleEn} / ${docType.titleBm}
 CATEGORY: ${docType.category}
+${(() => {
+  const scopes: Record<string, string> = {
+    civil: "PRACTICE AREA SCOPE: Syariah CIVIL litigation (Islamic family law — divorce, nafkah, hadhanah, mut'ah, harta sepencarian, inheritance disputes). Do NOT mix in Syariah criminal content or advisory instruments unless the document type itself requires it.",
+    criminal: "PRACTICE AREA SCOPE: Syariah CRIMINAL litigation (Syariah criminal offences, charges, bail, mitigation, criminal appeals — Syariah Criminal Procedure and state Syariah criminal offence enactments). Do NOT mix in civil family-law content (divorce, nafkah, custody) or advisory instruments (wasiat, hibah, wakaf).",
+    advisory: "PRACTICE AREA SCOPE: Syariah ADVISORY & consultancy (wasiat, hibah, wakaf, faraid, legal opinions, Shariah compliance). Do NOT mix in civil litigation content (divorce, nafkah) or Syariah criminal content unless the document type itself requires it.",
+  };
+  return typeof gate === "string" && scopes[gate] ? scopes[gate] : "";
+})()}
 
 AVAILABLE LEGAL REFERENCES (use ONLY these):
 Provisions: ${provisions.map(p => `${p.titleEn} - ${p.legislationEn}`).join("; ")}

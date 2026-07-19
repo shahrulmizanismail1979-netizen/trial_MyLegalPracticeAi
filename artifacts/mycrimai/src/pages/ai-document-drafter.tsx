@@ -8,6 +8,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 
 const DOCUMENT_TYPES = [
   { value: "Bail Application (Permohonan Jaminan)", label: "Bail Application" },
@@ -128,10 +129,13 @@ export function AiDocumentDrafterPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <VoiceControls voice={voice} responseText={response} compact />
                     {!isStreaming && response && (
-                      <Button variant="outline" size="sm" onClick={handleCopy}>
-                        {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                        {copied ? "Copied" : "Copy"}
-                      </Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={handleCopy}>
+                          {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                          {copied ? "Copied" : "Copy"}
+                        </Button>
+                        <DraftExportButtons title={documentType || "Document"} content={response} />
+                      </>
                     )}
                   </div>
                 </div>

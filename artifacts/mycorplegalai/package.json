@@ -73,6 +73,7 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:",
-    "@workspace/tiers": "workspace:*"
+    "@workspace/tiers": "workspace:*",
+    "@workspace/draft-export": "workspace:*"
   }
 }

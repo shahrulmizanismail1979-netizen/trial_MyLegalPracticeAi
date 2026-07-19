@@ -9,6 +9,7 @@ import {
 import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiContext } from "@/contexts/AiContext";
 import { cn } from "@/lib/utils";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
@@ -384,6 +385,13 @@ export function AiToolsPanel() {
                         {msg.role === "ai" && msg.content && <CopyButton text={msg.content} />}
                         {msg.role === "ai" && msg.content && canUseVoice(tier) && (
                           <ReadAloudButton text={msg.content} tts={tts} />
+                        )}
+                        {msg.role === "ai" && msg.content && (
+                          <DraftExportButtons
+                            title={activeToolDef?.name || "AI Response"}
+                            content={msg.content}
+                            className="normal-case tracking-normal"
+                          />
                         )}
                       </div>
                       <div

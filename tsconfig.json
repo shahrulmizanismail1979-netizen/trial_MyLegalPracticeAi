@@ -26,6 +26,9 @@
     },
     {
       "path": "./lib/entitlements"
+    },
+    {
+      "path": "./lib/draft-export"
     }
   ]
 }

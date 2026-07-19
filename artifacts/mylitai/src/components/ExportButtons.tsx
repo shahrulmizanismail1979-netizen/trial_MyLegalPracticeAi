@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FileType2, ExternalLink, Download, Copy, Check, Loader2 } from 'lucide-react';
+import { FileType2, ExternalLink, Download, Copy, Check, Loader2, FileCode2, Printer } from 'lucide-react';
+import { exportMarkdown, exportPdf } from '@workspace/draft-export';
 
 interface Props {
   title: string;
@@ -85,6 +86,14 @@ export function ExportButtons({ title, content, showText = true }: Props) {
       <button onClick={downloadTxt} disabled={!content} className={baseCls}>
         <Download className="h-3.5 w-3.5" />
         {showText && 'Plain text'}
+      </button>
+      <button onClick={() => exportMarkdown({ title, text: content })} disabled={!content} className={baseCls} data-testid="button-export-md">
+        <FileCode2 className="h-3.5 w-3.5" />
+        {showText && 'Markdown'}
+      </button>
+      <button onClick={() => exportPdf({ title, text: content })} disabled={!content} className={baseCls} data-testid="button-export-pdf">
+        <Printer className="h-3.5 w-3.5" />
+        {showText && 'PDF'}
       </button>
       <button onClick={copy} disabled={!content} className={baseCls}>
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

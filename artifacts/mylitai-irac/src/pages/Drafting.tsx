@@ -9,6 +9,7 @@ import { CitationsList } from "@/components/CitationsList";
 import { DisclaimerNotice } from "@/components/DisclaimerNotice";
 import { JourneyStepper } from "@/components/JourneyStepper";
 import { SaveToVault } from "@/components/SaveToVault";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -298,6 +299,7 @@ export default function Drafting() {
                     {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                     {copied ? t("common.copied") : t("tool.drafting.copyText")}
                   </Button>
+                  <DraftExportButtons title={draftTitle} content={streamDraft.content} />
                 </div>
               )}
             </CardHeader>

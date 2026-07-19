@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ExportActions from "@/components/export-actions";
 
 export default function CausePapersPage() {
   const { t, mode } = useLanguage();
@@ -193,6 +194,7 @@ function CausePaperDetail({ paper: p }: { paper: any }) {
 
 function AIDraftingPanel({ papers }: { papers: any[] }) {
   const { t, ts, mode } = useLanguage();
+  const { gate } = useGate();
   const [selectedPaper, setSelectedPaper] = useState<any>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [additionalContext, setAdditionalContext] = useState("");
@@ -291,6 +293,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
           templateBm: selectedPaper.templateBm,
           fieldValues,
           additionalContext,
+          gate,
         }),
       });
 
@@ -511,6 +514,12 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
                 </div>
               </CardHeader>
               <CardContent>
+                <ExportActions
+                  content={draftResult}
+                  filenameBase={selectedPaper ? (mode === "bm" ? selectedPaper.titleBm : selectedPaper.titleEn) : "draft"}
+                  speechLang="ms-MY"
+                  className="mb-3"
+                />
                 <pre className="whitespace-pre-wrap text-xs font-mono text-foreground/90 bg-muted/30 p-4 rounded-md border border-border/50 leading-relaxed">
                   {draftResult}
                 </pre>

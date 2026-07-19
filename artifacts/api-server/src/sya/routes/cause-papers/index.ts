@@ -64,7 +64,7 @@ router.get("/cause-papers/:id", async (req, res): Promise<void> => {
 });
 
 router.post("/cause-papers/draft", async (req, res): Promise<void> => {
-  const { templateTitleBm, templateTitleEn, templateBm, fieldValues, additionalContext } = req.body;
+  const { templateTitleBm, templateTitleEn, templateBm, fieldValues, additionalContext, gate } = req.body;
 
   if (!templateBm) {
     res.status(400).json({ error: "Template is required" });
@@ -78,7 +78,14 @@ router.post("/cause-papers/draft", async (req, res): Promise<void> => {
         .join("\n")
     : "No specific field values provided.";
 
-  const prompt = `Anda adalah AI Paralegal yang pakar dalam penyediaan kertas kausa mahkamah Syariah Malaysia. Tugas anda adalah mendraf kertas kausa yang lengkap, profesional, dan sedia untuk difailkan.
+  const gateScope: Record<string, string> = {
+    civil: "SKOP BIDANG: Litigasi Sivil Syariah (undang-undang keluarga Islam — perceraian, nafkah, hadhanah, mut'ah, harta sepencarian, pusaka). JANGAN masukkan kandungan jenayah Syariah atau dokumen nasihat/instrumen (wasiat, hibah, wakaf) kecuali templat itu sendiri berkaitan.",
+    criminal: "SKOP BIDANG: Litigasi Jenayah Syariah (kesalahan jenayah Syariah, pertuduhan, jaminan, mitigasi, rayuan jenayah — rujuk Akta 559 dan enakmen kesalahan jenayah Syariah negeri). JANGAN masukkan kandungan kekeluargaan sivil (perceraian, nafkah, hadhanah) atau instrumen nasihat (wasiat, hibah, wakaf).",
+    advisory: "SKOP BIDANG: Khidmat Nasihat & Konsultansi Syariah (wasiat, hibah, wakaf, faraid, pendapat undang-undang, pematuhan Syariah). JANGAN masukkan kandungan litigasi sivil (perceraian, nafkah) atau jenayah Syariah kecuali templat itu sendiri berkaitan.",
+  };
+  const gateInstruction = typeof gate === "string" && gateScope[gate] ? `\n${gateScope[gate]}\n` : "";
+
+  const prompt = `Anda adalah AI Paralegal yang pakar dalam penyediaan kertas kausa mahkamah Syariah Malaysia.${gateInstruction} Tugas anda adalah mendraf kertas kausa yang lengkap, profesional, dan sedia untuk difailkan.
 
 ARAHAN PENTING:
 1. Draf MESTI dalam Bahasa Melayu sepenuhnya (kecuali nama kes undang-undang dan istilah undang-undang teknikal)

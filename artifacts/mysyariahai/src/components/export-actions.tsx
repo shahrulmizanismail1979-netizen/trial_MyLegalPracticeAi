@@ -49,6 +49,30 @@ export default function ExportActions({ content, filenameBase = "document", spee
     downloadBlob(new Blob([content], { type: "text/plain;charset=utf-8" }), "txt");
   };
 
+  const handleMarkdown = () => {
+    downloadBlob(new Blob([content], { type: "text/markdown;charset=utf-8" }), "md");
+  };
+
+  const handlePdf = () => {
+    const escaped = content
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) {
+      toast({ title: t("Popup blocked — allow popups to export PDF", "Popup disekat — benarkan popup untuk eksport PDF"), variant: "destructive" });
+      return;
+    }
+    win.document.write(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeName}</title>` +
+        `<style>body{font-family:'Times New Roman',serif;font-size:12pt;margin:2cm;}pre{white-space:pre-wrap;font-family:inherit;}</style>` +
+        `</head><body><pre>${escaped}</pre></body></html>`,
+    );
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 300);
+  };
+
   const handleWord = () => {
     const escaped = content
       .replace(/&/g, "&amp;")
@@ -136,9 +160,17 @@ export default function ExportActions({ content, filenameBase = "document", spee
         <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
         {t(".txt", ".txt")}
       </Button>
+      <Button variant="outline" size="sm" className={iconBtn} onClick={handleMarkdown} disabled={noContent} aria-label={t("Download as Markdown", "Muat turun sebagai Markdown")} data-testid="button-export-md">
+        <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+        {t(".md", ".md")}
+      </Button>
       <Button variant="outline" size="sm" className={iconBtn} onClick={handleWord} disabled={noContent} aria-label={t("Download as Word document", "Muat turun sebagai dokumen Word")}>
         <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
         {t("Word", "Word")}
+      </Button>
+      <Button variant="outline" size="sm" className={iconBtn} onClick={handlePdf} disabled={noContent} aria-label={t("Print or save as PDF", "Cetak atau simpan sebagai PDF")} data-testid="button-export-pdf">
+        <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+        {t("PDF", "PDF")}
       </Button>
       <Button variant="outline" size="sm" className={iconBtn} onClick={handleGoogleDocs} disabled={noContent} aria-label={t("Open in Google Docs", "Buka dalam Google Docs")}>
         <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="16" y2="17" /></svg>

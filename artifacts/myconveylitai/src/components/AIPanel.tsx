@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { downloadDocx, downloadAndOpenInGoogleDocs } from '@/lib/exportDocx';
+import { exportTxt, exportMarkdown, exportPdf } from '@workspace/draft-export';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
@@ -479,6 +480,30 @@ function OutputBlock({
           </button>
           {canExport ? (
             <>
+              <button
+                onClick={() => exportTxt({ title, text: content })}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-gold-800 hover:bg-gold-700 px-3 py-1.5 rounded-lg transition-colors"
+                title="Download as plain text"
+                data-testid="button-export-txt"
+              >
+                <Download className="w-3.5 h-3.5" /> TXT
+              </button>
+              <button
+                onClick={() => exportMarkdown({ title, text: content })}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-gold-800 hover:bg-gold-700 px-3 py-1.5 rounded-lg transition-colors"
+                title="Download as Markdown"
+                data-testid="button-export-md"
+              >
+                <Download className="w-3.5 h-3.5" /> MD
+              </button>
+              <button
+                onClick={() => exportPdf({ title, text: content })}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-gold-800 hover:bg-gold-700 px-3 py-1.5 rounded-lg transition-colors"
+                title="Print or save as PDF"
+                data-testid="button-export-pdf"
+              >
+                <FileDown className="w-3.5 h-3.5" /> PDF
+              </button>
               <button
                 onClick={() => handleDownload('word')}
                 disabled={downloading !== null}

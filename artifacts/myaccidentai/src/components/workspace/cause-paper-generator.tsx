@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Copy, Download, Sparkles, Folder, Check } from "lucide-react";
 import { templates, defaultCase, type CaseDetails, type TemplateDef } from "./templates";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 
 type Props = { initialTemplateId?: string };
 
@@ -159,6 +160,7 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
                 <Button size="sm" onClick={handleDownload} className="gap-1.5" data-testid="button-download">
                   <Download className="h-3.5 w-3.5" /> Download
                 </Button>
+                <DraftExportButtons title={selected.name} content={generated} className="items-center" />
               </div>
             </div>
             <pre
