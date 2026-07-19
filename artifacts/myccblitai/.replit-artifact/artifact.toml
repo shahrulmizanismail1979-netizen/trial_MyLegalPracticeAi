@@ -1,32 +1,47 @@
 kind = "web"
-  previewPath = "/myccblitai/"
-  title = "MyCorpCommBankLitAI"
-  version = "1.0.0"
-  id = "artifacts/myccblitai"
-  router = "path"
+previewPath = "/myccblitai/"
+title = "MyCorpCommBankLitAI"
+version = "1.0.0"
+id = "artifacts/myccblitai"
+router = "path"
 
-  [[integratedSkills]]
-  name = "react-vite"
-  version = "1.0.0"
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
 
-  [[services]]
-  name = "web"
-  paths = [ "/myccblitai/" ]
-  localPort = 25500
+[[services]]
+name = "web"
+paths = [ "/myccblitai/" ]
+localPort = 25500
 
-  [services.development]
-  run = "pnpm --filter @workspace/myccblitai run dev"
+[services.development]
+run = "pnpm --filter @workspace/myccblitai run dev"
 
-  [services.production]
-  build = [ "pnpm", "--filter", "@workspace/myccblitai", "run", "build" ]
-  publicDir = "artifacts/myccblitai/dist/public"
-  serve = "static"
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/myccblitai", "run", "build" ]
+publicDir = "artifacts/myccblitai/dist/public"
+serve = "static"
 
-  [[services.production.rewrites]]
-  from = "/*"
-  to = "/index.html"
+[[services.production.rewrites]]
+from = "/access"
+to = "/access.html"
 
-  [services.env]
-  PORT = "25500"
-  BASE_PATH = "/myccblitai/"
-  
+[[services.production.rewrites]]
+from = "/workspace"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/workspace/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25500"
+BASE_PATH = "/myccblitai/"

@@ -23,7 +23,79 @@ publicDir = "artifacts/mylitai-irac/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
-from = "/*"
+from = "/login"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/matter"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/analyzer"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/drafting"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/chat"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/reply"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/transcription"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/enforcement"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/affidavits"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/appeals"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/oral"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/bundles"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/bundles/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/diary"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/vault"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/library"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/library/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/pricing"
 to = "/index.html"
 
 [services.env]

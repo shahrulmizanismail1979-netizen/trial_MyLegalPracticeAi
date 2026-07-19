@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mysyariahai.replit.app/sitemap.xml
+Sitemap: /mysyariahai/sitemap.xml

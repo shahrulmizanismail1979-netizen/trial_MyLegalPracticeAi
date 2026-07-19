@@ -23,7 +23,115 @@ publicDir = "artifacts/mysyariahai/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
-from = "/*"
+from = "/provisions"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/cases"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/cause-papers"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/workflows"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/glossary"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/legislation"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/quranic-verses"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/fatwas"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/practice-directions"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/analyzer"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/ai-counsel"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/faraid-calculator"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/smart-search"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/case-analysis"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/document-generator"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/kitab"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/legal-opinion"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/compliance-check"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/client-intake"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/court-tools"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/tafsir"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/voice-mode"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/case-workspace"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/ai-toolkit"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/drafting"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/pricing"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/account"
 to = "/index.html"
 
 [services.env]

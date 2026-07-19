@@ -23,7 +23,15 @@ publicDir = "artifacts/myaccidentai/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
-from = "/*"
+from = "/login"
+to = "/login.html"
+
+[[services.production.rewrites]]
+from = "/workspace"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/admin"
 to = "/index.html"
 
 [services.env]
