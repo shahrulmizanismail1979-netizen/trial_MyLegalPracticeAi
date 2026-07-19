@@ -120,12 +120,21 @@ router.post("/litConversations/:id/litMessages", async (req, res) => {
     config: { maxOutputTokens: 8192 },
   });
 
+  let truncated = false;
   for await (const chunk of stream) {
     const text = chunk.text;
     if (text) {
       fullResponse += text;
       res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
     }
+    if (chunk.truncated) truncated = true;
+  }
+
+  if (truncated) {
+    const note =
+      "\n\n---\n⚠️ **Output truncated** — the response reached the maximum length and was cut off. Ask me to continue from where I stopped.";
+    fullResponse += note;
+    res.write(`data: ${JSON.stringify({ content: note })}\n\n`);
   }
 
   await db.insert(messagesTable).values({ conversationId: id, role: "assistant", content: fullResponse });

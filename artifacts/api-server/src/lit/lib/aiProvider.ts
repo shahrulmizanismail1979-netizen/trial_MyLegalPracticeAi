@@ -66,6 +66,8 @@ export interface Citation {
 export interface StreamPiece {
   text?: string;
   citations?: Citation[];
+  /** Set when the model stopped because it hit the output-token limit. */
+  truncated?: boolean;
 }
 
 export interface GenOptions {
@@ -97,6 +99,11 @@ function toGemini(litMessages: ChatMessage[], opts: GenOptions) {
 
   const config: Record<string, unknown> = {};
   if (opts.maxOutputTokens) config.maxOutputTokens = opts.maxOutputTokens;
+  // Gemini 2.5 counts internal "thinking" tokens against maxOutputTokens.
+  // Without a cap, long analyses burn most of the budget thinking and the
+  // visible answer is truncated mid-sentence. Zero the thinking budget so the
+  // entire limit goes to the actual output.
+  config.thinkingConfig = { thinkingBudget: 0 };
   if (typeof opts.temperature === "number") config.temperature = opts.temperature;
   if (opts.grounded) config.tools = [{ googleSearch: {} }];
   if (systemParts.length > 0) config.systemInstruction = systemParts.join("\n");
@@ -136,10 +143,14 @@ export async function* streamChat(
       temperature: opts.temperature,
       stream: true,
     });
+    let openaiFinish: string | undefined;
     for await (const chunk of stream) {
-      const text = chunk.choices?.[0]?.delta?.content;
+      const choice = chunk.choices?.[0];
+      const text = choice?.delta?.content;
       if (text) yield { text };
+      if (choice?.finish_reason) openaiFinish = choice.finish_reason;
     }
+    if (openaiFinish === "length") yield { truncated: true };
     return;
   }
 
@@ -151,9 +162,12 @@ export async function* streamChat(
     config,
   });
   const seen = new Set<string>();
+  let geminiFinish: string | undefined;
   for await (const chunk of stream) {
     const text = chunk.text;
     if (text) yield { text };
+    const fr = chunk.candidates?.[0]?.finishReason as string | undefined;
+    if (fr) geminiFinish = fr;
     const gm = chunk.candidates?.[0]?.groundingMetadata as
       | { groundingChunks?: Array<{ web?: { uri?: string; title?: string } }> }
       | undefined;
@@ -169,6 +183,7 @@ export async function* streamChat(
       if (fresh.length > 0) yield { citations: fresh };
     }
   }
+  if (geminiFinish === "MAX_TOKENS") yield { truncated: true };
 }
 
 /** Non-streaming chat completion. Returns the full text and any citations. */

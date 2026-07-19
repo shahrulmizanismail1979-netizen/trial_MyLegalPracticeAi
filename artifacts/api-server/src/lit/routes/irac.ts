@@ -559,6 +559,7 @@ async function streamGenerate(
 
   const citations = new Map<string, Citation>();
   let full = "";
+  let truncated = false;
 
   try {
     for await (const piece of streamChat([{ role: "user", text: prompt }], {
@@ -570,11 +571,19 @@ async function streamGenerate(
         full += piece.text;
         res.write(`data: ${JSON.stringify({ content: piece.text })}\n\n`);
       }
+      if (piece.truncated) truncated = true;
       if (piece.citations) {
         for (const c of piece.citations) {
           if (!citations.has(c.uri)) citations.set(c.uri, c);
         }
       }
+    }
+
+    if (truncated) {
+      const note =
+        "\n\n---\n⚠️ **Output truncated** — the response reached the maximum length and was cut off. Ask for the remaining sections separately (e.g. \"continue from where you stopped\") or narrow the request.";
+      full += note;
+      res.write(`data: ${JSON.stringify({ content: note })}\n\n`);
     }
 
     const citationList = [...citations.values()];
