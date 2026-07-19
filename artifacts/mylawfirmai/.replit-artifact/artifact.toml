@@ -1,0 +1,84 @@
+kind = "web"
+previewPath = "/mylawfirmai/"
+title = "MyLawFirmAi"
+version = "1.0.0"
+id = "artifacts/mylawfirmai"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/mylawfirmai/" ]
+localPort = 25810
+
+[services.development]
+run = "pnpm --filter @workspace/mylawfirmai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mylawfirmai", "run", "build" ]
+publicDir = "artifacts/mylawfirmai/dist/public"
+serve = "static"
+
+
+[[services.production.rewrites]]
+from = "/urgent"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/backlog"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/mine"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/dashboard"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/activity"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/digest"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/goals"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/recognition"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/meetings"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/meeting"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/voice"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/inbox"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/manual"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/task"
+to = "/index.html"
+
+[services.env]
+PORT = "25810"
+BASE_PATH = "/mylawfirmai/"

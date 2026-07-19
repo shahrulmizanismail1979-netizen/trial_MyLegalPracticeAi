@@ -25,6 +25,7 @@ import ccbRouter from "../ccb/routes";
 import syaRouter from "../sya/routes";
 import { syaSession } from "../sya/session";
 import acadRouter from "../acad/routes";
+import firmRouter from "../firm";
 import { acadSession } from "../acad/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 
@@ -73,5 +74,10 @@ router.use("/sya", syaSession, syaRouter);
 // (Postgres-backed, acad_user_sessions), scoped to this mount so the rest of
 // the API is unaffected.
 router.use("/acad", acadSession, acadRouter);
+
+// MyLawFirmAi (firm management portal): /firm/*. Signed httpOnly cookie
+// sessions (staff via access code / master, manager via master code) — no
+// express-session middleware needed; the router carries its own session gate.
+router.use("/firm", firmRouter);
 
 export default router;

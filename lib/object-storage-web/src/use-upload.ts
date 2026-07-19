@@ -16,6 +16,15 @@ interface UploadResponse {
 interface UseUploadOptions {
   /** Base path where object storage routes are mounted (default: "/api/storage") */
   basePath?: string;
+  /** ID of the currently acting user — required by the server to authorise the upload URL request */
+  actingUserId?: number;
+  /**
+   * Extra headers attached to the request-url call (NOT the presigned PUT, which
+   * goes straight to storage). Use this to pass any coarse API-gate header your
+   * server requires on /api requests — raw fetch() bypasses a generated client,
+   * so without it the request-url call can be rejected (e.g. 401) in production.
+   */
+  headers?: Record<string, string>;
   onSuccess?: (response: UploadResponse) => void;
   onError?: (error: Error) => void;
 }
@@ -63,10 +72,13 @@ export function useUpload(options: UseUploadOptions = {}) {
     async (file: File): Promise<UploadResponse> => {
       const response = await fetch(`${basePath}/uploads/request-url`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...options.headers,
         },
         body: JSON.stringify({
+          actingUserId: options.actingUserId,
           name: file.name,
           size: file.size,
           contentType: file.type || "application/octet-stream",
@@ -80,7 +92,7 @@ export function useUpload(options: UseUploadOptions = {}) {
 
       return response.json();
     },
-    []
+    [basePath, options.actingUserId, options.headers]
   );
 
   const uploadToPresignedUrl = useCallback(
@@ -138,10 +150,13 @@ export function useUpload(options: UseUploadOptions = {}) {
     }> => {
       const response = await fetch(`${basePath}/uploads/request-url`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...options.headers,
         },
         body: JSON.stringify({
+          actingUserId: options.actingUserId,
           name: file.name,
           size: file.size,
           contentType: file.type || "application/octet-stream",
@@ -159,7 +174,7 @@ export function useUpload(options: UseUploadOptions = {}) {
         headers: { "Content-Type": file.type || "application/octet-stream" },
       };
     },
-    []
+    [basePath, options.actingUserId, options.headers]
   );
 
   return {

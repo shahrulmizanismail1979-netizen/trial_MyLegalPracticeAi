@@ -77,6 +77,11 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
+// MyLawFirmAi posts base64-encoded meeting audio / screenshots as JSON; the
+// default ~100kb limit rejects realistic uploads, so raise it for that mount
+// only (this parser runs first and the global one below then no-ops).
+app.use("/api/firm", express.json({ limit: "30mb" }));
+app.use("/api/firm", express.urlencoded({ extended: true, limit: "30mb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

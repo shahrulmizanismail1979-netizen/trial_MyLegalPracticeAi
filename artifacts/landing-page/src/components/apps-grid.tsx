@@ -78,10 +78,9 @@ const apps: App[] = [
   },
   {
     title: "MyLawFirmAi",
-    description: "Manage firm HR, billing cycles, compliance deadlines, and operational workflows.",
-    url: "#",
+    description: "Run your firm's operations — AI-triaged tasks, meeting minutes, staff recognition, goals, and voice-driven workflows.",
+    url: "/mylawfirmai/",
     tag: "Firm Management",
-    comingSoon: true,
   },
   {
     title: "MyJudicialAi",

@@ -16,6 +16,7 @@ import {
   ccbAccessCodes as ccbAccessCodesTable,
 } from "@workspace/db";
 import { accessCodesTable as syaAccessCodesTable } from "@workspace/db/sya";
+import { firmAccessCodesTable } from "@workspace/db/firm";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody } from "./sms";
@@ -41,6 +42,8 @@ export const APP_NAME_BY_URL: Record<string, string> = {
   // The hosted MyAccidentAI app — keeps the canonical "MyAccidentAI" app
   // name so admin stats/filters stay on one bucket.
   "/myaccidentai/": "MyAccidentAI",
+  // The hosted MyLawFirmAi firm-management portal.
+  "/mylawfirmai/": "MyLawFirmAi",
 };
 
 export const ALL_APP_NAMES = [
@@ -51,6 +54,7 @@ export const ALL_APP_NAMES = [
   "MyCrimAI",
   "MyCCBLitAI",
   "MyAccidentAI",
+  "MyLawFirmAi",
 ];
 
 // Unambiguous alphabet (no 0/O, 1/I/L) for human-friendly codes.
@@ -385,6 +389,47 @@ async function syncCcbAccessCode(params: {
   }
 }
 
+// Landing purchases of the firm-management product unlock the MyLawFirmAi
+// portal. Accept a few plausible spellings so sync never silently skips.
+const FIRM_APP_NAMES = new Set(["MyLawFirmAi", "MyLawFirmAI"]);
+
+function includesFirmApp(apps: string[]): boolean {
+  return apps.some((a) => FIRM_APP_NAMES.has(a));
+}
+
+/**
+ * Upsert a MyLawFirmAi access code. Idempotent via the unique code
+ * constraint. Best-effort: never fails provisioning.
+ */
+async function syncFirmAccessCode(params: {
+  accessCode: string;
+  name: string;
+  email: string | null;
+  expiresAt?: Date | null;
+}): Promise<void> {
+  try {
+    await db
+      .insert(firmAccessCodesTable)
+      .values({
+        code: params.accessCode,
+        label: params.name,
+        customerEmail: params.email,
+        isActive: true,
+        expiresAt: params.expiresAt ?? null,
+      })
+      .onConflictDoUpdate({
+        target: firmAccessCodesTable.code,
+        set: { isActive: true, expiresAt: params.expiresAt ?? null },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyLawFirmAi access code for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyLawFirmAi access code for landing purchase");
+  }
+}
+
 /**
  * Sync a subscriber's access code into every portal-specific access-code
  * table covered by their plan, so the code works on all their apps.
@@ -409,6 +454,7 @@ export async function syncPortalAccessCodes(subscriber: {
   if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email, expiresAt });
   if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name, expiresAt });
   if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name, expiresAt });
+  if (includesFirmApp(apps)) await syncFirmAccessCode({ accessCode, name, email, expiresAt });
 }
 
 /**
@@ -491,6 +537,16 @@ export async function deactivatePortalAccessCodes(subscriber: {
           .update(ccbAccessCodesTable)
           .set({ active: false })
           .where(eq(ccbAccessCodesTable.code, accessCode)),
+    ]);
+  }
+  if (includesFirmApp(apps)) {
+    attempts.push([
+      "MyLawFirmAi",
+      () =>
+        db
+          .update(firmAccessCodesTable)
+          .set({ isActive: false })
+          .where(eq(firmAccessCodesTable.code, accessCode)),
     ]);
   }
   for (const [app, run] of attempts) {
