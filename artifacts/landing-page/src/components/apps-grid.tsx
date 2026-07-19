@@ -310,10 +310,23 @@ export function AppsGrid() {
                     </CardDescription>
 
                     {!isExpanded && (
-                      <div className="mt-auto">
+                      <div className="mt-auto space-y-2">
                         <div className="flex items-center gap-2 text-xs text-primary font-medium">
                           <ChevronDown className="h-3.5 w-3.5" />
                           {app.versions.length} versions available — click to choose
+                        </div>
+                        <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          {app.versions.map((v) => (
+                            <a
+                              key={v.url}
+                              href={v.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-muted-foreground hover:text-primary underline underline-offset-2 transition-colors"
+                            >
+                              {v.label}
+                            </a>
+                          ))}
                         </div>
                       </div>
                     )}
