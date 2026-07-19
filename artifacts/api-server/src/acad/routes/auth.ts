@@ -45,7 +45,17 @@ async function ensureMasterUser() {
     })
     .onConflictDoUpdate({
       target: usersTable.email,
-      set: { role: "admin", status: "active" },
+      // Force the row back to a purely-synthetic admin so it can never be
+      // logged into via the normal password/OAuth paths — even if someone
+      // pre-registered this reserved email.
+      set: {
+        role: "admin",
+        status: "active",
+        passwordHash: null,
+        oauthProvider: null,
+        oauthSubject: null,
+        name: "Master Override",
+      },
     })
     .returning();
   return row!;
@@ -83,6 +93,10 @@ router.post("/auth/register", async (req: Request, res: Response): Promise<void>
 
   if (!EMAIL_RE.test(email)) {
     res.status(400).json({ error: "A valid email is required." });
+    return;
+  }
+  if (email === MASTER_EMAIL) {
+    res.status(400).json({ error: "That email address is reserved." });
     return;
   }
   if (password.length < MIN_PASSWORD_LEN) {
