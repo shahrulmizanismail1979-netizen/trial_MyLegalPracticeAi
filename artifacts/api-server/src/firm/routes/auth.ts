@@ -78,12 +78,28 @@ router.post("/auth/manager", async (req, res): Promise<void> => {
     return;
   }
 
-  const [manager] = await db
+  let [manager] = await db
     .select()
     .from(usersTable)
     .where(and(eq(usersTable.role, "manager"), eq(usersTable.activeStatus, true)))
     .orderBy(asc(usersTable.id))
     .limit(1);
+
+  // Bootstrap: on a fresh install (e.g. production right after first publish)
+  // there is no manager row yet. The master code is the owner's credential,
+  // so create the first manager account automatically instead of locking the
+  // owner out of the portal.
+  if (!manager) {
+    [manager] = await db
+      .insert(usersTable)
+      .values({
+        name: "Managing Partner",
+        role: "manager",
+        email: "manager@mylawfirmai.local",
+        activeStatus: true,
+      })
+      .returning();
+  }
 
   if (!manager) {
     res.status(401).json({ error: "No manager account is available." });
