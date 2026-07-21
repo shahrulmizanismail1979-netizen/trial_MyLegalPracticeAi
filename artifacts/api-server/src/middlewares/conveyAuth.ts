@@ -1,9 +1,36 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { usersTable, subscribersTable } from "@workspace/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { verifyToken } from "../lib/auth";
+import { logger } from "../lib/logger";
 import { hasTier, effectiveTier, type Tier } from "../lib/access";
+
+/**
+ * Convey users have no expiry column of their own — their access lifetime is
+ * governed by the landing-page subscription that issued the access code. This
+ * checks the subscribers table for the code's latest expiry. Codes without a
+ * matching subscriber row (legacy imports, admin-created, master) never expire
+ * here.
+ */
+export async function isConveyCodeExpired(accessCode: string | null): Promise<boolean> {
+  if (!accessCode) return false;
+  try {
+    const [sub] = await db
+      .select({ expiry: subscribersTable.subscriptionExpiry })
+      .from(subscribersTable)
+      .where(eq(subscribersTable.accessCode, accessCode))
+      .orderBy(desc(subscribersTable.subscriptionExpiry))
+      .limit(1);
+    if (!sub || !sub.expiry) return false;
+    return new Date(sub.expiry).getTime() < Date.now();
+  } catch (e) {
+    // Fail closed: if we cannot verify the subscription is still valid,
+    // deny access rather than silently granting expired users entry.
+    logger.error({ err: e, accessCode }, "convey expiry lookup failed — denying access");
+    return true;
+  }
+}
 
 /** Parses the Bearer token (if any) and attaches the live user record. */
 export async function attachUser(req: Request, _res: Response, next: NextFunction) {
@@ -17,7 +44,7 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
       try {
         const rows = await db.select().from(usersTable).where(eq(usersTable.id, uid));
         const user = rows[0];
-        if (user && user.isActive) {
+        if (user && user.isActive && !(await isConveyCodeExpired(user.accessCode))) {
           req.userId = user.id;
           req.currentUser = user;
         }

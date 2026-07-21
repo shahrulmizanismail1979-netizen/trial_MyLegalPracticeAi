@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import {
   db,
   usersTable,
@@ -90,15 +90,28 @@ router.post("/auth/manager", async (req, res): Promise<void> => {
   // so create the first manager account automatically instead of locking the
   // owner out of the portal.
   if (!manager) {
-    [manager] = await db
-      .insert(usersTable)
-      .values({
-        name: "Managing Partner",
-        role: "manager",
-        email: "manager@mylawfirmai.local",
-        activeStatus: true,
-      })
-      .returning();
+    manager = await db.transaction(async (tx) => {
+      // Advisory lock serialises concurrent first-login bootstraps so only
+      // one manager row is ever created.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('firm_manager_bootstrap'))`);
+      const [existing] = await tx
+        .select()
+        .from(usersTable)
+        .where(and(eq(usersTable.role, "manager"), eq(usersTable.activeStatus, true)))
+        .orderBy(asc(usersTable.id))
+        .limit(1);
+      if (existing) return existing;
+      const [created] = await tx
+        .insert(usersTable)
+        .values({
+          name: "Managing Partner",
+          role: "manager",
+          email: "manager@mylawfirmai.local",
+          activeStatus: true,
+        })
+        .returning();
+      return created;
+    });
   }
 
   if (!manager) {

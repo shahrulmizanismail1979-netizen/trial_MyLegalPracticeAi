@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { signToken } from "../lib/auth";
 import { verifyMsTicket, getLinkedCode, saveLink } from "../microsoft";
 import { conveyGate } from "../middlewares/conveyGate";
+import { isConveyCodeExpired } from "../middlewares/conveyAuth";
 import { accessSummary, isBeforeCutoff, generateAccessCode, PLANS, CURRENCIES, CURRENCY_LABELS, CURRENCY_SYMBOLS } from "../lib/access";
 import { synthesizeSpeech } from "../lib/elevenlabs";
 import {
@@ -225,6 +226,10 @@ router.post("/convey/auth", async (req, res) => {
       res.status(403).json({ error: "Account is deactivated. Contact your administrator." });
       return;
     }
+    if (await isConveyCodeExpired(user.accessCode)) {
+      res.status(401).json({ error: "This access code has expired. Please renew your subscription." });
+      return;
+    }
 
     await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
@@ -275,6 +280,10 @@ router.post("/convey/auth/sso", async (req, res) => {
     }
     if (!user.isActive) {
       res.status(403).json({ error: "Account is deactivated. Contact your administrator." });
+      return;
+    }
+    if (await isConveyCodeExpired(user.accessCode)) {
+      res.status(401).json({ error: "This access code has expired. Please renew your subscription." });
       return;
     }
 
