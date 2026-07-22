@@ -320,7 +320,7 @@ function includesSyaApp(apps: string[]): boolean {
  * Upsert a MySyalitAI access code. Idempotent via the unique code
  * constraint. Best-effort: never fails provisioning.
  */
-async function syncSyaAccessCode(params: {
+export async function syncSyaAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;

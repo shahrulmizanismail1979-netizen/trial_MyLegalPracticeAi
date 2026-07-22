@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { createHash, timingSafeEqual } from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "@workspace/db";
+import { db, subscribersTable } from "@workspace/db";
 import { accessCodesTable, usersTable } from "@workspace/db/sya";
+import { syncSyaAccessCode } from "../../../lib/provisioning";
 import { VerifyAccessCodeBody } from "../../lib/schemas";
 import { hashPassword, verifyPassword } from "../../lib/auth";
 import { effectiveTier, isWithinGrandfatherWindow } from "../../lib/grandfather";
@@ -74,6 +75,59 @@ function clearVerifyAttempts(ip: string): void {
   verifyAttempts.delete(ip);
 }
 
+/**
+ * Self-healing fallback: if a submitted code isn't (or is no longer) valid in
+ * sya_access_codes but belongs to a confirmed, unexpired landing-page
+ * subscriber whose plan covers MySyalitAI (or whose apps list is empty —
+ * legacy subscribers created before per-app tracking), sync it into
+ * sya_access_codes on the spot and return the fresh row. Fixes users who
+ * paid but whose code was never propagated to this portal.
+ */
+async function recoverCodeFromSubscribers(
+  code: string,
+): Promise<typeof accessCodesTable.$inferSelect | null> {
+  try {
+    const [sub] = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.accessCode, code))
+      .limit(1);
+    if (!sub) return null;
+    if (sub.paymentStatus !== "confirmed") return null;
+    if (sub.subscriptionExpiry && new Date(sub.subscriptionExpiry) < new Date())
+      return null;
+    const apps = sub.apps ?? [];
+    if (apps.length > 0 && !apps.includes("MySyalitAI")) return null;
+
+    await syncSyaAccessCode({
+      accessCode: code,
+      name: sub.name,
+      expiresAt: sub.subscriptionExpiry ?? null,
+    });
+    logger.info(
+      { accessCode: code },
+      "Recovered MySyalitAI access code from subscribers table at login",
+    );
+    const [row] = await db
+      .select()
+      .from(accessCodesTable)
+      .where(eq(accessCodesTable.code, code))
+      .limit(1);
+    return row ?? null;
+  } catch (err) {
+    logger.error({ err }, "MySyalitAI access-code recovery failed");
+    return null;
+  }
+}
+
+function isUsableCodeRow(
+  row: typeof accessCodesTable.$inferSelect | null | undefined,
+): row is typeof accessCodesTable.$inferSelect {
+  if (!row || !row.isActive) return false;
+  if (row.expiresAt && new Date(row.expiresAt) < new Date()) return false;
+  return true;
+}
+
 declare module "express-session" {
   interface SessionData {
     userId?: number;
@@ -138,11 +192,18 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
-  const [user] = await db
+  let [user] = await db
     .select()
     .from(accessCodesTable)
     .where(eq(accessCodesTable.code, parsed.data.accessCode))
     .limit(1);
+
+  // Self-heal codes that were paid for on the landing page but never synced
+  // (or whose expiry was extended by a renewal) before rejecting.
+  if (!isUsableCodeRow(user)) {
+    const recovered = await recoverCodeFromSubscribers(parsed.data.accessCode);
+    if (recovered) user = recovered;
+  }
 
   if (!user || !user.isActive) {
     recordVerifyFailure(ip);
@@ -183,11 +244,16 @@ async function loginWithAccessCode(
   res: import("express").Response,
   accessCode: string,
 ): Promise<boolean> {
-  const [user] = await db
+  let [user] = await db
     .select()
     .from(accessCodesTable)
     .where(eq(accessCodesTable.code, accessCode))
     .limit(1);
+
+  if (!isUsableCodeRow(user)) {
+    const recovered = await recoverCodeFromSubscribers(accessCode);
+    if (recovered) user = recovered;
+  }
 
   if (!user || !user.isActive) {
     res.status(401).json({ error: "Invalid access code" });
