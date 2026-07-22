@@ -7,7 +7,14 @@ import { VerifyAccessCodeBody } from "../../lib/schemas";
 import { hashPassword, verifyPassword } from "../../lib/auth";
 import { effectiveTier, isWithinGrandfatherWindow } from "../../lib/grandfather";
 import { logger } from "../../../lib/logger";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../../../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../../../microsoft";
 
 // Owner master override. When MASTER_ACCESS_CODE is set, submitting it on the
 // Access Code tab grants a synthetic admin session with full ("firm") access,
@@ -125,6 +132,12 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
+  const bindErr = await codeLoginBindingError(parsed.data.accessCode);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
+  }
+
   const [user] = await db
     .select()
     .from(accessCodesTable)
@@ -229,10 +242,21 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     res.status(404).json({ authenticated: false, needsLink: true });
     return;
   }
-  const ok = await loginWithAccessCode(req, res, codeToUse);
-  if (ok && providedCode) {
-    await saveLink(email, "sya", providedCode);
+  const bindErr = await ssoBindingError(email, codeToUse);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
   }
+  if (providedCode) {
+    const claim = await saveLink(email, "sya", providedCode);
+    if (!claim.ok) {
+      res.status(403).json({
+        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+      });
+      return;
+    }
+  }
+  await loginWithAccessCode(req, res, codeToUse);
 });
 
 router.post("/auth/register", async (req, res): Promise<void> => {

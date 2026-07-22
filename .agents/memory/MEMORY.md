@@ -18,3 +18,4 @@
 - [Master access code override](master-access-override.md) — one MASTER_ACCESS_CODE unlocks full access in every portal; per-portal login endpoints + synthetic-master rules.
 - [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.
 - [Donor-app portal integration](donor-portal-integration.md) — porting an external app into this monorepo: sya_-style table prefixing renames constraint names too; artifact-count limit workaround via hand-written artifact.toml + verifyAndReplaceArtifactToml.
+- [MS SSO code-email binding](ms-code-email-binding.md) — first Microsoft email to link a code owns it everywhere; claim atomically (advisory lock) BEFORE issuing session; new portal logins need both binding checks.

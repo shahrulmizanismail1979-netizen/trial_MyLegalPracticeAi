@@ -3,7 +3,14 @@ import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, ccbAccessCodes } from "@workspace/db";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../../microsoft";
 
 const router: IRouter = Router();
 
@@ -121,6 +128,11 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const bindErr = await codeLoginBindingError(parsed.data.code);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
+  }
   await verifyCodeAndIssueToken(res, parsed.data.code);
 });
 
@@ -143,10 +155,21 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     res.status(404).json({ needsLink: true });
     return;
   }
-  const ok = await verifyCodeAndIssueToken(res, codeToUse);
-  if (ok && providedCode) {
-    await saveLink(email, "ccb", providedCode.toUpperCase());
+  const bindErr = await ssoBindingError(email, codeToUse);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
   }
+  if (providedCode) {
+    const claim = await saveLink(email, "ccb", providedCode.toUpperCase());
+    if (!claim.ok) {
+      res.status(403).json({
+        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+      });
+      return;
+    }
+  }
+  await verifyCodeAndIssueToken(res, codeToUse);
 });
 
 export default router;

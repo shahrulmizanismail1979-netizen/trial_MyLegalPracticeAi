@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 import { ConfidentialClientApplication } from "@azure/msal-node";
 import jwt from "jsonwebtoken";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql as sqlOp } from "drizzle-orm";
 import { db, microsoftLinks } from "@workspace/db";
 import { logger } from "../lib/logger";
 
@@ -94,14 +94,105 @@ export async function getLinkedCode(email: string, app: string): Promise<string 
   return link.accessCode;
 }
 
-export async function saveLink(email: string, app: string, accessCode: string): Promise<void> {
-  await db
-    .insert(microsoftLinks)
-    .values({ email: email.toLowerCase(), app, accessCode, active: true })
-    .onConflictDoUpdate({
-      target: [microsoftLinks.email, microsoftLinks.app],
-      set: { accessCode, active: true, lastUsedAt: new Date() },
-    });
+/**
+ * Returns the Microsoft email that "owns" an access code, or null if the code
+ * is unbound. Ownership is global across apps: the first Microsoft account to
+ * link a code claims it everywhere (the same MLPA code is synced to every
+ * portal). The master code is never bound.
+ */
+export async function getCodeOwnerEmail(accessCode: string): Promise<string | null> {
+  const code = accessCode.trim();
+  if (!code) return null;
+  const master = (process.env.MASTER_ACCESS_CODE ?? "").trim();
+  if (master && code.toUpperCase() === master.toUpperCase()) return null;
+  const [link] = await db
+    .select({ email: microsoftLinks.email })
+    .from(microsoftLinks)
+    .where(
+      and(
+        sqlOp`lower(${microsoftLinks.accessCode}) = lower(${code})`,
+        eq(microsoftLinks.active, true),
+      ),
+    )
+    .limit(1);
+  return link ? link.email.toLowerCase() : null;
+}
+
+/**
+ * For SSO logins: null if this Microsoft email may use the code, otherwise a
+ * user-facing error message (the code belongs to a different Microsoft
+ * account).
+ */
+export async function ssoBindingError(email: string, accessCode: string): Promise<string | null> {
+  const owner = await getCodeOwnerEmail(accessCode);
+  if (owner && owner !== email.toLowerCase()) {
+    return `This access code is linked to a different Microsoft account (${maskEmail(owner)}).`;
+  }
+  return null;
+}
+
+/**
+ * For plain access-code logins: once a code has been linked to a Microsoft
+ * account, only that account may use it — the code alone is no longer enough.
+ */
+export async function codeLoginBindingError(accessCode: string): Promise<string | null> {
+  const owner = await getCodeOwnerEmail(accessCode);
+  if (owner) {
+    return `This access code is linked to a Microsoft account (${maskEmail(owner)}). Please use "Sign in with Microsoft".`;
+  }
+  return null;
+}
+
+/**
+ * Masked hint for the owning email, safe to show on a login error, e.g.
+ * "a•••@contoso.com".
+ */
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "•••";
+  return `${(local ?? "").slice(0, 1)}•••@${domain}`;
+}
+
+/**
+ * Links a Microsoft email to an access code. Fails (returns the current
+ * owner's email) when the code is already bound to a different Microsoft
+ * account — a code belongs exclusively to the first email that links it.
+ */
+export async function saveLink(
+  email: string,
+  app: string,
+  accessCode: string,
+): Promise<{ ok: true } | { ok: false; ownerEmail: string }> {
+  const normalized = email.toLowerCase();
+  return db.transaction(async (tx) => {
+    // Serialize competing claims on the same code: two users racing to link
+    // an unbound code would otherwise both pass the ownership check.
+    await tx.execute(
+      sqlOp`SELECT pg_advisory_xact_lock(hashtext('ms_code_claim:' || lower(${accessCode.trim()})))`,
+    );
+    const [link] = await tx
+      .select({ email: microsoftLinks.email })
+      .from(microsoftLinks)
+      .where(
+        and(
+          sqlOp`lower(${microsoftLinks.accessCode}) = lower(${accessCode.trim()})`,
+          eq(microsoftLinks.active, true),
+        ),
+      )
+      .limit(1);
+    const owner = link ? link.email.toLowerCase() : null;
+    if (owner && owner !== normalized) {
+      return { ok: false as const, ownerEmail: owner };
+    }
+    await tx
+      .insert(microsoftLinks)
+      .values({ email: normalized, app, accessCode, active: true })
+      .onConflictDoUpdate({
+        target: [microsoftLinks.email, microsoftLinks.app],
+        set: { accessCode, active: true, lastUsedAt: new Date() },
+      });
+    return { ok: true as const };
+  });
 }
 
 // ---- OAuth routes (mounted at /auth) ----

@@ -2,7 +2,14 @@ import { Router, type IRouter, type Request } from "express";
 import { db } from "@workspace/db";
 import { litAccessCodes } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../../microsoft";
 
 const router: IRouter = Router();
 
@@ -98,6 +105,10 @@ router.post("/login", async (req, res) => {
   }
 
   try {
+    const bindErr = await codeLoginBindingError(password);
+    if (bindErr) {
+      return res.status(403).json({ error: bindErr });
+    }
     const result = await loginWithCode(req, password);
     return res.status(result.status).json(result.body);
   } catch (err) {
@@ -135,10 +146,20 @@ router.post("/sso", async (req, res) => {
       return res.status(404).json({ needsLink: true });
     }
 
-    const result = await loginWithCode(req, codeToUse);
-    if (result.ok && providedCode) {
-      await saveLink(email, app, providedCode.toUpperCase());
+    const bindErr = await ssoBindingError(email, codeToUse);
+    if (bindErr) {
+      return res.status(403).json({ error: bindErr });
     }
+
+    if (providedCode) {
+      const claim = await saveLink(email, app, providedCode.toUpperCase());
+      if (!claim.ok) {
+        return res.status(403).json({
+          error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+        });
+      }
+    }
+    const result = await loginWithCode(req, codeToUse);
     return res.status(result.status).json(result.body);
   } catch (err) {
     req.log.error({ err }, "SSO exchange error");

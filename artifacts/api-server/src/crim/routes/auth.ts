@@ -9,7 +9,14 @@ import {
 } from "../lib/accessCodes";
 import { entitlementsFor, effectiveTier, isGrandfathered } from "@workspace/entitlements";
 import { isSubscriptionActive } from "../lib/subscriptionStatus";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../../microsoft";
 
 const LEGACY_ACCESS_CODE = process.env.ACCESS_CODE || "MYCRIMAI2024";
 
@@ -25,6 +32,11 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
   const accessCode = (req.body?.accessCode ?? "").toString().trim();
   if (!accessCode) {
     res.status(400).json({ authenticated: false, message: "Access code is required." });
+    return;
+  }
+  const bindErr = await codeLoginBindingError(accessCode);
+  if (bindErr) {
+    res.status(403).json({ authenticated: false, message: bindErr });
     return;
   }
   await verifyCodeAndLogin(req, res, accessCode);
@@ -52,9 +64,22 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     res.status(404).json({ authenticated: false, needsLink: true });
     return;
   }
-  await verifyCodeAndLogin(req, res, codeToUse, async () => {
-    if (providedCode) await saveLink(email, "crim", providedCode);
-  });
+  const bindErr = await ssoBindingError(email, codeToUse);
+  if (bindErr) {
+    res.status(403).json({ authenticated: false, message: bindErr });
+    return;
+  }
+  if (providedCode) {
+    const claim = await saveLink(email, "crim", providedCode);
+    if (!claim.ok) {
+      res.status(403).json({
+        authenticated: false,
+        message: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+      });
+      return;
+    }
+  }
+  await verifyCodeAndLogin(req, res, codeToUse, async () => {});
 });
 
 async function verifyCodeAndLogin(

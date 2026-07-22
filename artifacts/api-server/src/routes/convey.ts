@@ -6,7 +6,14 @@ import { aiUsageTable, usersTable } from "@workspace/db/schema";
 import { eq, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signToken } from "../lib/auth";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../microsoft";
 import { conveyGate } from "../middlewares/conveyGate";
 import { isConveyCodeExpired } from "../middlewares/conveyAuth";
 import { accessSummary, isBeforeCutoff, generateAccessCode, PLANS, CURRENCIES, CURRENCY_LABELS, CURRENCY_SYMBOLS } from "../lib/access";
@@ -230,6 +237,11 @@ router.post("/convey/auth", async (req, res) => {
       res.status(401).json({ error: "This access code has expired. Please renew your subscription." });
       return;
     }
+    const bindErr = user.accessCode ? await codeLoginBindingError(user.accessCode) : null;
+    if (bindErr) {
+      res.status(403).json({ error: bindErr });
+      return;
+    }
 
     await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
@@ -286,11 +298,22 @@ router.post("/convey/auth/sso", async (req, res) => {
       res.status(401).json({ error: "This access code has expired. Please renew your subscription." });
       return;
     }
-
-    await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
-    if (providedCode) {
-      await saveLink(email, "convey", providedCode);
+    const bindErr = await ssoBindingError(email, codeToUse);
+    if (bindErr) {
+      res.status(403).json({ error: bindErr });
+      return;
     }
+
+    if (providedCode) {
+      const claim = await saveLink(email, "convey", providedCode);
+      if (!claim.ok) {
+        res.status(403).json({
+          error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+        });
+        return;
+      }
+    }
+    await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
     res.json({
       success: true,

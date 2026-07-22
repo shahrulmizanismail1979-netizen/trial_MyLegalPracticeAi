@@ -10,7 +10,14 @@ import {
 } from "@workspace/api-zod";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../microsoft";
 
 const router: IRouter = Router();
 
@@ -148,6 +155,11 @@ router.post("/auth/verify-code", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const bindErr = await codeLoginBindingError(parsed.data.code);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
+  }
   await verifyCodeAndStartSession(res, parsed.data.code);
 });
 
@@ -170,10 +182,21 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     res.status(404).json({ needsLink: true });
     return;
   }
-  const ok = await verifyCodeAndStartSession(res, codeToUse);
-  if (ok && providedCode) {
-    await saveLink(email, "accident", providedCode.toUpperCase());
+  const bindErr = await ssoBindingError(email, codeToUse);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
   }
+  if (providedCode) {
+    const claim = await saveLink(email, "accident", providedCode.toUpperCase());
+    if (!claim.ok) {
+      res.status(403).json({
+        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+      });
+      return;
+    }
+  }
+  await verifyCodeAndStartSession(res, codeToUse);
 });
 
 router.get("/auth/check-session", async (req, res): Promise<void> => {

@@ -12,7 +12,14 @@ import {
 } from "../../lib/access";
 import { synthesizeSpeech, DEFAULT_VOICE_ID } from "../../lib/elevenlabsClient";
 import { requireSession } from "../../lib/requireSession";
-import { verifyMsTicket, getLinkedCode, saveLink } from "../../../microsoft";
+import {
+  verifyMsTicket,
+  getLinkedCode,
+  saveLink,
+  ssoBindingError,
+  codeLoginBindingError,
+  maskEmail,
+} from "../../../microsoft";
 
 const router: IRouter = Router();
 
@@ -102,6 +109,11 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Password is required" });
     return;
   }
+  const bindErr = await codeLoginBindingError(password);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
+  }
   await verifyPasswordAndCreateSession(req, res, password);
 });
 
@@ -124,10 +136,21 @@ router.post("/legal/sso", async (req, res): Promise<void> => {
     res.status(404).json({ needsLink: true });
     return;
   }
-  const ok = await verifyPasswordAndCreateSession(req, res, codeToUse);
-  if (ok && providedCode) {
-    await saveLink(email, "corp", providedCode);
+  const bindErr = await ssoBindingError(email, codeToUse);
+  if (bindErr) {
+    res.status(403).json({ error: bindErr });
+    return;
   }
+  if (providedCode) {
+    const claim = await saveLink(email, "corp", providedCode);
+    if (!claim.ok) {
+      res.status(403).json({
+        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+      });
+      return;
+    }
+  }
+  await verifyPasswordAndCreateSession(req, res, codeToUse);
 });
 
 router.get("/legal/validate-session", async (req, res): Promise<void> => {
