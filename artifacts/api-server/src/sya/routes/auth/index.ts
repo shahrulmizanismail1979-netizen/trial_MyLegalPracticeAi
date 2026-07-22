@@ -120,6 +120,49 @@ async function recoverCodeFromSubscribers(
   }
 }
 
+// For Microsoft SSO self-healing: when the linked code is dead (a legacy code
+// from the donor app that no longer exists anywhere), fall back to the
+// subscriber record in the admin dashboard matched by email. Returns the
+// subscriber's current access code when they have active MySyalitAI access.
+async function findSubscriberCodeByEmail(
+  email: string,
+): Promise<string | null> {
+  try {
+    const rows = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.email, email.toLowerCase()));
+    for (const sub of rows) {
+      if (!sub.accessCode) continue;
+      if (sub.paymentStatus !== "confirmed") continue;
+      if (
+        sub.subscriptionExpiry &&
+        new Date(sub.subscriptionExpiry) < new Date()
+      )
+        continue;
+      const apps = sub.apps ?? [];
+      if (apps.length > 0 && !apps.includes("MySyalitAI")) continue;
+      return sub.accessCode;
+    }
+    return null;
+  } catch (err) {
+    logger.error({ err }, "MySyalitAI subscriber-by-email lookup failed");
+    return null;
+  }
+}
+
+// True when the code either has a usable sya_access_codes row already or can
+// be recovered from the subscribers table (recovery inserts the row).
+async function isCodeUsableOrRecoverable(code: string): Promise<boolean> {
+  const [row] = await db
+    .select()
+    .from(accessCodesTable)
+    .where(eq(accessCodesTable.code, code))
+    .limit(1);
+  if (isUsableCodeRow(row)) return true;
+  return (await recoverCodeFromSubscribers(code)) !== null;
+}
+
 function isUsableCodeRow(
   row: typeof accessCodesTable.$inferSelect | null | undefined,
 ): row is typeof accessCodesTable.$inferSelect {
@@ -303,7 +346,25 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     return;
   }
   const providedCode = typeof code === "string" ? code.trim() : "";
-  const codeToUse = providedCode || (await getLinkedCode(email, "sya"));
+  let codeToUse = providedCode || (await getLinkedCode(email, "sya"));
+
+  // Self-heal a stale link: if the linked code is dead (e.g. a legacy code
+  // from before the admin dashboard existed), fall back to the subscriber
+  // record matched by email and re-link to their current access code.
+  if (!providedCode && codeToUse && !(await isCodeUsableOrRecoverable(codeToUse))) {
+    const replacement = await findSubscriberCodeByEmail(email);
+    if (replacement && replacement !== codeToUse) {
+      const claim = await saveLink(email, "sya", replacement);
+      if (claim.ok) {
+        logger.info(
+          { email: maskEmail(email) },
+          "Re-linked Microsoft account to current subscriber access code",
+        );
+        codeToUse = replacement;
+      }
+    }
+  }
+
   if (!codeToUse) {
     res.status(404).json({ authenticated: false, needsLink: true });
     return;

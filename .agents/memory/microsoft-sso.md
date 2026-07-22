@@ -12,3 +12,5 @@ Shared OAuth lives on api-server at `/auth` (registered as an extra service path
 - Gotcha: default-deny middleware (e.g. conveyGate PUBLIC_PATHS) must allowlist the new sso path or it 401s.
 - Gotcha: lit's auth router is mounted at `/auth`, so its endpoints are `/api/lit/auth/*`; the lit sso route accepts both `lit` and `lit-irac` tickets.
 - Redirect URI is computed from the request host; each domain used for login must be a registered redirect URI in the Azure app.
+
+Stale-link deadlock: a Microsoft email linked to a dead legacy code (from the donor app, absent from portal codes AND subscribers) makes SSO 401 while code login 403s ("code is Microsoft-bound") — total lockout. Fix pattern: in the SSO exchange, when the linked code is neither usable nor recoverable, look up the subscriber by email (confirmed, unexpired, entitled) and re-link via saveLink upsert, then log in with the replacement code. Implemented for sya; other portals may need the same.
