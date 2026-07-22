@@ -1,4 +1,5 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { stageRecordingForStt } from "../../lib/scribeUpload";
 
 const connectors = new ReplitConnectors();
 
@@ -60,19 +61,26 @@ export async function speechToText(
   audio: Buffer,
   mimeType: string,
 ): Promise<string> {
-  const form = new FormData();
-  const blob = new Blob([new Uint8Array(audio)], { type: mimeType });
-  form.append("file", blob, "audio.webm");
-  form.append("model_id", "scribe_v1");
+  // Stage the recording in object storage and pass a signed URL instead of
+  // uploading the bytes inline — inline multipart bodies get blocked by
+  // Cloudflare's WAF on the connector proxy for compressed formats.
+  const staged = await stageRecordingForStt(audio, "audio.webm", mimeType);
+  try {
+    const form = new FormData();
+    form.append("model_id", "scribe_v1");
+    form.append("cloud_storage_url", staged.url);
 
-  const response = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
-    method: "POST",
-    body: form,
-  });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`ElevenLabs STT failed: ${response.status} ${detail}`);
+    const response = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
+      method: "POST",
+      body: form,
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      throw new Error(`ElevenLabs STT failed: ${response.status} ${detail}`);
+    }
+    const data = (await response.json()) as { text?: string };
+    return data.text ?? "";
+  } finally {
+    void staged.cleanup();
   }
-  const data = (await response.json()) as { text?: string };
-  return data.text ?? "";
 }

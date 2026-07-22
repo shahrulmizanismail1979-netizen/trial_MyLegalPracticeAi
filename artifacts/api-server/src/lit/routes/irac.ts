@@ -8,6 +8,7 @@ import { isIP } from "node:net";
 import { Agent, fetch as safeFetch } from "undici";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { stageRecordingForStt } from "../../lib/scribeUpload";
 import { logger } from "../../lib/logger";
 import {
   streamChat,
@@ -723,21 +724,28 @@ function mediaMimeFor(lower: string): string {
 async function transcribeWithElevenLabs(buffer: Buffer, filename: string): Promise<string> {
   if (buffer.length > STT_MAX_BYTES) return "";
   try {
-    const form = new FormData();
-    form.append("model_id", "scribe_v1");
-    const blob = new Blob([new Uint8Array(buffer)], { type: mediaMimeFor(filename.toLowerCase()) });
-    form.append("file", blob, filename);
-    const resp = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
-      method: "POST",
-      body: form,
-    });
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => "");
-      logger.warn({ status: resp.status, detail: detail.slice(0, 300), file: filename }, "ElevenLabs STT failed");
-      return "";
+    // Stage the recording in object storage and pass a signed URL instead of
+    // uploading the bytes inline — inline multipart bodies get blocked by
+    // Cloudflare's WAF on the connector proxy for compressed formats.
+    const staged = await stageRecordingForStt(buffer, filename, mediaMimeFor(filename.toLowerCase()));
+    try {
+      const form = new FormData();
+      form.append("model_id", "scribe_v1");
+      form.append("cloud_storage_url", staged.url);
+      const resp = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
+        method: "POST",
+        body: form,
+      });
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => "");
+        logger.warn({ status: resp.status, detail: detail.slice(0, 300), file: filename }, "ElevenLabs STT failed");
+        return "";
+      }
+      const data = (await resp.json().catch(() => ({}))) as { text?: string };
+      return (data.text ?? "").trim();
+    } finally {
+      void staged.cleanup();
     }
-    const data = (await resp.json().catch(() => ({}))) as { text?: string };
-    return (data.text ?? "").trim();
   } catch (e) {
     logger.warn({ err: e, file: filename }, "ElevenLabs STT exception");
     return "";
@@ -773,23 +781,30 @@ export interface TranscriptSegment {
 async function transcribeDiarized(buffer: Buffer, filename: string): Promise<ScribeResponse | null> {
   if (buffer.length > STT_MAX_BYTES) return null;
   try {
-    const form = new FormData();
-    form.append("model_id", "scribe_v1");
-    form.append("diarize", "true");
-    form.append("tag_audio_events", "true");
-    form.append("timestamps_granularity", "word");
-    const blob = new Blob([new Uint8Array(buffer)], { type: mediaMimeFor(filename.toLowerCase()) });
-    form.append("file", blob, filename);
-    const resp = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
-      method: "POST",
-      body: form,
-    });
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => "");
-      logger.warn({ status: resp.status, detail: detail.slice(0, 300), file: filename }, "ElevenLabs diarized STT failed");
-      return null;
+    // Stage the recording in object storage and pass a signed URL instead of
+    // uploading the bytes inline — inline multipart bodies get blocked by
+    // Cloudflare's WAF on the connector proxy for compressed formats.
+    const staged = await stageRecordingForStt(buffer, filename, mediaMimeFor(filename.toLowerCase()));
+    try {
+      const form = new FormData();
+      form.append("model_id", "scribe_v1");
+      form.append("diarize", "true");
+      form.append("tag_audio_events", "true");
+      form.append("timestamps_granularity", "word");
+      form.append("cloud_storage_url", staged.url);
+      const resp = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
+        method: "POST",
+        body: form,
+      });
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => "");
+        logger.warn({ status: resp.status, detail: detail.slice(0, 300), file: filename }, "ElevenLabs diarized STT failed");
+        return null;
+      }
+      return (await resp.json().catch(() => null)) as ScribeResponse | null;
+    } finally {
+      void staged.cleanup();
     }
-    return (await resp.json().catch(() => null)) as ScribeResponse | null;
   } catch (e) {
     logger.warn({ err: e, file: filename }, "ElevenLabs diarized STT exception");
     return null;

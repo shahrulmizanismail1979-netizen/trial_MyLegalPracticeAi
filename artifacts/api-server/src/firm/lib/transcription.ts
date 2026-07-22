@@ -1,4 +1,5 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { stageRecordingForStt } from "../../lib/scribeUpload";
 import { AiProviderError } from "./aiService";
 import type { MeetingSegment } from "../db";
 
@@ -26,14 +27,15 @@ export async function transcribeWithDiarization(
     throw new AiProviderError("The uploaded audio was empty.");
   }
 
+  // Stage the recording in object storage and pass a signed URL instead of
+  // uploading the bytes inline — inline multipart bodies get blocked by
+  // Cloudflare's WAF on the connector proxy for compressed formats.
+  const staged = await stageRecordingForStt(audio, "meeting.webm", _mimeType || "audio/webm");
+
   const form = new FormData();
   form.append("model_id", "scribe_v1");
   form.append("diarize", "true");
-  form.append(
-    "file",
-    new Blob([new Uint8Array(audio)], { type: _mimeType || "audio/webm" }),
-    "meeting",
-  );
+  form.append("cloud_storage_url", staged.url);
 
   let res: Response;
   try {
@@ -45,6 +47,8 @@ export async function transcribeWithDiarization(
     throw new AiProviderError(
       `Speaker-diarized transcription needs the ElevenLabs integration. Please connect ElevenLabs first. (${(err as Error).message})`,
     );
+  } finally {
+    void staged.cleanup();
   }
 
   if (!res.ok) {
