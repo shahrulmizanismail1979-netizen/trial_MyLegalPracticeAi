@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'wouter';
 import { clearAllDrafts } from './use-persistent-state';
 
 const AUTH_KEY = 'mylitai_auth_verified';
 
 export function useAuth() {
-  const [, setLocation] = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   const verify = useCallback(async () => {
@@ -86,7 +84,10 @@ export function useAuth() {
     clearAllDrafts();
     localStorage.removeItem(AUTH_KEY);
     setIsAuthenticated(false);
-    setLocation('/');
+    // Hard reload to the portal root: every useAuth() call keeps its own copy
+    // of the auth state, so a client-side navigation leaves stale
+    // "authenticated" copies alive and the router bounces between redirects.
+    window.location.assign(import.meta.env.BASE_URL);
   };
 
   return { isAuthenticated, login, ssoLogin, logout, isLoading: isAuthenticated === null };
