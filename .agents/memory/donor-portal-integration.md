@@ -14,3 +14,5 @@ description: Lessons from importing an external app (MySyalitAI) into the monore
 - Donor-port typecheck error floods usually root in ONE bad module path — fix the FIRST error, not the tail.
 
 Empty prod content DBs: each portal ported from a donor app has reference-content tables that exist only in dev — production shows an all-zero dashboard after deploy. Fix pattern: export dev rows to a `<portal>-content-seed.json` and add a boot-time `seed<Portal>Content()` (skip non-empty tables, jsonb_populate_recordset + ON CONFLICT DO NOTHING, setval sequence bump), called best-effort in api-server index.ts. Done for sya and crim; expect the same report for other portals.
+
+IRAC portal (mylitai-irac): its client irac-api.ts shipped with donor-era root paths (/api/auth, /api/oral, /api/theory...) while everything is mounted at /api/lit/*; also server chat expects `litMessages`, not `messages`. Symptom: Practice-menu features dead + logout "something went wrong" in prod. When auditing a donor port, curl-probe every client base path against the shared proxy.

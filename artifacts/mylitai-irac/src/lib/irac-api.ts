@@ -303,7 +303,7 @@ export function runPathwayChat(
   handlers: StreamHandlers,
 ): StreamControl {
   const controller = new AbortController();
-  void streamSSE("/chat", { pathway, messages }, handlers, controller.signal);
+  void streamSSE("/chat", { pathway, litMessages: messages }, handlers, controller.signal);
   return { cancel: () => controller.abort() };
 }
 
@@ -356,7 +356,7 @@ export async function transcribeRecording(file: File): Promise<TranscriptResult>
 // The shared academic content (theory, case law, cause papers, workflows, costs,
 // glossary) is served by the same API server but at the ABSOLUTE root `/api/lit/...`
 // — NOT under `/api/lit/irac/...` and NOT under the artifact BASE_URL prefix.
-const ROOT_API = "/api";
+const ROOT_API = "/api/lit";
 
 export interface TheoryTopic {
   id: number;
@@ -982,7 +982,7 @@ export interface SsoLoginResult {
 // Microsoft email hasn't been linked to an access code yet.
 export async function vaultSsoLogin(ticket: string, code?: string): Promise<SsoLoginResult> {
   try {
-    const res = await fetch(`${ROOT_API}/lit/auth/sso`, {
+    const res = await fetch(`${ROOT_API}/auth/sso`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
