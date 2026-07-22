@@ -4,23 +4,73 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
 import { CurrencySelector, BilledInUsdNote } from "@/components/currency-selector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CheckoutTier = "bundle" | "single" | "standard";
 type LoadingKey = CheckoutTier | "trial";
 
+// Portals a Single App / Free Trial customer can pick. The URL is passed to
+// checkout so the chosen portal is assigned automatically after payment.
+const PORTAL_CHOICES: Array<{ name: string; url: string }> = [
+  { name: "MyLitAI — Litigation", url: "https://mylitai.life" },
+  { name: "MySyalitAI — Syariah Litigation", url: "https://mysyalitai.life" },
+  { name: "MyCorpAI — Corporate Secretary", url: "https://mycorpai.life" },
+  { name: "MyConveyAI — Conveyancing", url: "https://myconveyai.life" },
+  { name: "MyCrimAI — Criminal Law", url: "https://mycrimai.life/" },
+  { name: "MyCCBLitAI — Construction Law", url: "https://myccblitai.life/" },
+  { name: "MyAccidentAI — Accident Claims", url: "https://myaccidentai.life/" },
+];
+
+function PortalPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-full" aria-label="Choose your AI Portal">
+          <SelectValue placeholder="Choose your AI Portal" />
+        </SelectTrigger>
+        <SelectContent>
+          {PORTAL_CHOICES.map((p) => (
+            <SelectItem key={p.url} value={p.url}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function Pricing() {
   const [loadingTier, setLoadingTier] = useState<LoadingKey | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [trialPortal, setTrialPortal] = useState<string>("");
+  const [singlePortal, setSinglePortal] = useState<string>("");
   const { format } = useCurrency();
 
-  const startCheckout = async (tier: CheckoutTier, trial = false) => {
+  const startCheckout = async (tier: CheckoutTier, trial = false, appUrl?: string) => {
     setCheckoutError(null);
     setLoadingTier(trial ? "trial" : tier);
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trial ? { tier, trial: true } : { tier }),
+        body: JSON.stringify({
+          tier,
+          ...(trial ? { trial: true } : {}),
+          ...(appUrl ? { appUrl } : {}),
+        }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
@@ -93,17 +143,20 @@ export function Pricing() {
                 </ul>
               </CardContent>
             </div>
-            <CardFooter>
+            <CardFooter className="flex-col items-stretch">
+              <PortalPicker value={trialPortal} onChange={setTrialPortal} />
               <Button
                 variant="outline"
                 className="w-full text-lg h-12 border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-400"
-                onClick={() => startCheckout("single", true)}
-                disabled={loadingTier !== null}
+                onClick={() => startCheckout("single", true, trialPortal)}
+                disabled={loadingTier !== null || !trialPortal}
               >
                 {loadingTier === "trial" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
-                ) : (
+                ) : trialPortal ? (
                   "Start Free Trial"
+                ) : (
+                  "Choose a portal to start"
                 )}
               </Button>
             </CardFooter>
@@ -146,17 +199,20 @@ export function Pricing() {
                 </ul>
               </CardContent>
             </div>
-            <CardFooter>
+            <CardFooter className="flex-col items-stretch">
+              <PortalPicker value={singlePortal} onChange={setSinglePortal} />
               <Button
                 variant="outline"
                 className="w-full text-lg h-12"
-                onClick={() => startCheckout("single")}
-                disabled={loadingTier !== null}
+                onClick={() => startCheckout("single", false, singlePortal)}
+                disabled={loadingTier !== null || !singlePortal}
               >
                 {loadingTier === "single" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
-                ) : (
+                ) : singlePortal ? (
                   "Subscribe — Single"
+                ) : (
+                  "Choose a portal to subscribe"
                 )}
               </Button>
             </CardFooter>

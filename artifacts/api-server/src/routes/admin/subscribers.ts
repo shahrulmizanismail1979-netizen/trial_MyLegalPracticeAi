@@ -24,7 +24,51 @@ import {
 
 const router: IRouter = Router();
 
+/**
+ * Sync each subscriber's payment_amount from the latest PAID Stripe invoice
+ * for their subscription. This makes the admin list show exactly what the
+ * customer was charged — including promo-code discounts, and trial
+ * subscriptions that later converted to paid (which were provisioned as
+ * "0.00" at checkout time).
+ */
+async function refreshPaymentAmountsFromStripe(): Promise<void> {
+  await db.execute(sql`
+    UPDATE subscribers s
+    SET payment_amount = to_char(latest.amount_paid / 100.0, 'FM999999990.00'),
+        payment_date = COALESCE(latest.paid_at, s.payment_date)
+    FROM (
+      SELECT DISTINCT ON (sub_id) sub_id, amount_paid, paid_at
+      FROM (
+        SELECT
+          COALESCE(
+            NULLIF(i.subscription, ''),
+            i._raw_data->'parent'->'subscription_details'->>'subscription'
+          ) AS sub_id,
+          i.amount_paid,
+          to_timestamp(i.created) AS paid_at,
+          i.created
+        FROM stripe.invoices i
+        WHERE i.status = 'paid' AND i.amount_paid > 0
+      ) paid
+      WHERE sub_id IS NOT NULL
+      ORDER BY sub_id, created DESC
+    ) latest
+    WHERE s.stripe_subscription_id = latest.sub_id
+      AND (
+        s.payment_amount IS DISTINCT FROM to_char(latest.amount_paid / 100.0, 'FM999999990.00')
+        OR s.payment_date IS DISTINCT FROM latest.paid_at
+      )
+  `);
+}
+
 router.get("/subscribers", async (req, res): Promise<void> => {
+  // Best-effort: never let a Stripe-sync hiccup break the admin list.
+  try {
+    await refreshPaymentAmountsFromStripe();
+  } catch (err) {
+    req.log.warn({ err }, "Failed to refresh payment amounts from Stripe invoices");
+  }
+
   const query = ListSubscribersQueryParams.safeParse(req.query);
   const conditions = [];
 
