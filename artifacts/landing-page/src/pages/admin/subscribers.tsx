@@ -5,6 +5,7 @@ import {
   useCreateSubscriber, 
   useUpdateSubscriber, 
   useDeleteSubscriber,
+  useUnbindSubscriberMicrosoft,
   getListSubscribersQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -78,6 +79,22 @@ export default function SubscribersPage() {
 
   const updateSubscriber = useUpdateSubscriber();
   const deleteSubscriber = useDeleteSubscriber();
+  const unbindMicrosoft = useUnbindSubscriberMicrosoft();
+
+  const handleUnbindMicrosoft = (id: number) => {
+    unbindMicrosoft.mutate({ id }, {
+      onSuccess: (data) => {
+        if (data.unbound > 0) {
+          toast.success("Microsoft account unbound — the access code works on its own again");
+        } else {
+          toast.info("This access code was not linked to any Microsoft account");
+        }
+      },
+      onError: () => {
+        toast.error("Failed to unbind Microsoft account");
+      }
+    });
+  };
   
   const handleStatusChange = (id: number, status: "confirmed" | "rejected") => {
     updateSubscriber.mutate({ id, data: { paymentStatus: status } }, {
@@ -271,6 +288,10 @@ export default function SubscribersPage() {
                             </>
                           )}
                           <SubscriberDialog mode="edit" subscriber={sub} asDropdownItem />
+                          <DropdownMenuItem onClick={() => handleUnbindMicrosoft(sub.id)}>
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Unbind Microsoft
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(sub.id)} className="text-destructive focus:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete

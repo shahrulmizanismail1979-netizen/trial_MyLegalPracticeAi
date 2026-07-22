@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, ilike, and, sql } from "drizzle-orm";
-import { db, subscribersTable, activityTable } from "@workspace/db";
+import { db, subscribersTable, activityTable, microsoftLinks } from "@workspace/db";
 import {
   syncPortalAccessCodes,
   normalizeAppNames,
@@ -222,6 +222,52 @@ router.patch("/subscribers/:id/reject", async (req, res): Promise<void> => {
   });
 
   res.json(RejectSubscriberResponse.parse(subscriber));
+});
+
+// Release a subscriber's access code from its Microsoft account binding so the
+// plain code works again (the next Microsoft sign-in that links it becomes the
+// new owner).
+router.patch("/subscribers/:id/unbind-microsoft", async (req, res): Promise<void> => {
+  const params = GetSubscriberParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.id, params.data.id))
+    .limit(1);
+
+  if (!subscriber) {
+    res.status(404).json({ error: "Subscriber not found" });
+    return;
+  }
+  if (!subscriber.accessCode) {
+    res.json({ unbound: 0 });
+    return;
+  }
+
+  const unbound = await db
+    .update(microsoftLinks)
+    .set({ active: false })
+    .where(
+      and(
+        sql`lower(${microsoftLinks.accessCode}) = lower(${subscriber.accessCode})`,
+        eq(microsoftLinks.active, true),
+      ),
+    )
+    .returning({ id: microsoftLinks.id });
+
+  if (unbound.length > 0) {
+    await db.insert(activityTable).values({
+      type: "microsoft_unbound",
+      description: `Microsoft account unbound from access code for ${subscriber.name}`,
+    });
+  }
+
+  res.json({ unbound: unbound.length });
 });
 
 export default router;

@@ -540,6 +540,17 @@ export const RejectSubscriberResponse = zod.object({
 });
 
 /**
+ * @summary Unbind the subscriber's access code from any linked Microsoft account
+ */
+export const UnbindSubscriberMicrosoftParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UnbindSubscriberMicrosoftResponse = zod.object({
+  unbound: zod.number().describe("Number of Microsoft links deactivated"),
+});
+
+/**
  * @summary Get recent activity feed
  */
 export const getRecentActivityQueryLimitDefault = 10;

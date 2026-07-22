@@ -165,6 +165,7 @@ import type {
   SimulateTransactionBody,
   SimulateTransactionResponse,
   Subscriber,
+  UnbindSubscriberMicrosoft200,
   UpdateAppStatBody,
   UpdateContributionBody,
   UpdateKohortBody,
@@ -2091,6 +2092,93 @@ export const useRejectSubscriber = <
   TContext
 > => {
   return useMutation(getRejectSubscriberMutationOptions(options));
+};
+
+/**
+ * @summary Unbind the subscriber's access code from any linked Microsoft account
+ */
+export const getUnbindSubscriberMicrosoftUrl = (id: number) => {
+  return `/api/admin/subscribers/${id}/unbind-microsoft`;
+};
+
+export const unbindSubscriberMicrosoft = async (
+  id: number,
+  options?: RequestInit,
+): Promise<UnbindSubscriberMicrosoft200> => {
+  return customFetch<UnbindSubscriberMicrosoft200>(
+    getUnbindSubscriberMicrosoftUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+    },
+  );
+};
+
+export const getUnbindSubscriberMicrosoftMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["unbindSubscriberMicrosoft"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return unbindSubscriberMicrosoft(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnbindSubscriberMicrosoftMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>
+>;
+
+export type UnbindSubscriberMicrosoftMutationError = ErrorType<void>;
+
+/**
+ * @summary Unbind the subscriber's access code from any linked Microsoft account
+ */
+export const useUnbindSubscriberMicrosoft = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unbindSubscriberMicrosoft>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getUnbindSubscriberMicrosoftMutationOptions(options));
 };
 
 /**

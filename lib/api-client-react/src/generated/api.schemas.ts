@@ -1319,6 +1319,11 @@ export const ListSubscribersStatus = {
   cancelled: "cancelled",
 } as const;
 
+export type UnbindSubscriberMicrosoft200 = {
+  /** Number of Microsoft links deactivated */
+  unbound: number;
+};
+
 export type GetRecentActivityParams = {
   limit?: number;
 };

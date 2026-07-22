@@ -471,6 +471,33 @@ paths:
                 $ref: "#/components/schemas/Subscriber"
         "404":
           description: Not found
+  /admin/subscribers/{id}/unbind-microsoft:
+    patch:
+      operationId: unbindSubscriberMicrosoft
+      tags:
+        - subscribers
+      summary: Unbind the subscriber's access code from any linked Microsoft account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Microsoft links deactivated for the subscriber's access code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unbound:
+                    type: integer
+                    description: Number of Microsoft links deactivated
+                required:
+                  - unbound
+        "404":
+          description: Not found
   /admin/recent-activity:
     get:
       operationId: getRecentActivity
