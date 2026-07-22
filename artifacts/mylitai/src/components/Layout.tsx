@@ -122,18 +122,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border space-y-2 bg-background/30">
-          <Link
-            href="/app/subscribe"
-            onClick={() => setIsSidebarOpen(false)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 border ${
-              location.startsWith('/app/subscribe')
-                ? 'bg-primary/10 text-primary border-primary/20 shadow-inner'
-                : 'text-muted-foreground hover:bg-secondary hover:text-foreground border-transparent'
-            }`}
-          >
-            <Sparkles className="h-5 w-5" />
-            {t('nav.subscription')}
-          </Link>
           <LanguageSwitcher className="w-full" />
           <Button 
             className="w-full justify-start gap-3 bg-card border border-primary/30 text-primary hover:bg-primary/10 shadow-none" 

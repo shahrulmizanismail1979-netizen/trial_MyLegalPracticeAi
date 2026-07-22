@@ -1,13 +1,12 @@
 import React from 'react';
-import { Link } from 'wouter';
 import { Lock, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/use-subscription';
 
 /**
- * Wraps premium feature content. Renders the children only when the current
- * access code has an active subscription (or comped access); otherwise shows a
- * paywall directing the practitioner to the subscription page.
+ * Wraps premium feature content. Any valid, unexpired access code grants full
+ * access; this gate only appears when the code has been revoked or expired,
+ * and directs the practitioner to the landing page to renew.
  */
 export function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useSubscription();
@@ -29,12 +28,12 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
           <Lock className="h-7 w-7 text-primary" />
         </div>
         <h2 className="font-serif text-2xl font-bold text-foreground">
-          A subscription is required
+          Your access code is no longer active
         </h2>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          The AI Chambers practitioner tools and the Oral Advocacy practice suite
-          are part of the MyLitAi Practitioner subscription. Subscribe to unlock
-          unlimited access for your account.
+          Your access code has expired or been deactivated. Renew your
+          subscription on the AI Web Books page to restore full access to the
+          AI Chambers practitioner tools and the Oral Advocacy practice suite.
         </p>
 
         <ul className="mt-6 space-y-2 text-left max-w-sm mx-auto">
@@ -50,12 +49,12 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
           ))}
         </ul>
 
-        <Link href="/app/subscribe">
+        <a href="/#pricing">
           <Button className="mt-8 gap-2" size="lg">
             <Sparkles className="h-4 w-4" />
-            View subscription plans
+            Renew subscription
           </Button>
-        </Link>
+        </a>
       </div>
     </div>
   );

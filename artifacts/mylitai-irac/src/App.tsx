@@ -41,7 +41,6 @@ import LibraryQuantum from "@/pages/LibraryQuantum";
 import LibraryGlossary from "@/pages/LibraryGlossary";
 import LibraryPracticeDirections from "@/pages/LibraryPracticeDirections";
 import LibraryBarCouncil from "@/pages/LibraryBarCouncil";
-import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -139,7 +138,6 @@ function Navbar() {
 
   const trailingLinks = [
     { href: "/library", label: t("nav.library"), icon: LibraryIcon },
-    { href: "/pricing", label: t("nav.pricing"), icon: Crown },
   ];
 
   const topLinkClass = (active: boolean) =>
@@ -299,7 +297,6 @@ function Router() {
         <Route path="/library/glossary" component={LibraryGlossary} />
         <Route path="/library/practice-directions" component={LibraryPracticeDirections} />
         <Route path="/library/bar-council" component={LibraryBarCouncil} />
-        <Route path="/pricing" component={Pricing} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

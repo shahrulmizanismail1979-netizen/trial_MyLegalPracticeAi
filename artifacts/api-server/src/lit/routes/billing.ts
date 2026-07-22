@@ -22,8 +22,10 @@ export interface SubscriptionState {
   hasCustomer: boolean;
 }
 
-const GRANDFATHER_CUTOFF = new Date("2026-06-08T00:00:00+08:00");
-
+// Subscriptions are sold on the landing page; a valid access code IS the
+// subscription. Any active, unexpired access code grants full access — there
+// is no separate in-portal Stripe paywall. Status and expiry are re-checked
+// on every request because sessions can outlive a revoked/expired code.
 export async function getSubscriptionState(
   accessCodeId: number,
 ): Promise<SubscriptionState> {
@@ -39,30 +41,13 @@ export async function getSubscriptionState(
   if (row.compedAccess) {
     return { active: true, comped: true, status: "comped", hasCustomer: !!row.stripeCustomerId };
   }
-  if (row.createdAt && new Date(row.createdAt) < GRANDFATHER_CUTOFF) {
-    return { active: true, comped: true, status: "grandfathered", hasCustomer: !!row.stripeCustomerId };
+  if (row.status !== "active") {
+    return { active: false, comped: false, status: row.status ?? null, hasCustomer: !!row.stripeCustomerId };
   }
-  if (!row.stripeCustomerId) {
-    return { active: false, comped: false, status: null, hasCustomer: false };
+  if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+    return { active: false, comped: false, status: "expired", hasCustomer: !!row.stripeCustomerId };
   }
-  try {
-    const result = await db.execute(
-      sql`SELECT s.status
-          FROM stripe.subscriptions s
-          JOIN stripe.subscription_items si ON si.subscription = s.id
-          JOIN stripe.prices pr ON pr.id = si.price
-          JOIN stripe.products p ON p.id = pr.product
-          WHERE s.customer = ${row.stripeCustomerId}
-            AND s.status IN ('active', 'trialing')
-            AND p.metadata->>'mylitai_premium' = 'true'
-          ORDER BY s.created DESC
-          LIMIT 1`,
-    );
-    const sub = (result as unknown as { rows: Array<{ status: string }> }).rows?.[0];
-    return { active: !!sub, comped: false, status: sub?.status ?? null, hasCustomer: true };
-  } catch {
-    return { active: false, comped: false, status: null, hasCustomer: true };
-  }
+  return { active: true, comped: false, status: "active", hasCustomer: !!row.stripeCustomerId };
 }
 
 // Returns subscription/access status for the currently logged-in user.
