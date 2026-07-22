@@ -12,3 +12,5 @@ description: Lessons from importing an external app (MySyalitAI) into the monore
 - New portal must be added in THREE provisioning places or purchases silently skip it: `APP_NAME_BY_URL` (landing card URL → app name), `ALL_APP_NAMES` (bundles), and the `sync*/deactivate*` wiring in `syncPortalAccessCodes`/`deactivatePortalAccessCodes`.
 - Audit every donor mutation route for missing auth: TaskRadar's `POST /users` accepted a `role` field with no manager gate → staff could self-escalate to manager. Any route that can create/alter privileged rows needs the manager-session check.
 - Donor-port typecheck error floods usually root in ONE bad module path — fix the FIRST error, not the tail.
+
+Empty prod content DBs: each portal ported from a donor app has reference-content tables that exist only in dev — production shows an all-zero dashboard after deploy. Fix pattern: export dev rows to a `<portal>-content-seed.json` and add a boot-time `seed<Portal>Content()` (skip non-empty tables, jsonb_populate_recordset + ON CONFLICT DO NOTHING, setval sequence bump), called best-effort in api-server index.ts. Done for sya and crim; expect the same report for other portals.

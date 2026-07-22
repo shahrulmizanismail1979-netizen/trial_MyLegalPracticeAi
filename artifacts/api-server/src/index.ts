@@ -8,6 +8,7 @@ import {
 import { getStripeSync } from "./stripeClient";
 import { seedApps } from "./acad/lib/seed";
 import { seedSyaContent } from "./sya/lib/seed";
+import { seedCrimContent } from "./crim/lib/seed";
 
 async function initStripe(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -98,6 +99,13 @@ void seedApps().catch((err) =>
 // deploy instead of showing an empty dashboard. Best-effort.
 void seedSyaContent().catch((err) =>
   logger.error({ err }, "MySyariahAI content seed failed"),
+);
+
+// MyCrimAI: seed reference content (topics, case laws, glossary, etc.) when
+// the tables are empty — makes a fresh production DB self-populate on deploy
+// instead of showing an empty dashboard. Best-effort.
+void seedCrimContent().catch((err) =>
+  logger.error({ err }, "MyCrimAI content seed failed"),
 );
 
 app.listen(port, (err) => {
