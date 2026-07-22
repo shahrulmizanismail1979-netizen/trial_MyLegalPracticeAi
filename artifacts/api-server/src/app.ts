@@ -82,6 +82,10 @@ app.use(cors({ credentials: true, origin: true }));
 // only (this parser runs first and the global one below then no-ops).
 app.use("/api/firm", express.json({ limit: "30mb" }));
 app.use("/api/firm", express.urlencoded({ extended: true, limit: "30mb" }));
+// MySyalitAI voice mode and MyLawAcad studio post base64-encoded recordings /
+// handwriting images as JSON; raise their limits the same way.
+app.use("/api/sya/voice", express.json({ limit: "30mb" }));
+app.use("/api/acad/studio", express.json({ limit: "30mb" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
