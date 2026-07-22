@@ -7,6 +7,7 @@ import {
 } from "./lib/provisioning";
 import { getStripeSync } from "./stripeClient";
 import { seedApps } from "./acad/lib/seed";
+import { seedSyaContent } from "./sya/lib/seed";
 
 async function initStripe(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -90,6 +91,13 @@ void backfillPortalAccessCodes().catch((err) =>
 // failure here must not crash the shared api-server.
 void seedApps().catch((err) =>
   logger.error({ err }, "MyLawAcad apps seed failed"),
+);
+
+// MySyariahAI: seed reference content (provisions, case laws, glossary, etc.)
+// when the tables are empty — makes a fresh production DB self-populate on
+// deploy instead of showing an empty dashboard. Best-effort.
+void seedSyaContent().catch((err) =>
+  logger.error({ err }, "MySyariahAI content seed failed"),
 );
 
 app.listen(port, (err) => {
