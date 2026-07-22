@@ -9,6 +9,7 @@ import { getStripeSync } from "./stripeClient";
 import { seedApps } from "./acad/lib/seed";
 import { seedSyaContent } from "./sya/lib/seed";
 import { seedCrimContent } from "./crim/lib/seed";
+import { seedLitContent } from "./lit/lib/seed";
 
 async function initStripe(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -106,6 +107,13 @@ void seedSyaContent().catch((err) =>
 // instead of showing an empty dashboard. Best-effort.
 void seedCrimContent().catch((err) =>
   logger.error({ err }, "MyCrimAI content seed failed"),
+);
+
+// MyLitAI / MyLitAI IRAC: seed the shared litigation library (theory, case
+// law, forms, workflows, costs, glossary, practice directions, Bar Council
+// rulings) when the tables are empty. Best-effort.
+void seedLitContent().catch((err) =>
+  logger.error({ err }, "Litigation library content seed failed"),
 );
 
 app.listen(port, (err) => {
