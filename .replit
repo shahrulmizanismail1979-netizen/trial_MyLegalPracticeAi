@@ -64,7 +64,7 @@ args = "PORT=25400 BASE_PATH=/mylitai-irac/ pnpm --filter @workspace/mylitai-ira
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
-integrations = ["stripe:1.0.0", "google-mail:1.0.0"]
+integrations = ["stripe:1.0.0", "google-mail:1.0.0", "elevenlabs:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
