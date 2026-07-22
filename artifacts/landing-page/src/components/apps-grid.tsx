@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Sparkles, ChevronDown, X, Loader2 } from "lucide-react";
+import { ExternalLink, Sparkles, ChevronDown, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/lib/currency";
 
@@ -111,36 +111,8 @@ const apps: App[] = [
   },
 ];
 
-async function startCheckout(appUrl: string): Promise<void> {
-  const res = await fetch("/api/stripe/checkout", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tier: "single", appUrl }),
-  });
-  const data = (await res.json()) as { url?: string; error?: string };
-  if (!res.ok || !data.url) {
-    throw new Error(data.error ?? "Could not start checkout. Please try again.");
-  }
-  window.location.href = data.url;
-}
-
 function VersionCard({ version }: { version: AppVersion }) {
-  const { format, isConverted } = useCurrency();
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubscribe = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setError(null);
-    setLoading(true);
-    try {
-      await startCheckout(version.url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start checkout.");
-      setLoading(false);
-    }
-  };
+  const { format } = useCurrency();
 
   return (
     <div className="w-full flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 p-4 transition-all duration-200">
@@ -157,68 +129,18 @@ function VersionCard({ version }: { version: AppVersion }) {
         {version.description}
       </p>
 
-      {!confirming ? (
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirming(true);
-            }}
-            className="flex-1 rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold py-2 transition-colors"
-          >
-            Choose {version.badge}
-          </button>
-          <a
-            href={version.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="shrink-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 px-4 transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
-          >
-            Open
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      ) : (
-        <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-          <p className="text-xs text-foreground font-semibold">
-            Single App plan — {version.label}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {format(25)}/month{isConverted ? " (billed in USD, $25)" : ""} · unlimited access to this portal · billed monthly, cancel anytime.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSubscribe}
-              disabled={loading}
-              className="flex-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" /> Redirecting…
-                </>
-              ) : (
-                <>
-                  Continue to secure checkout <ExternalLink className="h-3 w-3" />
-                </>
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setConfirming(false);
-                setError(null);
-              }}
-              disabled={loading}
-              className="rounded-lg border border-border text-muted-foreground hover:text-foreground text-xs font-semibold px-3 py-2 transition-colors disabled:opacity-60"
-            >
-              Back
-            </button>
-          </div>
-        </div>
-      )}
-
-      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+      <div className="mt-2 flex">
+        <a
+          href={version.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-semibold py-2 px-4 transition-colors inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
+        >
+          Open
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
     </div>
   );
 }
