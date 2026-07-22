@@ -148,7 +148,7 @@ export default function WorkspaceIndex() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/workspace/tool/draft-pleadings">
+            <Link href="/workspace/tool/statement-of-claim">
               <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group h-full" data-testid="quick-action-draft">
                 <CardContent className="p-5 flex flex-col items-center text-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 group-hover:scale-110 transition-all">

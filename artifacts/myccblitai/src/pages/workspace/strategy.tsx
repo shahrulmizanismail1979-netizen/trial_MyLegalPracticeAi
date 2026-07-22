@@ -94,7 +94,7 @@ export default function StrategyPage() {
     
     try {
       const token = getToken();
-      const url = apiUrl("api/tools/generate");
+      const url = apiUrl("tools/generate");
 
       const response = await fetch(url, {
         method: "POST",
