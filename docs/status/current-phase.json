@@ -1,14 +1,14 @@
 {
-  "phase": "03",
-  "name": "Ingestion — Secure Upload, Container Inventory & Failure Isolation",
+  "phase": "04",
+  "name": "Extraction — Page-Level Extraction & OCR Adapters",
   "status": "complete",
   "startedAt": "2026-07-23",
   "completedAt": "2026-07-23",
-  "report": "docs/reports/phase-03-completion.md",
-  "decisionRecord": "docs/decisions/0004-phase-03-ingestion.md",
+  "report": "docs/reports/phase-04-completion.md",
+  "decisionRecord": "docs/decisions/0005-phase-04-extraction.md",
   "nextPhase": {
-    "phase": "04",
-    "name": "Extraction",
+    "phase": "05",
+    "name": "Segmentation",
     "status": "not_started"
   }
 }

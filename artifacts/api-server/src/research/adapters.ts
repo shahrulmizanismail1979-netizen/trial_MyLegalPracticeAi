@@ -13,15 +13,123 @@ export interface StorageAdapter {
   remove(key: string): Promise<void>;
 }
 
+// ── Phase 04 extraction contracts (ADR 0005) ─────────────────────────────
+// Four independent, versioned, replaceable adapters. A disabled adapter
+// never fakes output — callers must route the work to human review.
+
+import type { BoundingBox } from "@workspace/db";
+
+/** A recognised/extracted word with its source coordinates. */
+export interface WordBox {
+  text: string;
+  bbox: BoundingBox;
+  /** 0–100 where the engine reports it (OCR); undefined for native text. */
+  confidence?: number;
+}
+
+export interface ExtractedPage {
+  pageNumber: number;
+  /** Whether the source page carries a native (embedded) text layer. */
+  hasTextLayer: boolean;
+  words: WordBox[];
+  width: number;
+  height: number;
+  unit: "px" | "pt";
+}
+
+export interface NativeTextExtractorAdapter {
+  name: string;
+  version: string;
+  isEnabled(): boolean;
+  supports(mimeType: string): boolean;
+  /** Extract per-page words with coordinates from a digital document. */
+  extract(bytes: Buffer, mimeType: string): Promise<ExtractedPage[]>;
+}
+
+export interface RenderedPageImage {
+  pageNumber: number;
+  png: Buffer;
+  widthPx: number;
+  heightPx: number;
+  dpi: number;
+}
+
+export interface PageImageRendererAdapter {
+  name: string;
+  version: string;
+  isEnabled(): boolean;
+  supports(mimeType: string): boolean;
+  /** Render each page of a document to a PNG image. */
+  render(bytes: Buffer, mimeType: string): Promise<RenderedPageImage[]>;
+}
+
+export interface OcrPageResult {
+  text: string;
+  words: WordBox[];
+  /** Mean word confidence 0–100. */
+  meanConfidence: number;
+  rotationDegrees: number | null;
+  rotationConfidence: number | null;
+  languages: string[];
+}
+
 export interface OcrAdapter {
   name: string;
-  /** Whether OCR is configured. Phase 00 ships a stub that is not. */
+  version: string;
+  /** Whether OCR is configured/available in this environment. */
   isEnabled(): boolean;
   /**
-   * OCR a stored container. The stub rejects: scanned content must be routed
-   * to human review rather than guessed (docs/PROCESSING_STATES.md).
+   * OCR a single page image. Implementations must report uncertainty via
+   * confidences — never guess or fabricate replacement text.
    */
-  recognize(storageKey: string): Promise<string>;
+  recognize(pageImage: Buffer): Promise<OcrPageResult>;
+}
+
+export interface AnalyzedBlock {
+  blockType:
+    | "paragraph"
+    | "heading"
+    | "header"
+    | "footer"
+    | "footnote"
+    | "table"
+    | "page_number"
+    | "other";
+  text: string;
+  bbox: BoundingBox | null;
+  readingOrder: number;
+  columnIndex: number | null;
+  /** Character offsets within the page text produced by the analyzer. */
+  charStart: number;
+  charEnd: number;
+  confidence: number | null;
+}
+
+export interface LayoutWarning {
+  code:
+    | "READING_ORDER_UNCERTAIN"
+    | "POSSIBLE_MISSING_TEXT"
+    | "ILLEGIBLE_REGION"
+    | "LOW_OCR_CONFIDENCE"
+    | "PAGE_ROTATION_UNCERTAIN"
+    | "LANGUAGE_UNCERTAIN";
+  coordinates: BoundingBox | null;
+  detail: Record<string, unknown>;
+}
+
+export interface LayoutAnalysis {
+  /** Full page text in reading order (blocks joined with newlines). */
+  pageText: string;
+  blocks: AnalyzedBlock[];
+  warnings: LayoutWarning[];
+}
+
+export interface LayoutAnalyzerAdapter {
+  name: string;
+  version: string;
+  isEnabled(): boolean;
+  /** Group word boxes into ordered blocks; surface layout uncertainty. */
+  analyze(page: ExtractedPage): LayoutAnalysis;
 }
 
 export interface SearchAdapter {
@@ -45,22 +153,21 @@ export interface AiProviderAdapter {
 
 export interface AdapterRegistry {
   storage: StorageAdapter;
+  nativeText: NativeTextExtractorAdapter;
+  pageRenderer: PageImageRendererAdapter;
   ocr: OcrAdapter;
+  layout: LayoutAnalyzerAdapter;
   search: SearchAdapter;
   ai: AiProviderAdapter;
 }
 
 import { objectStorageAdapter } from "./storage/objectStorageAdapter";
-
-const stubOcr: OcrAdapter = {
-  name: "stub-ocr",
-  isEnabled: () => false,
-  async recognize() {
-    throw new Error(
-      "OCR adapter not configured — route scanned content to human review",
-    );
-  },
-};
+import {
+  popplerNativeTextExtractor,
+  popplerPageImageRenderer,
+} from "./extraction/popplerAdapters";
+import { tesseractOcrAdapter } from "./extraction/tesseractOcr";
+import { heuristicLayoutAnalyzer } from "./extraction/layoutAnalyzer";
 
 const postgresSearchStub: SearchAdapter = {
   name: "postgres-search-stub",
@@ -84,7 +191,10 @@ const disabledAi: AiProviderAdapter = {
 
 let registry: AdapterRegistry = {
   storage: objectStorageAdapter,
-  ocr: stubOcr,
+  nativeText: popplerNativeTextExtractor,
+  pageRenderer: popplerPageImageRenderer,
+  ocr: tesseractOcrAdapter,
+  layout: heuristicLayoutAnalyzer,
   search: postgresSearchStub,
   ai: disabledAi,
 };

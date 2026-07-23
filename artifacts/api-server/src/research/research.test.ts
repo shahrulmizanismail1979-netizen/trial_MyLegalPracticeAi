@@ -84,11 +84,15 @@ afterAll(async () => {
 });
 
 describe("adapter registry", () => {
-  it("resolves defaults with OCR and AI disabled", async () => {
+  it("resolves defaults with AI disabled and extraction adapters registered", async () => {
     const adapters = getAdapters();
     expect(adapters.storage.name).toBe("replit-object-storage");
-    expect(adapters.ocr.isEnabled()).toBe(false);
     expect(adapters.ai.isEnabled()).toBe(false);
+    // Phase 04: real extraction adapters replace the OCR stub
+    expect(adapters.ocr.name).toBe("tesseract");
+    expect(adapters.nativeText.name).toBe("poppler-pdftotext");
+    expect(adapters.pageRenderer.name).toBe("poppler-pdftoppm");
+    expect(adapters.layout.name).toBe("heuristic-layout");
   });
 
   it("rejects AI propositions while disabled", async () => {

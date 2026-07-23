@@ -561,3 +561,201 @@ export type ResearchReviewItem = typeof researchReviewItems.$inferSelect;
 export type ResearchAuditEvent = typeof researchAuditEvents.$inferSelect;
 export type ResearchStoredArtifact =
   typeof researchStoredArtifacts.$inferSelect;
+
+// ── Phase 04: page-level extraction (ADR 0005) ───────────────────────────
+
+// Structured uncertainty vocabulary. Warnings are DATA with coordinates —
+// extracted text never contains guessed replacement text.
+export const EXTRACTION_WARNING_CODES = [
+  "ILLEGIBLE_REGION",
+  "LOW_OCR_CONFIDENCE",
+  "POSSIBLE_MISSING_TEXT",
+  "READING_ORDER_UNCERTAIN",
+  "PAGE_ROTATION_UNCERTAIN",
+  "LANGUAGE_UNCERTAIN",
+] as const;
+export type ExtractionWarningCode = (typeof EXTRACTION_WARNING_CODES)[number];
+export const extractionWarningCodeSchema = z.enum(EXTRACTION_WARNING_CODES);
+
+export const PAGE_EXTRACTION_MODES = ["NATIVE", "OCR"] as const;
+export type PageExtractionMode = (typeof PAGE_EXTRACTION_MODES)[number];
+
+export const PAGE_BLOCK_TYPES = [
+  "paragraph",
+  "heading",
+  "header",
+  "footer",
+  "footnote",
+  "table",
+  "page_number",
+  "other",
+] as const;
+export type PageBlockType = (typeof PAGE_BLOCK_TYPES)[number];
+
+/** Bounding box in page-image pixel coordinates (or PDF points for native). */
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  unit: "px" | "pt";
+}
+
+// One row per extraction execution of a container. The exact adapter set
+// (names + versions) is recorded so an engine swap is fully traceable.
+export const researchExtractionRuns = pgTable(
+  "research_extraction_runs",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    runKey: text("run_key").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    adapters: jsonb("adapters")
+      .$type<Record<string, { name: string; version: string }>>()
+      .notNull(),
+    sourceChecksum: text("source_checksum").notNull(),
+    pageCount: integer("page_count"),
+    status: text("status").default("RUNNING").notNull(), // RUNNING | COMPLETE | REVIEW_REQUIRED
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("research_extraction_runs_container_key_uq").on(
+      t.containerId,
+      t.runKey,
+    ),
+  ],
+);
+
+// The immutable extraction record per page per run. Raw text is never
+// edited after insert — corrections are separate append-only versions.
+export const researchPageExtractions = pgTable(
+  "research_page_extractions",
+  {
+    id: serial("id").primaryKey(),
+    runId: integer("run_id")
+      .references(() => researchExtractionRuns.id)
+      .notNull(),
+    pageId: integer("page_id")
+      .references(() => researchSourcePages.id)
+      .notNull(),
+    mode: text("mode").$type<PageExtractionMode>().notNull(),
+    rawText: text("raw_text").notNull(),
+    rawTextSha256: text("raw_text_sha256").notNull(),
+    charStart: integer("char_start").notNull(),
+    charEnd: integer("char_end").notNull(),
+    imageStorageKey: text("image_storage_key"),
+    imageSha256: text("image_sha256"),
+    ocrMeanConfidence: integer("ocr_mean_confidence"),
+    rotationDegrees: integer("rotation_degrees"),
+    rotationConfidence: integer("rotation_confidence"),
+    languages: jsonb("languages").$type<string[]>().default([]).notNull(),
+    isBlank: boolean("is_blank").default(false).notNull(),
+    provenance: jsonb("provenance")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_page_extractions_run_page_uq").on(t.runId, t.pageId),
+  ],
+);
+
+// Detected text blocks with coordinates, reading order, and per-page
+// character offsets (provenance down to character ranges).
+export const researchPageBlocks = pgTable(
+  "research_page_blocks",
+  {
+    id: serial("id").primaryKey(),
+    pageExtractionId: integer("page_extraction_id")
+      .references(() => researchPageExtractions.id)
+      .notNull(),
+    blockIndex: integer("block_index").notNull(),
+    blockType: text("block_type").$type<PageBlockType>().notNull(),
+    text: text("text").notNull(),
+    bbox: jsonb("bbox").$type<BoundingBox | null>(),
+    charStart: integer("char_start").notNull(),
+    charEnd: integer("char_end").notNull(),
+    readingOrder: integer("reading_order").notNull(),
+    columnIndex: integer("column_index"),
+    font: jsonb("font").$type<Record<string, unknown> | null>(),
+    confidence: integer("confidence"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_page_blocks_extraction_index_uq").on(
+      t.pageExtractionId,
+      t.blockIndex,
+    ),
+  ],
+);
+
+// Structured warnings — uncertainty preserved with source coordinates.
+export const researchPageWarnings = pgTable(
+  "research_page_warnings",
+  {
+    id: serial("id").primaryKey(),
+    pageExtractionId: integer("page_extraction_id")
+      .references(() => researchPageExtractions.id)
+      .notNull(),
+    code: text("code").$type<ExtractionWarningCode>().notNull(),
+    coordinates: jsonb("coordinates").$type<BoundingBox | null>(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("research_page_warnings_extraction_idx").on(t.pageExtractionId)],
+);
+
+// Append-only reviewer corrections. The raw extraction row is never
+// overwritten; each correction stores the raw output it corrected.
+export const researchPageCorrections = pgTable(
+  "research_page_corrections",
+  {
+    id: serial("id").primaryKey(),
+    pageExtractionId: integer("page_extraction_id")
+      .references(() => researchPageExtractions.id)
+      .notNull(),
+    version: integer("version").notNull(),
+    rawOutput: text("raw_output").notNull(),
+    correctedText: text("corrected_text").notNull(),
+    reviewer: text("reviewer").notNull(),
+    reason: text("reason").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_page_corrections_extraction_version_uq").on(
+      t.pageExtractionId,
+      t.version,
+    ),
+  ],
+);
+
+export type ResearchExtractionRun = typeof researchExtractionRuns.$inferSelect;
+export type ResearchPageExtraction =
+  typeof researchPageExtractions.$inferSelect;
+export type ResearchPageBlock = typeof researchPageBlocks.$inferSelect;
+export type ResearchPageWarning = typeof researchPageWarnings.$inferSelect;
+export type ResearchPageCorrection =
+  typeof researchPageCorrections.$inferSelect;

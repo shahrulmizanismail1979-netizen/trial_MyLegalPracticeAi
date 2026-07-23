@@ -1,0 +1,16 @@
+SYNTHETIC LAW REPORTS — FOR TESTING ONLY
+SYNTHETIC HIGH COURT OF EXAMPLESTAN
+CIVIL SUIT NO. SYN-22-001-2026
+
+BETWEEN
+ALPHA TRADING SDN BHD ... PLAINTIFF
+AND
+BETA LOGISTICS SDN BHD ... DEFENDANT
+
+JUDGMENT
+
+[1] This is a synthetic judgment created solely for software testing.
+It contains no real parties, facts, or holdings.
+[2] The plaintiff claims damages for breach of a fictional carriage
+contract dated 1 January 2026.
+Page 1 of 2

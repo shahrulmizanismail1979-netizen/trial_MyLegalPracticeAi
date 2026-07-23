@@ -20,6 +20,7 @@ import {
 } from "../domain/gates";
 import { EntityNotFoundError } from "../domain/types";
 import uploadsRouter from "./uploads";
+import extractionRouter from "./extraction";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -62,10 +63,22 @@ router.get("/health", (_req, res) => {
   const adapters = getAdapters();
   res.json({
     status: "ok",
-    phase: "02",
+    phase: "04",
     adapters: {
       storage: adapters.storage.name,
+      nativeText: {
+        name: adapters.nativeText.name,
+        enabled: adapters.nativeText.isEnabled(),
+      },
+      pageRenderer: {
+        name: adapters.pageRenderer.name,
+        enabled: adapters.pageRenderer.isEnabled(),
+      },
       ocr: { name: adapters.ocr.name, enabled: adapters.ocr.isEnabled() },
+      layout: {
+        name: adapters.layout.name,
+        enabled: adapters.layout.isEnabled(),
+      },
       search: adapters.search.name,
       ai: { name: adapters.ai.name, enabled: adapters.ai.isEnabled() },
     },
@@ -179,6 +192,10 @@ router.get("/containers/:id", async (req, res) => {
 // ── Phase 03: secure uploads & batches (ADR 0004) ────────────────────────
 
 router.use("/uploads", uploadsRouter);
+
+// ── Phase 04: extraction jobs + page review (ADR 0005) ───────────────────
+
+router.use(extractionRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller
