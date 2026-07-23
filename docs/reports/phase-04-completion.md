@@ -52,9 +52,16 @@ services; synthetic fixtures only.
    confidence <40 ⇒ `ILLEGIBLE_REGION`; a page accumulating ≥2
    structured warnings routes to review even when mean confidence is
    high. Reruns after review resolution use rerun-safe idempotency
-   keys (a new job per finished attempt), and the state machine only
-   advances when a job was actually enqueued — a deduplicated request
-   can never strand a container. All uncertainty stored as structured warning codes
+   keys (a new job per finished attempt), each job attempt owns a
+   fresh extraction run (run key includes the job id), so a rerun
+   always re-extracts every page rather than reusing failed prior
+   output, and the state machine only advances when a job was
+   actually enqueued — a deduplicated request can never strand a
+   container. Known limitation: disable-safe review routing is fully
+   enforced for the OCR adapter; a disabled/unavailable native-text,
+   renderer, or layout adapter currently surfaces as a job failure
+   rather than deterministic review routing (uniform enforcement
+   deferred to a follow-up). All uncertainty stored as structured warning codes
    (ILLEGIBLE_REGION, LOW_OCR_CONFIDENCE, POSSIBLE_MISSING_TEXT,
    READING_ORDER_UNCERTAIN, PAGE_ROTATION_UNCERTAIN,
    LANGUAGE_UNCERTAIN) with coordinates; raw output is immutable. Every

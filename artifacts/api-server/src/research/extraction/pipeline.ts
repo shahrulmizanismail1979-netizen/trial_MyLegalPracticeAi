@@ -203,7 +203,14 @@ async function extractProcessor(ctx: ProcessorContext) {
   }
 
   // ── Resume/create the extraction run (idempotent per container+sha) ────
-  const runKey = `extract-${sourceSha.slice(0, 16)}-${EXTRACT_PROCESSOR_VERSION}`;
+  // Run identity is per JOB ATTEMPT, not just per (sha, version): a rerun
+  // after review resolution enqueues a new job (rerun-safe idempotency key in
+  // startExtraction), which must produce a FRESH run that re-extracts every
+  // page — reusing the prior run would skip all pages and could flip failed
+  // OCR output to TEXT_EXTRACTED without reprocessing. Mid-run retries of the
+  // SAME job reuse the same job row, so the run key is stable and the run
+  // resumes where it left off.
+  const runKey = `extract-${sourceSha.slice(0, 16)}-${EXTRACT_PROCESSOR_VERSION}-j${job.id}`;
   const adapterSet = {
     nativeText: {
       name: adapters.nativeText.name,

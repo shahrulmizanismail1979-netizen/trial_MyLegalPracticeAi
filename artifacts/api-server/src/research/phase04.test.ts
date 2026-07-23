@@ -463,6 +463,7 @@ describe("phase 04: OCR extraction", () => {
       },
     });
     let container;
+    let firstRunId: number;
     try {
       container = await makeExtractionContainer("scanned-judgment.pdf");
       const first = await startExtraction(container.id, `tester-${RUN_ID}`);
@@ -470,6 +471,8 @@ describe("phase 04: OCR extraction", () => {
       await drainJobs();
       const mid = await getContainer(container.id);
       expect(mid!.processingState).toBe("OCR_REVIEW_REQUIRED");
+      const firstRun = await getLatestExtractionRun(container.id);
+      firstRunId = firstRun!.id;
     } finally {
       setAdapters({ ocr: withDefaults.ocr });
     }
@@ -491,6 +494,24 @@ describe("phase 04: OCR extraction", () => {
     // Whatever the outcome, the container is never stuck in
     // EXTRACTION_PENDING once the queue drains.
     expect(after!.processingState).not.toBe("EXTRACTION_PENDING");
+
+    // The rerun must create a FRESH run that actually re-extracts pages —
+    // it must never reuse the failed run's page extractions and flip the
+    // container to TEXT_EXTRACTED without reprocessing.
+    const secondRun = await getLatestExtractionRun(container!.id);
+    expect(secondRun!.id).not.toBe(firstRunId!);
+    const secondExtractions = await db
+      .select()
+      .from(researchPageExtractions)
+      .where(eq(researchPageExtractions.runId, secondRun!.id));
+    expect(secondExtractions.length).toBeGreaterThan(0);
+    if (after!.processingState === "TEXT_EXTRACTED") {
+      // Real OCR ran on the rerun: text must have been regenerated, not
+      // inherited from the empty first-run extraction.
+      expect(
+        secondExtractions.some((e) => (e.rawText ?? "").trim().length > 0),
+      ).toBe(true);
+    }
   });
 
   it("routes pages with multiple uncertainty warnings to review even with high OCR confidence", async () => {
