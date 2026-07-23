@@ -205,8 +205,25 @@ export const researchJobs = pgTable("research_jobs", {
     .notNull(),
 });
 
+// Phase 05 type constants (forward-declared here for use in researchCaseCandidates below).
+export const BOUNDARY_STRENGTHS = [
+  "STRONG_BOUNDARY_CANDIDATE",
+  "MODERATE_BOUNDARY_CANDIDATE",
+  "WEAK_BOUNDARY_CANDIDATE",
+  "CONFLICTING_BOUNDARY",
+] as const;
+export type BoundaryStrength = (typeof BOUNDARY_STRENGTHS)[number];
+
+export const CANDIDATE_REVIEW_STATUSES = [
+  "auto_accepted",
+  "review_required",
+  "reviewed",
+  "rejected",
+] as const;
+export type CandidateReviewStatus = (typeof CANDIDATE_REVIEW_STATUSES)[number];
+
 // Case candidates proposed inside containers (zero/one/many per file).
-// Segmentation itself is a later phase; the entity anchors provenance now.
+// Phase 01 anchors provenance; Phase 05 (ADR 0006) adds scoring columns.
 export const researchCaseCandidates = pgTable("research_case_candidates", {
   id: serial("id").primaryKey(),
   containerId: integer("container_id")
@@ -225,6 +242,19 @@ export const researchCaseCandidates = pgTable("research_case_candidates", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  // Phase 05 columns (ADR 0006): added via 0007-phase05-segmentation.sql migration
+  runId: integer("run_id"), // FK added at migration time after researchSegmentationRuns exists
+  strength: text("strength").$type<BoundaryStrength | null>(),
+  pageCount: integer("page_count"),
+  reviewStatus: text("review_status")
+    .$type<CandidateReviewStatus>()
+    .default("review_required"),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  // Idempotency key (0008-phase05-candidate-idempotency.sql): denormalized start boundary
+  // page_id. Combined with (run_id, container_id) gives a partial unique index that
+  // lets ON CONFLICT DO NOTHING prevent duplicate candidates on job retry.
+  startPageId: integer("start_page_id"),
 });
 
 // Human-verified cases. Verification is always a human act with provenance.
@@ -759,3 +789,166 @@ export type ResearchPageBlock = typeof researchPageBlocks.$inferSelect;
 export type ResearchPageWarning = typeof researchPageWarnings.$inferSelect;
 export type ResearchPageCorrection =
   typeof researchPageCorrections.$inferSelect;
+
+// ── Phase 05: multi-case segmentation (ADR 0006) ─────────────────────────
+
+export const SIGNAL_TYPES = [
+  "NEW_CASE_TITLE",
+  "NEW_PARTY_CONFIGURATION",
+  "NEUTRAL_CITATION",
+  "REPORT_CITATION",
+  "COURT_HEADING",
+  "PROCEEDING_NUMBER",
+  "CORAM_HEADING",
+  "JUDGE_HEADING",
+  "DECISION_DATE",
+  "JUDGMENT_HEADING",
+  "PARAGRAPH_RESET",
+  "PAGE_NUMBER_RESTART",
+  "CLOSING_ORDER",
+  "JUDICIAL_SIGNATURE",
+  "ABRUPT_METADATA_CHANGE",
+  "ABRUPT_SEMANTIC_CHANGE",
+  "TYPOGRAPHY_CHANGE",
+  "PUBLISHER_DIVIDER",
+  "BLANK_DIVIDER_PAGE",
+  "REPEATED_TITLE_IN_QUOTATION",
+  "ADMINISTRATIVE_MATERIAL",
+  "INCOMPLETE_CASE_END",
+  "MULTI_PAGE_GAP",
+  "PUBLISHER_ATTRIBUTION",
+] as const;
+export type SignalType = (typeof SIGNAL_TYPES)[number];
+export const signalTypeSchema = z.enum(SIGNAL_TYPES);
+
+// One row per container.segment job attempt.
+export const researchSegmentationRuns = pgTable(
+  "research_segmentation_runs",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    runKey: text("run_key").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    sourceChecksum: text("source_checksum").notNull(),
+    status: text("status").default("RUNNING").notNull(), // RUNNING | COMPLETE | REVIEW_REQUIRED
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("research_segmentation_runs_container_key_uq").on(
+      t.containerId,
+      t.runKey,
+    ),
+  ],
+);
+
+// One row per detected signal instance (provenance at the page/block level).
+export const researchBoundarySignals = pgTable(
+  "research_boundary_signals",
+  {
+    id: serial("id").primaryKey(),
+    runId: integer("run_id")
+      .references(() => researchSegmentationRuns.id)
+      .notNull(),
+    pageId: integer("page_id")
+      .references(() => researchSourcePages.id)
+      .notNull(),
+    blockId: integer("block_id"), // nullable; references research_page_blocks(id)
+    signalType: text("signal_type").$type<SignalType>().notNull(),
+    signalValue: text("signal_value").notNull(),
+    supportingText: text("supporting_text").default("").notNull(),
+    scoreContribution: integer("score_contribution").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_boundary_signals_run_page_idx").on(t.runId, t.pageId),
+    uniqueIndex("research_boundary_signals_run_page_type_value_uq").on(
+      t.runId,
+      t.pageId,
+      t.signalType,
+      t.signalValue,
+    ),
+  ],
+);
+
+// One row per proposed boundary location (start or end of a case candidate).
+export const researchCaseBoundaries = pgTable(
+  "research_case_boundaries",
+  {
+    id: serial("id").primaryKey(),
+    runId: integer("run_id")
+      .references(() => researchSegmentationRuns.id)
+      .notNull(),
+    pageId: integer("page_id")
+      .references(() => researchSourcePages.id)
+      .notNull(),
+    blockId: integer("block_id"), // nullable
+    boundaryRole: text("boundary_role").notNull(), // 'start' | 'end'
+    strength: text("strength").$type<BoundaryStrength>().notNull(),
+    compositeScore: integer("composite_score").notNull(),
+    conflictingSignalCount: integer("conflicting_signal_count")
+      .default(0)
+      .notNull(),
+    reviewStatus: text("review_status")
+      .$type<CandidateReviewStatus>()
+      .default("review_required")
+      .notNull(),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_case_boundaries_run_page_role_uq").on(
+      t.runId,
+      t.pageId,
+      t.boundaryRole,
+    ),
+  ],
+);
+
+// Join table: links a candidate to its start and end boundaries.
+export const researchCaseCandidateBoundaries = pgTable(
+  "research_case_candidate_boundaries",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    startBoundaryId: integer("start_boundary_id")
+      .references(() => researchCaseBoundaries.id)
+      .notNull(),
+    endBoundaryId: integer("end_boundary_id")
+      .references(() => researchCaseBoundaries.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_case_candidate_boundaries_candidate_uq").on(
+      t.candidateId,
+    ),
+  ],
+);
+
+export type ResearchSegmentationRun =
+  typeof researchSegmentationRuns.$inferSelect;
+export type ResearchBoundarySignal =
+  typeof researchBoundarySignals.$inferSelect;
+export type ResearchCaseBoundary = typeof researchCaseBoundaries.$inferSelect;
+export type ResearchCaseCandidateBoundary =
+  typeof researchCaseCandidateBoundaries.$inferSelect;

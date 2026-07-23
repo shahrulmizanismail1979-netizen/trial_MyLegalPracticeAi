@@ -21,6 +21,7 @@ import {
 import { EntityNotFoundError } from "../domain/types";
 import uploadsRouter from "./uploads";
 import extractionRouter from "./extraction";
+import segmentationRouter from "./segmentation";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -63,7 +64,7 @@ router.get("/health", (_req, res) => {
   const adapters = getAdapters();
   res.json({
     status: "ok",
-    phase: "04",
+    phase: "05",
     adapters: {
       storage: adapters.storage.name,
       nativeText: {
@@ -196,6 +197,10 @@ router.use("/uploads", uploadsRouter);
 // ── Phase 04: extraction jobs + page review (ADR 0005) ───────────────────
 
 router.use(extractionRouter);
+
+// ── Phase 05: segmentation jobs + candidate review (ADR 0006) ────────────
+
+router.use(segmentationRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller

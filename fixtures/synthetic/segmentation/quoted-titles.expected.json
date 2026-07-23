@@ -1,0 +1,23 @@
+{
+  "candidateCount": 3,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 2,
+      "endPage": 2,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 3,
+      "endPage": 3,
+      "reviewRequired": false
+    }
+  ],
+  "unassignedPages": [],
+  "nonCaseMaterialPages": [],
+  "note": "Three complete cases; quoted citation '[2019] MYCA 42' inside page 2 body text must NOT create a spurious fourth candidate"
+}

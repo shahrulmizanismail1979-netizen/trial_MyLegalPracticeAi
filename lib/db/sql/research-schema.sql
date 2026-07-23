@@ -309,3 +309,89 @@ CREATE TABLE IF NOT EXISTS research_page_corrections (
 
 CREATE UNIQUE INDEX IF NOT EXISTS research_page_corrections_extraction_version_uq
   ON research_page_corrections (page_extraction_id, version);
+
+-- ── Phase 05: multi-case segmentation (ADR 0006) ──
+
+CREATE TABLE IF NOT EXISTS research_segmentation_runs (
+  id serial PRIMARY KEY,
+  container_id integer NOT NULL REFERENCES research_source_containers(id),
+  job_id integer REFERENCES research_jobs(id),
+  run_key text NOT NULL,
+  processor_version text NOT NULL,
+  source_checksum text NOT NULL,
+  status text NOT NULL DEFAULT 'RUNNING',
+  detail jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_segmentation_runs_container_key_uq
+  ON research_segmentation_runs (container_id, run_key);
+
+CREATE TABLE IF NOT EXISTS research_boundary_signals (
+  id serial PRIMARY KEY,
+  run_id integer NOT NULL REFERENCES research_segmentation_runs(id),
+  page_id integer NOT NULL REFERENCES research_source_pages(id),
+  block_id integer,
+  signal_type text NOT NULL,
+  signal_value text NOT NULL,
+  supporting_text text NOT NULL DEFAULT '',
+  score_contribution integer NOT NULL,
+  processor_version text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS research_boundary_signals_run_page_idx
+  ON research_boundary_signals (run_id, page_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_boundary_signals_run_page_type_value_uq
+  ON research_boundary_signals (run_id, page_id, signal_type, signal_value);
+
+CREATE TABLE IF NOT EXISTS research_case_boundaries (
+  id serial PRIMARY KEY,
+  run_id integer NOT NULL REFERENCES research_segmentation_runs(id),
+  page_id integer NOT NULL REFERENCES research_source_pages(id),
+  block_id integer,
+  boundary_role text NOT NULL,
+  strength text NOT NULL,
+  composite_score integer NOT NULL,
+  conflicting_signal_count integer NOT NULL DEFAULT 0,
+  review_status text NOT NULL DEFAULT 'review_required',
+  reviewed_by text,
+  reviewed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_case_boundaries_run_page_role_uq
+  ON research_case_boundaries (run_id, page_id, boundary_role);
+
+CREATE TABLE IF NOT EXISTS research_case_candidate_boundaries (
+  id serial PRIMARY KEY,
+  candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  start_boundary_id integer NOT NULL REFERENCES research_case_boundaries(id),
+  end_boundary_id integer NOT NULL REFERENCES research_case_boundaries(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_case_candidate_boundaries_candidate_uq
+  ON research_case_candidate_boundaries (candidate_id);
+
+ALTER TABLE research_case_candidates
+  ADD COLUMN IF NOT EXISTS run_id integer REFERENCES research_segmentation_runs(id),
+  ADD COLUMN IF NOT EXISTS strength text,
+  ADD COLUMN IF NOT EXISTS page_count integer,
+  ADD COLUMN IF NOT EXISTS review_status text DEFAULT 'review_required',
+  ADD COLUMN IF NOT EXISTS reviewed_by text,
+  ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS research_case_candidates_run_idx
+  ON research_case_candidates (run_id);
+
+-- Phase 05 addendum (0008): idempotent candidate persistence
+-- start_page_id (denormalized) + partial unique index for ON CONFLICT DO NOTHING
+ALTER TABLE research_case_candidates
+  ADD COLUMN IF NOT EXISTS start_page_id integer;
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_case_candidates_run_container_startpage_uq
+  ON research_case_candidates (run_id, container_id, start_page_id)
+  WHERE start_page_id IS NOT NULL;

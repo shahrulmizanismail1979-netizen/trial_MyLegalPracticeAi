@@ -1,0 +1,18 @@
+{
+  "candidateCount": 2,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 2,
+      "endPage": 2,
+      "reviewRequired": true
+    }
+  ],
+  "unassignedPages": [],
+  "nonCaseMaterialPages": [],
+  "note": "Publisher separator (---) stays attached to case 1 (no --- split in test splitter); incomplete case 2 at page 2 has no closing order/signature — routes to review"
+}

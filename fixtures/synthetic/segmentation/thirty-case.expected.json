@@ -1,0 +1,157 @@
+{
+  "candidateCount": 30,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 2,
+      "endPage": 2,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 3,
+      "endPage": 3,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 4,
+      "endPage": 4,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 5,
+      "endPage": 5,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 6,
+      "endPage": 6,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 7,
+      "endPage": 7,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 8,
+      "endPage": 8,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 9,
+      "endPage": 9,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 10,
+      "endPage": 10,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 11,
+      "endPage": 11,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 12,
+      "endPage": 12,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 13,
+      "endPage": 13,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 14,
+      "endPage": 14,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 15,
+      "endPage": 15,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 16,
+      "endPage": 16,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 17,
+      "endPage": 17,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 18,
+      "endPage": 18,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 19,
+      "endPage": 19,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 20,
+      "endPage": 20,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 21,
+      "endPage": 21,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 22,
+      "endPage": 22,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 23,
+      "endPage": 23,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 24,
+      "endPage": 24,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 25,
+      "endPage": 25,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 26,
+      "endPage": 26,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 27,
+      "endPage": 27,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 28,
+      "endPage": 28,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 29,
+      "endPage": 29,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 30,
+      "endPage": 30,
+      "reviewRequired": false
+    }
+  ],
+  "unassignedPages": [],
+  "nonCaseMaterialPages": []
+}

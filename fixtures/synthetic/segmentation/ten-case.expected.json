@@ -1,0 +1,57 @@
+{
+  "candidateCount": 10,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 2,
+      "endPage": 2,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 3,
+      "endPage": 3,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 4,
+      "endPage": 4,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 5,
+      "endPage": 5,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 6,
+      "endPage": 6,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 7,
+      "endPage": 7,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 8,
+      "endPage": 8,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 9,
+      "endPage": 9,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 10,
+      "endPage": 10,
+      "reviewRequired": false
+    }
+  ],
+  "unassignedPages": [],
+  "nonCaseMaterialPages": []
+}

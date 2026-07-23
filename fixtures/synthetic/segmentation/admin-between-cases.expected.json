@@ -1,0 +1,18 @@
+{
+  "candidateCount": 2,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 4,
+      "endPage": 4,
+      "reviewRequired": false
+    }
+  ],
+  "unassignedPages": [2, 3],
+  "nonCaseMaterialPages": [2, 3],
+  "note": "Admin section contains both TABLE OF CONTENTS (page 2) and CAUSE LIST (page 3) — each triggers a split, placing case 2 at page 4"
+}

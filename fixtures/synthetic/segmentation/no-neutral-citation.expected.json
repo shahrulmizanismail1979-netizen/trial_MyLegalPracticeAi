@@ -1,0 +1,17 @@
+{
+  "candidateCount": 2,
+  "candidates": [
+    {
+      "startPage": 1,
+      "endPage": 1,
+      "reviewRequired": false
+    },
+    {
+      "startPage": 2,
+      "endPage": 2,
+      "reviewRequired": false
+    }
+  ],
+  "unassignedPages": [],
+  "nonCaseMaterialPages": []
+}

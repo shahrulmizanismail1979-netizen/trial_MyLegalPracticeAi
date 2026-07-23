@@ -12,7 +12,9 @@ export async function recordAuditEvent(
       | "job"
       | "upload_batch"
       | "batch_item"
-      | "page_extraction";
+      | "page_extraction"
+      | "segmentation_run"
+      | "case_candidate";
     entityId: number;
     event: string;
     fromState?: string | null;

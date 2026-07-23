@@ -1,14 +1,14 @@
 {
-  "phase": "04",
-  "name": "Extraction — Page-Level Extraction & OCR Adapters",
+  "phase": "05",
+  "name": "Multi-Case Segmentation Engine",
   "status": "complete",
   "startedAt": "2026-07-23",
   "completedAt": "2026-07-23",
-  "report": "docs/reports/phase-04-completion.md",
-  "decisionRecord": "docs/decisions/0005-phase-04-extraction.md",
+  "report": "docs/reports/phase-05-completion.md",
+  "decisionRecord": "docs/decisions/0006-phase-05-segmentation.md",
   "nextPhase": {
-    "phase": "05",
-    "name": "Segmentation",
+    "phase": "06",
+    "name": "Case Metadata Extraction",
     "status": "not_started"
   }
 }
