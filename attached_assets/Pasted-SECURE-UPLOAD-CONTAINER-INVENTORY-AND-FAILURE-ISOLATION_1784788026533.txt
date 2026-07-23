@@ -1,0 +1,133 @@
+SECURE UPLOAD, CONTAINER INVENTORY, AND FAILURE ISOLATION
+
+Use in Plan Mode first
+
+Plan Phase 03.
+
+Create secure ingestion for individual files, multiple files, folder uploads where supported, and ZIP archives.
+
+Source-container principle
+
+Every accepted upload creates a "source_container".
+
+It does not create a case.
+
+Supported initial formats
+
+- PDF;
+- DOCX;
+- RTF;
+- HTML;
+- TXT;
+- PNG;
+- JPG;
+- TIFF;
+- ZIP containing supported files.
+
+Security requirements
+
+Validate:
+
+- MIME type;
+- extension;
+- file signature;
+- size;
+- archive structure;
+- archive expansion ratio;
+- nested archive depth;
+- unsafe paths;
+- duplicate paths;
+- unsupported executables;
+- corrupted content.
+
+Protect against:
+
+- ZIP bombs;
+- path traversal;
+- executable masquerading;
+- excessive memory consumption;
+- excessively large page counts;
+- duplicate submissions.
+
+Required provenance
+
+For every source container record:
+
+- internal source ID;
+- original filename;
+- original byte size;
+- original MIME type;
+- SHA-256 checksum;
+- uploader;
+- upload time;
+- declared source;
+- rights status;
+- storage locator;
+- processing status.
+
+The original file must remain byte-for-byte unchanged.
+
+Inventory output
+
+Without deciding final case boundaries, determine:
+
+- file type;
+- page count where available;
+- text-based or scan-based;
+- probable OCR requirement;
+- probable number of case-title regions;
+- repeated header/footer patterns;
+- possible commercial-source markers;
+- blank pages;
+- unreadable pages;
+- damaged pages;
+- probable multi-case container status.
+
+Preliminary classifications
+
+EMPTY_OR_INVALID
+SINGLE_CASE_POSSIBLE
+MULTI_CASE_POSSIBLE
+MIXED_CONTENT_POSSIBLE
+OCR_REQUIRED
+MANUAL_INSPECTION_REQUIRED
+
+These are diagnostic labels, not final findings.
+
+Failure isolation
+
+A failed source must not terminate a batch.
+
+Jobs must support:
+
+- progress;
+- retry;
+- cancellation;
+- restart;
+- dead-letter status;
+- per-file error reporting.
+
+Required fixtures
+
+Create synthetic containers containing:
+
+- one case;
+- five cases;
+- thirty cases;
+- blank pages;
+- corrupt pages;
+- repeated pages;
+- nested ZIP files;
+- unsafe ZIP paths;
+- misleading filenames.
+
+Acceptance criteria
+
+- every valid source receives a checksum;
+- duplicate uploads are detected;
+- malicious archives are rejected;
+- one failed file does not terminate a batch;
+- no uploaded file automatically becomes a case;
+- all relevant tests pass.
+
+Prepare the plan only.
