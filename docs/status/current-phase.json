@@ -1,12 +1,13 @@
 {
-  "phase": "00",
-  "name": "Bootstrap",
+  "phase": "01",
+  "name": "Core Architecture, State Machines & Test Harness",
   "status": "complete",
-  "startedAt": "2026-07-22",
+  "startedAt": "2026-07-23",
   "completedAt": "2026-07-23",
-  "report": "docs/reports/phase-00-completion.md",
+  "report": "docs/reports/phase-01-completion.md",
+  "decisionRecord": "docs/decisions/0002-phase-01-redefined-core-architecture.md",
   "nextPhase": {
-    "phase": "01",
+    "phase": "02",
     "name": "Ingestion",
     "status": "not_started"
   }

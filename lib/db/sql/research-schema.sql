@@ -1,0 +1,144 @@
+-- Judgment Research Platform — complete research_* DDL (Phase 01).
+-- Idempotent and unqualified: applied to a fresh dedicated schema by the
+-- DB-isolated test harness (search_path decides the target schema), and kept
+-- as the reproducible, reviewable definition of the research tables.
+-- Production/dev changes are applied additively via the migration files in
+-- lib/db/sql/migrations/ — never via interactive drizzle push.
+
+CREATE TABLE IF NOT EXISTS research_users (
+  id serial PRIMARY KEY,
+  email text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  role text NOT NULL DEFAULT 'reviewer',
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_source_containers (
+  id serial PRIMARY KEY,
+  original_name text NOT NULL,
+  source_batch text NOT NULL,
+  storage_key text,
+  content_sha256 text NOT NULL,
+  size_bytes integer NOT NULL,
+  mime_type text,
+  rights_status text NOT NULL DEFAULT 'UNREVIEWED',
+  processing_state text NOT NULL DEFAULT 'UPLOADED',
+  provenance jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_source_pages (
+  id serial PRIMARY KEY,
+  container_id integer NOT NULL REFERENCES research_source_containers(id),
+  page_number integer NOT NULL,
+  content_sha256 text,
+  notes text,
+  provenance jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS research_source_pages_container_page_uq
+  ON research_source_pages (container_id, page_number);
+
+CREATE TABLE IF NOT EXISTS research_jobs (
+  id serial PRIMARY KEY,
+  kind text NOT NULL,
+  idempotency_key text NOT NULL UNIQUE,
+  payload jsonb NOT NULL,
+  state text NOT NULL DEFAULT 'QUEUED',
+  attempts integer NOT NULL DEFAULT 0,
+  max_attempts integer NOT NULL DEFAULT 3,
+  processor_version text NOT NULL DEFAULT 'unversioned',
+  failure_reason jsonb,
+  last_error text,
+  source_checksum text,
+  output_checksum text,
+  provenance jsonb NOT NULL DEFAULT '{}',
+  claimed_at timestamptz,
+  started_at timestamptz,
+  finished_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_case_candidates (
+  id serial PRIMARY KEY,
+  container_id integer NOT NULL REFERENCES research_source_containers(id),
+  spans jsonb NOT NULL DEFAULT '[]',
+  status text NOT NULL DEFAULT 'proposed',
+  proposed_by text NOT NULL DEFAULT 'system',
+  detail jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_verified_cases (
+  id serial PRIMARY KEY,
+  candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  title text,
+  citation text,
+  verified_by text NOT NULL,
+  provenance jsonb NOT NULL DEFAULT '{}',
+  verified_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_rights_records (
+  id serial PRIMARY KEY,
+  container_id integer NOT NULL REFERENCES research_source_containers(id),
+  status text NOT NULL,
+  decided_by text NOT NULL,
+  reason text NOT NULL,
+  detail jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_transformations (
+  id serial PRIMARY KEY,
+  container_id integer REFERENCES research_source_containers(id),
+  kind text NOT NULL,
+  detail jsonb NOT NULL,
+  actor text NOT NULL DEFAULT 'system',
+  reviewed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_review_items (
+  id serial PRIMARY KEY,
+  container_id integer REFERENCES research_source_containers(id),
+  kind text NOT NULL DEFAULT 'general',
+  assigned_to integer REFERENCES research_users(id),
+  reason text NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  resolution jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS research_audit_events (
+  id serial PRIMARY KEY,
+  entity_type text NOT NULL,
+  entity_id integer NOT NULL,
+  event text NOT NULL,
+  from_state text,
+  to_state text,
+  actor text NOT NULL DEFAULT 'system',
+  detail jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS research_audit_events_entity_idx
+  ON research_audit_events (entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS research_stored_artifacts (
+  id serial PRIMARY KEY,
+  container_id integer REFERENCES research_source_containers(id),
+  job_id integer REFERENCES research_jobs(id),
+  kind text NOT NULL,
+  storage_key text NOT NULL,
+  content_sha256 text NOT NULL,
+  size_bytes integer NOT NULL,
+  produced_by_key text NOT NULL,
+  provenance jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS research_stored_artifacts_key_kind_uq
+  ON research_stored_artifacts (produced_by_key, kind);

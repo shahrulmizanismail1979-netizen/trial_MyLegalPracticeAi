@@ -6,13 +6,79 @@ import {
   boolean,
   timestamp,
   jsonb,
+  uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-// Judgment Research Platform (Phase 00).
+// Judgment Research Platform (Phase 01).
 // Foundational principle: a source file is a CONTAINER, not automatically a
 // case. See docs/DATA_MODEL.md, docs/RIGHTS_MODEL.md, docs/PROCESSING_STATES.md.
+//
+// Container states (20) and job states (8) are enforced by the state machines
+// in artifacts/api-server/src/research/domain — never write states directly.
+
+export const CONTAINER_STATES = [
+  "UPLOADED",
+  "QUARANTINED",
+  "RIGHTS_REVIEW_REQUIRED",
+  "RIGHTS_APPROVED",
+  "INVENTORY_PENDING",
+  "INVENTORIED",
+  "EXTRACTION_PENDING",
+  "TEXT_EXTRACTED",
+  "OCR_REVIEW_REQUIRED",
+  "SEGMENTATION_PENDING",
+  "SEGMENTATION_PROPOSED",
+  "SEGMENTATION_REVIEW_REQUIRED",
+  "EDITORIAL_REVIEW_PENDING",
+  "EDITORIAL_REVIEW_REQUIRED",
+  "JUDGMENT_VERIFICATION_PENDING",
+  "VERIFIED",
+  "SEARCHABLE",
+  "PROCESSING_BLOCKED",
+  "DELETION_PENDING",
+  "DELETED",
+] as const;
+export type ContainerState = (typeof CONTAINER_STATES)[number];
+export const containerStateSchema = z.enum(CONTAINER_STATES);
+
+export const JOB_STATES = [
+  "QUEUED",
+  "RUNNING",
+  "SUCCEEDED",
+  "FAILED_RETRYABLE",
+  "FAILED_PERMANENT",
+  "CANCELLED",
+  "REVIEW_REQUIRED",
+  "BLOCKED_BY_RIGHTS",
+] as const;
+export type JobState = (typeof JOB_STATES)[number];
+export const jobStateSchema = z.enum(JOB_STATES);
+
+// Structured failure reason recorded on failed jobs — never a bare string.
+export const jobFailureReasonSchema = z.object({
+  code: z.string().min(1),
+  message: z.string().min(1),
+  retryable: z.boolean(),
+  detail: z.record(z.string(), z.unknown()).optional(),
+});
+export type JobFailureReason = z.infer<typeof jobFailureReasonSchema>;
+
+// Staff users of the research platform (reviewers/admins). Distinct from
+// portal subscribers; access to the module is additionally staff-gated at the
+// web layer.
+export const researchUsers = pgTable("research_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  role: text("role").default("reviewer").notNull(), // reviewer | admin
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 // One row per ingested file. Rights gating: every container begins UNREVIEWED.
 export const researchSourceContainers = pgTable("research_source_containers", {
@@ -24,7 +90,10 @@ export const researchSourceContainers = pgTable("research_source_containers", {
   sizeBytes: integer("size_bytes").notNull(),
   mimeType: text("mime_type"),
   rightsStatus: text("rights_status").default("UNREVIEWED").notNull(),
-  processingState: text("processing_state").default("REGISTERED").notNull(),
+  processingState: text("processing_state")
+    .$type<ContainerState>()
+    .default("UPLOADED")
+    .notNull(),
   provenance: jsonb("provenance").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -34,6 +103,34 @@ export const researchSourceContainers = pgTable("research_source_containers", {
     .notNull(),
 });
 
+// Physical pages of a container (populated by later extraction phases; the
+// entity exists now so provenance can reference page identity from day one).
+export const researchSourcePages = pgTable(
+  "research_source_pages",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    pageNumber: integer("page_number").notNull(),
+    contentSha256: text("content_sha256"),
+    notes: text("notes"),
+    provenance: jsonb("provenance")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_source_pages_container_page_uq").on(
+      t.containerId,
+      t.pageNumber,
+    ),
+  ],
+);
+
 // Database-backed job queue. Jobs are idempotent (unique idempotency key) and
 // resumable. Payloads carry references, never restricted content.
 export const researchJobs = pgTable("research_jobs", {
@@ -41,12 +138,80 @@ export const researchJobs = pgTable("research_jobs", {
   kind: text("kind").notNull(),
   idempotencyKey: text("idempotency_key").notNull().unique(),
   payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
-  state: text("state").default("queued").notNull(),
+  state: text("state").$type<JobState>().default("QUEUED").notNull(),
   attempts: integer("attempts").default(0).notNull(),
   maxAttempts: integer("max_attempts").default(3).notNull(),
+  processorVersion: text("processor_version").default("unversioned").notNull(),
+  failureReason: jsonb("failure_reason").$type<JobFailureReason>(),
   lastError: text("last_error"),
+  sourceChecksum: text("source_checksum"),
+  outputChecksum: text("output_checksum"),
+  provenance: jsonb("provenance")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
   claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  startedAt: timestamp("started_at", { withTimezone: true }),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// Case candidates proposed inside containers (zero/one/many per file).
+// Segmentation itself is a later phase; the entity anchors provenance now.
+export const researchCaseCandidates = pgTable("research_case_candidates", {
+  id: serial("id").primaryKey(),
+  containerId: integer("container_id")
+    .references(() => researchSourceContainers.id)
+    .notNull(),
+  spans: jsonb("spans").$type<unknown[]>().default([]).notNull(),
+  status: text("status").default("proposed").notNull(),
+  proposedBy: text("proposed_by").default("system").notNull(),
+  detail: jsonb("detail")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// Human-verified cases. Verification is always a human act with provenance.
+export const researchVerifiedCases = pgTable("research_verified_cases", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id")
+    .references(() => researchCaseCandidates.id)
+    .notNull(),
+  title: text("title"),
+  citation: text("citation"),
+  verifiedBy: text("verified_by").notNull(),
+  provenance: jsonb("provenance")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// Append-only history of rights decisions for a container. The container's
+// rights_status column mirrors the latest record.
+export const researchRightsRecords = pgTable("research_rights_records", {
+  id: serial("id").primaryKey(),
+  containerId: integer("container_id")
+    .references(() => researchSourceContainers.id)
+    .notNull(),
+  status: text("status").notNull(),
+  decidedBy: text("decided_by").notNull(),
+  reason: text("reason").notNull(),
+  detail: jsonb("detail")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -74,6 +239,8 @@ export const researchReviewItems = pgTable("research_review_items", {
   containerId: integer("container_id").references(
     () => researchSourceContainers.id,
   ),
+  kind: text("kind").default("general").notNull(),
+  assignedTo: integer("assigned_to").references(() => researchUsers.id),
   reason: text("reason").notNull(),
   status: text("status").default("open").notNull(),
   resolution: jsonb("resolution").$type<Record<string, unknown>>(),
@@ -83,21 +250,107 @@ export const researchReviewItems = pgTable("research_review_items", {
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
 
+// Automatic, atomic audit trail: every container/job state change writes a
+// row here in the same transaction as the change itself.
+export const researchAuditEvents = pgTable(
+  "research_audit_events",
+  {
+    id: serial("id").primaryKey(),
+    entityType: text("entity_type").notNull(), // container | job | ...
+    entityId: integer("entity_id").notNull(),
+    event: text("event").notNull(),
+    fromState: text("from_state"),
+    toState: text("to_state"),
+    actor: text("actor").default("system").notNull(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_audit_events_entity_idx").on(t.entityType, t.entityId),
+  ],
+);
+
+// Outputs produced by processors. The unique (produced_by_key, kind) pair is
+// what makes re-execution with the same idempotency key a no-op.
+export const researchStoredArtifacts = pgTable(
+  "research_stored_artifacts",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id").references(
+      () => researchSourceContainers.id,
+    ),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    kind: text("kind").notNull(),
+    storageKey: text("storage_key").notNull(),
+    contentSha256: text("content_sha256").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    producedByKey: text("produced_by_key").notNull(),
+    provenance: jsonb("provenance")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_stored_artifacts_key_kind_uq").on(
+      t.producedByKey,
+      t.kind,
+    ),
+  ],
+);
+
 export const insertResearchSourceContainerSchema = createInsertSchema(
   researchSourceContainers,
 ).omit({
   id: true,
   rightsStatus: true, // always defaults to UNREVIEWED; never client-supplied
+  processingState: true, // always starts UPLOADED; changed via the state machine
   createdAt: true,
   updatedAt: true,
 });
 
+export const insertResearchUserSchema = createInsertSchema(researchUsers).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertResearchSourcePageSchema = createInsertSchema(
+  researchSourcePages,
+).omit({ id: true, createdAt: true });
+export const insertResearchCaseCandidateSchema = createInsertSchema(
+  researchCaseCandidates,
+).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertResearchVerifiedCaseSchema = createInsertSchema(
+  researchVerifiedCases,
+).omit({ id: true, verifiedAt: true });
+export const insertResearchRightsRecordSchema = createInsertSchema(
+  researchRightsRecords,
+).omit({ id: true, createdAt: true });
+export const insertResearchStoredArtifactSchema = createInsertSchema(
+  researchStoredArtifacts,
+).omit({ id: true, createdAt: true });
+
+export type ResearchUser = typeof researchUsers.$inferSelect;
+export type InsertResearchUser = z.infer<typeof insertResearchUserSchema>;
 export type ResearchSourceContainer =
   typeof researchSourceContainers.$inferSelect;
 export type InsertResearchSourceContainer = z.infer<
   typeof insertResearchSourceContainerSchema
 >;
+export type ResearchSourcePage = typeof researchSourcePages.$inferSelect;
 export type ResearchJob = typeof researchJobs.$inferSelect;
+export type ResearchCaseCandidate = typeof researchCaseCandidates.$inferSelect;
+export type ResearchVerifiedCase = typeof researchVerifiedCases.$inferSelect;
+export type ResearchRightsRecord = typeof researchRightsRecords.$inferSelect;
 export type ResearchTransformation =
   typeof researchTransformations.$inferSelect;
 export type ResearchReviewItem = typeof researchReviewItems.$inferSelect;
+export type ResearchAuditEvent = typeof researchAuditEvents.$inferSelect;
+export type ResearchStoredArtifact =
+  typeof researchStoredArtifacts.$inferSelect;

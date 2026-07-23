@@ -1,0 +1,31 @@
+{
+  "QUEUED": [
+    "RUNNING",
+    "CANCELLED",
+    "BLOCKED_BY_RIGHTS"
+  ],
+  "RUNNING": [
+    "SUCCEEDED",
+    "FAILED_RETRYABLE",
+    "FAILED_PERMANENT",
+    "REVIEW_REQUIRED",
+    "BLOCKED_BY_RIGHTS",
+    "CANCELLED"
+  ],
+  "FAILED_RETRYABLE": [
+    "QUEUED",
+    "FAILED_PERMANENT",
+    "CANCELLED"
+  ],
+  "REVIEW_REQUIRED": [
+    "QUEUED",
+    "CANCELLED"
+  ],
+  "BLOCKED_BY_RIGHTS": [
+    "QUEUED",
+    "CANCELLED"
+  ],
+  "SUCCEEDED": [],
+  "FAILED_PERMANENT": [],
+  "CANCELLED": []
+}

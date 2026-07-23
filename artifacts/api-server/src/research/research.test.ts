@@ -17,8 +17,9 @@ const {
   researchSourceContainers,
   researchTransformations,
   researchReviewItems,
+  researchAuditEvents,
 } = await import("@workspace/db");
-const { eq, like, inArray } = await import("drizzle-orm");
+const { eq, like, inArray, and } = await import("drizzle-orm");
 
 const FIXTURES = path.resolve(__dirname, "../../../../fixtures/synthetic");
 
@@ -48,12 +49,33 @@ afterAll(async () => {
       .delete(researchReviewItems)
       .where(inArray(researchReviewItems.containerId, ids));
     await db
+      .delete(researchAuditEvents)
+      .where(
+        and(
+          eq(researchAuditEvents.entityType, "container"),
+          inArray(researchAuditEvents.entityId, ids),
+        ),
+      );
+    await db
       .delete(researchSourceContainers)
       .where(inArray(researchSourceContainers.id, ids));
   }
-  await db
-    .delete(researchJobs)
+  const jobs = await db
+    .select({ id: researchJobs.id })
+    .from(researchJobs)
     .where(like(researchJobs.idempotencyKey, `%${RUN_ID}%`));
+  const jobIds = jobs.map((j) => j.id);
+  if (jobIds.length > 0) {
+    await db
+      .delete(researchAuditEvents)
+      .where(
+        and(
+          eq(researchAuditEvents.entityType, "job"),
+          inArray(researchAuditEvents.entityId, jobIds),
+        ),
+      );
+    await db.delete(researchJobs).where(inArray(researchJobs.id, jobIds));
+  }
 });
 
 describe("adapter registry", () => {
@@ -85,10 +107,10 @@ describe("adapter registry", () => {
 });
 
 describe("source containers (rights gating + provenance)", () => {
-  it("registers a container with rights status defaulting to UNREVIEWED", async () => {
+  it("registers a container starting UNREVIEWED and UPLOADED", async () => {
     const container = await fixtureContainer("single-judgment.txt");
     expect(container.rightsStatus).toBe("UNREVIEWED");
-    expect(container.processingState).toBe("REGISTERED");
+    expect(container.processingState).toBe("UPLOADED");
 
     // Registration is recorded as a transformation (provenance).
     const transformations = await db
@@ -109,7 +131,7 @@ describe("source containers (rights gating + provenance)", () => {
     const container = await fixtureContainer("multi-judgment.txt");
     await routeToReview(container.id, "incomplete judgment detected (test)");
     const updated = await getContainer(container.id);
-    expect(updated?.processingState).toBe("NEEDS_REVIEW");
+    expect(updated?.processingState).toBe("RIGHTS_REVIEW_REQUIRED");
     const items = await db
       .select()
       .from(researchReviewItems)
@@ -133,7 +155,7 @@ describe("job queue", () => {
     const kind = "container.registered";
     await enqueue(kind, `roundtrip-${RUN_ID}`, { containerId: container.id });
 
-    // Claim only our own job kinds could collide with parallel runs; claim in
+    // Claiming other suites' jobs could collide with parallel runs; claim in
     // a loop until we see our job or the queue drains.
     let ran = await runNextJob(kind);
     while (ran && ran.idempotencyKey !== `roundtrip-${RUN_ID}`) {
@@ -145,49 +167,57 @@ describe("job queue", () => {
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, `roundtrip-${RUN_ID}`));
-    expect(row!.state).toBe("succeeded");
+    expect(row!.state).toBe("SUCCEEDED");
     expect(row!.attempts).toBe(1);
+    expect(row!.startedAt).not.toBeNull();
     expect(row!.finishedAt).not.toBeNull();
   });
 
-  it("retries failures then marks the job dead with the error recorded", async () => {
+  it("retries retryable failures then ends FAILED_PERMANENT with the reason recorded", async () => {
     const key = `deadjob-${RUN_ID}`;
-    const job = await enqueue("no.such.handler", key, {}, 2);
+    const kind = `test.failing.${RUN_ID}`;
+    const job = await enqueue(kind, key, {}, { maxAttempts: 2 });
     expect(job).not.toBeNull();
 
-    // Two attempts allowed → first failure requeues, second kills it.
-    let claimed = await claimNext("no.such.handler");
-    while (claimed && claimed.idempotencyKey !== key) {
-      await fail(claimed.id, "wrong job claimed in test");
-      claimed = await claimNext("no.such.handler");
-    }
-    expect(claimed).not.toBeNull();
-    await fail(claimed!.id, "first failure");
+    // Two attempts allowed → first failure requeues, second exhausts retries.
+    let claimed = await claimNext(kind);
+    expect(claimed?.idempotencyKey).toBe(key);
+    await fail(claimed!.id, {
+      code: "TEST_FAILURE",
+      message: "first failure",
+      retryable: true,
+    });
 
-    claimed = await claimNext("no.such.handler");
-    while (claimed && claimed.idempotencyKey !== key) {
-      claimed = await claimNext("no.such.handler");
-    }
-    expect(claimed).not.toBeNull();
-    await fail(claimed!.id, "second failure");
+    claimed = await claimNext(kind);
+    expect(claimed?.idempotencyKey).toBe(key);
+    await fail(claimed!.id, {
+      code: "TEST_FAILURE",
+      message: "second failure",
+      retryable: true,
+    });
 
     const [row] = await db
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, key));
-    expect(row!.state).toBe("dead");
+    expect(row!.state).toBe("FAILED_PERMANENT");
     expect(row!.lastError).toBe("second failure");
+    expect(row!.failureReason?.code).toBe("TEST_FAILURE");
   });
 
-  it("complete() marks a claimed job succeeded", async () => {
+  it("complete() marks a claimed job SUCCEEDED", async () => {
     const key = `complete-${RUN_ID}`;
-    const job = await enqueue("container.registered", key, {});
+    const kind = `test.complete.${RUN_ID}`;
+    const job = await enqueue(kind, key, {});
     expect(job).not.toBeNull();
-    await complete(job!.id);
+    const claimed = await claimNext(kind);
+    expect(claimed?.idempotencyKey).toBe(key);
+    await complete(claimed!.id, { outputChecksum: "0".repeat(64) });
     const [row] = await db
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.id, job!.id));
-    expect(row!.state).toBe("succeeded");
+    expect(row!.state).toBe("SUCCEEDED");
+    expect(row!.outputChecksum).toBe("0".repeat(64));
   });
 });

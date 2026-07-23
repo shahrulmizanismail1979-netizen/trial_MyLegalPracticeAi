@@ -15,7 +15,7 @@ router.get("/health", (_req, res) => {
   const adapters = getAdapters();
   res.json({
     status: "ok",
-    phase: "00",
+    phase: "01",
     adapters: {
       storage: adapters.storage.name,
       ocr: { name: adapters.ocr.name, enabled: adapters.ocr.isEnabled() },
@@ -49,8 +49,11 @@ router.post("/containers", async (req, res) => {
   await enqueue(
     "container.registered",
     `container-registered-${container.id}`,
+    { containerId: container.id },
     {
-      containerId: container.id,
+      processorVersion: "container.registered@1",
+      sourceChecksum: container.contentSha256,
+      provenance: { containerId: container.id },
     },
   );
   res.status(201).json(container);
