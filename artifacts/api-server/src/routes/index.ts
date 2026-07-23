@@ -28,6 +28,7 @@ import acadRouter from "../acad/routes";
 import firmRouter from "../firm";
 import { acadSession } from "../acad/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
+import researchRouter from "../research/routes";
 
 const router: IRouter = Router();
 
@@ -41,6 +42,9 @@ router.use("/access", accessRouter);
 router.use("/assistant", assistantRouter);
 router.use("/currency", currencyRouter);
 router.use("/admin", requireAuth, requireStaff, adminRouter);
+// Judgment Research Platform (Phase 00): staff-only, private by default.
+// See docs/SECURITY_MODEL.md — no public access to research data.
+router.use("/research", requireAuth, requireStaff, researchRouter);
 // MyConveyLitAI (conveyancing app) routes: /convey/*, /convey-admin/*.
 // The convey admin router carries its own password auth (x-admin-token).
 router.use(conveyRouter);

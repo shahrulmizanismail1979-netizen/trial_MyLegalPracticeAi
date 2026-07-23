@@ -47,3 +47,15 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Judgment research fixtures: only synthetic text fixtures are committed.
+# Real restricted case files must never enter source control.
+fixtures/**/*.pdf
+fixtures/**/*.doc
+fixtures/**/*.docx
+fixtures/**/*.rtf
+fixtures/**/*.zip
+fixtures/**/*.tif
+fixtures/**/*.tiff
+fixtures/**/*.png
+fixtures/**/*.jpg

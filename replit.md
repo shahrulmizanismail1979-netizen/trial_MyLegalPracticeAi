@@ -48,3 +48,17 @@ pnpm workspace monorepo with a landing page for AI Web Books (6 AI-powered legal
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Judgment Research Platform (persistent rules)
+
+A private legal judgment research and knowledge-management platform lives in this monorepo (module: `artifacts/api-server/src/research/`, tables: `research_*`, docs: `/docs`, fixtures: `/fixtures`). It will serve the 8 legal portals. These rules are persistent:
+
+- **Source-container model**: a file is a source container that may contain zero, one, or many legal cases. A case may originate from one complete source span, multiple spans in one file, spans across multiple files, or multiple alternative source versions. A SOURCE FILE IS A CONTAINER. IT IS NOT AUTOMATICALLY A CASE.
+- **Provenance**: every extracted character, paragraph, case candidate, metadata field, quotation, and AI proposition must be traceable to its source.
+- **Uncertainty**: uncertain processing results are routed to human review. Preserve uncertainty — never replace it with guessed content.
+- **Judicial-text integrity**: judicial text is preserved faithfully. Any correction, normalisation, exclusion, merge, or split is recorded as a reviewable transformation (`research_transformations`).
+- **Publisher-content isolation**: suspected publisher-created editorial material is isolated from verified judicial text, search indexes, embeddings, summaries, AI prompts, classifications, and citation analysis.
+- **Rights gating**: all source files begin as `UNREVIEWED`. Access and processing depend on the applicable rights status (see `docs/RIGHTS_MODEL.md`).
+- **AI behaviour**: AI output is a separate research aid. Every substantive AI proposition requires paragraph-level supporting evidence. AI adapters are disabled by default.
+- **Engineering behaviour**: TypeScript throughout; new modules require tests; existing passing tests must remain passing; destructive migrations require explicit approval; errors are recorded and surfaced; background jobs are resumable and idempotent; restricted data is excluded from logs; secrets live in Replit Secrets; real restricted case files are excluded from source control and test fixtures (only synthetic fixtures in `fixtures/synthetic`).
+- **Phase discipline**: implement only the active phase (see `docs/PHASES.md` and `docs/status/current-phase.json`) and stop after producing the completion report in `docs/reports/`.

@@ -1,0 +1,11 @@
+SYNTHETIC TEST JUDGMENT — PART 1 OF 2 — NOT A REAL CASE
+
+FICTIONAL FEDERAL COURT OF TESTLAND
+APPEAL NO: FT-F-07-2026
+
+[1] This synthetic judgment is split across two files to model a judgment
+spanning multiple source containers.
+
+[2] The invented question is whether a fictional statutory notice was validly
+served. The factual background, entirely invented, is as follows and continues
+in part 2 of this container pair —

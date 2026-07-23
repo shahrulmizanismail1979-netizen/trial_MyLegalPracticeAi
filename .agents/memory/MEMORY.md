@@ -19,5 +19,6 @@
 - [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.
 - [Donor-app portal integration](donor-portal-integration.md) — porting an external app into this monorepo: sya_-style table prefixing renames constraint names too; artifact-count limit workaround via hand-written artifact.toml + verifyAndReplaceArtifactToml.
 - [ElevenLabs STT WAF workaround](elevenlabs-stt-waf.md) — never send audio inline through the connector proxy; stage in object storage and pass `cloud_storage_url`, else Cloudflare 403s MP3/MP4.
+- [drizzle push rename trap](drizzle-push-rename-trap.md) — push may propose renaming unrelated firm_* tables when adding new ones; create new tables via direct SQL.
 - [MS SSO code-email binding](ms-code-email-binding.md) — first Microsoft email to link a code owns it everywhere; claim atomically (advisory lock) BEFORE issuing session; new portal logins need both binding checks.
 - [Portal content boot-seeding](portal-content-seeding.md) — donor ports often arrive with empty content tables; recover data from donor seed scripts via stubbed-db run, then boot-seed only-when-empty (crim/sya/lit pattern). Prod fills on next publish.

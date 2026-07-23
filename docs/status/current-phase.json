@@ -1,0 +1,13 @@
+{
+  "phase": "00",
+  "name": "Bootstrap",
+  "status": "complete",
+  "startedAt": "2026-07-22",
+  "completedAt": "2026-07-22",
+  "report": "docs/reports/phase-00-completion.md",
+  "nextPhase": {
+    "phase": "01",
+    "name": "Ingestion",
+    "status": "not_started"
+  }
+}

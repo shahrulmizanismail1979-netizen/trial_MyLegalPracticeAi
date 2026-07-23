@@ -1,0 +1,22 @@
+SYNTHETIC TEST JUDGMENT — NOT A REAL CASE
+
+IN THE FICTIONAL HIGH COURT OF TESTLAND
+CIVIL SUIT NO: FT-22-001-2026
+
+BETWEEN
+ALPHA TRADING SDN BHD ... PLAINTIFF
+AND
+BETA LOGISTICS SDN BHD ... DEFENDANT
+
+JUDGMENT (SYNTHETIC)
+
+[1] This is a synthetic judgment created solely for software testing. The
+plaintiff claims damages for breach of a fictional carriage contract.
+
+[2] The defendant admits carriage but denies breach, alleging the goods were
+damaged before collection.
+
+[3] On the invented evidence, the court finds the goods were damaged in
+transit. Judgment for the plaintiff in the fictional sum of RM 100,000.
+
+Dated this 1st day of April 2026 (synthetic).
