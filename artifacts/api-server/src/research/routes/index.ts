@@ -19,6 +19,11 @@ import {
   assertExportAllowed,
 } from "../domain/gates";
 import { EntityNotFoundError } from "../domain/types";
+import uploadsRouter from "./uploads";
+import { startInventory, getLatestInventory } from "../ingestion/inventory";
+import { ProcessorFailure } from "../processing/handlers";
+import { db, researchReviewItems } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 
 // Denied gated operations must not leak container existence: callers who
 // cannot even VIEW the container get the same 404 as a non-existent id;
@@ -170,6 +175,137 @@ router.get("/containers/:id", async (req, res) => {
     throw err;
   }
 });
+
+// ── Phase 03: secure uploads & batches (ADR 0004) ────────────────────────
+
+router.use("/uploads", uploadsRouter);
+
+// Start a (rights-gated) inventory job. The processor re-checks rights
+// before touching content; this endpoint additionally requires the caller
+// to hold process access.
+router.post(
+  "/containers/:id/inventory",
+  requireResearchRole("owner", "administrator", "rights_reviewer"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+    try {
+      const { decision } = await checkContainerAccess(
+        id,
+        req.researchRole ?? null,
+        "process",
+        { actor: req.authEmail ?? undefined },
+      );
+      if (!decision.allowed) {
+        // Non-leak policy: callers who cannot even VIEW the container get
+        // the same 404 as a non-existent id; callers with view access but
+        // no process right get an explicit 403.
+        const { decision: viewDecision } = await checkContainerAccess(
+          id,
+          req.researchRole ?? null,
+          "view",
+          { actor: req.authEmail ?? undefined },
+        );
+        if (!viewDecision.allowed) {
+          res.status(404).json({ error: "Not found" });
+          return;
+        }
+        res.status(403).json({ error: "Forbidden", reason: decision.reason });
+        return;
+      }
+      const { jobId } = await startInventory(
+        id,
+        req.authEmail ?? `role:${req.researchRole}`,
+      );
+      res.status(202).json({ jobId });
+    } catch (err) {
+      if (err instanceof EntityNotFoundError) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      if (err instanceof ProcessorFailure) {
+        res.status(409).json({ error: err.message, code: err.code });
+        return;
+      }
+      throw err;
+    }
+  },
+);
+
+router.get("/containers/:id/inventory", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "Invalid container id" });
+    return;
+  }
+  try {
+    const { decision } = await checkContainerAccess(
+      id,
+      req.researchRole ?? null,
+      "view",
+      { actor: req.authEmail ?? undefined },
+    );
+    if (!decision.allowed) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+  } catch (err) {
+    if (err instanceof EntityNotFoundError) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    throw err;
+  }
+  const inventory = await getLatestInventory(id);
+  if (!inventory) {
+    res.status(404).json({ error: "No inventory recorded" });
+    return;
+  }
+  res.json(inventory);
+});
+
+// Review-queue listing (rights / inventory / duplicate items). Containers
+// the caller may not view are filtered out entirely.
+router.get(
+  "/review-items",
+  requireResearchRole(
+    "owner",
+    "administrator",
+    "rights_reviewer",
+    "legal_reviewer",
+  ),
+  async (req, res) => {
+    const status = req.query.status === "resolved" ? "resolved" : "open";
+    const rows = await db
+      .select()
+      .from(researchReviewItems)
+      .where(eq(researchReviewItems.status, status))
+      .orderBy(desc(researchReviewItems.id))
+      .limit(200);
+    const visible = [];
+    for (const item of rows) {
+      if (item.containerId === null) {
+        visible.push(item);
+        continue;
+      }
+      try {
+        const { decision } = await checkContainerAccess(
+          item.containerId,
+          req.researchRole ?? null,
+          "view",
+          { actor: req.authEmail ?? undefined, audit: false },
+        );
+        if (decision.allowed) visible.push(item);
+      } catch {
+        // Container gone — keep the review item invisible rather than leak.
+      }
+    }
+    res.json(visible);
+  },
+);
 
 // ── Rights-review workflow ────────────────────────────────────────────────
 

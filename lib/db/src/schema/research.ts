@@ -115,7 +115,9 @@ export const researchUsers = pgTable("research_users", {
 });
 
 // One row per ingested file. Rights gating: every container begins UNREVIEWED.
-export const researchSourceContainers = pgTable("research_source_containers", {
+export const researchSourceContainers = pgTable(
+  "research_source_containers",
+  {
   id: serial("id").primaryKey(),
   originalName: text("original_name").notNull(),
   sourceBatch: text("source_batch").notNull(),
@@ -138,7 +140,15 @@ export const researchSourceContainers = pgTable("research_source_containers", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+  },
+  (t) => [
+    // Race-safe SHA-256 dedup: concurrent ingest jobs cannot both register
+    // the same bytes (ADR 0004).
+    uniqueIndex("research_source_containers_content_sha256_uq").on(
+      t.contentSha256,
+    ),
+  ],
+);
 
 // Physical pages of a container (populated by later extraction phases; the
 // entity exists now so provenance can reference page identity from day one).
@@ -362,6 +372,146 @@ export const researchStoredArtifacts = pgTable(
     ),
   ],
 );
+
+// ── Phase 03: ingestion (ADR 0004) ───────────────────────────────────────
+
+// Batch-item states. Dead-lettering lives HERE, not on the job machine (the
+// 8-state job machine is golden-pinned). DEAD_LETTER → PENDING is retry;
+// CANCELLED → PENDING is restart.
+export const BATCH_ITEM_STATES = [
+  "PENDING",
+  "INGESTED",
+  "DUPLICATE",
+  "REJECTED",
+  "DEAD_LETTER",
+  "CANCELLED",
+] as const;
+export type BatchItemState = (typeof BATCH_ITEM_STATES)[number];
+export const batchItemStateSchema = z.enum(BATCH_ITEM_STATES);
+
+// Diagnostic inventory labels (ADR 0004). Diagnostic only — never findings.
+export const INVENTORY_LABELS = [
+  "EMPTY_OR_INVALID",
+  "SINGLE_CASE_POSSIBLE",
+  "MULTI_CASE_POSSIBLE",
+  "MIXED_CONTENT_POSSIBLE",
+  "OCR_REQUIRED",
+  "MANUAL_INSPECTION_REQUIRED",
+] as const;
+export type InventoryLabel = (typeof INVENTORY_LABELS)[number];
+export const inventoryLabelSchema = z.enum(INVENTORY_LABELS);
+
+// One upload submission (single file, multiple files, or ZIP archive).
+export const researchUploadBatches = pgTable("research_upload_batches", {
+  id: serial("id").primaryKey(),
+  declaredSource: text("declared_source").notNull(),
+  uploadedBy: text("uploaded_by").notNull(),
+  status: text("status").default("ACTIVE").notNull(), // ACTIVE | CANCELLED
+  totalItems: integer("total_items").default(0).notNull(),
+  provenance: jsonb("provenance")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// One logical file inside a batch (a ZIP expands into many items). Item
+// state changes are guarded + audited (see data/uploads.ts).
+export const researchUploadBatchItems = pgTable(
+  "research_upload_batch_items",
+  {
+    id: serial("id").primaryKey(),
+    batchId: integer("batch_id")
+      .references(() => researchUploadBatches.id)
+      .notNull(),
+    originalPath: text("original_path").notNull(),
+    state: text("state").$type<BatchItemState>().default("PENDING").notNull(),
+    containerId: integer("container_id").references(
+      () => researchSourceContainers.id,
+    ),
+    duplicateOfContainerId: integer("duplicate_of_container_id").references(
+      () => researchSourceContainers.id,
+    ),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    contentSha256: text("content_sha256"),
+    sizeBytes: integer("size_bytes"),
+    mimeType: text("mime_type"),
+    stagingKey: text("staging_key"),
+    errorReport: jsonb("error_report").$type<JobFailureReason>(),
+    retryCount: integer("retry_count").default(0).notNull(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("research_upload_batch_items_batch_idx").on(t.batchId)],
+);
+
+// Non-destructive inventory diagnostics per container. One row per
+// (container, job) — re-executed jobs never duplicate results.
+export const researchContainerInventories = pgTable(
+  "research_container_inventories",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    label: text("label").$type<InventoryLabel>().notNull(),
+    fileType: text("file_type").notNull(),
+    pageCount: integer("page_count"),
+    textCharCount: integer("text_char_count").default(0).notNull(),
+    blankPageCount: integer("blank_page_count"),
+    damagedPageCount: integer("damaged_page_count"),
+    ocrProbable: boolean("ocr_probable").default(false).notNull(),
+    caseTitleRegionCount: integer("case_title_region_count")
+      .default(0)
+      .notNull(),
+    repeatedLines: jsonb("repeated_lines")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    commercialMarkers: jsonb("commercial_markers")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    multiCasePossible: boolean("multi_case_possible").default(false).notNull(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    provenance: jsonb("provenance")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_container_inventories_container_job_uq").on(
+      t.containerId,
+      t.jobId,
+    ),
+  ],
+);
+
+export type ResearchUploadBatch = typeof researchUploadBatches.$inferSelect;
+export type ResearchUploadBatchItem =
+  typeof researchUploadBatchItems.$inferSelect;
+export type ResearchContainerInventory =
+  typeof researchContainerInventories.$inferSelect;
 
 export const insertResearchSourceContainerSchema = createInsertSchema(
   researchSourceContainers,

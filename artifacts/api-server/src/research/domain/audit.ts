@@ -7,7 +7,7 @@ import type { DbClient } from "./types";
 export async function recordAuditEvent(
   dbc: DbClient,
   event: {
-    entityType: "container" | "job";
+    entityType: "container" | "job" | "upload_batch" | "batch_item";
     entityId: number;
     event: string;
     fromState?: string | null;

@@ -11,7 +11,7 @@ export type DbClient =
 export class StateTransitionError extends Error {
   readonly code = "INVALID_TRANSITION" as const;
   constructor(
-    readonly entityType: "container" | "job",
+    readonly entityType: "container" | "job" | "upload_batch" | "batch_item",
     readonly entityId: number,
     readonly fromState: string,
     readonly toState: string,
@@ -26,7 +26,7 @@ export class StateTransitionError extends Error {
 export class EntityNotFoundError extends Error {
   readonly code = "ENTITY_NOT_FOUND" as const;
   constructor(
-    readonly entityType: "container" | "job",
+    readonly entityType: "container" | "job" | "upload_batch" | "batch_item",
     readonly entityId: number,
   ) {
     super(`${entityType} ${entityId} not found`);

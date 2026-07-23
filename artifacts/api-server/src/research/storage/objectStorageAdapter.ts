@@ -62,6 +62,18 @@ export const objectStorageAdapter: StorageAdapter = {
     return objectName;
   },
 
+  async get(key) {
+    const { bucket } = parsePrivateDir();
+    const downloadUrl = await signUrl(bucket, key, "GET");
+    const resp = await fetch(downloadUrl, {
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!resp.ok) {
+      throw new Error(`Failed to fetch research container (${resp.status})`);
+    }
+    return Buffer.from(await resp.arrayBuffer());
+  },
+
   async remove(key) {
     const { bucket } = parsePrivateDir();
     const deleteUrl = await signUrl(bucket, key, "DELETE");

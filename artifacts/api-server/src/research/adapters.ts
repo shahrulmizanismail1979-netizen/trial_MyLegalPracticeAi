@@ -7,6 +7,8 @@ export interface StorageAdapter {
   name: string;
   /** Store bytes under a key; returns the storage key. */
   put(key: string, bytes: Buffer, contentType?: string): Promise<string>;
+  /** Fetch stored bytes by the key returned from put(). */
+  get(key: string): Promise<Buffer>;
   /** Delete a stored object (best-effort). */
   remove(key: string): Promise<void>;
 }

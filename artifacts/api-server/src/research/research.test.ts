@@ -24,7 +24,12 @@ const { eq, like, inArray, and } = await import("drizzle-orm");
 const FIXTURES = path.resolve(__dirname, "../../../../fixtures/synthetic");
 
 async function fixtureContainer(name: string) {
-  const bytes = await readFile(path.join(FIXTURES, name));
+  // Salt with the run id so parallel/consecutive runs never collide on the
+  // (now globally unique) content SHA-256.
+  const bytes = Buffer.concat([
+    await readFile(path.join(FIXTURES, name)),
+    Buffer.from(`\n<!-- ${RUN_ID}:${name} -->\n`),
+  ]);
   return registerContainer({
     originalName: name,
     sourceBatch: BATCH,
@@ -121,10 +126,19 @@ describe("source containers (rights gating + provenance)", () => {
   });
 
   it("detects duplicate containers by checksum", async () => {
-    const a = await fixtureContainer("single-judgment.txt");
-    const b = await fixtureContainer("duplicate-of-single.txt");
-    expect(a.contentSha256).toBe(b.contentSha256);
-    expect(a.id).not.toBe(b.id); // both containers kept; dedupe is a later, reviewable phase
+    // Since Phase 03, the database enforces at most one container per
+    // SHA-256; the ingest pipeline resolves re-uploads as DUPLICATE items.
+    const a = await fixtureContainer("duplicate-of-single.txt");
+    expect(a.contentSha256).toBeTruthy();
+    let caught: unknown;
+    try {
+      await fixtureContainer("duplicate-of-single.txt");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    const cause = (caught as Error & { cause?: { code?: string } }).cause;
+    expect(cause?.code).toBe("23505");
   });
 
   it("routes uncertainty to human review instead of guessing", async () => {
