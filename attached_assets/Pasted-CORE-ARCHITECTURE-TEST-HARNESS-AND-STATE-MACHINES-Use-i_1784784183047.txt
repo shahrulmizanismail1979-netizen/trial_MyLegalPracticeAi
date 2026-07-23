@@ -1,0 +1,108 @@
+CORE ARCHITECTURE, TEST HARNESS, AND STATE MACHINES
+
+Use in Plan Mode first
+
+Plan Phase 01.
+
+Build the architectural foundation without implementing document intelligence.
+
+Scope
+
+Create the core abstractions and state machines for:
+
+- users;
+- source containers;
+- source pages;
+- processing jobs;
+- case candidates;
+- verified cases;
+- rights records;
+- human-review tasks;
+- audit events;
+- stored artifacts.
+
+Required processing states
+
+Design an enforceable state machine including:
+
+UPLOADED
+QUARANTINED
+RIGHTS_REVIEW_REQUIRED
+RIGHTS_APPROVED
+INVENTORY_PENDING
+INVENTORIED
+EXTRACTION_PENDING
+TEXT_EXTRACTED
+OCR_REVIEW_REQUIRED
+SEGMENTATION_PENDING
+SEGMENTATION_PROPOSED
+SEGMENTATION_REVIEW_REQUIRED
+EDITORIAL_REVIEW_PENDING
+EDITORIAL_REVIEW_REQUIRED
+JUDGMENT_VERIFICATION_PENDING
+VERIFIED
+SEARCHABLE
+PROCESSING_BLOCKED
+DELETION_PENDING
+DELETED
+
+Invalid transitions must be rejected.
+
+Required job states
+
+QUEUED
+RUNNING
+SUCCEEDED
+FAILED_RETRYABLE
+FAILED_PERMANENT
+CANCELLED
+REVIEW_REQUIRED
+BLOCKED_BY_RIGHTS
+
+Processing requirements
+
+Every processor must support:
+
+- processor version;
+- idempotency key;
+- created time;
+- started time;
+- finished time;
+- retry count;
+- structured failure reason;
+- source checksum;
+- output checksum;
+- provenance links.
+
+Testing foundation
+
+Create:
+
+- unit-test framework;
+- integration-test framework;
+- browser end-to-end framework;
+- database-isolated test environment;
+- synthetic fixture factory;
+- golden-result comparison utilities.
+
+Out of scope
+
+Do not build:
+
+- OCR;
+- PDF parsing;
+- segmentation;
+- AI summaries;
+- semantic search;
+- production exports.
+
+Acceptance criteria
+
+- invalid state transitions are rejected;
+- retryable and permanent failures are distinguishable;
+- repeated execution with the same idempotency key does not duplicate outputs;
+- audit events are created for state changes;
+- all tests pass;
+- architecture documentation is updated.
+
+Prepare the plan only.
