@@ -1,0 +1,95 @@
+MULTI-CASE SEGMENTATION ENGINE — DETERMINISTIC CANDIDATE GENERATION
+
+Use in Plan Mode first
+
+Plan Phase 05.
+
+This phase creates case-boundary candidates. It does not automatically declare final verified cases.
+
+Central rule
+
+A source file may contain zero, one, or many case candidates.
+
+Candidate boundary signals
+
+Use independently recorded signals such as:
+
+- new case-title pattern;
+- new party configuration;
+- neutral citation;
+- report citation;
+- court heading;
+- proceeding number;
+- coram or judge heading;
+- decision date;
+- “Judgment” or equivalent heading;
+- new paragraph-number sequence;
+- page-number restart;
+- closing order;
+- judicial signature;
+- abrupt metadata change;
+- abrupt semantic change;
+- typography change;
+- repeated publisher divider;
+- blank or divider page.
+
+Evidence-based proposal
+
+Every proposed start or end boundary must record:
+
+- source page;
+- source block;
+- signal type;
+- signal value;
+- supporting text;
+- conflicting signals;
+- processor version;
+- deterministic score;
+- review status.
+
+Automatic proposal rules
+
+No boundary may be proposed based on only one weak signal.
+
+Create explicit categories:
+
+STRONG_BOUNDARY_CANDIDATE
+MODERATE_BOUNDARY_CANDIDATE
+WEAK_BOUNDARY_CANDIDATE
+CONFLICTING_BOUNDARY
+NO_BOUNDARY
+
+The scoring rules must be documented and testable.
+
+Do not describe a numerical score as a real-world probability unless it has been empirically calibrated.
+
+Golden fixtures
+
+Create a synthetic golden corpus containing:
+
+1. one file with one case;
+2. one file with two cases;
+3. one file with ten cases;
+4. one file with thirty cases;
+5. one file containing administrative material between cases;
+6. one file containing repeated case titles in quotations;
+7. one file without neutral citations;
+8. one file with confusing page-number restarts;
+9. one file with incomplete final case;
+10. one file containing no judgment.
+
+For each fixture create:
+
+"fixture-name.expected.json"
+
+The expected file must identify:
+
+- number of case candidates;
+- exact start page and block;
+- exact end page and block;
+- review-required boundaries;
+- non-case material.
+
+Acceptance gate
+
+For clean deterministic fixtures:
