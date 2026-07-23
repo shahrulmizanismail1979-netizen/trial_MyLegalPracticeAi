@@ -1,0 +1,106 @@
+After the plan is approved:
+
+1. select Build Mode;
+2. paste the Universal Build Prompt;
+3. replace "[PHASE-ID]" with the relevant phase number;
+4. monitor the implementation;
+5. review the tests and completion report;
+6. create or confirm a stable checkpoint.
+
+Do not paste the next phase until the current phase has passed its acceptance gate.
+
+---
+
+2. Required Replit settings
+
+For architecture, document segmentation, security, and major refactoring phases:
+
+- use the most capable Agent mode available;
+- enable code review where available;
+- enable App Testing for user-interface phases;
+- use Plan Mode before Build Mode;
+- retain checkpoints after every accepted phase.
+
+---
+
+3. Real-document restriction
+
+Do not upload the complete real collection during development.
+
+Use only:
+
+- synthetic judgments;
+- openly licensed judgments;
+- public court documents whose use has been approved;
+- deliberately constructed multi-case PDF fixtures.
+
+The real collection may only enter through the controlled pilot phase after:
+
+- authentication works;
+- rights gating works;
+- quarantine works;
+- file provenance works;
+- segmentation review works;
+- publisher-content separation works;
+- audit logging works.
+
+---
+
+4. Phase acceptance rule
+
+A phase passes only when all of the following exist:
+
+- working implementation;
+- relevant automated tests;
+- test results;
+- demonstration using synthetic data;
+- updated documentation;
+- updated phase status;
+- completion report;
+- checkpoint;
+- no unresolved critical defect.
+
+A visual page or mock-up alone is not completion.
+
+---
+
+PART B — UNIVERSAL BUILD PROMPT
+
+Use this prompt in Build Mode after approving the plan for each phase.
+
+---
+
+UNIVERSAL BUILD PROMPT
+
+Implement the approved plan for "[PHASE-ID]" only.
+
+Before changing anything, read:
+
+- "/replit.md";
+- "/docs/PROJECT_CHARTER.md";
+- "/docs/ARCHITECTURE.md";
+- "/docs/PHASES.md";
+- "/docs/status/current-phase.json";
+- the approved plan for "[PHASE-ID]";
+- the previous phase completion report.
+
+Follow these rules:
+
+1. Preserve every previously passing feature and test.
+2. Work only within the approved phase scope.
+3. Do not begin work assigned to a later phase.
+4. Do not change the selected technology stack unless the approved plan contains a written Architecture Decision Record.
+5. Do not introduce mock implementations into production code.
+6. Do not use hard-coded success responses.
+7. Do not suppress errors merely to make tests pass.
+8. Do not remove or weaken an existing security, provenance, rights, review, or audit control.
+9. Do not process real restricted legal documents.
+10. Do not send documents to an external AI service.
+11. Use synthetic fixtures for all testing.
+12. Make processing operations idempotent and resumable where the phase concerns files or background jobs.
+13. Run the relevant tests after each logical implementation task.
+14. Where a user interface is added or changed, perform browser-based App Testing.
+15. Where a migration is created, test both applying the migration and starting the application with the migrated database.
+16. Where a requested function cannot be implemented safely in the present environment, return "BLOCKED" and explain the exact limitation. Do not pretend the function works.
+
+Before declaring completion, run:
