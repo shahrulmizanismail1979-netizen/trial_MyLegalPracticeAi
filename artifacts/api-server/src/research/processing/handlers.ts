@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
-import { db, type ResearchJob } from "@workspace/db";
+import { db, researchReviewItems, type ResearchJob } from "@workspace/db";
+import { checkContainerAccess } from "../domain/gates";
 import {
   claimNext,
   complete,
@@ -63,21 +64,44 @@ export interface ProcessorResult {
 
 export type Processor = (ctx: ProcessorContext) => Promise<ProcessorResult>;
 
-const processors: Record<string, Processor> = {
+interface ProcessorEntry {
+  processor: Processor;
+  /**
+   * Whether the processor touches container CONTENT. Content-touching
+   * processors are rights-gated before execution (Phase 02). Registration/
+   * checksum/staging processors are permitted on UNREVIEWED containers per
+   * docs/RIGHTS_MODEL.md.
+   */
+  touchesContent: boolean;
+}
+
+const processors: Record<string, ProcessorEntry> = {
   // Proof-of-loop processor: a container was registered. Extraction, OCR,
-  // and segmentation are later phases — this is deliberately a no-op.
-  "container.registered": async ({ job }) => {
-    logger.info(
-      { jobId: job.id, containerId: job.payload["containerId"] },
-      "Research container registered",
-    );
-    return {};
+  // and segmentation are later phases — this is deliberately a no-op that
+  // never touches content (registration is allowed while UNREVIEWED).
+  "container.registered": {
+    touchesContent: false,
+    processor: async ({ job }) => {
+      logger.info(
+        { jobId: job.id, containerId: job.payload["containerId"] },
+        "Research container registered",
+      );
+      return {};
+    },
   },
 };
 
-/** Register a processor (tests, later phases). Returns an unregister fn. */
-export function registerProcessor(kind: string, processor: Processor) {
-  processors[kind] = processor;
+/**
+ * Register a processor (tests, later phases). Returns an unregister fn.
+ * Processors touch content by default and are therefore rights-gated;
+ * opting out is an explicit, reviewable act.
+ */
+export function registerProcessor(
+  kind: string,
+  processor: Processor,
+  opts: { touchesContent?: boolean } = {},
+) {
+  processors[kind] = { processor, touchesContent: opts.touchesContent ?? true };
   return () => {
     delete processors[kind];
   };
@@ -93,16 +117,49 @@ export async function runNextJob(
 ): Promise<ResearchJob | null> {
   const job = await claimNext(kind, dbc);
   if (!job) return null;
-  const processor = processors[job.kind];
+  const entry = processors[job.kind];
   try {
-    if (!processor) {
+    // Phase 02: processors re-check rights before touching content. The
+    // check runs with the maximal role — rights-status caps are absolute, so
+    // even that cannot bypass DO_NOT_PROCESS/quarantine. A denial blocks the
+    // job on rights grounds and routes a review item (never guesses).
+    const containerId = job.payload["containerId"];
+    if (entry?.touchesContent ?? true) {
+      // Fail closed: a content-touching job without a valid numeric
+      // containerId can never be rights-checked, so it never runs.
+      if (typeof containerId !== "number" || !Number.isInteger(containerId)) {
+        throw new ProcessorFailure(
+          "MISSING_CONTAINER_ID",
+          `Content-touching job '${job.kind}' has no valid containerId in its payload; refusing to run without a rights check`,
+          false,
+        );
+      }
+      const { decision } = await checkContainerAccess(
+        containerId,
+        "owner",
+        "process",
+        { actor: `job:${job.id}`, dbc },
+      );
+      if (!decision.allowed) {
+        await (dbc ?? db).insert(researchReviewItems).values({
+          containerId,
+          kind: "rights",
+          reason: `Job ${job.id} (${job.kind}) blocked by rights: ${decision.reason}`,
+        });
+        throw new RightsBlockedSignal({
+          containerId,
+          reason: decision.reason,
+        });
+      }
+    }
+    if (!entry) {
       throw new ProcessorFailure(
         "NO_PROCESSOR",
         `No processor registered for job kind '${job.kind}'`,
         true,
       );
     }
-    const result = await processor({
+    const result = await entry.processor({
       job,
       dbc: dbc ?? db,
       recordArtifact: async (artifact) => {

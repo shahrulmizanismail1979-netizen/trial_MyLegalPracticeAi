@@ -1,0 +1,1068 @@
+{
+  "UNREVIEWED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "COMMERCIAL_SOURCE_REVIEW_REQUIRED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "PRIVATE_PROCESSING_APPROVED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "OFFICIAL_COURT_SOURCE": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "PUBLIC_OR_OPEN_LICENCE_SOURCE": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "ALLOW",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:EXTERNAL_PROCESSING_NOT_APPROVED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:ROLE_FORBIDDEN",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "USER_OWNED_OR_AUTHORISED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "DISPLAY_RESTRICTED": {
+    "owner": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "DENY:RIGHTS_STUDENT_RESTRICTED",
+      "process": "DENY:RIGHTS_STUDENT_RESTRICTED",
+      "analyse": "DENY:RIGHTS_STUDENT_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_DISPLAY_RESTRICTED",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "ANALYSIS_RESTRICTED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "ALLOW",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "ALLOW",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "ALLOW",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "EXTERNAL_AI_RESTRICTED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "ALLOW"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:STUDENT_ACCESS_NOT_APPROVED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:EXPORT_NOT_APPROVED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:ROLE_FORBIDDEN"
+    }
+  },
+  "EXPORT_RESTRICTED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "ALLOW",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "ALLOW",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "ALLOW",
+      "search": "ALLOW",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "search": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "process": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "analyse": "DENY:STUDENT_ACCESS_NOT_APPROVED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "ALLOW",
+      "search": "DENY:ROLE_FORBIDDEN",
+      "process": "DENY:ROLE_FORBIDDEN",
+      "analyse": "DENY:ROLE_FORBIDDEN",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "DO_NOT_PROCESS": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "DO_NOT_RETAIN": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  },
+  "MANUAL_LEGAL_REVIEW_REQUIRED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "legal_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "researcher": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "lecturer": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "student": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    },
+    "guest": {
+      "view": "DENY:RIGHTS_VIEW_RESTRICTED",
+      "search": "DENY:RIGHTS_SEARCH_RESTRICTED",
+      "process": "DENY:RIGHTS_PROCESSING_RESTRICTED",
+      "analyse": "DENY:RIGHTS_ANALYSIS_RESTRICTED",
+      "external_ai": "DENY:RIGHTS_EXTERNAL_AI_RESTRICTED",
+      "export": "DENY:RIGHTS_EXPORT_RESTRICTED",
+      "share": "DENY:RIGHTS_SHARE_RESTRICTED",
+      "print": "DENY:RIGHTS_PRINT_RESTRICTED"
+    }
+  }
+}

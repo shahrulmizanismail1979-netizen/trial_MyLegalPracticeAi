@@ -292,9 +292,11 @@ describe("job state machine (isolated schema)", () => {
 describe("processor contract (isolated schema)", () => {
   it("records version, timings, retry count, checksums, and provenance", async () => {
     const key = makeJobKey("contract");
-    const unregister = registerProcessor("test.contract", async () => ({
-      outputChecksum: sha("output"),
-    }));
+    const unregister = registerProcessor(
+      "test.contract",
+      async () => ({ outputChecksum: sha("output") }),
+      { touchesContent: false }, // synthetic contract test, no container content
+    );
     try {
       await enqueue(
         "test.contract",
@@ -328,15 +330,19 @@ describe("processor contract (isolated schema)", () => {
 
   it("same idempotency key never duplicates jobs or outputs", async () => {
     const key = makeJobKey("idem");
-    const unregister = registerProcessor("test.idem", async (ctx) => {
-      await ctx.recordArtifact({
-        kind: "report",
-        storageKey: `artifacts/${ctx.job.idempotencyKey}.json`,
-        contentSha256: sha("report"),
-        sizeBytes: 6,
-      });
-      return {};
-    });
+    const unregister = registerProcessor(
+      "test.idem",
+      async (ctx) => {
+        await ctx.recordArtifact({
+          kind: "report",
+          storageKey: `artifacts/${ctx.job.idempotencyKey}.json`,
+          contentSha256: sha("report"),
+          sizeBytes: 6,
+        });
+        return {};
+      },
+      { touchesContent: false },
+    );
     try {
       const first = await enqueue("test.idem", key, {}, { dbc: iso.db });
       const dup = await enqueue("test.idem", key, {}, { dbc: iso.db });
@@ -367,19 +373,23 @@ describe("processor contract (isolated schema)", () => {
   it("artifact recording is idempotent under re-execution", async () => {
     const key = makeJobKey("rerun");
     let runs = 0;
-    const unregister = registerProcessor("test.rerun", async (ctx) => {
-      runs += 1;
-      await ctx.recordArtifact({
-        kind: "summary",
-        storageKey: `artifacts/${ctx.job.idempotencyKey}.txt`,
-        contentSha256: sha("summary"),
-        sizeBytes: 7,
-      });
-      if (runs === 1) {
-        throw new ProcessorFailure("TRANSIENT", "first run dies", true);
-      }
-      return {};
-    });
+    const unregister = registerProcessor(
+      "test.rerun",
+      async (ctx) => {
+        runs += 1;
+        await ctx.recordArtifact({
+          kind: "summary",
+          storageKey: `artifacts/${ctx.job.idempotencyKey}.txt`,
+          contentSha256: sha("summary"),
+          sizeBytes: 7,
+        });
+        if (runs === 1) {
+          throw new ProcessorFailure("TRANSIENT", "first run dies", true);
+        }
+        return {};
+      },
+      { touchesContent: false },
+    );
     try {
       await enqueue("test.rerun", key, {}, { maxAttempts: 3, dbc: iso.db });
       await runNextJob("test.rerun", iso.db); // fails, requeues
@@ -402,13 +412,21 @@ describe("processor contract (isolated schema)", () => {
 
   it("routes review-required and rights-blocked outcomes to the correct states", async () => {
     const reviewKey = makeJobKey("review");
-    const unregisterReview = registerProcessor("test.review", async () => {
-      throw new ReviewRequiredSignal({ why: "ambiguous segmentation" });
-    });
+    const unregisterReview = registerProcessor(
+      "test.review",
+      async () => {
+        throw new ReviewRequiredSignal({ why: "ambiguous segmentation" });
+      },
+      { touchesContent: false },
+    );
     const rightsKey = makeJobKey("rights");
-    const unregisterRights = registerProcessor("test.rights", async () => {
-      throw new RightsBlockedSignal({ rightsStatus: "UNREVIEWED" });
-    });
+    const unregisterRights = registerProcessor(
+      "test.rights",
+      async () => {
+        throw new RightsBlockedSignal({ rightsStatus: "UNREVIEWED" });
+      },
+      { touchesContent: false },
+    );
     try {
       await enqueue("test.review", reviewKey, {}, { dbc: iso.db });
       await runNextJob("test.review", iso.db);

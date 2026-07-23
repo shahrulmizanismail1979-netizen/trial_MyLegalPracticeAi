@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS research_users (
   id serial PRIMARY KEY,
   email text NOT NULL UNIQUE,
   display_name text NOT NULL,
-  role text NOT NULL DEFAULT 'reviewer',
+  role text NOT NULL DEFAULT 'guest',
   active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -88,6 +88,24 @@ CREATE TABLE IF NOT EXISTS research_rights_records (
   status text NOT NULL,
   decided_by text NOT NULL,
   reason text NOT NULL,
+  -- 17-field rights capture (Phase 02, ADR 0003). Legacy rows keep NULLs.
+  source text,
+  date_obtained timestamptz,
+  declared_source_type text,
+  licence_reference text,
+  approved_users jsonb,
+  approved_purposes jsonb,
+  storage_permitted boolean,
+  analysis_permitted boolean,
+  external_processing_permitted boolean,
+  student_access_permitted boolean,
+  printing_permitted boolean,
+  export_permitted boolean,
+  retention_period text,
+  expiry_date timestamptz,
+  reviewer text,
+  review_date timestamptz,
+  notes text,
   detail jsonb NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now()
 );

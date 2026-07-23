@@ -44,6 +44,40 @@ export const CONTAINER_STATES = [
 export type ContainerState = (typeof CONTAINER_STATES)[number];
 export const containerStateSchema = z.enum(CONTAINER_STATES);
 
+// 13-status rights vocabulary (Phase 02, ADR 0003). Containers always start
+// UNREVIEWED; changes happen only through the rights-review workflow.
+export const RIGHTS_STATUSES = [
+  "UNREVIEWED",
+  "COMMERCIAL_SOURCE_REVIEW_REQUIRED",
+  "PRIVATE_PROCESSING_APPROVED",
+  "OFFICIAL_COURT_SOURCE",
+  "PUBLIC_OR_OPEN_LICENCE_SOURCE",
+  "USER_OWNED_OR_AUTHORISED",
+  "DISPLAY_RESTRICTED",
+  "ANALYSIS_RESTRICTED",
+  "EXTERNAL_AI_RESTRICTED",
+  "EXPORT_RESTRICTED",
+  "DO_NOT_PROCESS",
+  "DO_NOT_RETAIN",
+  "MANUAL_LEGAL_REVIEW_REQUIRED",
+] as const;
+export type RightsStatus = (typeof RIGHTS_STATUSES)[number];
+export const rightsStatusSchema = z.enum(RIGHTS_STATUSES);
+
+// 8-role model (Phase 02, ADR 0003). Exactly one role per research user.
+export const RESEARCH_ROLES = [
+  "owner",
+  "administrator",
+  "rights_reviewer",
+  "legal_reviewer",
+  "researcher",
+  "lecturer",
+  "student",
+  "guest",
+] as const;
+export type ResearchRole = (typeof RESEARCH_ROLES)[number];
+export const researchRoleSchema = z.enum(RESEARCH_ROLES);
+
 export const JOB_STATES = [
   "QUEUED",
   "RUNNING",
@@ -73,7 +107,7 @@ export const researchUsers = pgTable("research_users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   displayName: text("display_name").notNull(),
-  role: text("role").default("reviewer").notNull(), // reviewer | admin
+  role: text("role").$type<ResearchRole>().default("guest").notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -89,7 +123,10 @@ export const researchSourceContainers = pgTable("research_source_containers", {
   contentSha256: text("content_sha256").notNull(),
   sizeBytes: integer("size_bytes").notNull(),
   mimeType: text("mime_type"),
-  rightsStatus: text("rights_status").default("UNREVIEWED").notNull(),
+  rightsStatus: text("rights_status")
+    .$type<RightsStatus>()
+    .default("UNREVIEWED")
+    .notNull(),
   processingState: text("processing_state")
     .$type<ContainerState>()
     .default("UPLOADED")
@@ -200,14 +237,34 @@ export const researchVerifiedCases = pgTable("research_verified_cases", {
 
 // Append-only history of rights decisions for a container. The container's
 // rights_status column mirrors the latest record.
+// Since Phase 02 (ADR 0003) each formal decision carries the full 17-field
+// rights capture. Legacy rows keep NULLs in the new columns.
 export const researchRightsRecords = pgTable("research_rights_records", {
   id: serial("id").primaryKey(),
   containerId: integer("container_id")
     .references(() => researchSourceContainers.id)
     .notNull(),
-  status: text("status").notNull(),
+  status: text("status").$type<RightsStatus>().notNull(),
   decidedBy: text("decided_by").notNull(),
   reason: text("reason").notNull(),
+  // 17-field rights capture (Phase 02):
+  source: text("source"), // 1. where the material came from
+  dateObtained: timestamp("date_obtained", { withTimezone: true }), // 2
+  declaredSourceType: text("declared_source_type"), // 3
+  licenceReference: text("licence_reference"), // 4
+  approvedUsers: jsonb("approved_users").$type<string[]>(), // 5
+  approvedPurposes: jsonb("approved_purposes").$type<string[]>(), // 6
+  storagePermitted: boolean("storage_permitted"), // 7
+  analysisPermitted: boolean("analysis_permitted"), // 8
+  externalProcessingPermitted: boolean("external_processing_permitted"), // 9
+  studentAccessPermitted: boolean("student_access_permitted"), // 10
+  printingPermitted: boolean("printing_permitted"), // 11
+  exportPermitted: boolean("export_permitted"), // 12
+  retentionPeriod: text("retention_period"), // 13
+  expiryDate: timestamp("expiry_date", { withTimezone: true }), // 14
+  reviewer: text("reviewer"), // 15
+  reviewDate: timestamp("review_date", { withTimezone: true }), // 16
+  notes: text("notes"), // 17
   detail: jsonb("detail")
     .$type<Record<string, unknown>>()
     .default({})

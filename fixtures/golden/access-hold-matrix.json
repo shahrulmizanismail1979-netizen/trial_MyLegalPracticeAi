@@ -1,0 +1,330 @@
+{
+  "QUARANTINED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:HOLD_QUARANTINED",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "researcher": {
+      "view": "DENY:HOLD_QUARANTINED",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "lecturer": {
+      "view": "DENY:HOLD_QUARANTINED",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "student": {
+      "view": "DENY:HOLD_QUARANTINED",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    },
+    "guest": {
+      "view": "DENY:HOLD_QUARANTINED",
+      "search": "DENY:HOLD_QUARANTINED",
+      "process": "DENY:HOLD_QUARANTINED",
+      "analyse": "DENY:HOLD_QUARANTINED",
+      "external_ai": "DENY:HOLD_QUARANTINED",
+      "export": "DENY:HOLD_QUARANTINED",
+      "share": "DENY:HOLD_QUARANTINED",
+      "print": "DENY:HOLD_QUARANTINED"
+    }
+  },
+  "PROCESSING_BLOCKED": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:HOLD_PROCESSING_BLOCKED",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "researcher": {
+      "view": "DENY:HOLD_PROCESSING_BLOCKED",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "lecturer": {
+      "view": "DENY:HOLD_PROCESSING_BLOCKED",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "student": {
+      "view": "DENY:HOLD_PROCESSING_BLOCKED",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    },
+    "guest": {
+      "view": "DENY:HOLD_PROCESSING_BLOCKED",
+      "search": "DENY:HOLD_PROCESSING_BLOCKED",
+      "process": "DENY:HOLD_PROCESSING_BLOCKED",
+      "analyse": "DENY:HOLD_PROCESSING_BLOCKED",
+      "external_ai": "DENY:HOLD_PROCESSING_BLOCKED",
+      "export": "DENY:HOLD_PROCESSING_BLOCKED",
+      "share": "DENY:HOLD_PROCESSING_BLOCKED",
+      "print": "DENY:HOLD_PROCESSING_BLOCKED"
+    }
+  },
+  "DELETION_PENDING": {
+    "owner": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "administrator": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "rights_reviewer": {
+      "view": "ALLOW",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "legal_reviewer": {
+      "view": "DENY:HOLD_DELETION_PENDING",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "researcher": {
+      "view": "DENY:HOLD_DELETION_PENDING",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "lecturer": {
+      "view": "DENY:HOLD_DELETION_PENDING",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "student": {
+      "view": "DENY:HOLD_DELETION_PENDING",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    },
+    "guest": {
+      "view": "DENY:HOLD_DELETION_PENDING",
+      "search": "DENY:HOLD_DELETION_PENDING",
+      "process": "DENY:HOLD_DELETION_PENDING",
+      "analyse": "DENY:HOLD_DELETION_PENDING",
+      "external_ai": "DENY:HOLD_DELETION_PENDING",
+      "export": "DENY:HOLD_DELETION_PENDING",
+      "share": "DENY:HOLD_DELETION_PENDING",
+      "print": "DENY:HOLD_DELETION_PENDING"
+    }
+  },
+  "DELETED": {
+    "owner": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "administrator": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "rights_reviewer": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "legal_reviewer": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "researcher": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "lecturer": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "student": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    },
+    "guest": {
+      "view": "DENY:CONTAINER_DELETED",
+      "search": "DENY:CONTAINER_DELETED",
+      "process": "DENY:CONTAINER_DELETED",
+      "analyse": "DENY:CONTAINER_DELETED",
+      "external_ai": "DENY:CONTAINER_DELETED",
+      "export": "DENY:CONTAINER_DELETED",
+      "share": "DENY:CONTAINER_DELETED",
+      "print": "DENY:CONTAINER_DELETED"
+    }
+  }
+}

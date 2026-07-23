@@ -1,13 +1,13 @@
 {
-  "phase": "01",
-  "name": "Core Architecture, State Machines & Test Harness",
+  "phase": "02",
+  "name": "Authentication, Roles, Rights & Quarantine",
   "status": "complete",
   "startedAt": "2026-07-23",
   "completedAt": "2026-07-23",
-  "report": "docs/reports/phase-01-completion.md",
-  "decisionRecord": "docs/decisions/0002-phase-01-redefined-core-architecture.md",
+  "report": "docs/reports/phase-02-completion.md",
+  "decisionRecord": "docs/decisions/0003-phase-02-auth-roles-rights-quarantine.md",
   "nextPhase": {
-    "phase": "02",
+    "phase": "03",
     "name": "Ingestion",
     "status": "not_started"
   }
