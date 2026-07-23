@@ -1,0 +1,106 @@
+PROJECT BOOTSTRAP AND PERSISTENT AGENT RULES
+
+Use in Plan Mode first
+
+We are creating an original private legal judgment research platform.
+
+The platform will ingest folders and ZIP archives containing hundreds of document files. A single file may contain:
+
+- no judgment;
+- one judgment;
+- several judgments;
+- thirty or more judgments;
+- duplicate judgments;
+- incomplete judgments;
+- multiple versions of a judgment;
+- scanned pages;
+- editorial material;
+- administrative pages;
+- one judgment split across several files.
+
+The foundational data principle is:
+
+"A SOURCE FILE IS A CONTAINER. IT IS NOT AUTOMATICALLY A CASE."
+
+Plan the project bootstrap.
+
+The initial implementation must create a stable Full Stack TypeScript application and persistent project instructions.
+
+Required persistent files
+
+Plan the creation of:
+
+- "/replit.md";
+- "/docs/PROJECT_CHARTER.md";
+- "/docs/ARCHITECTURE.md";
+- "/docs/DATA_MODEL.md";
+- "/docs/SECURITY_MODEL.md";
+- "/docs/RIGHTS_MODEL.md";
+- "/docs/PROCESSING_STATES.md";
+- "/docs/PHASES.md";
+- "/docs/status/current-phase.json";
+- "/docs/reports/";
+- "/docs/decisions/";
+- "/fixtures/synthetic/";
+- "/fixtures/golden/".
+
+Required content for "replit.md"
+
+The file must provide concise persistent instructions containing these principles:
+
+Project purpose
+
+This is a private legal judgment research and knowledge-management platform.
+
+Source-container model
+
+A file is a source container that may contain zero, one, or many legal cases.
+
+A case may originate from:
+
+- one complete source span;
+- multiple spans in one file;
+- spans across multiple files;
+- multiple alternative source versions.
+
+Provenance
+
+Every extracted character, paragraph, case candidate, metadata field, quotation, and AI proposition must be traceable to its source.
+
+Uncertainty
+
+Uncertain processing results must be routed to human review.
+
+The system must preserve uncertainty rather than replace it with guessed content.
+
+Judicial-text integrity
+
+Judicial text is preserved faithfully.
+
+Any correction, normalisation, exclusion, merge, or split must be recorded as a reviewable transformation.
+
+Publisher-content isolation
+
+Suspected publisher-created editorial material is isolated from:
+
+- verified judicial text;
+- search indexes;
+- embeddings;
+- summaries;
+- AI prompts;
+- classifications;
+- citation analysis.
+
+Rights gating
+
+All source files begin as "UNREVIEWED".
+
+Access and processing depend on the applicable rights status.
+
+AI behaviour
+
+AI output is a separate research aid.
+
+Every substantive AI proposition requires paragraph-level supporting evidence.
+
+Engineering behaviour
