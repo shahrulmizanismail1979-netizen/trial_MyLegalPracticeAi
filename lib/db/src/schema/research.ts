@@ -1360,3 +1360,238 @@ export type ResearchPageSection = typeof researchPageSections.$inferSelect;
 export type ResearchEditorialRun = typeof researchEditorialRuns.$inferSelect;
 export type ResearchVerifiedJudgment =
   typeof researchVerifiedJudgments.$inferSelect;
+
+// ── Phase 08: Search & Research UI (ADR 0009) ─────────────────────────────
+
+export const METADATA_FIELDS = [
+  "caseName",
+  "neutralCitation",
+  "reportCitation",
+  "court",
+  "registry",
+  "proceedingNumber",
+  "judges",
+  "hearingDate",
+  "decisionDate",
+  "parties",
+  "jurisdiction",
+  "proceduralPosture",
+  "language",
+] as const;
+export type MetadataFieldName = (typeof METADATA_FIELDS)[number];
+
+export const METADATA_METHODS = ["regex", "heuristic"] as const;
+export type MetadataMethod = (typeof METADATA_METHODS)[number];
+
+export const METADATA_REVIEWER_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+export type MetadataReviewerStatus =
+  (typeof METADATA_REVIEWER_STATUSES)[number];
+
+export const DUPLICATE_LINK_TYPES = [
+  "EXACT_DUPLICATE",
+  "POSSIBLE_DUPLICATE",
+  "ALTERNATIVE_VERSION",
+  "POSSIBLE_CONTINUATION",
+  "RELATED_APPEAL",
+] as const;
+export type DuplicateLinkType = (typeof DUPLICATE_LINK_TYPES)[number];
+
+export const DUPLICATE_LINK_REVIEWER_STATUSES = [
+  "pending",
+  "confirmed",
+  "rejected",
+] as const;
+export type DuplicateLinkReviewerStatus =
+  (typeof DUPLICATE_LINK_REVIEWER_STATUSES)[number];
+
+// Extracted case metadata — one row per (judgment_id, field_name, extraction
+// attempt). Multiple records per field are allowed (alternative extractions);
+// the active record is the latest non-rejected one.
+export const researchCaseMetadata = pgTable(
+  "research_case_metadata",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    fieldName: text("field_name")
+      .$type<MetadataFieldName>()
+      .notNull(),
+    // Extracted value — string for text fields, ISO date string for dates,
+    // string[] for lists (judges, parties).
+    value: jsonb("value").$type<string | string[] | null>().notNull(),
+    // Provenance: source page + character span within page text.
+    sourcePageId: integer("source_page_id").references(
+      () => researchSourcePages.id,
+    ),
+    sourceCharStart: integer("source_char_start"),
+    sourceCharEnd: integer("source_char_end"),
+    confidence: doublePrecision("confidence").notNull(),
+    method: text("method").$type<MetadataMethod>().notNull(),
+    processorVersion: text("processor_version").notNull(),
+    reviewerStatus: text("reviewer_status")
+      .$type<MetadataReviewerStatus>()
+      .default("pending")
+      .notNull(),
+    reviewerId: integer("reviewer_id").references(() => researchUsers.id),
+    reviewerDecidedAt: timestamp("reviewer_decided_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_case_metadata_judgment_idx").on(t.judgmentId),
+    index("research_case_metadata_field_idx").on(t.fieldName),
+    index("research_case_metadata_container_idx").on(t.containerId),
+  ],
+);
+
+// Duplicate / version links between verified judgments. All links require
+// human review — no auto-merge is ever performed.
+export const researchDuplicateLinks = pgTable(
+  "research_duplicate_links",
+  {
+    id: serial("id").primaryKey(),
+    sourceJudgmentId: integer("source_judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    targetJudgmentId: integer("target_judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    linkType: text("link_type").$type<DuplicateLinkType>().notNull(),
+    // Evidence signals that triggered the link.
+    evidence: jsonb("evidence")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    // Similarity score 0–1 (1 = identical).
+    similarityScore: doublePrecision("similarity_score").notNull(),
+    detectedBy: text("detected_by").notNull(),
+    reviewerStatus: text("reviewer_status")
+      .$type<DuplicateLinkReviewerStatus>()
+      .default("pending")
+      .notNull(),
+    reviewerId: integer("reviewer_id").references(() => researchUsers.id),
+    reviewerDecidedAt: timestamp("reviewer_decided_at", {
+      withTimezone: true,
+    }),
+    reviewerNote: text("reviewer_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_duplicate_links_pair_uq").on(
+      t.sourceJudgmentId,
+      t.targetJudgmentId,
+    ),
+    index("research_duplicate_links_source_idx").on(t.sourceJudgmentId),
+    index("research_duplicate_links_target_idx").on(t.targetJudgmentId),
+  ],
+);
+
+// Per-user annotations on a verified judgment (paragraph-level).
+export const researchAnnotations = pgTable(
+  "research_annotations",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    // Paragraph reference within the judgment (e.g. "[1]", "para-5").
+    paragraphRef: text("paragraph_ref"),
+    kind: text("kind")
+      .$type<"note" | "highlight" | "flag">()
+      .default("note")
+      .notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_annotations_judgment_idx").on(t.judgmentId),
+    index("research_annotations_user_idx").on(t.userId),
+  ],
+);
+
+// Per-user bookmarks on a verified judgment.
+export const researchBookmarks = pgTable(
+  "research_bookmarks",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    label: text("label"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_bookmarks_user_judgment_uq").on(
+      t.userId,
+      t.judgmentId,
+    ),
+    index("research_bookmarks_user_idx").on(t.userId),
+  ],
+);
+
+// Full-text search index — one row per verified judgment. Only isolated
+// judicial text contributes to the tsvector (isolation gate enforced at
+// index time, per ADR 0009 §D3).
+export const researchSearchIndex = pgTable(
+  "research_search_index",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull()
+      .unique(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    // tsvector columns (created/maintained by the search-index processor).
+    // document — English-stemmed for common law terms.
+    // document_ms — simple (unstemmed) for Malay/romanised terms.
+    // Stored as text; the DB trigger or processor keeps them updated.
+    documentText: text("document_text").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    // Denormalised metadata for filter predicates.
+    court: text("court"),
+    decisionDate: timestamp("decision_date", { withTimezone: true }),
+    language: text("language"),
+    indexedAt: timestamp("indexed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_search_index_container_idx").on(t.containerId),
+    index("research_search_index_court_idx").on(t.court),
+    index("research_search_index_date_idx").on(t.decisionDate),
+  ],
+);
+
+export type ResearchCaseMetadata = typeof researchCaseMetadata.$inferSelect;
+export type ResearchDuplicateLink = typeof researchDuplicateLinks.$inferSelect;
+export type ResearchAnnotation = typeof researchAnnotations.$inferSelect;
+export type ResearchBookmark = typeof researchBookmarks.$inferSelect;
+export type ResearchSearchIndex = typeof researchSearchIndex.$inferSelect;

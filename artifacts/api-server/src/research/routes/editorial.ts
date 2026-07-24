@@ -42,9 +42,15 @@ import {
   type BlockInput,
   type ClassifiedSection,
 } from "../isolation";
+import { enqueueMetadataJob, registerMetadataProcessor } from "../metadata/metadataProcessor";
+import { registerDuplicateProcessor } from "../metadata/duplicateProcessor";
+import { registerSearchIndexProcessor } from "../search/searchIndexProcessor";
 
-// Register the processor once (idempotent guard in registerProcessor)
+// Register processors once (idempotent guard in registerProcessor)
 registerEditorialProcessor();
+registerMetadataProcessor();
+registerDuplicateProcessor();
+registerSearchIndexProcessor();
 
 const router: IRouter = Router();
 
@@ -631,6 +637,14 @@ router.post(
         dbc: tx,
       });
     });
+
+    // Enqueue Phase 08 metadata extraction after verification (outside the
+    // transaction so it does not block the response, but after commit).
+    if (verifiedJudgment?.id) {
+      await enqueueMetadataJob(verifiedJudgment.id, id, actor).catch((err) => {
+        req.log.warn({ err, judgmentId: verifiedJudgment?.id }, "Failed to enqueue metadata job after verify");
+      });
+    }
 
     res.status(201).json({
       verifiedJudgmentId: verifiedJudgment?.id,

@@ -168,16 +168,7 @@ import {
 } from "./extraction/popplerAdapters";
 import { tesseractOcrAdapter } from "./extraction/tesseractOcr";
 import { heuristicLayoutAnalyzer } from "./extraction/layoutAnalyzer";
-
-const postgresSearchStub: SearchAdapter = {
-  name: "postgres-search-stub",
-  async index() {
-    // No corpus exists in Phase 00; indexing arrives with later phases.
-  },
-  async search() {
-    return [];
-  },
-};
+import { postgresFtsAdapter } from "./search/postgresFtsAdapter";
 
 const disabledAi: AiProviderAdapter = {
   name: "disabled-ai",
@@ -195,7 +186,7 @@ let registry: AdapterRegistry = {
   pageRenderer: popplerPageImageRenderer,
   ocr: tesseractOcrAdapter,
   layout: heuristicLayoutAnalyzer,
-  search: postgresSearchStub,
+  search: postgresFtsAdapter,
   ai: disabledAi,
 };
 
