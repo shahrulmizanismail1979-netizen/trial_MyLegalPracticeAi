@@ -95,7 +95,15 @@ router.get("/containers/:id/sections", requireResearchRole(...STAFF_ROLES), asyn
     .where(eq(researchPageSections.containerId, id))
     .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
 
-  res.json(sections);
+  // Group by page as required by ADR 0008 contract
+  const pageMap = new Map<number, typeof sections>();
+  for (const s of sections) {
+    const list = pageMap.get(s.pageId) ?? [];
+    list.push(s);
+    pageMap.set(s.pageId, list);
+  }
+  const pages = [...pageMap.entries()].map(([pageId, secs]) => ({ pageId, sections: secs }));
+  res.json({ containerId: id, pages });
 });
 
 // ── PATCH /containers/:id/sections/:sectionId — override classification ───
@@ -358,26 +366,12 @@ router.post(
       return;
     }
 
-    // Fetch judicial sections (applying gate)
-    const rawSections = await db
-      .select()
-      .from(researchPageSections)
-      .where(eq(researchPageSections.containerId, id))
-      .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
+    // ── Finding 4 fix: resolve candidate span BEFORE fetching sections ────
+    // Sections must be scoped to the active candidate's pages only so that
+    // non-candidate sections never contaminate pageRefs, approvedJudicialSpans,
+    // or the completeness check.
 
-    const asSections: ClassifiedSection[] = rawSections.map((s) => ({
-      pageId: s.pageId,
-      blockId: s.blockId ?? undefined,
-      sectionIndex: s.sectionIndex,
-      classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
-      confidence: s.confidence / 100,
-      supportingEvidence: s.supportingEvidence as string[],
-      detectorVersion: s.detectorVersion,
-    }));
-
-    const judicialSections = applyIsolationGate(asSections);
-
-    // Fetch all container pages for completeness check
+    // 1. Fetch all container pages (needed for boundary resolution)
     const allPages = await db
       .select()
       .from(researchSourcePages)
@@ -385,7 +379,7 @@ router.post(
 
     const totalContainerPages = allPages.length;
 
-    // Get candidate page span
+    // 2. Resolve candidate page span
     const [cb] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, candidateId));
     let candidatePageIds: number[] = [];
     if (cb) {
@@ -407,6 +401,34 @@ router.post(
     const candidatePageObjs = candidatePageIds.length > 0
       ? allPages.filter((p) => candidatePageIds.includes(p.id))
       : allPages;
+
+    // 3. Fetch sections scoped to candidate pages only
+    const rawSections = candidatePageIds.length > 0
+      ? await db
+          .select()
+          .from(researchPageSections)
+          .where(and(
+            eq(researchPageSections.containerId, id),
+            inArray(researchPageSections.pageId, candidatePageIds),
+          ))
+          .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex))
+      : await db
+          .select()
+          .from(researchPageSections)
+          .where(eq(researchPageSections.containerId, id))
+          .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
+
+    const asSections: ClassifiedSection[] = rawSections.map((s) => ({
+      pageId: s.pageId,
+      blockId: s.blockId ?? undefined,
+      sectionIndex: s.sectionIndex,
+      classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
+      confidence: s.confidence / 100,
+      supportingEvidence: s.supportingEvidence as string[],
+      detectorVersion: s.detectorVersion,
+    }));
+
+    const judicialSections = applyIsolationGate(asSections);
 
     // Fetch extractions for page text
     const pageTextMap: Record<number, string> = {};

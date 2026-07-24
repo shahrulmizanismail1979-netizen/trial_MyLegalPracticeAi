@@ -641,20 +641,26 @@ describe("GET /api/research/containers/:id/sections", () => {
     const app = buildApp(OWNER_EMAIL, "owner");
     const res = await request(app).get(`/api/research/containers/${containerId}/sections`);
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0]).toHaveProperty("classification");
-    expect(res.body[0]).toHaveProperty("containerId", containerId);
+    // Response is grouped by page: { containerId, pages: [{ pageId, sections: [...] }] }
+    expect(res.body).toHaveProperty("containerId", containerId);
+    expect(Array.isArray(res.body.pages)).toBe(true);
+    expect(res.body.pages.length).toBeGreaterThan(0);
+    expect(res.body.pages[0]).toHaveProperty("pageId");
+    expect(Array.isArray(res.body.pages[0].sections)).toBe(true);
+    expect(res.body.pages[0].sections[0]).toHaveProperty("classification");
+    expect(res.body.pages[0].sections[0]).toHaveProperty("containerId", containerId);
   });
 
-  it("returns empty array for container with no sections yet", async () => {
+  it("returns empty pages array for container with no sections yet", async () => {
     const containerId = await seedContainer("Some text without classification");
     await transitionContainer(containerId, "RIGHTS_REVIEW_REQUIRED", { actor: "test" });
     await transitionContainer(containerId, "RIGHTS_APPROVED", { actor: "test" });
     const app = buildApp(OWNER_EMAIL, "owner");
     const res = await request(app).get(`/api/research/containers/${containerId}/sections`);
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(0);
+    expect(res.body).toHaveProperty("containerId", containerId);
+    expect(Array.isArray(res.body.pages)).toBe(true);
+    expect(res.body.pages).toHaveLength(0);
   });
 });
 

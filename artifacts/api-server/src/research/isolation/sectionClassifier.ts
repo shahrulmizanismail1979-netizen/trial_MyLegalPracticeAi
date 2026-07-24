@@ -220,6 +220,18 @@ function classifyBlock(
     evidence.push("catchword signal (corroborated by publisher branding)");
   }
 
+  // ── Page-location signal ──────────────────────────────────────────────
+  // First/last pages of the candidate span carry elevated editorial probability;
+  // publisher-created content (headnotes, colophon) tends to appear at span edges.
+  // This is a detection signal, NOT a standalone classifier — it only adjusts
+  // confidence when another signal is already present.
+  const isEdgePage = pageNumber <= 2 || pageNumber >= totalPages - 1;
+  if (isEdgePage) {
+    evidence.push(
+      `page-location signal: page ${pageNumber}/${totalPages} — elevated editorial probability at candidate span edge`,
+    );
+  }
+
   // Repeated header/footer text across pages is a weak signal; only combine
   // with corroborator for a confident exclusion.
   const isRepeatedHeaderFooter =
@@ -227,8 +239,10 @@ function classifyBlock(
   if (isRepeatedHeaderFooter) evidence.push("repeated header/footer across pages");
 
   if (hasCorroborator) {
-    // Strong corroborator present: classify as editorial
-    const confidence = isRepeatedHeaderFooter ? 0.92 : HIGH_CONFIDENCE;
+    // Strong corroborator present: classify as editorial.
+    // Edge-page location corroborates further — raise confidence marginally.
+    const baseConf = isRepeatedHeaderFooter ? 0.92 : HIGH_CONFIDENCE;
+    const confidence = isEdgePage && baseConf < 0.92 ? Math.min(0.92, baseConf + 0.05) : baseConf;
     return {
       classification: "SUSPECTED_PUBLISHER_EDITORIAL",
       confidence,
@@ -258,9 +272,12 @@ function classifyBlock(
     return { classification: "UNKNOWN", confidence: 0.5, evidence: ["very short block"] };
   }
 
+  // Edge pages with no judicial anchor and no branding: reduce default confidence
+  // to reflect elevated editorial probability at candidate span edges.
+  const defaultConf = isEdgePage ? 0.55 : 0.65;
   return {
     classification: "PROBABLE_JUDICIAL_TEXT",
-    confidence: 0.65,
+    confidence: defaultConf,
     evidence: evidence.length ? evidence : ["default — no strong exclusion signal"],
   };
 }
@@ -299,14 +316,30 @@ function findRepeatedTexts(pages: PageInput[], blocks: BlockInput[]): Set<string
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /**
+ * Map of "${pageId}-${sectionIndex}" → reviewer-confirmed classification.
+ * When provided to classifySections, the reviewer's decision overrides the
+ * classifier output for matching sections (confidence=1.0, full provenance).
+ */
+export type ReviewerHistoryMap = Map<string, SectionClassificationType>;
+
+/**
  * Classify all sections (blocks) in the given pages.
  *
  * Pure function — no DB calls, no side effects.
+ *
+ * @param pages         Pages within the active candidate span to classify.
+ * @param blocks        Blocks for those pages.
+ * @param options.reviewerHistory  Prior reviewer decisions keyed by
+ *                      "${pageId}-${sectionIndex}". When present, matching
+ *                      sections bypass re-classification and the reviewer's
+ *                      decision is used directly (confidence=1.0).
  */
 export function classifySections(
   pages: PageInput[],
   blocks: BlockInput[],
+  options?: { reviewerHistory?: ReviewerHistoryMap },
 ): ClassifiedSection[] {
+  const reviewerHistory = options?.reviewerHistory ?? new Map<string, SectionClassificationType>();
   const totalPages = pages.length;
   const repeatedTexts = findRepeatedTexts(pages, blocks);
 
@@ -339,6 +372,19 @@ export function classifySections(
 
     if (pageBlocks.length === 0) {
       // No block data — classify whole page from raw text
+      const sectionKey = `${page.id}-0`;
+      const reviewerDecision = reviewerHistory.get(sectionKey);
+      if (reviewerDecision !== undefined) {
+        results.push({
+          pageId: page.id,
+          sectionIndex: 0,
+          classification: reviewerDecision,
+          confidence: 1.0,
+          supportingEvidence: ["reviewer-override"],
+          detectorVersion: EDITORIAL_PROCESSOR_VERSION,
+        });
+        continue;
+      }
       const syntheticBlock: BlockInput = {
         id: 0,
         pageId: page.id,
@@ -361,6 +407,21 @@ export function classifySections(
 
     for (let i = 0; i < pageBlocks.length; i++) {
       const block = pageBlocks[i]!;
+      // Prior reviewer decision takes precedence over re-classification
+      const sectionKey = `${page.id}-${i}`;
+      const reviewerDecision = reviewerHistory.get(sectionKey);
+      if (reviewerDecision !== undefined) {
+        results.push({
+          pageId: page.id,
+          blockId: block.id,
+          sectionIndex: i,
+          classification: reviewerDecision,
+          confidence: 1.0,
+          supportingEvidence: ["reviewer-override"],
+          detectorVersion: EDITORIAL_PROCESSOR_VERSION,
+        });
+        continue;
+      }
       const cls = classifyBlock(block, page.pageNumber, totalPages, repeatedTexts);
       results.push({
         pageId: page.id,

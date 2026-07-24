@@ -216,10 +216,11 @@ async function validateProcessor(ctx: ProcessorContext) {
         detail: { runId: run.id, candidateCount: 0 },
         dbc: tx,
       });
+      // Finding 3 fix: enqueue in the same transaction as the state transition,
+      // with idempotency key editorial:${containerId}:${runId}.
+      await enqueueEditorialJob(containerId, run.id, `job:${job.id}`, tx);
     });
 
-    // Auto-enqueue editorial classification after transitioning to EDITORIAL_REVIEW_PENDING
-    await enqueueEditorialJob(containerId, container.contentSha256, `job:${job.id}`, dbc);
     return {};
   }
 
@@ -515,13 +516,11 @@ async function validateProcessor(ctx: ProcessorContext) {
         detail: { runId: run.id, candidateCount: activeCandidates.length },
         dbc: tx,
       });
+      // Finding 3 fix: enqueue in the same transaction as the state transition,
+      // with idempotency key editorial:${containerId}:${runId}.
+      await enqueueEditorialJob(containerId, run.id, `job:${job.id}`, tx);
     }
   });
-
-  // Auto-enqueue editorial classification after successful validation
-  if (!needsReview) {
-    await enqueueEditorialJob(containerId, container.contentSha256, `job:${job.id}`, dbc);
-  }
 
   return {};
 }
@@ -535,17 +534,21 @@ export function registerValidationProcessor(): void {
 
 /**
  * Enqueue an editorial classification job immediately after a container
- * transitions to EDITORIAL_REVIEW_PENDING. Idempotent (ON CONFLICT DO NOTHING
- * via unique idempotency key); logs-and-continues on failure so the validation
- * job does not fail if the enqueue itself is transient.
+ * transitions to EDITORIAL_REVIEW_PENDING.
+ *
+ * Must be called INSIDE the same transaction as the state transition so the
+ * job row and the state change are atomically committed.
+ *
+ * Idempotency key: "editorial:{containerId}:{runId}" — exactly one job per
+ * validation run, matching the ADR 0008 enqueue contract.
  */
 async function enqueueEditorialJob(
   containerId: number,
-  contentSha256: string,
+  runId: number,
   actor: string,
   dbc: DbClient,
 ): Promise<void> {
-  const key = `editorial-container-${containerId}-${contentSha256.slice(0, 16)}`;
+  const key = `editorial:${containerId}:${runId}`;
   try {
     await enqueue(
       EDITORIAL_JOB_KIND,
@@ -554,8 +557,7 @@ async function enqueueEditorialJob(
       {
         actor,
         processorVersion: EDITORIAL_PROCESSOR_VERSION,
-        sourceChecksum: contentSha256,
-        provenance: { containerId, autoEnqueuedByValidation: true },
+        provenance: { containerId, runId, autoEnqueuedByValidation: true },
         dbc,
       },
     );

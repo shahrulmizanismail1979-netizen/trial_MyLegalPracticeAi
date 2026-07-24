@@ -44,6 +44,8 @@ import {
   LOW_CONFIDENCE,
   type PageInput,
   type BlockInput,
+  type SectionClassificationType,
+  type ReviewerHistoryMap,
 } from "./sectionClassifier";
 import { applyIsolationGate, gateHasExclusions } from "./isolationGate";
 
@@ -147,20 +149,69 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     (c) => c.reviewStatus !== "rejected" && c.status !== "rejected",
   );
 
-  // All container pages
+  // All container pages — needed to resolve candidate span boundaries.
   const allContainerPages = await dbc
     .select()
     .from(researchSourcePages)
     .where(eq(researchSourcePages.containerId, containerId));
 
-  // Latest extraction per page
-  const allPageIds = allContainerPages.map((p) => p.id);
+  // ── Finding 1 fix: compute union of all active candidate page spans ────
+  // Only classify pages within the active candidate spans, not every page in
+  // the container.  Publisher-content isolation is candidate-scoped.
+  let candidatePageIds: Set<number>;
+  if (activeCandidates.length === 0) {
+    // No active candidates — scope to all pages as a safe fallback so the
+    // processor can still advance the container state.
+    candidatePageIds = new Set(allContainerPages.map((p) => p.id));
+  } else {
+    candidatePageIds = new Set<number>();
+    for (const c of activeCandidates) {
+      const [cb] = await dbc
+        .select()
+        .from(researchCaseCandidateBoundaries)
+        .where(eq(researchCaseCandidateBoundaries.candidateId, c.id));
+      if (!cb) continue;
+
+      const [startBound, endBound] = await Promise.all([
+        dbc
+          .select()
+          .from(researchCaseBoundaries)
+          .where(eq(researchCaseBoundaries.id, cb.startBoundaryId))
+          .then((r) => r[0]),
+        dbc
+          .select()
+          .from(researchCaseBoundaries)
+          .where(eq(researchCaseBoundaries.id, cb.endBoundaryId))
+          .then((r) => r[0]),
+      ]);
+      if (!startBound || !endBound) continue;
+
+      const startPageRow = allContainerPages.find((p) => p.id === startBound.pageId);
+      const endPageRow = allContainerPages.find((p) => p.id === endBound.pageId);
+      if (!startPageRow || !endPageRow) continue;
+
+      const minPage = Math.min(startPageRow.pageNumber, endPageRow.pageNumber);
+      const maxPage = Math.max(startPageRow.pageNumber, endPageRow.pageNumber);
+      for (const p of allContainerPages) {
+        if (p.pageNumber >= minPage && p.pageNumber <= maxPage) candidatePageIds.add(p.id);
+      }
+    }
+    // If boundaries couldn't be resolved for any candidate, fall back to all pages.
+    if (candidatePageIds.size === 0) {
+      candidatePageIds = new Set(allContainerPages.map((p) => p.id));
+    }
+  }
+
+  const candidatePages = allContainerPages.filter((p) => candidatePageIds.has(p.id));
+  const candidatePageIdArr = [...candidatePageIds];
+
+  // Latest extraction per candidate page only
   let extractionMap = new Map<number, { rawText: string; isBlank: boolean }>();
-  if (allPageIds.length > 0) {
+  if (candidatePageIdArr.length > 0) {
     const exts = await dbc
       .select()
       .from(researchPageExtractions)
-      .where(inArray(researchPageExtractions.pageId, allPageIds))
+      .where(inArray(researchPageExtractions.pageId, candidatePageIdArr))
       .orderBy(desc(researchPageExtractions.id));
     for (const ex of exts) {
       if (!extractionMap.has(ex.pageId)) {
@@ -169,20 +220,16 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     }
   }
 
-  // Blocks for all pages — researchPageBlocks links via pageExtractionId, so we
-  // join through the extractions we already fetched to get the pageId mapping.
+  // Blocks for candidate pages only
   let allBlocks: BlockInput[] = [];
-  if (allPageIds.length > 0) {
-    // Build a map of extractionId → pageId from the extractions already loaded
-    const extractionIdToPageId = new Map<number, number>();
-    // We need extraction IDs. Re-query with IDs.
+  if (candidatePageIdArr.length > 0) {
     const extsWithId = await dbc
       .select({ id: researchPageExtractions.id, pageId: researchPageExtractions.pageId })
       .from(researchPageExtractions)
-      .where(inArray(researchPageExtractions.pageId, allPageIds));
-    for (const ex of extsWithId) {
-      extractionIdToPageId.set(ex.id, ex.pageId);
-    }
+      .where(inArray(researchPageExtractions.pageId, candidatePageIdArr));
+
+    const extractionIdToPageId = new Map<number, number>();
+    for (const ex of extsWithId) extractionIdToPageId.set(ex.id, ex.pageId);
 
     const extractionIds = extsWithId.map((e) => e.id);
     if (extractionIds.length > 0) {
@@ -202,13 +249,38 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     }
   }
 
-  const pages: PageInput[] = allContainerPages.map((p) => {
+  const pages: PageInput[] = candidatePages.map((p) => {
     const ex = extractionMap.get(p.id);
     return { id: p.id, pageNumber: p.pageNumber, text: ex?.rawText ?? "", isBlank: ex?.isBlank };
   });
 
-  // Run classifier on all pages
-  const classified = classifySections(pages, allBlocks);
+  // ── Finding 5 fix: load prior reviewer decisions (reviewer-history signal) ─
+  // When re-running after EDITORIAL_REVIEW_REQUIRED, existing reviewer overrides
+  // are passed into the classifier so they are honoured and not overwritten.
+  const reviewerHistory: ReviewerHistoryMap = new Map<string, SectionClassificationType>();
+  if (candidatePageIdArr.length > 0) {
+    const existingSections = await dbc
+      .select({
+        pageId: researchPageSections.pageId,
+        sectionIndex: researchPageSections.sectionIndex,
+        reviewerDecision: researchPageSections.reviewerDecision,
+      })
+      .from(researchPageSections)
+      .where(
+        and(
+          eq(researchPageSections.containerId, containerId),
+          inArray(researchPageSections.pageId, candidatePageIdArr),
+        ),
+      );
+    for (const s of existingSections) {
+      if (s.reviewerDecision !== null) {
+        reviewerHistory.set(`${s.pageId}-${s.sectionIndex}`, s.reviewerDecision as SectionClassificationType);
+      }
+    }
+  }
+
+  // Run classifier on candidate pages only, honouring prior reviewer decisions
+  const classified = classifySections(pages, allBlocks, { reviewerHistory });
 
   // Create editorial run row
   const uncertainCount = classified.filter((s) => s.classification === "MANUAL_REVIEW_REQUIRED").length;
@@ -294,14 +366,19 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     );
   }
 
-  // Decide next state
-  const hasUncertain = uncertainCount > 0;
+  // ── Finding 2 fix: low-confidence sections also block JUDGMENT_VERIFICATION_PENDING ─
+  // Both MANUAL_REVIEW_REQUIRED and low-confidence sections require human
+  // review before the container can advance to JUDGMENT_VERIFICATION_PENDING.
+  const lowConfidenceCount = classified.filter(
+    (s) => s.confidence < LOW_CONFIDENCE && s.classification !== "MANUAL_REVIEW_REQUIRED",
+  ).length;
+  const hasUncertain = uncertainCount > 0 || lowConfidenceCount > 0;
 
   if (hasUncertain) {
     if (container.processingState !== "EDITORIAL_REVIEW_REQUIRED") {
       await transitionContainer(containerId, "EDITORIAL_REVIEW_REQUIRED", {
         actor: `job:${job.id}`,
-        detail: { editorialRunId: editorialRun.id, uncertainCount, reason: "editorial_uncertain" },
+        detail: { editorialRunId: editorialRun.id, uncertainCount, lowConfidenceCount, reason: "editorial_uncertain" },
       });
     }
     await recordAuditEvent(dbc, {
@@ -310,7 +387,7 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
       event: "editorial-classification:uncertain",
       toState: "EDITORIAL_REVIEW_REQUIRED",
       actor: `job:${job.id}`,
-      detail: { containerId, sectionCount: classified.length, uncertainCount },
+      detail: { containerId, sectionCount: classified.length, uncertainCount, lowConfidenceCount },
     });
   } else {
     await transitionContainer(containerId, "JUDGMENT_VERIFICATION_PENDING", {
