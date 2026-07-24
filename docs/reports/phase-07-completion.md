@@ -14,7 +14,9 @@ Separate judicially-issued text from suspected publisher-created editorial mater
 
 ## Deliverables
 
-### Database Migration (`0010-phase07-isolation.sql`)
+### Database Migrations
+
+#### `0010-phase07-isolation.sql`
 
 Three new tables created and verified against the live dev database:
 
@@ -23,6 +25,18 @@ Three new tables created and verified against the live dev database:
 | `research_page_sections` | One row per classified text section per page; stores classification, confidence score (0–100), isolation flag, and supporting evidence |
 | `research_editorial_runs` | Audit header for each editorial classification job; stores counts of sections, uncertain results, and suspected editorial material |
 | `research_verified_judgments` | Judgment objects promoted after the isolation gate passes; links candidate → container → editorial run |
+
+#### `0011-phase07-verified-judgment-spans.sql`
+
+Supplementary migration adding ADR 0008 §6 required provenance fields:
+
+| Column | Table | Purpose |
+|---|---|---|
+| `approved_judicial_spans` | `research_verified_judgments` | Ordered array of `{ sectionId, pageId, sectionIndex, classification }` for sections that passed the isolation gate |
+| `source_refs` | `research_verified_judgments` | Provenance back to source containers: `[{ containerId, contentSha256, originalName }]` |
+| `original_page_refs` | `research_verified_judgments` | Original source-document page numbers (integers) for the judicial span |
+| `span_start_char` | `research_page_sections` | Character-offset start within page text (nullable) |
+| `span_end_char` | `research_page_sections` | Character-offset end within page text (nullable) |
 
 ---
 

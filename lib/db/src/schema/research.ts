@@ -1235,6 +1235,10 @@ export const researchPageSections = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     // Whether the isolation gate has been applied and this section excluded
     isolationApplied: boolean("isolation_applied").default(false).notNull(),
+    // Character-span provenance within the page text (nullable — populated when
+    // block-level extraction provides span offsets).
+    spanStartChar: integer("span_start_char"),
+    spanEndChar: integer("span_end_char"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1292,6 +1296,23 @@ export const researchVerifiedJudgments = pgTable(
       .notNull(),
     // SHA-256 of the concatenated ordered judicial text (for integrity checks)
     textChecksum: text("text_checksum").notNull(),
+    // ADR 0008 §6: approved judicial source spans — ordered array of
+    // { sectionId, pageId, sectionIndex, classification } for sections that
+    // passed the isolation gate and were approved as judicial text.
+    approvedJudicialSpans: jsonb("approved_judicial_spans")
+      .$type<Array<{ sectionId: number; pageId: number; sectionIndex: number; classification: string }>>()
+      .default([])
+      .notNull(),
+    // ADR 0008 §6: provenance to source containers.
+    sourceRefs: jsonb("source_refs")
+      .$type<Array<{ containerId: number; contentSha256: string; originalName: string }>>()
+      .default([])
+      .notNull(),
+    // ADR 0008 §6: original source-document page numbers for the judicial span.
+    originalPageRefs: jsonb("original_page_refs")
+      .$type<number[]>()
+      .default([])
+      .notNull(),
     // Non-critical warnings recorded at verification time
     unresolvedWarnings: jsonb("unresolved_warnings")
       .$type<Array<{ code: string; description: string }>>()

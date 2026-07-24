@@ -13,6 +13,7 @@ import {
   db,
   researchPageSections,
   researchVerifiedJudgments,
+  researchSourceContainers,
   researchSourcePages,
   researchPageExtractions,
   researchCaseCandidates,
@@ -408,6 +409,38 @@ router.post(
       .limit(1);
     const editorialRunId = latestRunRow[0]?.editorialRunId ?? null;
 
+    // ADR 0008 §6: build approved judicial spans from the stored sections
+    const sectionIdByKey = new Map<string, number>();
+    for (const s of rawSections) {
+      sectionIdByKey.set(`${s.pageId}-${s.sectionIndex}`, s.id);
+    }
+    const approvedJudicialSpans = judicialSections.map((s) => ({
+      sectionId: sectionIdByKey.get(`${s.pageId}-${s.sectionIndex}`) ?? 0,
+      pageId: s.pageId,
+      sectionIndex: s.sectionIndex,
+      classification: s.classification,
+    }));
+
+    // ADR 0008 §6: source refs — provenance back to the container
+    const containerRow = await db
+      .select({
+        containerId: researchSourceContainers.id,
+        contentSha256: researchSourceContainers.contentSha256,
+        originalName: researchSourceContainers.originalName,
+      })
+      .from(researchSourceContainers)
+      .where(eq(researchSourceContainers.id, id))
+      .then((r) => r[0]);
+    const sourceRefs = containerRow
+      ? [{ containerId: containerRow.containerId, contentSha256: containerRow.contentSha256, originalName: containerRow.originalName }]
+      : [];
+
+    // ADR 0008 §6: original page refs — page numbers within the source document
+    const originalPageRefs = candidatePageObjs
+      .filter((p) => judicialSections.some((s) => s.pageId === p.id))
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((p) => p.pageNumber);
+
     let verifiedJudgment: { id: number } | undefined;
     await db.transaction(async (tx) => {
       const [vj] = await tx
@@ -419,6 +452,9 @@ router.post(
           pageRefs,
           paragraphIdentifiers,
           textChecksum,
+          approvedJudicialSpans,
+          sourceRefs,
+          originalPageRefs,
           unresolvedWarnings: nonCriticalWarnings,
           verifiedBy: actor,
           provenance: { verifiedAt: new Date().toISOString(), sectionCount: judicialSections.length },
