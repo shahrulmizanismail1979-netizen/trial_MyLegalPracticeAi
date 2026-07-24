@@ -14,7 +14,9 @@ export async function recordAuditEvent(
       | "batch_item"
       | "page_extraction"
       | "segmentation_run"
-      | "case_candidate";
+      | "case_candidate"
+      | "editorial_run"
+      | "page_section";
     entityId: number;
     event: string;
     fromState?: string | null;

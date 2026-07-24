@@ -36,6 +36,10 @@ import {
   detectAllCrossFileRelationships,
   type CandidateSummary,
 } from "./crossFileDetector";
+import {
+  EDITORIAL_JOB_KIND,
+  EDITORIAL_PROCESSOR_VERSION,
+} from "../isolation/editorialProcessor";
 
 export const VALIDATE_JOB_KIND = "container.validate";
 
@@ -213,6 +217,9 @@ async function validateProcessor(ctx: ProcessorContext) {
         dbc: tx,
       });
     });
+
+    // Auto-enqueue editorial classification after transitioning to EDITORIAL_REVIEW_PENDING
+    await enqueueEditorialJob(containerId, container.contentSha256, `job:${job.id}`, dbc);
     return {};
   }
 
@@ -511,10 +518,48 @@ async function validateProcessor(ctx: ProcessorContext) {
     }
   });
 
+  // Auto-enqueue editorial classification after successful validation
+  if (!needsReview) {
+    await enqueueEditorialJob(containerId, container.contentSha256, `job:${job.id}`, dbc);
+  }
+
   return {};
 }
 
 export function registerValidationProcessor(): void {
   registerProcessor(VALIDATE_JOB_KIND, validateProcessor, { touchesContent: true });
   logger.info({}, "Validation processor registered");
+}
+
+// ── Phase 07: auto-enqueue editorial classification ───────────────────────
+
+/**
+ * Enqueue an editorial classification job immediately after a container
+ * transitions to EDITORIAL_REVIEW_PENDING. Idempotent (ON CONFLICT DO NOTHING
+ * via unique idempotency key); logs-and-continues on failure so the validation
+ * job does not fail if the enqueue itself is transient.
+ */
+async function enqueueEditorialJob(
+  containerId: number,
+  contentSha256: string,
+  actor: string,
+  dbc: DbClient,
+): Promise<void> {
+  const key = `editorial-container-${containerId}-${contentSha256.slice(0, 16)}`;
+  try {
+    await enqueue(
+      EDITORIAL_JOB_KIND,
+      key,
+      { containerId },
+      {
+        actor,
+        processorVersion: EDITORIAL_PROCESSOR_VERSION,
+        sourceChecksum: contentSha256,
+        provenance: { containerId, autoEnqueuedByValidation: true },
+        dbc,
+      },
+    );
+  } catch (err) {
+    logger.warn({ err, containerId, key }, "Could not auto-enqueue editorial classification job (non-fatal)");
+  }
 }

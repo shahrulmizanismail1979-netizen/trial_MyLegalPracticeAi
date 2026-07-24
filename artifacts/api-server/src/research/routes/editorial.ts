@@ -1,0 +1,473 @@
+// Phase 07 — Editorial review & verification routes (ADR 0008).
+//
+// Endpoints:
+//   GET  /containers/:id/sections                    — list page sections
+//   PATCH /containers/:id/sections/:sectionId        — override classification
+//   POST /containers/:id/editorial-review/complete   — mark editorial review done (enqueue classification)
+//   GET  /containers/:id/judicial-text               — gated judicial text view
+//   POST /containers/:id/verify                      — completeness check + verify
+
+import { Router, type IRouter } from "express";
+import { z } from "zod/v4";
+import {
+  db,
+  researchPageSections,
+  researchVerifiedJudgments,
+  researchSourcePages,
+  researchPageExtractions,
+  researchCaseCandidates,
+  researchCaseCandidateBoundaries,
+  researchCaseBoundaries,
+  researchTransformations,
+  SECTION_CLASSIFICATIONS_DB,
+} from "@workspace/db";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { requireResearchRole } from "../auth";
+import { recordAuditEvent } from "../domain/audit";
+import { checkContainerAccess } from "../domain/gates";
+import { transitionContainer } from "../domain/containerStateMachine";
+import { EntityNotFoundError } from "../domain/types";
+import { ProcessorFailure } from "../processing/handlers";
+import {
+  classifySections,
+  applyIsolationGate,
+  checkCompleteness,
+  computeJudicialTextChecksum,
+  registerEditorialProcessor,
+  startEditorialClassification,
+  type PageInput,
+  type BlockInput,
+  type ClassifiedSection,
+} from "../isolation";
+
+// Register the processor once (idempotent guard in registerProcessor)
+registerEditorialProcessor();
+
+const router: IRouter = Router();
+
+const REVIEW_ROLES = ["owner", "administrator", "legal_reviewer"] as const;
+const STAFF_ROLES = ["owner", "administrator", "rights_reviewer", "legal_reviewer"] as const;
+
+// ── Access helper ──────────────────────────────────────────────────────────
+
+async function requireContainerView(
+  req: import("express").Request,
+  res: import("express").Response,
+  containerId: number,
+): Promise<boolean> {
+  try {
+    const { decision } = await checkContainerAccess(
+      containerId,
+      req.researchRole ?? null,
+      "view",
+      { actor: req.authEmail ?? undefined },
+    );
+    if (!decision.allowed) {
+      res.status(404).json({ error: "Not found" });
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (err instanceof EntityNotFoundError) {
+      res.status(404).json({ error: "Not found" });
+      return false;
+    }
+    throw err;
+  }
+}
+
+function actorFrom(req: import("express").Request): string {
+  return req.authEmail ?? `role:${req.researchRole}`;
+}
+
+// ── GET /containers/:id/sections ──────────────────────────────────────────
+
+router.get("/containers/:id/sections", requireResearchRole(...STAFF_ROLES), async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid container id" }); return; }
+  if (!(await requireContainerView(req, res, id))) return;
+
+  const sections = await db
+    .select()
+    .from(researchPageSections)
+    .where(eq(researchPageSections.containerId, id))
+    .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
+
+  res.json(sections);
+});
+
+// ── PATCH /containers/:id/sections/:sectionId — override classification ───
+
+const PatchSectionBody = z.object({
+  classification: z.enum(SECTION_CLASSIFICATIONS_DB),
+  note: z.string().optional(),
+});
+
+router.patch(
+  "/containers/:id/sections/:sectionId",
+  requireResearchRole(...REVIEW_ROLES),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const sectionId = Number(req.params.sectionId);
+    if (!Number.isInteger(id) || !Number.isInteger(sectionId)) {
+      res.status(400).json({ error: "Invalid id" }); return;
+    }
+    if (!(await requireContainerView(req, res, id))) return;
+
+    const [section] = await db
+      .select()
+      .from(researchPageSections)
+      .where(and(eq(researchPageSections.id, sectionId), eq(researchPageSections.containerId, id)));
+    if (!section) { res.status(404).json({ error: "Section not found" }); return; }
+
+    const parsed = PatchSectionBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
+
+    const actor = actorFrom(req);
+    const now = new Date();
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(researchPageSections)
+        .set({
+          reviewerDecision: parsed.data.classification,
+          reviewerNote: parsed.data.note ?? null,
+          reviewedBy: actor,
+          reviewedAt: now,
+          isolationApplied: !["VERIFIED_JUDICIAL_TEXT", "PROBABLE_JUDICIAL_TEXT"].includes(parsed.data.classification),
+        })
+        .where(eq(researchPageSections.id, sectionId));
+
+      await tx.insert(researchTransformations).values({
+        containerId: id,
+        kind: "editorial.section_override",
+        detail: {
+          sectionId,
+          previousClassification: section.classification,
+          newClassification: parsed.data.classification,
+          note: parsed.data.note,
+        },
+        actor,
+      });
+
+      await recordAuditEvent(tx, {
+        entityType: "page_section",
+        entityId: sectionId,
+        event: "editorial:override",
+        fromState: section.reviewerDecision ?? section.classification,
+        toState: parsed.data.classification,
+        actor,
+        detail: { containerId: id, note: parsed.data.note },
+      });
+    });
+
+    const [updated] = await db.select().from(researchPageSections).where(eq(researchPageSections.id, sectionId));
+    res.json(updated);
+  },
+);
+
+// ── POST /containers/:id/editorial-review/complete ────────────────────────
+// Called by a reviewer after overriding any MANUAL_REVIEW_REQUIRED sections.
+// Enqueues a fresh editorial classification job (which re-reads the overrides).
+
+router.post(
+  "/containers/:id/editorial-review/complete",
+  requireResearchRole(...REVIEW_ROLES),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid container id" }); return; }
+    if (!(await requireContainerView(req, res, id))) return;
+
+    const actor = actorFrom(req);
+    try {
+      const { jobId } = await startEditorialClassification(id, actor);
+      res.status(202).json({ jobId, message: "Editorial classification enqueued" });
+    } catch (err) {
+      if (err instanceof ProcessorFailure) {
+        res.status(409).json({ error: err.message, code: err.code });
+        return;
+      }
+      throw err;
+    }
+  },
+);
+
+// ── GET /containers/:id/judicial-text ─────────────────────────────────────
+// Returns only VERIFIED_JUDICIAL_TEXT + PROBABLE_JUDICIAL_TEXT sections,
+// with their page text and source provenance.
+// Isolation gate is applied here — SUSPECTED sections are never returned.
+
+router.get(
+  "/containers/:id/judicial-text",
+  requireResearchRole(...STAFF_ROLES),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid container id" }); return; }
+    if (!(await requireContainerView(req, res, id))) return;
+
+    const rawSections = await db
+      .select()
+      .from(researchPageSections)
+      .where(eq(researchPageSections.containerId, id))
+      .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
+
+    if (rawSections.length === 0) {
+      res.json({ containerId: id, sections: [], isolationApplied: false });
+      return;
+    }
+
+    // Convert DB rows to ClassifiedSection for the gate
+    const asSections: ClassifiedSection[] = rawSections.map((s) => ({
+      pageId: s.pageId,
+      blockId: s.blockId ?? undefined,
+      sectionIndex: s.sectionIndex,
+      classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
+      confidence: s.confidence / 100,
+      supportingEvidence: s.supportingEvidence as string[],
+      detectorVersion: s.detectorVersion,
+    }));
+
+    const gated = applyIsolationGate(asSections);
+    const isolationApplied = gated.length < asSections.length;
+
+    const gatedPageIds = [...new Set(gated.map((s) => s.pageId))];
+    let pageTexts: Record<number, string> = {};
+    if (gatedPageIds.length > 0) {
+      const extractions = await db
+        .select({ pageId: researchPageExtractions.pageId, rawText: researchPageExtractions.rawText })
+        .from(researchPageExtractions)
+        .where(inArray(researchPageExtractions.pageId, gatedPageIds))
+        .orderBy(desc(researchPageExtractions.id));
+      for (const ex of extractions) {
+        if (!(ex.pageId in pageTexts)) pageTexts[ex.pageId] = ex.rawText ?? "";
+      }
+    }
+
+    const result = gated.map((s) => ({
+      ...rawSections.find((r) => r.pageId === s.pageId && r.sectionIndex === s.sectionIndex),
+      effectiveClassification: s.classification,
+      pageText: pageTexts[s.pageId] ?? null,
+    }));
+
+    res.json({ containerId: id, sections: result, isolationApplied });
+  },
+);
+
+// ── POST /containers/:id/verify ────────────────────────────────────────────
+// Runs completeness checks and, if clean, creates research_verified_judgments
+// + transitions to VERIFIED.
+// Returns 422 if any critical warning is present.
+
+const VerifyBody = z.object({
+  candidateId: z.number().int().positive(),
+});
+
+router.post(
+  "/containers/:id/verify",
+  requireResearchRole(...REVIEW_ROLES),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid container id" }); return; }
+    if (!(await requireContainerView(req, res, id))) return;
+
+    const parsed = VerifyBody.safeParse(req.body);
+    if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
+
+    const { candidateId } = parsed.data;
+
+    // Verify candidate belongs to this container
+    const [candidate] = await db
+      .select()
+      .from(researchCaseCandidates)
+      .where(and(eq(researchCaseCandidates.id, candidateId), eq(researchCaseCandidates.containerId, id)));
+    if (!candidate) { res.status(404).json({ error: "Candidate not found in container" }); return; }
+
+    // Already verified?
+    const [existing] = await db
+      .select()
+      .from(researchVerifiedJudgments)
+      .where(eq(researchVerifiedJudgments.candidateId, candidateId));
+    if (existing) {
+      res.status(409).json({ error: "Candidate already verified", code: "ALREADY_VERIFIED", verifiedJudgmentId: existing.id });
+      return;
+    }
+
+    // Must be in JUDGMENT_VERIFICATION_PENDING
+    const { container } = await checkContainerAccess(id, req.researchRole ?? null, "view", { actor: actorFrom(req) }).catch(() => ({ container: null }));
+    if (!container || container.processingState !== "JUDGMENT_VERIFICATION_PENDING") {
+      res.status(409).json({
+        error: "Container is not in JUDGMENT_VERIFICATION_PENDING state",
+        code: "INVALID_STATE",
+        currentState: container?.processingState ?? "unknown",
+      });
+      return;
+    }
+
+    // Fetch judicial sections (applying gate)
+    const rawSections = await db
+      .select()
+      .from(researchPageSections)
+      .where(eq(researchPageSections.containerId, id))
+      .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
+
+    const asSections: ClassifiedSection[] = rawSections.map((s) => ({
+      pageId: s.pageId,
+      blockId: s.blockId ?? undefined,
+      sectionIndex: s.sectionIndex,
+      classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
+      confidence: s.confidence / 100,
+      supportingEvidence: s.supportingEvidence as string[],
+      detectorVersion: s.detectorVersion,
+    }));
+
+    const judicialSections = applyIsolationGate(asSections);
+
+    // Fetch all container pages for completeness check
+    const allPages = await db
+      .select()
+      .from(researchSourcePages)
+      .where(eq(researchSourcePages.containerId, id));
+
+    const totalContainerPages = allPages.length;
+
+    // Get candidate page span
+    const [cb] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, candidateId));
+    let candidatePageIds: number[] = [];
+    if (cb) {
+      const [startBound, endBound] = await Promise.all([
+        db.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.startBoundaryId)).then((r) => r[0]),
+        db.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.endBoundaryId)).then((r) => r[0]),
+      ]);
+      if (startBound && endBound) {
+        const startPageRow = allPages.find((p) => p.id === startBound.pageId);
+        const endPageRow = allPages.find((p) => p.id === endBound.pageId);
+        if (startPageRow && endPageRow) {
+          const minPage = Math.min(startPageRow.pageNumber, endPageRow.pageNumber);
+          const maxPage = Math.max(startPageRow.pageNumber, endPageRow.pageNumber);
+          candidatePageIds = allPages.filter((p) => p.pageNumber >= minPage && p.pageNumber <= maxPage).map((p) => p.id);
+        }
+      }
+    }
+
+    const candidatePageObjs = candidatePageIds.length > 0
+      ? allPages.filter((p) => candidatePageIds.includes(p.id))
+      : allPages;
+
+    // Fetch extractions for page text
+    const pageTextMap: Record<number, string> = {};
+    if (candidatePageObjs.length > 0) {
+      const exts = await db
+        .select()
+        .from(researchPageExtractions)
+        .where(inArray(researchPageExtractions.pageId, candidatePageObjs.map((p) => p.id)))
+        .orderBy(desc(researchPageExtractions.id));
+      for (const ex of exts) {
+        if (!(ex.pageId in pageTextMap)) pageTextMap[ex.pageId] = ex.rawText ?? "";
+      }
+    }
+
+    const pageInputs: PageInput[] = candidatePageObjs.map((p) => ({
+      id: p.id,
+      pageNumber: p.pageNumber,
+      text: pageTextMap[p.id] ?? "",
+    }));
+
+    const { criticalWarnings, nonCriticalWarnings } = checkCompleteness(
+      judicialSections,
+      pageInputs,
+      totalContainerPages,
+    );
+
+    if (criticalWarnings.length > 0) {
+      res.status(422).json({
+        error: "Completeness check failed — critical warnings must be resolved before verification",
+        criticalWarnings,
+        nonCriticalWarnings,
+      });
+      return;
+    }
+
+    // Compute judicial text checksum
+    const judicialTexts = judicialSections.map((s) => pageTextMap[s.pageId] ?? "");
+    const textChecksum = computeJudicialTextChecksum(judicialTexts);
+
+    const actor = actorFrom(req);
+    const pageRefs = [...new Set(judicialSections.map((s) => s.pageId))];
+
+    // Extract paragraph identifiers from all judicial text
+    const fullText = judicialTexts.join("\n");
+    const paraMatches = [...fullText.matchAll(/(?:^\s*\[(\d+)\]|^\s*(\d+)\.\s+)/gm)];
+    const paragraphIdentifiers = [...new Set(paraMatches.map((m) => m[1] ?? m[2] ?? "").filter(Boolean))];
+
+    // Get latest editorial run for this container
+    const latestRunRow = await db
+      .select({ editorialRunId: researchPageSections.editorialRunId })
+      .from(researchPageSections)
+      .where(eq(researchPageSections.containerId, id))
+      .orderBy(desc(researchPageSections.id))
+      .limit(1);
+    const editorialRunId = latestRunRow[0]?.editorialRunId ?? null;
+
+    let verifiedJudgment: { id: number } | undefined;
+    await db.transaction(async (tx) => {
+      const [vj] = await tx
+        .insert(researchVerifiedJudgments)
+        .values({
+          candidateId,
+          containerId: id,
+          editorialRunId,
+          pageRefs,
+          paragraphIdentifiers,
+          textChecksum,
+          unresolvedWarnings: nonCriticalWarnings,
+          verifiedBy: actor,
+          provenance: { verifiedAt: new Date().toISOString(), sectionCount: judicialSections.length },
+        })
+        .returning({ id: researchVerifiedJudgments.id });
+
+      verifiedJudgment = vj;
+
+      await tx.insert(researchTransformations).values({
+        containerId: id,
+        kind: "judgment.verified",
+        detail: {
+          candidateId,
+          verifiedJudgmentId: vj?.id,
+          sectionCount: judicialSections.length,
+          textChecksum,
+          nonCriticalWarningsCount: nonCriticalWarnings.length,
+        },
+        actor,
+        reviewed: true,
+      });
+
+      await recordAuditEvent(tx, {
+        entityType: "container",
+        entityId: id,
+        event: "judgment:verified",
+        toState: "VERIFIED",
+        actor,
+        detail: { candidateId, verifiedJudgmentId: vj?.id, textChecksum },
+      });
+
+      await transitionContainer(id, "VERIFIED", {
+        actor,
+        detail: { candidateId, verifiedJudgmentId: vj?.id },
+        dbc: tx,
+      });
+    });
+
+    res.status(201).json({
+      verifiedJudgmentId: verifiedJudgment?.id,
+      candidateId,
+      containerId: id,
+      textChecksum,
+      pageRefs,
+      paragraphIdentifiers,
+      nonCriticalWarnings,
+      state: "VERIFIED",
+    });
+  },
+);
+
+export default router;

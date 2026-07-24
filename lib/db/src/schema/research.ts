@@ -1187,3 +1187,134 @@ export type ResearchCrossFileRelationship =
 export type ResearchCrossFileSpan = typeof researchCrossFileSpans.$inferSelect;
 export type ResearchCrossFileSpanSegment =
   typeof researchCrossFileSpanSegments.$inferSelect;
+
+// ── Phase 07: Publisher-Content Isolation & Verified Judicial Text (ADR 0008) ──
+
+export const SECTION_CLASSIFICATIONS_DB = [
+  "VERIFIED_JUDICIAL_TEXT",
+  "PROBABLE_JUDICIAL_TEXT",
+  "SUSPECTED_PUBLISHER_EDITORIAL",
+  "ADMINISTRATIVE_METADATA",
+  "SOURCE_ARTIFACT",
+  "UNKNOWN",
+  "MANUAL_REVIEW_REQUIRED",
+] as const;
+export type DbSectionClassification =
+  (typeof SECTION_CLASSIFICATIONS_DB)[number];
+
+// One row per classified section within a page. Sections correspond to blocks
+// where block data is available, or to whole pages when it is not.
+// Unique on (container_id, page_id, section_index) so processor retries are
+// safe (ON CONFLICT DO NOTHING).
+export const researchPageSections = pgTable(
+  "research_page_sections",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    pageId: integer("page_id")
+      .references(() => researchSourcePages.id)
+      .notNull(),
+    editorialRunId: integer("editorial_run_id"),
+    blockId: integer("block_id"),
+    sectionIndex: integer("section_index").notNull(),
+    classification: text("classification")
+      .$type<DbSectionClassification>()
+      .notNull(),
+    confidence: integer("confidence").notNull(),
+    supportingEvidence: jsonb("supporting_evidence")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    detectorVersion: text("detector_version").notNull(),
+    // Human reviewer override (set via PATCH /containers/:id/sections/:sectionId)
+    reviewerDecision: text("reviewer_decision").$type<DbSectionClassification>(),
+    reviewerNote: text("reviewer_note"),
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    // Whether the isolation gate has been applied and this section excluded
+    isolationApplied: boolean("isolation_applied").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_page_sections_container_page_idx_uq").on(
+      t.containerId,
+      t.pageId,
+      t.sectionIndex,
+    ),
+    index("research_page_sections_container_idx").on(t.containerId),
+    index("research_page_sections_classification_idx").on(t.classification),
+  ],
+);
+
+// One row per editorial classification pass. Multiple runs may exist for a
+// single container (e.g. after a reviewer triggers re-classification).
+export const researchEditorialRuns = pgTable("research_editorial_runs", {
+  id: serial("id").primaryKey(),
+  containerId: integer("container_id")
+    .references(() => researchSourceContainers.id)
+    .notNull(),
+  jobId: integer("job_id").references(() => researchJobs.id),
+  processorVersion: text("processor_version").notNull(),
+  sectionCount: integer("section_count").default(0).notNull(),
+  uncertainCount: integer("uncertain_count").default(0).notNull(),
+  suspectedEditorialCount: integer("suspected_editorial_count").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// One row per verified judgment. Created only when completeness checks pass
+// (no critical warnings) and a human reviewer has approved.
+export const researchVerifiedJudgments = pgTable(
+  "research_verified_judgments",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull()
+      .unique(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    editorialRunId: integer("editorial_run_id").references(
+      () => researchEditorialRuns.id,
+    ),
+    // Ordered page references covering the judicial text
+    pageRefs: jsonb("page_refs").$type<number[]>().default([]).notNull(),
+    // Paragraph identifiers extracted from the judicial text
+    paragraphIdentifiers: jsonb("paragraph_identifiers")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    // SHA-256 of the concatenated ordered judicial text (for integrity checks)
+    textChecksum: text("text_checksum").notNull(),
+    // Non-critical warnings recorded at verification time
+    unresolvedWarnings: jsonb("unresolved_warnings")
+      .$type<Array<{ code: string; description: string }>>()
+      .default([])
+      .notNull(),
+    verifiedBy: text("verified_by").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    provenance: jsonb("provenance")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_verified_judgments_container_idx").on(t.containerId),
+  ],
+);
+
+export type ResearchPageSection = typeof researchPageSections.$inferSelect;
+export type ResearchEditorialRun = typeof researchEditorialRuns.$inferSelect;
+export type ResearchVerifiedJudgment =
+  typeof researchVerifiedJudgments.$inferSelect;

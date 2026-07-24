@@ -23,6 +23,7 @@ import uploadsRouter from "./uploads";
 import extractionRouter from "./extraction";
 import segmentationRouter from "./segmentation";
 import candidateReviewRouter from "./candidateReview";
+import editorialRouter from "./editorial";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -65,7 +66,7 @@ router.get("/health", (_req, res) => {
   const adapters = getAdapters();
   res.json({
     status: "ok",
-    phase: "06",
+    phase: "07",
     adapters: {
       storage: adapters.storage.name,
       nativeText: {
@@ -206,6 +207,10 @@ router.use(segmentationRouter);
 // ── Phase 06: validation, human review & cross-file reconstruction (ADR 0007) ──
 
 router.use(candidateReviewRouter);
+
+// ── Phase 07: publisher-content isolation & verified judicial text (ADR 0008) ──
+
+router.use(editorialRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller

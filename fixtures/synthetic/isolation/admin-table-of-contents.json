@@ -1,0 +1,21 @@
+{
+  "_comment": "Synthetic fixture: table of contents that should be classified as ADMINISTRATIVE_METADATA.",
+  "pages": [
+    {
+      "id": 4001,
+      "pageNumber": 1,
+      "text": "TABLE OF CONTENTS\n\n1. Ahmad Rashid v Public Prosecutor ......... 1\n2. Berjaya Corp Bhd v Revenue Authority ..... 45\n3. Tan Sri Lee v Majlis Bandaraya ........... 89",
+      "isBlank": false
+    }
+  ],
+  "blocks": [
+    {
+      "id": 5001, "pageId": 4001, "blockIndex": 0,
+      "text": "TABLE OF CONTENTS\n\n1. Ahmad Rashid v Public Prosecutor ......... 1\n2. Berjaya Corp Bhd v Revenue Authority ..... 45\n3. Tan Sri Lee v Majlis Bandaraya ........... 89",
+      "blockType": "paragraph", "font": null
+    }
+  ],
+  "expectedClassifications": {
+    "5001": "ADMINISTRATIVE_METADATA"
+  }
+}

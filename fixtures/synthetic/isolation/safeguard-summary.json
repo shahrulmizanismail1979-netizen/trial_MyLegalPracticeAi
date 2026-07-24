@@ -1,0 +1,28 @@
+{
+  "_comment": "Synthetic fixture: judicial summary block that must NOT be classified as SUSPECTED_PUBLISHER_EDITORIAL (safeguard: summary alone is insufficient).",
+  "pages": [
+    {
+      "id": 3001,
+      "pageNumber": 1,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\nCIVIL SUIT NO: 22-999-2024\n\nSUMMARY OF DECISION\nThe court finds that the defendant is liable for breach of contract and awards damages.",
+      "isBlank": false
+    }
+  ],
+  "blocks": [
+    {
+      "id": 4001, "pageId": 3001, "blockIndex": 0,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\nCIVIL SUIT NO: 22-999-2024",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 4002, "pageId": 3001, "blockIndex": 1,
+      "text": "SUMMARY OF DECISION\nThe court finds that the defendant is liable for breach of contract and awards damages.",
+      "blockType": "paragraph", "font": null
+    }
+  ],
+  "safeguardAssertion": "block 4002 must NOT be SUSPECTED_PUBLISHER_EDITORIAL (no branding corroborator)",
+  "expectedClassifications": {
+    "4001": "VERIFIED_JUDICIAL_TEXT",
+    "4002": "PROBABLE_JUDICIAL_TEXT"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "_comment": "Synthetic fixture: judgment text that is missing a dispositif — must trigger INCOMPLETE_ENDING critical warning.",
+  "pages": [
+    {
+      "id": 5001,
+      "pageNumber": 1,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\nCIVIL SUIT NO: 22-11111-2024\n\nCORAM: JUSTICE RAHMAN\n\nGROUNDS OF JUDGMENT\n\n[1] This is the judgment of the court.\n\n[2] The matter concerns a dispute between neighbours.",
+      "isBlank": false
+    }
+  ],
+  "completenessAssertion": "INCOMPLETE_ENDING critical warning expected (no dispositif)",
+  "expectedCriticalWarnings": ["INCOMPLETE_ENDING"]
+}

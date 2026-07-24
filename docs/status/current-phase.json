@@ -1,14 +1,15 @@
 {
-  "phase": "06",
-  "name": "Consolidation (Validation, Human Review & Cross-File Reconstruction)",
+  "phase": "07",
+  "name": "Publisher-Content Isolation & Verified Judicial Text",
   "status": "complete",
   "startedAt": "2026-07-24",
   "completedAt": "2026-07-24",
-  "report": "docs/reports/phase-06-completion.md",
-  "decisionRecord": null,
-  "nextPhase": {
-    "phase": "07",
-    "name": "Search & Research UI",
-    "status": "not_started"
+  "report": "docs/reports/phase-07-completion.md",
+  "decisionRecord": "docs/decisions/0008-phase-07-publisher-content-isolation.md",
+  "previousPhase": {
+    "phase": "06",
+    "name": "Consolidation (Validation, Human Review & Cross-File Reconstruction)",
+    "status": "complete",
+    "report": "docs/reports/phase-06-completion.md"
   }
 }

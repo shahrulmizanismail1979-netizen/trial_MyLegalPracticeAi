@@ -1,0 +1,43 @@
+{
+  "_comment": "Synthetic fixture: page with publisher header that should be classified as SUSPECTED_PUBLISHER_EDITORIAL, plus judicial content that must be VERIFIED.",
+  "pages": [
+    {
+      "id": 2001,
+      "pageNumber": 1,
+      "text": "MALAYAN LAW JOURNAL\n© 2024 LexisNexis. All Rights Reserved.\nISBN 978-967-400-100-1\n\nIN THE FEDERAL COURT OF MALAYSIA\nCIVIL APPEAL NO: 01-1234-2024\n\nCORAM: TAN SRI CHIEF JUSTICE RAUS\n\nJUDGMENT",
+      "isBlank": false
+    }
+  ],
+  "blocks": [
+    {
+      "id": 3001, "pageId": 2001, "blockIndex": 0,
+      "text": "MALAYAN LAW JOURNAL", "blockType": "heading", "font": { "bold": true, "size": 14 }
+    },
+    {
+      "id": 3002, "pageId": 2001, "blockIndex": 1,
+      "text": "© 2024 LexisNexis. All Rights Reserved.\nISBN 978-967-400-100-1",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 3003, "pageId": 2001, "blockIndex": 2,
+      "text": "IN THE FEDERAL COURT OF MALAYSIA\nCIVIL APPEAL NO: 01-1234-2024",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 3004, "pageId": 2001, "blockIndex": 3,
+      "text": "CORAM: TAN SRI CHIEF JUSTICE RAUS",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 3005, "pageId": 2001, "blockIndex": 4,
+      "text": "JUDGMENT", "blockType": "heading", "font": { "bold": true }
+    }
+  ],
+  "expectedClassifications": {
+    "3001": "SUSPECTED_PUBLISHER_EDITORIAL",
+    "3002": "SUSPECTED_PUBLISHER_EDITORIAL",
+    "3003": "VERIFIED_JUDICIAL_TEXT",
+    "3004": "VERIFIED_JUDICIAL_TEXT",
+    "3005": "VERIFIED_JUDICIAL_TEXT"
+  }
+}

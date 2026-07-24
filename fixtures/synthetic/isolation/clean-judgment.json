@@ -1,0 +1,64 @@
+{
+  "_comment": "Synthetic fixture: a clean single-judgment container with no editorial material.",
+  "pages": [
+    {
+      "id": 1001,
+      "pageNumber": 1,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\nCIVIL SUIT NO: 22-12345-2024\n\nBETWEEN\n\nPLAINTIFF SDN BHD  ... PLAINTIFF\n\nAND\n\nDEFENDANT SDN BHD  ... DEFENDANT\n\nCORAM: TAN SRI JUSTICE AHMAD\n\nGROUNDS OF JUDGMENT",
+      "isBlank": false
+    },
+    {
+      "id": 1002,
+      "pageNumber": 2,
+      "text": "[1] This is the judgment of the court.\n\n[2] The plaintiff brought this action for breach of contract arising from a construction agreement dated 1 January 2020.\n\n[3] The defendant denies liability and raises a counterclaim.",
+      "isBlank": false
+    },
+    {
+      "id": 1003,
+      "pageNumber": 3,
+      "text": "[4] Having heard submissions from both parties, I find in favour of the plaintiff.\n\n[5] IT IS HEREBY ORDERED that the defendant pay the plaintiff the sum of RM 500,000.00 together with costs of RM 50,000.00.\n\nSigned: TAN SRI JUSTICE AHMAD",
+      "isBlank": false
+    }
+  ],
+  "blocks": [
+    {
+      "id": 2001, "pageId": 1001, "blockIndex": 0,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR", "blockType": "heading", "font": { "bold": true }
+    },
+    {
+      "id": 2002, "pageId": 1001, "blockIndex": 1,
+      "text": "CIVIL SUIT NO: 22-12345-2024", "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 2003, "pageId": 1001, "blockIndex": 2,
+      "text": "CORAM: TAN SRI JUSTICE AHMAD", "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 2004, "pageId": 1001, "blockIndex": 3,
+      "text": "GROUNDS OF JUDGMENT", "blockType": "heading", "font": { "bold": true }
+    },
+    {
+      "id": 2005, "pageId": 1002, "blockIndex": 0,
+      "text": "[1] This is the judgment of the court.\n\n[2] The plaintiff brought this action for breach of contract.\n\n[3] The defendant denies liability.",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 2006, "pageId": 1003, "blockIndex": 0,
+      "text": "[4] Having heard submissions from both parties, I find in favour of the plaintiff.\n\n[5] IT IS HEREBY ORDERED that the defendant pay the plaintiff the sum of RM 500,000.00 together with costs of RM 50,000.00.",
+      "blockType": "paragraph", "font": null
+    },
+    {
+      "id": 2007, "pageId": 1003, "blockIndex": 1,
+      "text": "Signed: TAN SRI JUSTICE AHMAD", "blockType": "paragraph", "font": null
+    }
+  ],
+  "expectedClassifications": {
+    "2001": "VERIFIED_JUDICIAL_TEXT",
+    "2002": "VERIFIED_JUDICIAL_TEXT",
+    "2003": "VERIFIED_JUDICIAL_TEXT",
+    "2004": "VERIFIED_JUDICIAL_TEXT",
+    "2005": "VERIFIED_JUDICIAL_TEXT",
+    "2006": "VERIFIED_JUDICIAL_TEXT",
+    "2007": "VERIFIED_JUDICIAL_TEXT"
+  }
+}

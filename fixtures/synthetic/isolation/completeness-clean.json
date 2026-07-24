@@ -1,0 +1,13 @@
+{
+  "_comment": "Synthetic fixture: complete judgment — must produce zero critical warnings.",
+  "pages": [
+    {
+      "id": 6001,
+      "pageNumber": 1,
+      "text": "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\nCIVIL SUIT NO: 22-22222-2024\n\nCORAM: JUSTICE SITI\n\nGROUNDS OF JUDGMENT\n\n[1] This is the judgment of the court.\n\n[2] Having considered the evidence, I allow the plaintiff's claim.\n\nIT IS HEREBY ORDERED that judgment be entered for the plaintiff.",
+      "isBlank": false
+    }
+  ],
+  "completenessAssertion": "Zero critical warnings expected",
+  "expectedCriticalWarnings": []
+}
