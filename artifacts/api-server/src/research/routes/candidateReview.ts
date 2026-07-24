@@ -14,7 +14,7 @@ import {
   researchTransformations,
   researchSourcePages,
 } from "@workspace/db";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { requireResearchRole } from "../auth";
 import { recordAuditEvent } from "../domain/audit";
 import { checkContainerAccess } from "../domain/gates";
@@ -285,6 +285,11 @@ router.post(
       res.status(400).json({ error: "Page does not belong to this container", code: "PAGE_NOT_IN_CONTAINER" }); return;
     }
 
+    // Reject rather than coerce: runId is a required FK on researchCaseBoundaries.
+    if (candidate.runId == null) {
+      res.status(400).json({ error: "Cannot move boundary on a candidate with no segmentation run", code: "NO_RUN_ID" }); return;
+    }
+
     const actor = actorFrom(req);
 
     // Append-only lineage: reject the original candidate and create a new one
@@ -303,9 +308,12 @@ router.post(
     let newCandidateId: number | null = null;
 
     await db.transaction(async (tx) => {
+      // candidate.runId is validated non-null above (400 guard before transaction)
+      const runId = candidate.runId!;
+
       // 1. Create a new boundary at the requested page
       await tx.insert(researchCaseBoundaries).values({
-        runId: candidate.runId ?? 0,
+        runId,
         pageId: newPageId,
         boundaryRole,
         strength: "MODERATE_BOUNDARY_CANDIDATE",
@@ -317,7 +325,7 @@ router.post(
       }).onConflictDoNothing();
 
       const [newBound] = await tx.select().from(researchCaseBoundaries).where(
-        and(eq(researchCaseBoundaries.pageId, newPageId), eq(researchCaseBoundaries.boundaryRole, boundaryRole), eq(researchCaseBoundaries.runId, candidate.runId ?? 0)),
+        and(eq(researchCaseBoundaries.pageId, newPageId), eq(researchCaseBoundaries.boundaryRole, boundaryRole), eq(researchCaseBoundaries.runId, runId)),
       );
       if (!newBound) return; // boundary insert collision — treat as no-op
 
@@ -782,7 +790,15 @@ router.post(
         evidence: { manuallyLinked: true, reason: reason ?? "" },
         confirmedBy: confirmed ? actor : null,
         confirmedAt: confirmed ? new Date() : null,
-      }).onConflictDoNothing();
+      }).onConflictDoUpdate({
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        set: {
+          relationshipType: relType,
+          evidence: { manuallyLinked: true, reason: reason ?? "" },
+          confirmedBy: confirmed ? actor : null,
+          confirmedAt: confirmed ? new Date() : null,
+        },
+      });
 
       const [transformation] = await tx.insert(researchTransformations).values({ containerId: candidate.containerId, kind: "candidate.link_continuation", detail: { candidateId, targetCandidateId, relType, confirmed }, actor }).returning({ id: researchTransformations.id });
       await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "LINK_CONTINUATION", actor, detail: { targetCandidateId, confirmed, relType, reason: reason ?? "" }, transformationId: transformation.id });
@@ -832,7 +848,15 @@ router.post(
         evidence: { manuallyLinked: true, reason: reason ?? "" },
         confirmedBy: actor,
         confirmedAt: new Date(),
-      }).onConflictDoNothing();
+      }).onConflictDoUpdate({
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        set: {
+          relationshipType: relType,
+          evidence: { manuallyLinked: true, reason: reason ?? "" },
+          confirmedBy: actor,
+          confirmedAt: new Date(),
+        },
+      });
 
       const [transformation] = await tx.insert(researchTransformations).values({ containerId: candidate.containerId, kind: "candidate.link_duplicate", detail: { candidateId, targetCandidateId, relType }, actor }).returning({ id: researchTransformations.id });
       await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "LINK_DUPLICATE", actor, detail: { targetCandidateId, relType, reason: reason ?? "" }, transformationId: transformation.id });
@@ -882,7 +906,15 @@ router.post(
         evidence: { manuallyLinked: true, reason: reason ?? "" },
         confirmedBy: actor,
         confirmedAt: new Date(),
-      }).onConflictDoNothing();
+      }).onConflictDoUpdate({
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        set: {
+          relationshipType: relType,
+          evidence: { manuallyLinked: true, reason: reason ?? "" },
+          confirmedBy: actor,
+          confirmedAt: new Date(),
+        },
+      });
 
       const [transformation] = await tx.insert(researchTransformations).values({ containerId: candidate.containerId, kind: "candidate.link_related", detail: { candidateId, targetCandidateId, relType }, actor }).returning({ id: researchTransformations.id });
       await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "LINK_RELATED", actor, detail: { targetCandidateId, relType, reason: reason ?? "" }, transformationId: transformation.id });
@@ -910,16 +942,13 @@ router.get(
       .select()
       .from(researchCrossFileRelationships)
       .where(
-        and(
-          ne(researchCrossFileRelationships.sourceCandidateId, -1), // always true — just forces index
+        or(
+          eq(researchCrossFileRelationships.sourceCandidateId, candidateId),
+          eq(researchCrossFileRelationships.targetCandidateId, candidateId),
         ),
       );
-    // Filter in-process to avoid complex OR query
-    const relevant = relationships.filter(
-      (r) => r.sourceCandidateId === candidateId || r.targetCandidateId === candidateId,
-    );
 
-    res.json(relevant);
+    res.json(relationships);
   },
 );
 
@@ -1082,9 +1111,15 @@ router.get(
       ? await db.select().from(researchCandidateCoherenceChecks).where(inArray(researchCandidateCoherenceChecks.candidateId, candidateIds)).orderBy(asc(researchCandidateCoherenceChecks.id))
       : [];
 
-    // Cross-file relationships involving these candidates
-    const allRels = await db.select().from(researchCrossFileRelationships);
-    const relationships = allRels.filter((r) => candidateIds.includes(r.sourceCandidateId) || candidateIds.includes(r.targetCandidateId));
+    // Cross-file relationships involving these candidates (SQL-scoped, no in-memory scan)
+    const relationships = candidateIds.length > 0
+      ? await db.select().from(researchCrossFileRelationships).where(
+          or(
+            inArray(researchCrossFileRelationships.sourceCandidateId, candidateIds),
+            inArray(researchCrossFileRelationships.targetCandidateId, candidateIds),
+          ),
+        )
+      : [];
 
     res.json({ span, segments, candidates, coherenceChecks, relationships });
   },
