@@ -26,6 +26,7 @@ import {
   researchPageSections,
   researchEditorialRuns,
   researchTransformations,
+  researchReviewItems,
   researchJobs,
 } from "@workspace/db";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
@@ -40,6 +41,7 @@ import type { DbClient } from "../domain/types";
 import {
   classifySections,
   EDITORIAL_PROCESSOR_VERSION,
+  LOW_CONFIDENCE,
   type PageInput,
   type BlockInput,
 } from "./sectionClassifier";
@@ -271,6 +273,25 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
       },
       actor: `job:${job.id}`,
     });
+  }
+
+  // Create research_review_items for sections requiring manual review or low confidence
+  const reviewRequiredSections = classified.filter(
+    (s) => s.classification === "MANUAL_REVIEW_REQUIRED" || s.confidence < LOW_CONFIDENCE,
+  );
+  if (reviewRequiredSections.length > 0) {
+    await dbc.insert(researchReviewItems).values(
+      reviewRequiredSections.map((s) => ({
+        containerId,
+        kind: s.classification === "MANUAL_REVIEW_REQUIRED"
+          ? "editorial.manual_review"
+          : "editorial.low_confidence",
+        reason: s.classification === "MANUAL_REVIEW_REQUIRED"
+          ? `Section ${s.sectionIndex} on page ${s.pageId} has conflicting signals and requires manual classification review.`
+          : `Section ${s.sectionIndex} on page ${s.pageId} classified as ${s.classification} with low confidence (${Math.round(s.confidence * 100)}%); human review recommended.`,
+        status: "open",
+      })),
+    );
   }
 
   // Decide next state

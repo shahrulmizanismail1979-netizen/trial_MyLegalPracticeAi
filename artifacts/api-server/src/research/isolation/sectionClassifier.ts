@@ -59,9 +59,15 @@ export interface ClassifiedSection {
 const PUBLISHER_BRANDING_RE =
   /\b(?:MALAYAN LAW JOURNAL|CLJ PUBLICATIONS|CURRENT LAW JOURNAL|LEXIS(?:NEXIS)?|SWEET\s*&\s*MAXWELL|BUTTERWORTHS?|©\s*\d{4}|ISBN[-\s]?\d|ISSN[-\s]?\d|ALL RIGHTS RESERVED|PRINTED BY|PUBLISHED BY|SDN\.?\s*BHD\.?\s+\(PENERBIT\)|Kuala Lumpur Law Journal|Legal Network Series)\b/i;
 
-// Explicit editorial vocabulary (unambiguous in court-document context)
+// Explicit editorial vocabulary (unambiguous in court-document context).
+// SAFEGUARD: CATCHWORDS must NOT appear here — catchword-like wording alone is
+// insufficient for publisher-editorial exclusion and requires branding corroboration.
 const PUBLISHER_EDITORIAL_VOCAB_RE =
-  /\b(?:HEADNOTES?|EDITORIAL\s+(?:NOTE|COMMENT|INTRODUCTION)|PUBLISHER['']?S?\s+SUMMARY|CATCHWORDS?:|KEY TERMS?:|REPORTED BY|WRITTEN\s+BY|ANNOTATIONS?:|COMMENTARY(?:\s+BY)?:)\b/i;
+  /\b(?:HEADNOTES?|EDITORIAL\s+(?:NOTE|COMMENT|INTRODUCTION)|PUBLISHER['']?S?\s+SUMMARY|KEY TERMS?:|REPORTED BY|WRITTEN\s+BY|ANNOTATIONS?:|COMMENTARY(?:\s+BY)?:)\b/i;
+
+// Catchword signal — a weak indicator only. Alone it does NOT justify
+// SUSPECTED_PUBLISHER_EDITORIAL; requires publisher branding to corroborate.
+const CATCHWORD_SIGNAL_RE = /\bCATCHWORDS?:\s/i;
 
 // Administrative material — tables of contents, cause lists
 const ADMIN_MATERIAL_RE =
@@ -208,6 +214,11 @@ function classifyBlock(
 
   if (brandingMatch) evidence.push(`publisher branding: "${brandingMatch}"`);
   if (editorialVocabMatch) evidence.push(`editorial vocabulary: "${editorialVocabMatch}"`);
+  // Catchword signal: noted in evidence only — it does NOT count as a corroborator
+  // per ADR 0008 §3 safeguard. It may add confidence only when branding is also present.
+  if (CATCHWORD_SIGNAL_RE.test(text) && brandingMatch !== null) {
+    evidence.push("catchword signal (corroborated by publisher branding)");
+  }
 
   // Repeated header/footer text across pages is a weak signal; only combine
   // with corroborator for a confident exclusion.

@@ -1296,11 +1296,18 @@ export const researchVerifiedJudgments = pgTable(
       .notNull(),
     // SHA-256 of the concatenated ordered judicial text (for integrity checks)
     textChecksum: text("text_checksum").notNull(),
-    // ADR 0008 §6: approved judicial source spans — ordered array of
-    // { sectionId, pageId, sectionIndex, classification } for sections that
-    // passed the isolation gate and were approved as judicial text.
+    // ADR 0008 §6: approved judicial source spans — ordered array of sections
+    // that passed the isolation gate, with containerId + span provenance.
     approvedJudicialSpans: jsonb("approved_judicial_spans")
-      .$type<Array<{ sectionId: number; pageId: number; sectionIndex: number; classification: string }>>()
+      .$type<Array<{
+        sectionId: number;
+        containerId: number;
+        pageId: number;
+        sectionIndex: number;
+        classification: string;
+        spanStartChar: number | null;
+        spanEndChar: number | null;
+      }>>()
       .default([])
       .notNull(),
     // ADR 0008 §6: provenance to source containers.
@@ -1313,8 +1320,19 @@ export const researchVerifiedJudgments = pgTable(
       .$type<number[]>()
       .default([])
       .notNull(),
-    // Non-critical warnings recorded at verification time
+    // Non-critical warnings (legacy field — kept for backward compat)
     unresolvedWarnings: jsonb("unresolved_warnings")
+      .$type<Array<{ code: string; description: string }>>()
+      .default([])
+      .notNull(),
+    // ADR 0008 §6 explicit separation: critical integrity warnings (always []
+    // on verified records — 422 blocks non-empty lists; stored to prove check passed)
+    criticalIntegrityWarnings: jsonb("critical_integrity_warnings")
+      .$type<Array<{ code: string; description: string }>>()
+      .default([])
+      .notNull(),
+    // ADR 0008 §6 explicit separation: non-critical warnings at verification time
+    unresolvedNonCriticalWarnings: jsonb("unresolved_non_critical_warnings")
       .$type<Array<{ code: string; description: string }>>()
       .default([])
       .notNull(),

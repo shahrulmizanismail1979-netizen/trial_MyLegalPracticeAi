@@ -16,6 +16,7 @@ import {
   researchSourceContainers,
   researchSourcePages,
   researchPageExtractions,
+  researchPageBlocks,
   researchCaseCandidates,
   researchCaseCandidateBoundaries,
   researchCaseBoundaries,
@@ -168,8 +169,9 @@ router.patch(
 );
 
 // ── POST /containers/:id/editorial-review/complete ────────────────────────
-// Called by a reviewer after overriding any MANUAL_REVIEW_REQUIRED sections.
-// Enqueues a fresh editorial classification job (which re-reads the overrides).
+// Called by a reviewer after overriding all MANUAL_REVIEW_REQUIRED sections.
+// Validates no unresolved sections remain, transitions EDITORIAL_REVIEW_REQUIRED →
+// EDITORIAL_REVIEW_PENDING if needed, then enqueues re-classification.
 
 router.post(
   "/containers/:id/editorial-review/complete",
@@ -179,7 +181,40 @@ router.post(
     if (!Number.isInteger(id)) { res.status(400).json({ error: "Invalid container id" }); return; }
     if (!(await requireContainerView(req, res, id))) return;
 
+    // Validate: no MANUAL_REVIEW_REQUIRED sections may remain without a reviewer decision
+    const mrrSections = await db
+      .select({ id: researchPageSections.id, reviewerDecision: researchPageSections.reviewerDecision })
+      .from(researchPageSections)
+      .where(and(
+        eq(researchPageSections.containerId, id),
+        eq(researchPageSections.classification, "MANUAL_REVIEW_REQUIRED"),
+      ));
+    const unresolvedSections = mrrSections.filter((s) => s.reviewerDecision === null);
+    if (unresolvedSections.length > 0) {
+      res.status(409).json({
+        error: `${unresolvedSections.length} section(s) still require a manual classification override. Use PATCH /containers/${id}/sections/:sectionId to resolve each before completing editorial review.`,
+        code: "UNRESOLVED_MANUAL_REVIEW",
+        unresolvedCount: unresolvedSections.length,
+      });
+      return;
+    }
+
     const actor = actorFrom(req);
+
+    // Transition EDITORIAL_REVIEW_REQUIRED → EDITORIAL_REVIEW_PENDING so the
+    // state path matches: REQUIRED → PENDING → JUDGMENT_VERIFICATION_PENDING.
+    const { container } = await checkContainerAccess(id, req.researchRole ?? null, "view", { actor }).catch(() => ({ container: null }));
+    if (container?.processingState === "EDITORIAL_REVIEW_REQUIRED") {
+      try {
+        await transitionContainer(id, "EDITORIAL_REVIEW_PENDING", {
+          actor,
+          detail: { reason: "reviewer_complete", resolvedSectionCount: mrrSections.length },
+        });
+      } catch {
+        // Race condition — processor may have already transitioned; proceed to enqueue
+      }
+    }
+
     try {
       const { jobId } = await startEditorialClassification(id, actor);
       res.status(202).json({ jobId, message: "Editorial classification enqueued" });
@@ -244,11 +279,30 @@ router.get(
       }
     }
 
-    const result = gated.map((s) => ({
-      ...rawSections.find((r) => r.pageId === s.pageId && r.sectionIndex === s.sectionIndex),
-      effectiveClassification: s.classification,
-      pageText: pageTexts[s.pageId] ?? null,
-    }));
+    // Fetch block-level text for sections that have a blockId.
+    // On mixed pages, we must not return the full page text — only the
+    // specific block's text for each judicial section (isolation enforcement).
+    const gatedBlockIds = rawSections
+      .filter((r) => r.blockId !== null && gated.some((g) => g.pageId === r.pageId && g.sectionIndex === r.sectionIndex))
+      .map((r) => r.blockId!);
+    const blockTextMap = new Map<number, string>();
+    if (gatedBlockIds.length > 0) {
+      const blocks = await db
+        .select({ id: researchPageBlocks.id, text: researchPageBlocks.text })
+        .from(researchPageBlocks)
+        .where(inArray(researchPageBlocks.id, gatedBlockIds));
+      for (const b of blocks) blockTextMap.set(b.id, b.text);
+    }
+
+    const result = gated.map((s) => {
+      const raw = rawSections.find((r) => r.pageId === s.pageId && r.sectionIndex === s.sectionIndex);
+      // Use block-level text when available (mixed-page isolation).
+      // Fall back to full page text only for whole-page synthetic sections (no blockId).
+      const sectionText = raw?.blockId != null
+        ? (blockTextMap.get(raw.blockId) ?? pageTexts[s.pageId] ?? null)
+        : (pageTexts[s.pageId] ?? null);
+      return { ...raw, effectiveClassification: s.classification, sectionText };
+    });
 
     res.json({ containerId: id, sections: result, isolationApplied });
   },
@@ -388,8 +442,32 @@ router.post(
       return;
     }
 
-    // Compute judicial text checksum
-    const judicialTexts = judicialSections.map((s) => pageTextMap[s.pageId] ?? "");
+    // Build a quick-lookup map for raw sections (pageId-sectionIndex → row)
+    const rawSectionByKey = new Map<string, typeof rawSections[number]>();
+    for (const s of rawSections) rawSectionByKey.set(`${s.pageId}-${s.sectionIndex}`, s);
+
+    // Fetch block-level text for judicial sections that have a blockId.
+    // On mixed pages this ensures the checksum and completeness check operate
+    // only on judicial block content, never on adjacent editorial blocks.
+    const judicialBlockIds = judicialSections
+      .map((s) => rawSectionByKey.get(`${s.pageId}-${s.sectionIndex}`)?.blockId)
+      .filter((id): id is number => id !== undefined && id !== null);
+    const verifyBlockTextMap = new Map<number, string>();
+    if (judicialBlockIds.length > 0) {
+      const blocks = await db
+        .select({ id: researchPageBlocks.id, text: researchPageBlocks.text })
+        .from(researchPageBlocks)
+        .where(inArray(researchPageBlocks.id, judicialBlockIds));
+      for (const b of blocks) verifyBlockTextMap.set(b.id, b.text);
+    }
+
+    // Assemble judicial texts: use block text when blockId is present (section-level
+    // isolation); fall back to full page text only for synthetic whole-page sections.
+    const judicialTexts = judicialSections.map((s) => {
+      const raw = rawSectionByKey.get(`${s.pageId}-${s.sectionIndex}`);
+      if (raw?.blockId != null) return verifyBlockTextMap.get(raw.blockId) ?? "";
+      return pageTextMap[s.pageId] ?? "";
+    });
     const textChecksum = computeJudicialTextChecksum(judicialTexts);
 
     const actor = actorFrom(req);
@@ -409,17 +487,20 @@ router.post(
       .limit(1);
     const editorialRunId = latestRunRow[0]?.editorialRunId ?? null;
 
-    // ADR 0008 §6: build approved judicial spans from the stored sections
-    const sectionIdByKey = new Map<string, number>();
-    for (const s of rawSections) {
-      sectionIdByKey.set(`${s.pageId}-${s.sectionIndex}`, s.id);
-    }
-    const approvedJudicialSpans = judicialSections.map((s) => ({
-      sectionId: sectionIdByKey.get(`${s.pageId}-${s.sectionIndex}`) ?? 0,
-      pageId: s.pageId,
-      sectionIndex: s.sectionIndex,
-      classification: s.classification,
-    }));
+    // ADR 0008 §6: build approved judicial spans with full provenance
+    // (containerId, pageId, sectionIndex, classification, span chars)
+    const approvedJudicialSpans = judicialSections.map((s) => {
+      const raw = rawSectionByKey.get(`${s.pageId}-${s.sectionIndex}`);
+      return {
+        sectionId: raw?.id ?? 0,
+        containerId: id,
+        pageId: s.pageId,
+        sectionIndex: s.sectionIndex,
+        classification: s.classification,
+        spanStartChar: raw?.spanStartChar ?? null,
+        spanEndChar: raw?.spanEndChar ?? null,
+      };
+    });
 
     // ADR 0008 §6: source refs — provenance back to the container
     const containerRow = await db
@@ -456,6 +537,8 @@ router.post(
           sourceRefs,
           originalPageRefs,
           unresolvedWarnings: nonCriticalWarnings,
+          criticalIntegrityWarnings: [],
+          unresolvedNonCriticalWarnings: nonCriticalWarnings,
           verifiedBy: actor,
           provenance: { verifiedAt: new Date().toISOString(), sectionCount: judicialSections.length },
         })
