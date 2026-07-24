@@ -1,12 +1,12 @@
 ---
-name: Phase 06 test cleanup isolation
-description: afterAll cleanup must query validation_runs by both containerId and trackedJobIds to handle auto-triggered jobs picked up outside the current test's container scope.
+name: Research test cleanup — validation run orphans
+description: Test afterAll cleanup must sweep validation_runs by job ID, not only by container ID, when auto-triggered jobs cross container scopes.
 ---
 
 ## Rule
 
-In the phase06 `afterAll` cleanup, step 3 (delete validation runs) must query `researchValidationRuns` by **both** `containerId IN (trackedContainerIds)` and `jobId IN (trackedJobIds)`, then merge and deduplicate.
+When a test loop calls `runNextJob()`, it may pick up auto-triggered validation jobs whose containers belong to other test scopes. Cleaning up only by `containerId` leaves orphaned `validation_runs` rows that block the final `DELETE FROM research_jobs`.
 
-**Why:** `startValidation()` is now auto-triggered after every segmentation job (both clean and review-required outcomes). This creates extra QUEUED validation jobs in the DB. When test loops call `runNextJob()`, they may pick up these auto-triggered jobs for containers belonging to _other_ test scopes (different vitest describe blocks running in parallel, or previous runs). These jobs get pushed into `trackedJobIds` but their containers are NOT in `trackedContainerIds`. When the loop then runs those jobs and validation_runs are created, a containerId-only cleanup query misses them — leaving orphaned validation_run rows that block the final `DELETE FROM research_jobs`.
+**Why:** `startValidation()` fires automatically after every segmentation job (both clean and review-required outcomes), so extra QUEUED jobs appear in the DB beyond what a given test explicitly enqueued. These extra jobs may be dequeued mid-test and create `validation_runs` rows whose `containerId` is outside the test's tracked set.
 
-**How to apply:** Whenever a test loop calls `runNextJob()` and pushes job IDs to a tracked list, the cleanup for those jobs must also sweep any validation_runs keyed by those job IDs, not only by containerId.
+**How to apply:** Any test that calls `runNextJob()` in a loop and tracks job IDs must delete `validation_runs` keyed by those job IDs (union with the container-scoped set) before deleting jobs and containers.
