@@ -1128,8 +1128,8 @@ describe("Phase 06 integration: cross-file detection across sibling containers",
       // POSSIBLE_CONTINUATION expected — but we tolerate no-relationship if text is too short
       expect(Array.isArray(rels)).toBe(true);
     } else {
-      // Not enough data to assert — skip with passing expectation
-      expect(true).toBe(true);
+      // Not enough candidates or validation runs — assert the condition that caused the skip
+      expect(allCandIds.length < 2 || valRuns.length === 0).toBe(true);
     }
   }, 120_000);
 });
@@ -1214,8 +1214,8 @@ describe("Phase 06 integration: cross-file span management (DB)", () => {
       expect(approved?.status).toBe("APPROVED");
       expect(approved?.approvedBy).toBe(OWNER_EMAIL);
     } else {
-      // No candidates produced (text too small for segmentation) — that is OK
-      expect(true).toBe(true);
+      // At least one container produced no candidates — assert that condition
+      expect(cands1.length === 0 || cands2.length === 0).toBe(true);
     }
   }, 90_000);
 });

@@ -759,6 +759,11 @@ router.post(
     if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
 
     const { targetCandidateId, confirmed, reason } = parsed.data;
+
+    const [targetCandidate] = await db.select().from(researchCaseCandidates).where(eq(researchCaseCandidates.id, targetCandidateId));
+    if (!targetCandidate) { res.status(404).json({ error: "Target candidate not found" }); return; }
+    if (!(await requireContainerView(req, res, targetCandidate.containerId))) return;
+
     const actor = actorFrom(req);
     const relType = confirmed ? "CONFIRMED_CONTINUATION" : "POSSIBLE_CONTINUATION";
 
@@ -806,6 +811,11 @@ router.post(
     if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
 
     const { targetCandidateId, type: relType, reason } = parsed.data;
+
+    const [targetCandidateDup] = await db.select().from(researchCaseCandidates).where(eq(researchCaseCandidates.id, targetCandidateId));
+    if (!targetCandidateDup) { res.status(404).json({ error: "Target candidate not found" }); return; }
+    if (!(await requireContainerView(req, res, targetCandidateDup.containerId))) return;
+
     const actor = actorFrom(req);
     const [src, tgt] = candidateId < targetCandidateId ? [candidateId, targetCandidateId] : [targetCandidateId, candidateId];
 
@@ -851,6 +861,11 @@ router.post(
     if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
 
     const { targetCandidateId, type: relType, reason } = parsed.data;
+
+    const [targetCandidateRel] = await db.select().from(researchCaseCandidates).where(eq(researchCaseCandidates.id, targetCandidateId));
+    if (!targetCandidateRel) { res.status(404).json({ error: "Target candidate not found" }); return; }
+    if (!(await requireContainerView(req, res, targetCandidateRel.containerId))) return;
+
     const actor = actorFrom(req);
     const [src, tgt] = candidateId < targetCandidateId ? [candidateId, targetCandidateId] : [targetCandidateId, candidateId];
 
