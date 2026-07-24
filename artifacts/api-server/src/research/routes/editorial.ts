@@ -320,9 +320,12 @@ router.get(
     const result = gated.map((s) => {
       const raw = rawSections.find((r) => r.pageId === s.pageId && r.sectionIndex === s.sectionIndex);
       // Use block-level text when available (mixed-page isolation).
-      // Fall back to full page text only for whole-page synthetic sections (no blockId).
+      // For block-scoped sections, never fall back to full page text — a missing
+      // block entry must not re-introduce adjacent editorial content.
+      // For whole-page synthetic sections (no blockId), page text is safe because
+      // the entire page was classified as judicial.
       const sectionText = raw?.blockId != null
-        ? (blockTextMap.get(raw.blockId) ?? pageTexts[s.pageId] ?? null)
+        ? (blockTextMap.get(raw.blockId) ?? null)
         : (pageTexts[s.pageId] ?? null);
       return { ...raw, effectiveClassification: s.classification, sectionText };
     });
