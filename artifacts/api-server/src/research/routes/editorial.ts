@@ -448,7 +448,13 @@ router.post(
 
     const judicialSections = applyIsolationGate(asSections);
 
-    // Fetch extractions for page text
+    // Build rawSectionByKey early — needed to resolve blockIds before the
+    // completeness check so judicialPageInputs contain only judicial content.
+    const rawSectionByKey = new Map<string, typeof rawSections[number]>();
+    for (const s of rawSections) rawSectionByKey.set(`${s.pageId}-${s.sectionIndex}`, s);
+
+    // Fetch extractions for page text (used for whole-page synthetic sections
+    // and as fallback for checksum assembly).
     const pageTextMap: Record<number, string> = {};
     if (candidatePageObjs.length > 0) {
       const exts = await db
@@ -461,34 +467,9 @@ router.post(
       }
     }
 
-    const pageInputs: PageInput[] = candidatePageObjs.map((p) => ({
-      id: p.id,
-      pageNumber: p.pageNumber,
-      text: pageTextMap[p.id] ?? "",
-    }));
-
-    const { criticalWarnings, nonCriticalWarnings } = checkCompleteness(
-      judicialSections,
-      pageInputs,
-      totalContainerPages,
-    );
-
-    if (criticalWarnings.length > 0) {
-      res.status(422).json({
-        error: "Completeness check failed — critical warnings must be resolved before verification",
-        criticalWarnings,
-        nonCriticalWarnings,
-      });
-      return;
-    }
-
-    // Build a quick-lookup map for raw sections (pageId-sectionIndex → row)
-    const rawSectionByKey = new Map<string, typeof rawSections[number]>();
-    for (const s of rawSections) rawSectionByKey.set(`${s.pageId}-${s.sectionIndex}`, s);
-
-    // Fetch block-level text for judicial sections that have a blockId.
-    // On mixed pages this ensures the checksum and completeness check operate
-    // only on judicial block content, never on adjacent editorial blocks.
+    // Fetch block-level text for judicial block-scoped sections BEFORE the
+    // completeness check. Mixed pages contain both judicial and editorial blocks;
+    // the completeness check must analyse only the judicial block text.
     const judicialBlockIds = judicialSections
       .map((s) => rawSectionByKey.get(`${s.pageId}-${s.sectionIndex}`)?.blockId)
       .filter((id): id is number => id !== undefined && id !== null);
@@ -499,6 +480,41 @@ router.post(
         .from(researchPageBlocks)
         .where(inArray(researchPageBlocks.id, judicialBlockIds));
       for (const b of blocks) verifyBlockTextMap.set(b.id, b.text);
+    }
+
+    // Build judicialPageInputs: each page's text is assembled exclusively from
+    // judicial section content — block text for block-scoped sections, full page
+    // text for whole-page synthetic sections (where the entire page is judicial).
+    // This prevents editorial content on mixed pages from contaminating analysis.
+    const judicialTextByPage = new Map<number, string[]>();
+    for (const s of judicialSections) {
+      const raw = rawSectionByKey.get(`${s.pageId}-${s.sectionIndex}`);
+      const sectionText = raw?.blockId != null
+        ? (verifyBlockTextMap.get(raw.blockId) ?? "")
+        : (pageTextMap[s.pageId] ?? "");
+      const bucket = judicialTextByPage.get(s.pageId) ?? [];
+      bucket.push(sectionText);
+      judicialTextByPage.set(s.pageId, bucket);
+    }
+    const judicialPageInputs: PageInput[] = candidatePageObjs.map((p) => ({
+      id: p.id,
+      pageNumber: p.pageNumber,
+      text: (judicialTextByPage.get(p.id) ?? []).join("\n"),
+    }));
+
+    const { criticalWarnings, nonCriticalWarnings } = checkCompleteness(
+      judicialSections,
+      judicialPageInputs,
+      totalContainerPages,
+    );
+
+    if (criticalWarnings.length > 0) {
+      res.status(422).json({
+        error: "Completeness check failed — critical warnings must be resolved before verification",
+        criticalWarnings,
+        nonCriticalWarnings,
+      });
+      return;
     }
 
     // Assemble judicial texts: use block text when blockId is present (section-level

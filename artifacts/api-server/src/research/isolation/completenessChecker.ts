@@ -70,13 +70,8 @@ function joinText(sections: ClassifiedSection[], pages: PageInput[]): string {
       if (s.spanStartChar != null && s.spanEndChar != null) {
         return pageText.slice(s.spanStartChar, s.spanEndChar);
       }
-      // Block-scoped section (blockId present) but no character-span offsets:
-      // we cannot determine safe boundaries within the page, so return empty
-      // string rather than risk contaminating judicial text with adjacent
-      // publisher-editorial blocks on mixed pages.
-      if (s.blockId != null) return "";
-      // Whole-page synthetic section (no blockId, no span): the classifier
-      // assigned the entire page as judicial — full page text is safe.
+      // Callers are responsible for providing judicially-filtered page text
+      // (e.g. assembled from block texts on mixed pages). joinText uses it as-is.
       return pageText;
     })
     .join("\n");

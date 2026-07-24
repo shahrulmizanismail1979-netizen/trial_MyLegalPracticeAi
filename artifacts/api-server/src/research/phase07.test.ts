@@ -45,6 +45,7 @@ const {
   researchBoundarySignals,
   researchValidationRuns,
   researchCandidateCoherenceChecks,
+  researchPageBlocks,
 } = await import("@workspace/db");
 const { eq, like, inArray, and } = await import("drizzle-orm");
 
@@ -755,6 +756,86 @@ describe("POST /api/research/containers/:id/verify", () => {
 
     // Verified judgment row should exist
     const [vj] = await db.select().from(researchVerifiedJudgments).where(eq(researchVerifiedJudgments.candidateId, candidateId));
+    expect(vj).toBeDefined();
+    expect(vj!.textChecksum.length).toBe(64);
+  });
+
+  it("creates verified judgment when sections have blockId (real processor output shape)", async () => {
+    // This test replicates real editorial processor output: sections reference
+    // specific blocks, not whole pages. The /verify handler must assemble
+    // judicial text from block texts so that completeness analysis works
+    // correctly even when span offsets are absent.
+    const judicialText =
+      "IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR\n" +
+      "CIVIL SUIT NO: 22-BLOCKTEST-2024\n" +
+      "CORAM: JUSTICE BLOCKTEST\n" +
+      "GROUNDS OF JUDGMENT\n" +
+      "[1] Block-scoped judgment text.\n" +
+      "[2] IT IS HEREBY ORDERED that judgment be entered for the plaintiff with costs.";
+    const editorialText = "\u00a9 Publisher 2024 | Page 1";
+    const fullPageText = judicialText + "\n" + editorialText;
+
+    // Seed via helper (creates one whole-page section without blockId)
+    const { containerId, candidateId, sectionIds } = await seedVerificationReadyContainer({
+      pageTexts: [fullPageText],
+      sectionClassifications: ["VERIFIED_JUDICIAL_TEXT"],
+    });
+
+    // Fetch the page and its extraction to attach blocks
+    const [page] = await db
+      .select({ id: researchSourcePages.id })
+      .from(researchSourcePages)
+      .where(eq(researchSourcePages.containerId, containerId));
+    const [extraction] = await db
+      .select({ id: researchPageExtractions.id })
+      .from(researchPageExtractions)
+      .where(eq(researchPageExtractions.pageId, page!.id));
+
+    // Insert a judicial block and an editorial block for the page
+    const [judicialBlock] = await db
+      .insert(researchPageBlocks)
+      .values({
+        pageExtractionId: extraction!.id,
+        blockIndex: 0,
+        blockType: "paragraph",
+        text: judicialText,
+        charStart: 0,
+        charEnd: judicialText.length,
+        readingOrder: 0,
+      })
+      .returning({ id: researchPageBlocks.id });
+
+    await db.insert(researchPageBlocks).values({
+      pageExtractionId: extraction!.id,
+      blockIndex: 1,
+      blockType: "footer",
+      text: editorialText,
+      charStart: judicialText.length + 1,
+      charEnd: fullPageText.length,
+      readingOrder: 1,
+    });
+
+    // Update the existing section to reference the judicial block (no spans)
+    await db
+      .update(researchPageSections)
+      .set({ blockId: judicialBlock!.id })
+      .where(eq(researchPageSections.id, sectionIds[0]!));
+
+    const app = buildApp(OWNER_EMAIL, "owner");
+    const res = await request(app)
+      .post(`/api/research/containers/${containerId}/verify`)
+      .send({ candidateId });
+
+    // Must succeed: completeness check must use block text, not empty string
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty("verifiedJudgmentId");
+    expect(res.body.state).toBe("VERIFIED");
+    expect(res.body).toHaveProperty("textChecksum");
+
+    const [vj] = await db
+      .select()
+      .from(researchVerifiedJudgments)
+      .where(eq(researchVerifiedJudgments.candidateId, candidateId));
     expect(vj).toBeDefined();
     expect(vj!.textChecksum.length).toBe(64);
   });
