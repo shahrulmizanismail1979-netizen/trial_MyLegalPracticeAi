@@ -1,0 +1,13 @@
+{
+  "description": "Duplicate of the construction case — same suit number and parties as alternative-version.txt but with fewer corporate registration details. Should yield POSSIBLE_DUPLICATE or EXACT_DUPLICATE when paired with alternative-version.",
+  "coherence": {
+    "HAS_BEGINNING": "PASS",
+    "HAS_ENDING": "PASS"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "alternative-version.txt",
+      "allowedRelationshipTypes": ["EXACT_DUPLICATE", "POSSIBLE_DUPLICATE", "ALTERNATIVE_VERSION"]
+    }
+  ]
+}

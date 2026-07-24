@@ -1,0 +1,17 @@
+{
+  "description": "Second (final) part of a split judgment — begins mid-grounds at paragraph [14] with no case header, but has a closing order and judicial signature.",
+  "coherence": {
+    "HAS_BEGINNING": "FAIL",
+    "HAS_ENDING": "PASS"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "split-case-part1.txt",
+      "allowedRelationshipTypes": ["POSSIBLE_CONTINUATION"]
+    },
+    {
+      "pairedWith": "related-appeal.txt",
+      "allowedRelationshipTypes": ["RELATED_APPEAL", "POSSIBLE_CONTINUATION", null]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "description": "Continuation fragment — starts at paragraph [14] with no case-start signal (no citation, no IN-THE-COURT header). No closing order on its final paragraph. Combined with split-case-part1 it should yield a POSSIBLE_CONTINUATION.",
+  "coherence": {
+    "HAS_BEGINNING": "FAIL",
+    "HAS_ENDING": "UNCERTAIN"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "split-case-part1.txt",
+      "allowedRelationshipTypes": ["POSSIBLE_CONTINUATION", "RELATED_APPEAL"]
+    }
+  ]
+}

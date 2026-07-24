@@ -1,0 +1,13 @@
+{
+  "description": "Alternative version of the construction case — same suit number and parties as duplicate-case.txt but with additional corporate registration detail. Should yield a duplicate-family relationship when paired with duplicate-case.",
+  "coherence": {
+    "HAS_BEGINNING": "PASS",
+    "HAS_ENDING": "PASS"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "duplicate-case.txt",
+      "allowedRelationshipTypes": ["EXACT_DUPLICATE", "POSSIBLE_DUPLICATE", "ALTERNATIVE_VERSION"]
+    }
+  ]
+}

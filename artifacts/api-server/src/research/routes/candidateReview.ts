@@ -791,9 +791,8 @@ router.post(
         confirmedBy: confirmed ? actor : null,
         confirmedAt: confirmed ? new Date() : null,
       }).onConflictDoUpdate({
-        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId, researchCrossFileRelationships.relationshipType],
         set: {
-          relationshipType: relType,
           evidence: { manuallyLinked: true, reason: reason ?? "" },
           confirmedBy: confirmed ? actor : null,
           confirmedAt: confirmed ? new Date() : null,
@@ -849,9 +848,8 @@ router.post(
         confirmedBy: actor,
         confirmedAt: new Date(),
       }).onConflictDoUpdate({
-        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId, researchCrossFileRelationships.relationshipType],
         set: {
-          relationshipType: relType,
           evidence: { manuallyLinked: true, reason: reason ?? "" },
           confirmedBy: actor,
           confirmedAt: new Date(),
@@ -907,9 +905,8 @@ router.post(
         confirmedBy: actor,
         confirmedAt: new Date(),
       }).onConflictDoUpdate({
-        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId],
+        target: [researchCrossFileRelationships.sourceCandidateId, researchCrossFileRelationships.targetCandidateId, researchCrossFileRelationships.relationshipType],
         set: {
-          relationshipType: relType,
           evidence: { manuallyLinked: true, reason: reason ?? "" },
           confirmedBy: actor,
           confirmedAt: new Date(),

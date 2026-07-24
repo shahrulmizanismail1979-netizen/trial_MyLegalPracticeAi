@@ -1,0 +1,13 @@
+{
+  "description": "Completely unrelated criminal case from Sabah — different jurisdiction, court, parties, and subject matter. Should yield null (no relationship) when paired with the construction cases.",
+  "coherence": {
+    "HAS_BEGINNING": "PASS",
+    "HAS_ENDING": "PASS"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "split-case-part1.txt",
+      "allowedRelationshipTypes": null
+    }
+  ]
+}

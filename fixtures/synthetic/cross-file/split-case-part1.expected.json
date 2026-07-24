@@ -1,0 +1,17 @@
+{
+  "description": "First part of a split judgment — has case header and citation but no closing order or judicial signature. Paired with split-case-part2 it forms a POSSIBLE_CONTINUATION.",
+  "coherence": {
+    "HAS_BEGINNING": "PASS",
+    "HAS_ENDING": "UNCERTAIN"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "split-case-part2.txt",
+      "allowedRelationshipTypes": ["POSSIBLE_CONTINUATION"]
+    },
+    {
+      "pairedWith": "unrelated-case.txt",
+      "allowedRelationshipTypes": null
+    }
+  ]
+}

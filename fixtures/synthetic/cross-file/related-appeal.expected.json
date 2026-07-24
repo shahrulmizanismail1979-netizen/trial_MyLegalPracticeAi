@@ -1,0 +1,13 @@
+{
+  "description": "Court of Appeal judgment appealing from the construction case in split-case-part2. Different court level and different parties (Appellant/Respondent). Should not yield EXACT_DUPLICATE when paired with the High Court judgment.",
+  "coherence": {
+    "HAS_BEGINNING": "PASS",
+    "HAS_ENDING": "PASS"
+  },
+  "pairExpectations": [
+    {
+      "pairedWith": "split-case-part2.txt",
+      "allowedRelationshipTypes": ["RELATED_APPEAL", "POSSIBLE_CONTINUATION", null]
+    }
+  ]
+}
