@@ -561,6 +561,36 @@ router.post(
     const [cbA] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, candidateId));
     const [cbB] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, targetCandidateId));
 
+    // ── Adjacency gate ────────────────────────────────────────────────────
+    // Merging non-adjacent candidates creates structurally invalid spans.
+    // Enforce: one candidate's page range must immediately precede the other's.
+    if (cbA && cbB) {
+      const [pageA_end] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+        .from(researchCaseBoundaries)
+        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+        .where(eq(researchCaseBoundaries.id, cbA.endBoundaryId));
+      const [pageB_start] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+        .from(researchCaseBoundaries)
+        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+        .where(eq(researchCaseBoundaries.id, cbB.startBoundaryId));
+      const [pageB_end] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+        .from(researchCaseBoundaries)
+        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+        .where(eq(researchCaseBoundaries.id, cbB.endBoundaryId));
+      const [pageA_start] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+        .from(researchCaseBoundaries)
+        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+        .where(eq(researchCaseBoundaries.id, cbA.startBoundaryId));
+
+      if (pageA_end && pageB_start && pageA_start && pageB_end) {
+        const aBeforeB = pageA_end.pageNumber + 1 >= pageB_start.pageNumber && pageA_start.pageNumber <= pageA_end.pageNumber;
+        const bBeforeA = pageB_end.pageNumber + 1 >= pageA_start.pageNumber && pageB_start.pageNumber <= pageB_end.pageNumber;
+        if (!aBeforeB && !bBeforeA) {
+          res.status(400).json({ error: "Candidates are not adjacent; merge would create a gap or overlap", code: "NOT_ADJACENT" }); return;
+        }
+      }
+    }
+
     await db.transaction(async (tx) => {
       // Mark both originals as rejected
       await tx.update(researchCaseCandidates).set({ reviewStatus: "rejected", reviewedBy: actor, reviewedAt: new Date() }).where(inArray(researchCaseCandidates.id, [candidateId, targetCandidateId]));
@@ -597,9 +627,8 @@ router.post(
         actor,
       }).returning({ id: researchTransformations.id });
 
-      for (const id of [candidateId, targetCandidateId]) {
-        await tx.insert(researchCandidateReviewActions).values({ candidateId: id, actionType: "MERGE", actor, detail: { targetCandidateId: id === candidateId ? targetCandidateId : candidateId, mergedCandidateId: merged.id, reason }, transformationId: transformation.id });
-      }
+      // One action row per invocation (the source candidate initiated the merge)
+      await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "MERGE", actor, detail: { targetCandidateId, mergedCandidateId: merged.id, reason }, transformationId: transformation.id });
       await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MERGE", actor, detail: { containerId: candidate.containerId, targetCandidateId, mergedCandidateId: merged.id, reason } });
     });
 
@@ -938,13 +967,22 @@ router.post(
       res.status(409).json({ error: "One or more candidates are already in an approved span", code: "ALREADY_IN_APPROVED_SPAN", spanIds: approvedSpanIds }); return;
     }
 
+    // Derive canonical segment order from container/page sequence (not request order)
+    const orderedCandidates = [...candidates].sort((a, b) => {
+      if (a.containerId !== b.containerId) return a.containerId - b.containerId;
+      const aPage = a.startPageId ?? 0;
+      const bPage = b.startPageId ?? 0;
+      return aPage - bPage;
+    });
+    const orderedIds = orderedCandidates.map((c) => c.id);
+
     let spanId: number;
     await db.transaction(async (tx) => {
       const [span] = await tx.insert(researchCrossFileSpans).values({ createdBy: actor, status: "PROPOSED", note }).returning({ id: researchCrossFileSpans.id });
       spanId = span.id;
 
-      for (let i = 0; i < candidateIds.length; i++) {
-        await tx.insert(researchCrossFileSpanSegments).values({ spanId: span.id, candidateId: candidateIds[i], segmentOrder: i + 1 }).onConflictDoNothing();
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.insert(researchCrossFileSpanSegments).values({ spanId: span.id, candidateId: orderedIds[i], segmentOrder: i + 1 }).onConflictDoNothing();
       }
 
       const containerId = candidates[0]?.containerId;

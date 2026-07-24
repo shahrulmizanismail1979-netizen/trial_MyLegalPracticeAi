@@ -617,18 +617,29 @@ function showForm(id, action) {
   if (!box) return;
   let inner = "<div class='form-box'><b>" + esc(action) + " #" + id + "</b><br>";
   if (action === "move-boundary") {
-    inner += "<label>New start page ID:<input type='number' id='f-start'></label>" +
-             "<label style='margin-top:.25rem'>New end page ID:<input type='number' id='f-end'></label>";
+    inner += "<label>Boundary role:<select id='f-role'><option value='start'>start</option><option value='end'>end</option></select></label>" +
+             "<label style='margin-top:.25rem'>New page ID:<input type='number' id='f-page'></label>";
   } else if (action === "split") {
     inner += "<label>Split at page ID:<input type='number' id='f-split-page'></label>";
   } else if (action === "merge") {
     inner += "<label>Target candidate ID:<input type='number' id='f-target'></label>";
   } else if (action === "link-continuation") {
-    inner += "<label>Continuation candidate ID:<input type='number' id='f-target'></label>";
+    inner += "<label>Continuation candidate ID:<input type='number' id='f-target'></label>" +
+             "<label style='margin-top:.25rem'><input type='checkbox' id='f-confirmed'> Confirmed (not just possible)</label>";
   } else if (action === "link-duplicate") {
-    inner += "<label>Duplicate candidate ID:<input type='number' id='f-target'></label>";
+    inner += "<label>Duplicate candidate ID:<input type='number' id='f-target'></label>" +
+             "<label style='margin-top:.25rem'>Type:<select id='f-type'>" +
+             "<option value='POSSIBLE_DUPLICATE'>POSSIBLE_DUPLICATE</option>" +
+             "<option value='EXACT_DUPLICATE'>EXACT_DUPLICATE</option>" +
+             "<option value='ALTERNATIVE_VERSION'>ALTERNATIVE_VERSION</option>" +
+             "<option value='CORRECTED_VERSION'>CORRECTED_VERSION</option>" +
+             "</select></label>";
   } else if (action === "link-related") {
-    inner += "<label>Related candidate ID:<input type='number' id='f-target'></label>";
+    inner += "<label>Related candidate ID:<input type='number' id='f-target'></label>" +
+             "<label style='margin-top:.25rem'>Type:<select id='f-type'>" +
+             "<option value='RELATED_APPEAL'>RELATED_APPEAL</option>" +
+             "<option value='UNRELATED'>UNRELATED</option>" +
+             "</select></label>";
   }
   inner += "<label style='margin-top:.25rem'>Reason:<textarea id='f-reason' rows='2'></textarea></label>" +
     "<button class='primary' style='margin-top:.4rem' onclick='submitForm(" + id + ",\"" + action + "\")'>Submit</button>" +
@@ -643,14 +654,25 @@ async function submitForm(id, action) {
   if (!reason) { status.textContent = "Reason is required."; return; }
   let body = { reason };
   if (action === "move-boundary") {
-    const s = parseInt(document.getElementById("f-start")?.value ?? "");
-    const e2 = parseInt(document.getElementById("f-end")?.value ?? "");
-    if (!s || !e2) { status.textContent = "Start and end page IDs required."; return; }
-    body = { ...body, newStartPageId: s, newEndPageId: e2 };
+    const role = document.getElementById("f-role")?.value;
+    const pg = parseInt(document.getElementById("f-page")?.value ?? "");
+    if (!role || !pg) { status.textContent = "Boundary role and page ID required."; return; }
+    body = { ...body, boundaryRole: role, newPageId: pg };
   } else if (action === "split") {
     const pg = parseInt(document.getElementById("f-split-page")?.value ?? "");
     if (!pg) { status.textContent = "Split page ID required."; return; }
     body = { ...body, splitPageId: pg };
+  } else if (action === "link-continuation") {
+    const tgt = parseInt(document.getElementById("f-target")?.value ?? "");
+    if (!tgt) { status.textContent = "Target candidate ID required."; return; }
+    const confirmed = document.getElementById("f-confirmed")?.checked ?? false;
+    body = { ...body, targetCandidateId: tgt, confirmed };
+  } else if (action === "link-duplicate" || action === "link-related") {
+    const tgt = parseInt(document.getElementById("f-target")?.value ?? "");
+    if (!tgt) { status.textContent = "Target candidate ID required."; return; }
+    const type = document.getElementById("f-type")?.value;
+    if (!type) { status.textContent = "Type is required."; return; }
+    body = { ...body, targetCandidateId: tgt, type };
   } else {
     const tgt = parseInt(document.getElementById("f-target")?.value ?? "");
     if (!tgt) { status.textContent = "Target candidate ID required."; return; }
