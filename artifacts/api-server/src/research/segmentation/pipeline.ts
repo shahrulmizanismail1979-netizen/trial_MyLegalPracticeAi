@@ -26,6 +26,7 @@ import type { DbClient } from "../domain/types";
 import { detectSignals } from "./signalDetector";
 import { composeCandidate } from "./candidateComposer";
 import type { PageInput, BlockInput } from "./signalDetector";
+import { startValidation } from "../validation/pipeline";
 
 export const SEGMENT_JOB_KIND = "container.segment";
 export const SEGMENT_PROCESSOR_VERSION = "container.segment@1";
@@ -496,6 +497,30 @@ async function segmentProcessor(ctx: ProcessorContext) {
     },
     "Research container segmentation finished",
   );
+
+  // Phase 06: kick off validation automatically when segmentation is clean
+  // (container is now in SEGMENTATION_PROPOSED; no human action required).
+  if (!reviewRequired) {
+    try {
+      const { jobId: validateJobId } = await startValidation(
+        containerId,
+        `job:${job.id}`,
+        dbc,
+      );
+      logger.info(
+        { containerId, runId: run.id, validateJobId },
+        "Validation job enqueued automatically after clean segmentation",
+      );
+    } catch (err) {
+      // Best-effort: validation enqueue failure should not fail the segmentation
+      // job — the container is already in SEGMENTATION_PROPOSED and an operator
+      // can trigger validation manually.
+      logger.error(
+        { containerId, runId: run.id, err },
+        "Failed to auto-enqueue validation job after segmentation; operator can trigger manually",
+      );
+    }
+  }
 
   return {
     outputChecksum: sha16(

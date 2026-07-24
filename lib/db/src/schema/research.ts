@@ -952,3 +952,238 @@ export type ResearchBoundarySignal =
 export type ResearchCaseBoundary = typeof researchCaseBoundaries.$inferSelect;
 export type ResearchCaseCandidateBoundary =
   typeof researchCaseCandidateBoundaries.$inferSelect;
+
+// ── Phase 06: validation, human review & cross-file reconstruction (ADR 0007) ──
+
+export const COHERENCE_CHECK_TYPES = [
+  "COHERENT_CASE_IDENTITY",
+  "COHERENT_COURT",
+  "COHERENT_PARTIES",
+  "COHERENT_CITATION",
+  "COHERENT_JUDGE",
+  "COHERENT_NARRATIVE",
+  "COHERENT_PARAGRAPHS",
+  "COHERENT_DISPUTE",
+  "COHERENT_CONCLUSION",
+  "NO_MIXED_COURTS",
+  "NO_UNRELATED_PARTY_CHANGE",
+  "NO_MULTIPLE_DECISIONS",
+  "NO_REPEATED_ENDINGS",
+  "NO_NEW_PROCEEDING_MID_SPAN",
+  "HAS_BEGINNING",
+  "HAS_ENDING",
+  "SEQUENTIAL_PARAGRAPHS",
+  "NO_SOURCE_PAGE_GAP",
+] as const;
+export type CoherenceCheckType = (typeof COHERENCE_CHECK_TYPES)[number];
+
+export const COHERENCE_RESULTS = ["PASS", "FAIL", "UNCERTAIN", "NOT_APPLICABLE"] as const;
+export type CoherenceResultValue = (typeof COHERENCE_RESULTS)[number];
+
+export const REVIEWER_ACTION_TYPES = [
+  "MOVE_BOUNDARY",
+  "SPLIT",
+  "MERGE",
+  "MARK_NON_CASE",
+  "MARK_INCOMPLETE",
+  "APPROVE",
+  "REJECT",
+  "REQUEST_REPROCESSING",
+  "LINK_CONTINUATION",
+  "LINK_DUPLICATE",
+  "LINK_RELATED",
+] as const;
+export type ReviewerActionType = (typeof REVIEWER_ACTION_TYPES)[number];
+
+export const CROSS_FILE_RELATIONSHIP_TYPES = [
+  "POSSIBLE_CONTINUATION",
+  "CONFIRMED_CONTINUATION",
+  "POSSIBLE_DUPLICATE",
+  "EXACT_DUPLICATE",
+  "ALTERNATIVE_VERSION",
+  "CORRECTED_VERSION",
+  "RELATED_APPEAL",
+  "UNRELATED",
+] as const;
+export type CrossFileRelationshipType =
+  (typeof CROSS_FILE_RELATIONSHIP_TYPES)[number];
+
+export const CROSS_FILE_SPAN_STATUSES = ["PROPOSED", "APPROVED", "REJECTED"] as const;
+export type CrossFileSpanStatus = (typeof CROSS_FILE_SPAN_STATUSES)[number];
+
+// One row per container.validate job attempt.
+export const researchValidationRuns = pgTable(
+  "research_validation_runs",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    jobId: integer("job_id").references(() => researchJobs.id),
+    runKey: text("run_key").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    status: text("status").default("RUNNING").notNull(), // RUNNING | COMPLETE | REVIEW_REQUIRED
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("research_validation_runs_container_key_uq").on(
+      t.containerId,
+      t.runKey,
+    ),
+  ],
+);
+
+// One row per check per candidate per validation run.
+export const researchCandidateCoherenceChecks = pgTable(
+  "research_candidate_coherence_checks",
+  {
+    id: serial("id").primaryKey(),
+    validationRunId: integer("validation_run_id")
+      .references(() => researchValidationRuns.id)
+      .notNull(),
+    candidateId: integer("candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    checkType: text("check_type").$type<CoherenceCheckType>().notNull(),
+    result: text("result").$type<CoherenceResultValue>().notNull(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    processorVersion: text("processor_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_candidate_coherence_checks_run_candidate_type_uq").on(
+      t.validationRunId,
+      t.candidateId,
+      t.checkType,
+    ),
+    index("research_candidate_coherence_checks_candidate_idx").on(t.candidateId),
+  ],
+);
+
+// Append-only log of all reviewer actions on a candidate.
+export const researchCandidateReviewActions = pgTable(
+  "research_candidate_review_actions",
+  {
+    id: serial("id").primaryKey(),
+    candidateId: integer("candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    actionType: text("action_type").$type<ReviewerActionType>().notNull(),
+    actor: text("actor").notNull(),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    transformationId: integer("transformation_id").references(
+      () => researchTransformations.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_candidate_review_actions_candidate_created_idx").on(
+      t.candidateId,
+      t.createdAt,
+    ),
+  ],
+);
+
+// Declared relationships between candidates across containers.
+export const researchCrossFileRelationships = pgTable(
+  "research_cross_file_relationships",
+  {
+    id: serial("id").primaryKey(),
+    sourceCandidateId: integer("source_candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    targetCandidateId: integer("target_candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    relationshipType: text("relationship_type")
+      .$type<CrossFileRelationshipType>()
+      .notNull(),
+    evidence: jsonb("evidence")
+      .$type<Record<string, unknown>>()
+      .default({})
+      .notNull(),
+    confirmedBy: text("confirmed_by"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_cross_file_relationships_src_tgt_type_uq").on(
+      t.sourceCandidateId,
+      t.targetCandidateId,
+      t.relationshipType,
+    ),
+    index("research_cross_file_relationships_source_idx").on(t.sourceCandidateId),
+    index("research_cross_file_relationships_target_idx").on(t.targetCandidateId),
+  ],
+);
+
+// Multi-container span assembly for a single logical case.
+export const researchCrossFileSpans = pgTable("research_cross_file_spans", {
+  id: serial("id").primaryKey(),
+  createdBy: text("created_by").notNull(),
+  approvedBy: text("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  status: text("status")
+    .$type<CrossFileSpanStatus>()
+    .default("PROPOSED")
+    .notNull(),
+  note: text("note").default("").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+// Ordered segments of a cross-file span.
+export const researchCrossFileSpanSegments = pgTable(
+  "research_cross_file_span_segments",
+  {
+    id: serial("id").primaryKey(),
+    spanId: integer("span_id")
+      .references(() => researchCrossFileSpans.id)
+      .notNull(),
+    candidateId: integer("candidate_id")
+      .references(() => researchCaseCandidates.id)
+      .notNull(),
+    segmentOrder: integer("segment_order").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_cross_file_span_segments_span_candidate_uq").on(
+      t.spanId,
+      t.candidateId,
+    ),
+    index("research_cross_file_span_segments_span_order_idx").on(
+      t.spanId,
+      t.segmentOrder,
+    ),
+  ],
+);
+
+export type ResearchValidationRun =
+  typeof researchValidationRuns.$inferSelect;
+export type ResearchCandidateCoherenceCheck =
+  typeof researchCandidateCoherenceChecks.$inferSelect;
+export type ResearchCandidateReviewAction =
+  typeof researchCandidateReviewActions.$inferSelect;
+export type ResearchCrossFileRelationship =
+  typeof researchCrossFileRelationships.$inferSelect;
+export type ResearchCrossFileSpan = typeof researchCrossFileSpans.$inferSelect;
+export type ResearchCrossFileSpanSegment =
+  typeof researchCrossFileSpanSegments.$inferSelect;

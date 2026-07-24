@@ -395,3 +395,98 @@ ALTER TABLE research_case_candidates
 CREATE UNIQUE INDEX IF NOT EXISTS research_case_candidates_run_container_startpage_uq
   ON research_case_candidates (run_id, container_id, start_page_id)
   WHERE start_page_id IS NOT NULL;
+
+-- Phase 06: validation, human review & cross-file reconstruction (ADR 0007)
+-- Applied in production via migration 0009-phase06-validation.sql
+
+CREATE TABLE IF NOT EXISTS research_validation_runs (
+  id serial PRIMARY KEY,
+  container_id integer NOT NULL REFERENCES research_source_containers(id),
+  job_id integer REFERENCES research_jobs(id),
+  run_key text NOT NULL,
+  processor_version text NOT NULL,
+  status text NOT NULL DEFAULT 'RUNNING',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_validation_runs_container_key_uq
+  ON research_validation_runs (container_id, run_key);
+
+CREATE TABLE IF NOT EXISTS research_candidate_coherence_checks (
+  id serial PRIMARY KEY,
+  validation_run_id integer NOT NULL REFERENCES research_validation_runs(id),
+  candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  check_type text NOT NULL,
+  result text NOT NULL,
+  detail jsonb NOT NULL DEFAULT '{}',
+  processor_version text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_candidate_coherence_checks_run_candidate_type_uq
+  ON research_candidate_coherence_checks (validation_run_id, candidate_id, check_type);
+
+CREATE INDEX IF NOT EXISTS research_candidate_coherence_checks_candidate_idx
+  ON research_candidate_coherence_checks (candidate_id);
+
+CREATE TABLE IF NOT EXISTS research_candidate_review_actions (
+  id serial PRIMARY KEY,
+  candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  action_type text NOT NULL,
+  actor text NOT NULL,
+  detail jsonb NOT NULL DEFAULT '{}',
+  transformation_id integer REFERENCES research_transformations(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS research_candidate_review_actions_candidate_created_idx
+  ON research_candidate_review_actions (candidate_id, created_at);
+
+CREATE TABLE IF NOT EXISTS research_cross_file_relationships (
+  id serial PRIMARY KEY,
+  source_candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  target_candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  relationship_type text NOT NULL,
+  evidence jsonb NOT NULL DEFAULT '{}',
+  confirmed_by text,
+  confirmed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_cross_file_relationships_src_tgt_type_uq
+  ON research_cross_file_relationships (source_candidate_id, target_candidate_id, relationship_type);
+
+CREATE INDEX IF NOT EXISTS research_cross_file_relationships_source_idx
+  ON research_cross_file_relationships (source_candidate_id);
+
+CREATE INDEX IF NOT EXISTS research_cross_file_relationships_target_idx
+  ON research_cross_file_relationships (target_candidate_id);
+
+CREATE TABLE IF NOT EXISTS research_cross_file_spans (
+  id serial PRIMARY KEY,
+  created_by text NOT NULL,
+  approved_by text,
+  approved_at timestamptz,
+  status text NOT NULL DEFAULT 'PROPOSED',
+  note text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS research_cross_file_span_segments (
+  id serial PRIMARY KEY,
+  span_id integer NOT NULL REFERENCES research_cross_file_spans(id),
+  candidate_id integer NOT NULL REFERENCES research_case_candidates(id),
+  segment_order integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS research_cross_file_span_segments_span_candidate_uq
+  ON research_cross_file_span_segments (span_id, candidate_id);
+
+CREATE INDEX IF NOT EXISTS research_cross_file_span_segments_span_order_idx
+  ON research_cross_file_span_segments (span_id, segment_order);
+
+-- Phase 06 candidate status addendum (non_case / incomplete values)
+ALTER TABLE research_case_candidates
+  ADD COLUMN IF NOT EXISTS status text DEFAULT 'proposed';

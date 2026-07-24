@@ -1,14 +1,14 @@
 {
-  "phase": "05",
-  "name": "Multi-Case Segmentation Engine",
+  "phase": "06",
+  "name": "Consolidation (Validation, Human Review & Cross-File Reconstruction)",
   "status": "complete",
-  "startedAt": "2026-07-23",
-  "completedAt": "2026-07-23",
-  "report": "docs/reports/phase-05-completion.md",
-  "decisionRecord": "docs/decisions/0006-phase-05-segmentation.md",
+  "startedAt": "2026-07-24",
+  "completedAt": "2026-07-24",
+  "report": "docs/reports/phase-06-completion.md",
+  "decisionRecord": null,
   "nextPhase": {
-    "phase": "06",
-    "name": "Case Metadata Extraction",
+    "phase": "07",
+    "name": "Search & Research UI",
     "status": "not_started"
   }
 }
