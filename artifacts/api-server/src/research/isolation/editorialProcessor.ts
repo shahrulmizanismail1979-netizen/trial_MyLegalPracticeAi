@@ -48,6 +48,7 @@ import {
   type ReviewerHistoryMap,
 } from "./sectionClassifier";
 import { applyIsolationGate, gateHasExclusions } from "./isolationGate";
+import { checkCompleteness } from "./completenessChecker";
 
 export const EDITORIAL_JOB_KIND = "container.editorial_classify";
 
@@ -282,6 +283,14 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
   // Run classifier on candidate pages only, honouring prior reviewer decisions
   const classified = classifySections(pages, allBlocks, { reviewerHistory });
 
+  // Completeness check on the isolation-gated judicial sections
+  const judicialSections = applyIsolationGate(classified);
+  const { criticalWarnings, nonCriticalWarnings } = checkCompleteness(
+    judicialSections,
+    pages,
+    allContainerPages.length,
+  );
+
   // Create editorial run row
   const uncertainCount = classified.filter((s) => s.classification === "MANUAL_REVIEW_REQUIRED").length;
   const suspectedEditorialCount = classified.filter(
@@ -297,6 +306,8 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
       sectionCount: classified.length,
       uncertainCount,
       suspectedEditorialCount,
+      criticalWarningCount: criticalWarnings.length,
+      nonCriticalWarningCount: nonCriticalWarnings.length,
     })
     .returning({ id: researchEditorialRuns.id });
 
@@ -312,7 +323,7 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     blockId: s.blockId ?? null,
     sectionIndex: s.sectionIndex,
     classification: s.classification,
-    confidence: Math.round(s.confidence * 100),
+    confidence: s.confidence,
     supportingEvidence: s.supportingEvidence,
     detectorVersion: s.detectorVersion,
     isolationApplied: !["VERIFIED_JUDICIAL_TEXT", "PROBABLE_JUDICIAL_TEXT"].includes(s.classification),
@@ -409,6 +420,8 @@ async function editorialProcessor(ctx: ProcessorContext): Promise<Record<string,
     sectionCount: classified.length,
     uncertainCount,
     suspectedEditorialCount,
+    criticalWarningCount: criticalWarnings.length,
+    nonCriticalWarningCount: nonCriticalWarnings.length,
   };
 }
 

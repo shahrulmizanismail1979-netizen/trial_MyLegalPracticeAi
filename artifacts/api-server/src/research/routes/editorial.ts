@@ -21,6 +21,7 @@ import {
   researchCaseCandidateBoundaries,
   researchCaseBoundaries,
   researchTransformations,
+  researchUsers,
   SECTION_CLASSIFICATIONS_DB,
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
@@ -95,12 +96,13 @@ router.get("/containers/:id/sections", requireResearchRole(...STAFF_ROLES), asyn
     .where(eq(researchPageSections.containerId, id))
     .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
 
-  // Group by page as required by ADR 0008 contract
+  // Group by page as required by ADR 0008 contract (pageId is nullable for span-only sections; use 0 as sentinel)
   const pageMap = new Map<number, typeof sections>();
   for (const s of sections) {
-    const list = pageMap.get(s.pageId) ?? [];
+    const key = s.pageId ?? 0;
+    const list = pageMap.get(key) ?? [];
     list.push(s);
-    pageMap.set(s.pageId, list);
+    pageMap.set(key, list);
   }
   const pages = [...pageMap.entries()].map(([pageId, secs]) => ({ pageId, sections: secs }));
   res.json({ containerId: id, pages });
@@ -136,14 +138,27 @@ router.patch(
     const actor = actorFrom(req);
     const now = new Date();
 
+    // Resolve reviewer FK — look up research_users by email (nullable if not found)
+    const reviewerEmail = req.authEmail ?? null;
+    let reviewerUserId: number | null = null;
+    if (reviewerEmail) {
+      const [ru] = await db
+        .select({ id: researchUsers.id })
+        .from(researchUsers)
+        .where(eq(researchUsers.email, reviewerEmail))
+        .limit(1);
+      reviewerUserId = ru?.id ?? null;
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(researchPageSections)
         .set({
           reviewerDecision: parsed.data.classification,
           reviewerNote: parsed.data.note ?? null,
-          reviewedBy: actor,
-          reviewedAt: now,
+          notes: parsed.data.note ?? null,
+          reviewerId: reviewerUserId,
+          reviewerDecidedAt: now,
           isolationApplied: !["VERIFIED_JUDICIAL_TEXT", "PROBABLE_JUDICIAL_TEXT"].includes(parsed.data.classification),
         })
         .where(eq(researchPageSections.id, sectionId));
@@ -262,11 +277,11 @@ router.get(
 
     // Convert DB rows to ClassifiedSection for the gate
     const asSections: ClassifiedSection[] = rawSections.map((s) => ({
-      pageId: s.pageId,
+      pageId: s.pageId ?? 0,
       blockId: s.blockId ?? undefined,
       sectionIndex: s.sectionIndex,
       classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
-      confidence: s.confidence / 100,
+      confidence: s.confidence,
       supportingEvidence: s.supportingEvidence as string[],
       detectorVersion: s.detectorVersion,
     }));
@@ -419,11 +434,11 @@ router.post(
           .orderBy(asc(researchPageSections.pageId), asc(researchPageSections.sectionIndex));
 
     const asSections: ClassifiedSection[] = rawSections.map((s) => ({
-      pageId: s.pageId,
+      pageId: s.pageId ?? 0,
       blockId: s.blockId ?? undefined,
       sectionIndex: s.sectionIndex,
       classification: (s.reviewerDecision ?? s.classification) as ClassifiedSection["classification"],
-      confidence: s.confidence / 100,
+      confidence: s.confidence,
       supportingEvidence: s.supportingEvidence as string[],
       detectorVersion: s.detectorVersion,
     }));

@@ -562,6 +562,13 @@ async function enqueueEditorialJob(
       },
     );
   } catch (err) {
-    logger.warn({ err, containerId, key }, "Could not auto-enqueue editorial classification job (non-fatal)");
+    // Only swallow expected idempotency conflicts (PostgreSQL unique_violation = 23505).
+    // All other errors are re-thrown so stuck-state is surfaced rather than silently ignored.
+    const pgCode = (err as { code?: string })?.code;
+    if (pgCode === "23505") {
+      logger.info({ containerId, key }, "Editorial enqueue skipped — idempotency key already exists");
+      return;
+    }
+    throw err;
   }
 }

@@ -260,6 +260,8 @@ async function seedVerificationReadyContainer(opts: {
       sectionCount: pageIds.length,
       uncertainCount: 0,
       suspectedEditorialCount: 0,
+      criticalWarningCount: 0,
+      nonCriticalWarningCount: 0,
     })
     .returning({ id: researchEditorialRuns.id });
 
@@ -274,7 +276,7 @@ async function seedVerificationReadyContainer(opts: {
         editorialRunId: editRun!.id,
         sectionIndex: 0,
         classification: (classifications[i] ?? "VERIFIED_JUDICIAL_TEXT") as any,
-        confidence: 90,
+        confidence: 0.9,
         supportingEvidence: ["test"],
         detectorVersion: "container.editorial_classify@1",
         isolationApplied: false,
@@ -676,7 +678,7 @@ describe("PATCH /api/research/containers/:id/sections/:sectionId", () => {
     expect(res.status).toBe(200);
     expect(res.body.reviewerDecision).toBe("PROBABLE_JUDICIAL_TEXT");
     expect(res.body.reviewerNote).toBe("Reviewed manually");
-    expect(res.body.reviewedBy).toBe(OWNER_EMAIL);
+    expect(res.body.reviewerDecidedAt).toBeTruthy();
   });
 
   it("returns 400 for invalid classification", async () => {

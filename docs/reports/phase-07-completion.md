@@ -22,8 +22,8 @@ Three new tables created and verified against the live dev database:
 
 | Table | Purpose |
 |---|---|
-| `research_page_sections` | One row per classified text section per page; stores classification, confidence score (0–100), isolation flag, and supporting evidence |
-| `research_editorial_runs` | Audit header for each editorial classification job; stores counts of sections, uncertain results, and suspected editorial material |
+| `research_page_sections` | One row per classified text section per page; stores classification, confidence score (real 0.0–1.0), isolation flag, and supporting evidence; `page_id` nullable for span-only sections |
+| `research_editorial_runs` | Audit header for each editorial classification job; stores section counts, uncertain/suspected-editorial counts, and completeness warning counts (`critical_warning_count`, `non_critical_warning_count`) |
 | `research_verified_judgments` | Judgment objects promoted after the isolation gate passes; links candidate → container → editorial run |
 
 #### `0011-phase07-verified-judgment-spans.sql`
@@ -54,7 +54,7 @@ Supplementary migration adding ADR 0008 §6 required provenance fields:
 
 - `VERIFIED_JUDICIAL_TEXT` — confirmed judicial body text
 - `PROBABLE_JUDICIAL_TEXT` — likely judicial text, high confidence
-- `UNCERTAIN` — routed to human review
+- `MANUAL_REVIEW_REQUIRED` — conflicting signals; routed to human review
 - `SUSPECTED_PUBLISHER_EDITORIAL` — isolated from judicial indexes
 - `ADMINISTRATIVE_METADATA` — isolated (case lists, filing stamps, etc.)
 - `SOURCE_ARTIFACT` — isolated (page numbers, running headers/footers)
@@ -63,17 +63,17 @@ Supplementary migration adding ADR 0008 §6 required provenance fields:
 
 ### API Routes (`artifacts/api-server/src/research/routes/editorial.ts`)
 
-Five new endpoints registered under `/api/research/editorial`:
+Five new endpoints registered under `/api/research`:
 
 | Method + Path | Purpose |
 |---|---|
-| `GET /containers/:id/sections` | Paginated list of classified sections for a container |
-| `GET /containers/:id/sections/summary` | Aggregated classification summary (counts, percentages) |
-| `POST /containers/:id/sections/:sectionId/override` | Reviewer override for uncertain/disputed classifications |
+| `GET /containers/:id/sections` | Sections grouped by page: `{ containerId, pages: [{pageId, sections:[...]}] }` |
+| `GET /containers/:id/sections/summary` | Aggregated classification summary (counts by classification) |
+| `PATCH /containers/:id/sections/:sectionId` | Reviewer override for disputed classifications (sets `reviewer_id` FK + `reviewer_decided_at`) |
 | `GET /containers/:id/judicial-text` | Isolation-gated judicial text view (excludes `SUSPECTED_PUBLISHER_EDITORIAL`, `ADMINISTRATIVE_METADATA`, `SOURCE_ARTIFACT`) |
-| `POST /containers/:id/verify-judgment` | Promotes an approved candidate to `research_verified_judgments` and transitions container to `VERIFIED` |
+| `POST /containers/:id/verify` | Completeness check + promote candidate to `research_verified_judgments`; transitions container to `VERIFIED` |
 
-All routes enforce `research` role; write operations (`override`, `verify-judgment`) enforce `editor` or `owner` role.
+All routes enforce `research` role; write operations enforce `legal_reviewer`, `administrator`, or `owner` role.
 
 ---
 
@@ -103,7 +103,7 @@ Six fixtures covering the classifier's key decision boundaries:
 | `clean-judgment.txt` | All text is judicial — zero sections isolated |
 | `editorial-heavy.txt` | Publisher headers, footers, page numbers isolated correctly |
 | `mixed-content.txt` | Mixed judicial + editorial — correct split |
-| `uncertain-sections.txt` | Sections that trigger `UNCERTAIN` routing |
+| `uncertain-sections.txt` | Sections that trigger `MANUAL_REVIEW_REQUIRED` routing |
 | `incomplete-judgment.txt` | Completeness checker detects missing structural elements |
 | `no-judicial-sections.txt` | Isolation gate rejects — no verified judicial text |
 
@@ -140,7 +140,7 @@ Two new transitions were already present in the allowed-transitions map:
 
 ## Provenance & Audit Trail
 
-- Every classified section stores `detectorVersion`, `supportingEvidence` (structured JSON), `confidence` (integer 0–100), and `isolationApplied` flag.
+- Every classified section stores `detectorVersion`, `supportingEvidence` (structured JSON), `confidence` (real 0.0–1.0), and `isolationApplied` flag.
 - Reviewer overrides are written as `research_transformations` rows (`kind: "editorial.reviewer_override"`) with full before/after state and actor identity.
 - Isolation exclusions are written as `research_transformations` rows (`kind: "editorial.isolation"`).
 - All editorial job completions emit audit events via `recordAuditEvent`.
@@ -155,7 +155,7 @@ Two new transitions were already present in the allowed-transitions map:
 
 3. **Isolation is non-destructive:** Sections classified as publisher editorial are marked `isolation_applied = true` but never deleted. The original text remains in `research_page_extractions` and `research_page_blocks`. The isolation gate is applied at query time.
 
-4. **Uncertain routing preserves human authority:** Any section that fails the confidence threshold (`< 0.65`) is classified `UNCERTAIN` and routes the container to `EDITORIAL_REVIEW_REQUIRED`. The processor does not guess.
+4. **Uncertain routing preserves human authority:** Any section with conflicting signals is classified `MANUAL_REVIEW_REQUIRED`, and any section below the low-confidence threshold (`< 0.65`) also triggers `EDITORIAL_REVIEW_REQUIRED`. The processor does not guess.
 
 ---
 

@@ -3,6 +3,7 @@ import {
   serial,
   text,
   integer,
+  doublePrecision,
   boolean,
   timestamp,
   jsonb,
@@ -1214,15 +1215,14 @@ export const researchPageSections = pgTable(
       .references(() => researchSourceContainers.id)
       .notNull(),
     pageId: integer("page_id")
-      .references(() => researchSourcePages.id)
-      .notNull(),
+      .references(() => researchSourcePages.id),
     editorialRunId: integer("editorial_run_id"),
     blockId: integer("block_id"),
     sectionIndex: integer("section_index").notNull(),
     classification: text("classification")
       .$type<DbSectionClassification>()
       .notNull(),
-    confidence: integer("confidence").notNull(),
+    confidence: doublePrecision("confidence").notNull(),
     supportingEvidence: jsonb("supporting_evidence")
       .$type<string[]>()
       .default([])
@@ -1231,8 +1231,9 @@ export const researchPageSections = pgTable(
     // Human reviewer override (set via PATCH /containers/:id/sections/:sectionId)
     reviewerDecision: text("reviewer_decision").$type<DbSectionClassification>(),
     reviewerNote: text("reviewer_note"),
-    reviewedBy: text("reviewed_by"),
-    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    notes: text("notes"),
+    reviewerId: integer("reviewer_id").references(() => researchUsers.id),
+    reviewerDecidedAt: timestamp("reviewer_decided_at", { withTimezone: true }),
     // Whether the isolation gate has been applied and this section excluded
     isolationApplied: boolean("isolation_applied").default(false).notNull(),
     // Character-span provenance within the page text (nullable — populated when
@@ -1266,6 +1267,8 @@ export const researchEditorialRuns = pgTable("research_editorial_runs", {
   sectionCount: integer("section_count").default(0).notNull(),
   uncertainCount: integer("uncertain_count").default(0).notNull(),
   suspectedEditorialCount: integer("suspected_editorial_count").default(0).notNull(),
+  criticalWarningCount: integer("critical_warning_count").default(0).notNull(),
+  nonCriticalWarningCount: integer("non_critical_warning_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

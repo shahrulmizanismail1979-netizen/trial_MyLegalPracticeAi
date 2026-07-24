@@ -11,5 +11,10 @@
     "name": "Consolidation (Validation, Human Review & Cross-File Reconstruction)",
     "status": "complete",
     "report": "docs/reports/phase-06-completion.md"
+  },
+  "nextPhase": {
+    "phase": "08",
+    "name": "Search & Research UI",
+    "status": "pending"
   }
 }
