@@ -32,6 +32,8 @@ registerValidationProcessor();
 const router: IRouter = Router();
 
 const STAFF_ROLES = ["owner", "administrator", "rights_reviewer", "legal_reviewer"] as const;
+// Roles authorised to execute candidate review actions (tighter than STAFF_ROLES)
+const REVIEW_ROLES = ["owner", "administrator", "legal_reviewer"] as const;
 
 async function requireContainerView(
   req: import("express").Request,
@@ -138,7 +140,7 @@ async function recordAction(
 
 router.post(
   "/candidates/:id/review/approve",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -186,7 +188,7 @@ const RejectBody = z.object({ reason: z.string().min(1) });
 
 router.post(
   "/candidates/:id/review/reject",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -223,7 +225,7 @@ router.post(
 
 router.post(
   "/candidates/:id/review/reprocess",
-  requireResearchRole("owner", "administrator"),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -261,7 +263,7 @@ const MoveBoundaryBody = z.object({
 
 router.post(
   "/candidates/:id/review/move-boundary",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -315,7 +317,7 @@ router.post(
       }).onConflictDoNothing();
 
       const [newBound] = await tx.select().from(researchCaseBoundaries).where(
-        and(eq(researchCaseBoundaries.pageId, newPageId), eq(researchCaseBoundaries.boundaryRole, boundaryRole)),
+        and(eq(researchCaseBoundaries.pageId, newPageId), eq(researchCaseBoundaries.boundaryRole, boundaryRole), eq(researchCaseBoundaries.runId, candidate.runId ?? 0)),
       );
       if (!newBound) return; // boundary insert collision — treat as no-op
 
@@ -423,6 +425,17 @@ router.post(
       res.status(400).json({ error: "Boundary records not found", code: "BOUNDARIES_MISSING" }); return;
     }
 
+    // Validate split page is strictly within the candidate span
+    const [startBoundPage] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+      .from(researchSourcePages).where(eq(researchSourcePages.id, startBound.pageId));
+    const [endBoundPage] = await db.select({ pageNumber: researchSourcePages.pageNumber })
+      .from(researchSourcePages).where(eq(researchSourcePages.id, endBound.pageId));
+    if (startBoundPage && endBoundPage) {
+      if (splitPage.pageNumber <= startBoundPage.pageNumber || splitPage.pageNumber >= endBoundPage.pageNumber) {
+        res.status(400).json({ error: "Split page must be strictly within the candidate span", code: "SPLIT_PAGE_OUT_OF_SPAN" }); return;
+      }
+    }
+
     const actor = actorFrom(req);
     let newCandidateIds: number[] = [];
 
@@ -442,7 +455,7 @@ router.post(
       }).onConflictDoNothing();
 
       const [splitEndBound] = await tx.select().from(researchCaseBoundaries).where(
-        and(eq(researchCaseBoundaries.pageId, splitPageId), eq(researchCaseBoundaries.boundaryRole, "end")),
+        and(eq(researchCaseBoundaries.pageId, splitPageId), eq(researchCaseBoundaries.boundaryRole, "end"), eq(researchCaseBoundaries.runId, startBound.runId)),
       );
 
       const [newCandA] = await tx.insert(researchCaseCandidates).values({
@@ -480,7 +493,7 @@ router.post(
         }).onConflictDoNothing();
 
         const [splitStartBound] = await tx.select().from(researchCaseBoundaries).where(
-          and(eq(researchCaseBoundaries.pageId, nextPage.id), eq(researchCaseBoundaries.boundaryRole, "start")),
+          and(eq(researchCaseBoundaries.pageId, nextPage.id), eq(researchCaseBoundaries.boundaryRole, "start"), eq(researchCaseBoundaries.runId, startBound.runId)),
         );
 
         const [newCandB] = await tx.insert(researchCaseCandidates).values({
@@ -561,32 +574,53 @@ router.post(
     const [cbA] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, candidateId));
     const [cbB] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, targetCandidateId));
 
-    // ── Adjacency gate ────────────────────────────────────────────────────
+    // ── Adjacency + boundary-order check ─────────────────────────────────
     // Merging non-adjacent candidates creates structurally invalid spans.
-    // Enforce: one candidate's page range must immediately precede the other's.
-    if (cbA && cbB) {
-      const [pageA_end] = await db.select({ pageNumber: researchSourcePages.pageNumber })
-        .from(researchCaseBoundaries)
-        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
-        .where(eq(researchCaseBoundaries.id, cbA.endBoundaryId));
-      const [pageB_start] = await db.select({ pageNumber: researchSourcePages.pageNumber })
-        .from(researchCaseBoundaries)
-        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
-        .where(eq(researchCaseBoundaries.id, cbB.startBoundaryId));
-      const [pageB_end] = await db.select({ pageNumber: researchSourcePages.pageNumber })
-        .from(researchCaseBoundaries)
-        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
-        .where(eq(researchCaseBoundaries.id, cbB.endBoundaryId));
-      const [pageA_start] = await db.select({ pageNumber: researchSourcePages.pageNumber })
-        .from(researchCaseBoundaries)
-        .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
-        .where(eq(researchCaseBoundaries.id, cbA.startBoundaryId));
+    // Enforce adjacency AND compute the canonical (earliest-start, latest-end)
+    // merged boundaries by actual page sequence — not by request argument order.
+    let mergedStartBoundId: number | undefined;
+    let mergedEndBoundId: number | undefined;
+    let mergedStartPageId: number | null = null;
 
-      if (pageA_end && pageB_start && pageA_start && pageB_end) {
-        const aBeforeB = pageA_end.pageNumber + 1 >= pageB_start.pageNumber && pageA_start.pageNumber <= pageA_end.pageNumber;
-        const bBeforeA = pageB_end.pageNumber + 1 >= pageA_start.pageNumber && pageB_start.pageNumber <= pageB_end.pageNumber;
+    if (cbA && cbB) {
+      const [pA_s, pA_e, pB_s, pB_e] = await Promise.all([
+        db.select({ pageNumber: researchSourcePages.pageNumber, pageId: researchSourcePages.id })
+          .from(researchCaseBoundaries)
+          .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+          .where(eq(researchCaseBoundaries.id, cbA.startBoundaryId))
+          .then(r => r[0]),
+        db.select({ pageNumber: researchSourcePages.pageNumber })
+          .from(researchCaseBoundaries)
+          .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+          .where(eq(researchCaseBoundaries.id, cbA.endBoundaryId))
+          .then(r => r[0]),
+        db.select({ pageNumber: researchSourcePages.pageNumber, pageId: researchSourcePages.id })
+          .from(researchCaseBoundaries)
+          .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+          .where(eq(researchCaseBoundaries.id, cbB.startBoundaryId))
+          .then(r => r[0]),
+        db.select({ pageNumber: researchSourcePages.pageNumber })
+          .from(researchCaseBoundaries)
+          .innerJoin(researchSourcePages, eq(researchSourcePages.id, researchCaseBoundaries.pageId))
+          .where(eq(researchCaseBoundaries.id, cbB.endBoundaryId))
+          .then(r => r[0]),
+      ]);
+
+      if (pA_s && pA_e && pB_s && pB_e) {
+        const aBeforeB = pA_e.pageNumber + 1 >= pB_s.pageNumber && pA_s.pageNumber <= pA_e.pageNumber;
+        const bBeforeA = pB_e.pageNumber + 1 >= pA_s.pageNumber && pB_s.pageNumber <= pB_e.pageNumber;
         if (!aBeforeB && !bBeforeA) {
           res.status(400).json({ error: "Candidates are not adjacent; merge would create a gap or overlap", code: "NOT_ADJACENT" }); return;
+        }
+        // Canonical order: earliest start boundary + latest end boundary
+        if (pA_s.pageNumber <= pB_s.pageNumber) {
+          mergedStartBoundId = cbA.startBoundaryId;
+          mergedEndBoundId = cbB.endBoundaryId;
+          mergedStartPageId = pA_s.pageId;
+        } else {
+          mergedStartBoundId = cbB.startBoundaryId;
+          mergedEndBoundId = cbA.endBoundaryId;
+          mergedStartPageId = pB_s.pageId;
         }
       }
     }
@@ -595,13 +629,10 @@ router.post(
       // Mark both originals as rejected
       await tx.update(researchCaseCandidates).set({ reviewStatus: "rejected", reviewedBy: actor, reviewedAt: new Date() }).where(inArray(researchCaseCandidates.id, [candidateId, targetCandidateId]));
 
-      // New merged candidate spans both
-      const startBoundId = cbA?.startBoundaryId ?? cbB?.startBoundaryId;
-      const endBoundId = cbB?.endBoundaryId ?? cbA?.endBoundaryId;
-
-      const startPageId = cbA
-        ? (await tx.select({ pageId: researchCaseBoundaries.pageId }).from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cbA.startBoundaryId)).then((r) => r[0]?.pageId))
-        : null;
+      // New merged candidate spans both — use page-ordered boundaries
+      const startBoundId = mergedStartBoundId ?? cbA?.startBoundaryId ?? cbB?.startBoundaryId;
+      const endBoundId = mergedEndBoundId ?? cbB?.endBoundaryId ?? cbA?.endBoundaryId;
+      const startPageId = mergedStartPageId;
 
       const [merged] = await tx.insert(researchCaseCandidates).values({
         containerId: candidate.containerId,
@@ -649,7 +680,7 @@ const MarkBody = z.object({ reason: z.string().min(1) });
 
 router.post(
   "/candidates/:id/review/mark-non-case",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -679,7 +710,7 @@ router.post(
 
 router.post(
   "/candidates/:id/review/mark-incomplete",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -715,7 +746,7 @@ const LinkContinuationBody = z.object({
 
 router.post(
   "/candidates/:id/review/link-continuation",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -762,7 +793,7 @@ const LinkDuplicateBody = z.object({
 
 router.post(
   "/candidates/:id/review/link-duplicate",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }
@@ -807,7 +838,7 @@ const LinkRelatedBody = z.object({
 
 router.post(
   "/candidates/:id/review/link-related",
-  requireResearchRole(...STAFF_ROLES),
+  requireResearchRole(...REVIEW_ROLES),
   async (req, res) => {
     const candidateId = Number(req.params.id);
     if (!Number.isInteger(candidateId)) { res.status(400).json({ error: "Invalid candidate id" }); return; }

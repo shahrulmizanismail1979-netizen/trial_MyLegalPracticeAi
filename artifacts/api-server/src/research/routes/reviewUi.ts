@@ -224,8 +224,8 @@ async function loadCandidates() {
     for (const c of candidates) {
       const b = document.createElement("button");
       const statusBadge = '<span class="badge ' + esc(c.reviewStatus ?? "review_required") + '">' + esc(c.reviewStatus ?? "?") + "</span>";
-      b.innerHTML = "#" + c.id + statusBadge + "<br><small>" + esc(c.strength ?? "—") + "</small>";
-      b.onclick = () => loadCandidate(c.id, b);
+      b.innerHTML = "#" + c.candidateId + statusBadge + "<br><small>" + esc(c.strength ?? "—") + "</small>";
+      b.onclick = () => loadCandidate(c.candidateId, b);
       list.appendChild(b);
     }
   } catch (e) {
