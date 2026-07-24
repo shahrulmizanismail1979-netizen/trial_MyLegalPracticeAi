@@ -607,9 +607,14 @@ router.post(
       ]);
 
       if (pA_s && pA_e && pB_s && pB_e) {
-        const aBeforeB = pA_e.pageNumber + 1 >= pB_s.pageNumber && pA_s.pageNumber <= pA_e.pageNumber;
-        const bBeforeA = pB_e.pageNumber + 1 >= pA_s.pageNumber && pB_s.pageNumber <= pB_e.pageNumber;
-        if (!aBeforeB && !bBeforeA) {
+        // Determine which candidate's span comes first by start page
+        const [first, second] = pA_s.pageNumber <= pB_s.pageNumber
+          ? [{ s: pA_s.pageNumber, e: pA_e.pageNumber }, { s: pB_s.pageNumber, e: pB_e.pageNumber }]
+          : [{ s: pB_s.pageNumber, e: pB_e.pageNumber }, { s: pA_s.pageNumber, e: pA_e.pageNumber }];
+        // Adjacent: second's start must be within 1 page of first's end (gap ≤ 1).
+        // A gap of 2+ pages means non-contiguous spans that must not be merged.
+        const isAdjacent = second.s - first.e <= 1;
+        if (!isAdjacent) {
           res.status(400).json({ error: "Candidates are not adjacent; merge would create a gap or overlap", code: "NOT_ADJACENT" }); return;
         }
         // Canonical order: earliest start boundary + latest end boundary

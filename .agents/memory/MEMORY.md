@@ -26,3 +26,4 @@
 - [Portal content boot-seeding](portal-content-seeding.md) — donor ports often arrive with empty content tables; recover data from donor seed scripts via stubbed-db run, then boot-seed only-when-empty (crim/sya/lit pattern). Prod fills on next publish.
 - [Storage adapter canonical keys](storage-adapter-canonical-keys.md) — always persist the key returned by storage.put(); memory adapters hide prefix mismatches that 404 in real object storage.
 - [Research segmentation state machine path](research-segmentation-state-machine.md) — SEGMENTATION_PENDING can only go to SEGMENTATION_PROPOSED; reach SEGMENTATION_REVIEW_REQUIRED via a second transition from PROPOSED.
+- [Phase 06 test cleanup isolation](phase06-test-cleanup.md) — auto-triggered validation jobs can be run by runNextJob() outside trackedContainerIds; cleanup must query validation_runs by both containerId AND trackedJobIds.

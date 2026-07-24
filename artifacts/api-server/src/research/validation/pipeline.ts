@@ -67,7 +67,7 @@ export async function startValidation(
 
   const keyPrefix = `validate-container-${containerId}-${container.contentSha256.slice(0, 16)}`;
   const priorJobs = await dbc
-    .select({ state: researchJobs.state })
+    .select({ id: researchJobs.id, state: researchJobs.state })
     .from(researchJobs)
     .where(
       and(
@@ -75,9 +75,16 @@ export async function startValidation(
         like(researchJobs.idempotencyKey, `${keyPrefix}%`),
       ),
     );
-  const finishedAttempts = priorJobs.filter(
-    (j) => j.state !== "QUEUED" && j.state !== "RUNNING",
-  ).length;
+
+  // If a validation job is already queued or running, reuse it — don't create a duplicate.
+  const activeJob = priorJobs.find(
+    (j) => j.state === "QUEUED" || j.state === "RUNNING",
+  );
+  if (activeJob) {
+    return { jobId: activeJob.id };
+  }
+
+  const finishedAttempts = priorJobs.length; // all prior jobs are finished at this point
 
   const job = await enqueue(
     VALIDATE_JOB_KIND,

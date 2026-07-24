@@ -51,6 +51,7 @@ const {
   researchReviewItems,
   researchAuditEvents,
   researchUsers,
+  researchCandidateReviewActions,
 } = await import("@workspace/db");
 const { eq, like, inArray, and, isNotNull } = await import("drizzle-orm");
 
@@ -307,6 +308,9 @@ afterAll(async () => {
     const candidateIds = candidateRows.map((c) => c.id);
 
     if (candidateIds.length > 0) {
+      await db
+        .delete(researchCandidateReviewActions)
+        .where(inArray(researchCandidateReviewActions.candidateId, candidateIds));
       await db
         .delete(researchCaseCandidateBoundaries)
         .where(inArray(researchCaseCandidateBoundaries.candidateId, candidateIds));

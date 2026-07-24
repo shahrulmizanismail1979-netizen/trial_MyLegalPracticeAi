@@ -308,12 +308,26 @@ afterAll(async () => {
   }
 
   // ── Step 3: delete validation runs (collect job_ids first) ────────────────
-  const valRunRows = await db
+  // Query by both containerId AND by trackedJobIds: runNextJob() loops may pick
+  // up auto-triggered validation jobs for containers outside trackedContainerIds,
+  // creating validation_runs that are invisible to a containerId-only query.
+  const valRunByContainer = await db
     .select({ id: researchValidationRuns.id, jobId: researchValidationRuns.jobId })
     .from(researchValidationRuns)
     .where(inArray(researchValidationRuns.containerId, trackedContainerIds));
-  const validationRunIds = valRunRows.map((r) => r.id);
-  const valJobIds = valRunRows.map((r) => r.jobId).filter((id): id is number => id != null);
+  const valRunByJob = trackedJobIds.length > 0
+    ? await db
+        .select({ id: researchValidationRuns.id, jobId: researchValidationRuns.jobId })
+        .from(researchValidationRuns)
+        .where(inArray(researchValidationRuns.jobId, trackedJobIds))
+    : [];
+  const allValRunRows = [
+    ...new Map(
+      [...valRunByContainer, ...valRunByJob].map((r) => [r.id, r]),
+    ).values(),
+  ];
+  const validationRunIds = allValRunRows.map((r) => r.id);
+  const valJobIds = allValRunRows.map((r) => r.jobId).filter((id): id is number => id != null);
 
   if (validationRunIds.length > 0) {
     await db

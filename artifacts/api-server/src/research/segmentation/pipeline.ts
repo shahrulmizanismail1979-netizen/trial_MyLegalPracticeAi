@@ -498,28 +498,30 @@ async function segmentProcessor(ctx: ProcessorContext) {
     "Research container segmentation finished",
   );
 
-  // Phase 06: kick off validation automatically when segmentation is clean
-  // (container is now in SEGMENTATION_PROPOSED; no human action required).
-  if (!reviewRequired) {
-    try {
-      const { jobId: validateJobId } = await startValidation(
-        containerId,
-        `job:${job.id}`,
-        dbc,
-      );
-      logger.info(
-        { containerId, runId: run.id, validateJobId },
-        "Validation job enqueued automatically after clean segmentation",
-      );
-    } catch (err) {
-      // Best-effort: validation enqueue failure should not fail the segmentation
-      // job — the container is already in SEGMENTATION_PROPOSED and an operator
-      // can trigger validation manually.
-      logger.error(
-        { containerId, runId: run.id, err },
-        "Failed to auto-enqueue validation job after segmentation; operator can trigger manually",
-      );
-    }
+  // Phase 06: kick off validation automatically after every segmentation —
+  // both clean runs (SEGMENTATION_PROPOSED) and review-required runs
+  // (SEGMENTATION_REVIEW_REQUIRED). Running coherence checks in both cases
+  // gives reviewers structured quality data before they take any action.
+  // The validation processor already handles SEGMENTATION_REVIEW_REQUIRED
+  // input and skips self-transitions idempotently.
+  try {
+    const { jobId: validateJobId } = await startValidation(
+      containerId,
+      `job:${job.id}`,
+      dbc,
+    );
+    logger.info(
+      { containerId, runId: run.id, validateJobId, reviewRequired },
+      "Validation job enqueued automatically after segmentation",
+    );
+  } catch (err) {
+    // Best-effort: validation enqueue failure should not fail the segmentation
+    // job — the container is already in its new state and an operator
+    // can trigger validation manually.
+    logger.error(
+      { containerId, runId: run.id, err },
+      "Failed to auto-enqueue validation job after segmentation; operator can trigger manually",
+    );
   }
 
   return {

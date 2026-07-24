@@ -8,6 +8,8 @@ import {
   researchCaseCandidateBoundaries,
   researchBoundarySignals,
   researchSourcePages,
+  researchCandidateReviewActions,
+  researchTransformations,
 } from "@workspace/db";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireResearchRole } from "../auth";
@@ -298,7 +300,6 @@ router.post(
   requireResearchRole(
     "owner",
     "administrator",
-    "rights_reviewer",
     "legal_reviewer",
   ),
   async (req, res) => {
@@ -347,6 +348,30 @@ router.post(
           reviewedAt: new Date(),
         })
         .where(eq(researchCaseCandidates.id, candidateId));
+
+      // Phase 06 append-only audit model: write transformation + review action rows
+      // so this endpoint participates in the same audited pipeline as the new actions.
+      const actionType =
+        parsed.data.decision === "accept" ? "APPROVE" :
+        parsed.data.decision === "reject" ? "REJECT" : "MARK_INCOMPLETE";
+      const [transformation] = await tx
+        .insert(researchTransformations)
+        .values({
+          containerId: id,
+          kind: `candidate.${actionType.toLowerCase()}`,
+          detail: { candidateId, decision: parsed.data.decision, reason: parsed.data.reason },
+          actor: reviewer,
+        })
+        .returning({ id: researchTransformations.id });
+      if (transformation) {
+        await tx.insert(researchCandidateReviewActions).values({
+          candidateId,
+          actionType,
+          actor: reviewer,
+          detail: { decision: parsed.data.decision, reason: parsed.data.reason },
+          transformationId: transformation.id,
+        });
+      }
 
       await recordAuditEvent(tx, {
         entityType: "case_candidate",
