@@ -5,6 +5,7 @@ import {
   researchCandidateCoherenceChecks,
   researchCrossFileRelationships,
   researchCaseCandidates,
+  researchSourceContainers,
   researchSourcePages,
   researchPageExtractions,
   researchPageBlocks,
@@ -14,7 +15,7 @@ import {
   researchJobs,
   type ResearchValidationRun,
 } from "@workspace/db";
-import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { and, desc, eq, inArray, like, ne } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { getContainer } from "../data/containers";
 import { transitionContainer } from "../domain/containerStateMachine";
@@ -54,10 +55,11 @@ export async function startValidation(
       false,
     );
   }
-  if (container.processingState !== "SEGMENTATION_PROPOSED") {
+  const validStartStates = ["SEGMENTATION_PROPOSED", "SEGMENTATION_REVIEW_REQUIRED"] as const;
+  if (!validStartStates.includes(container.processingState as typeof validStartStates[number])) {
     throw new ProcessorFailure(
       "INVALID_STATE",
-      `Container ${containerId} is ${container.processingState}; validation requires SEGMENTATION_PROPOSED`,
+      `Container ${containerId} is ${container.processingState}; validation requires SEGMENTATION_PROPOSED or SEGMENTATION_REVIEW_REQUIRED`,
       false,
     );
   }
@@ -305,40 +307,125 @@ async function validateProcessor(ctx: ProcessorContext) {
 
   // ── Cross-file relationship detection ────────────────────────────────
 
-  // Fetch all candidates in the same source batch (across containers)
+  // Fetch candidates from ALL containers in the same source_batch so that
+  // split-across-files and duplicate detection works across file boundaries.
   const allContainerCandidates: CandidateSummary[] = [];
-  for (const c of activeCandidates) {
-    const pageIds = candidatePageSets.get(c.id) ?? [];
-    const pages = pageIds.map((id) => pageMap.get(id)).filter((p): p is PageData => p != null);
+  const pagesByCandidateId = new Map<number, PageData[]>();
+
+  const containerSourceBatch = container.sourceBatch; // capture before nested scope
+
+  function toSummary(c: typeof activeCandidates[0], cId: number, cPages: Map<number, PageData>, cpageSets: Map<number, number[]>): CandidateSummary {
+    const pageIds = cpageSets.get(c.id) ?? [];
+    const pages = pageIds.map((id) => cPages.get(id)).filter((p): p is PageData => p != null);
     const startPage = pages.reduce((min, p) => (!min || p.pageNumber < min.pageNumber ? p : min), null as PageData | null);
     const endPage = pages.reduce((max, p) => (!max || p.pageNumber > max.pageNumber ? p : max), null as PageData | null);
-
     const lastText = endPage?.text ?? "";
     const firstText = startPage?.text ?? "";
-
-    // Detect closing order on last page
     const hasClosingOrder = /\border\s+accordingly\b/i.test(lastText) ||
       /\bappeal\s+(is\s+)?(allowed|dismissed)\b/i.test(lastText) ||
       /\bhereby\s+(ordered|adjudged)\b/i.test(lastText);
     const hasBeginning = /\[\d{4}\]/.test(firstText) || /\bCORAM\b/i.test(firstText) || /\bIN THE\b.*\bCOURT\b/i.test(firstText);
-
-    allContainerCandidates.push({
+    return {
       id: c.id,
-      containerId: containerId,
-      sourceBatch: container.sourceBatch,
+      containerId: cId,
+      sourceBatch: containerSourceBatch,
       contentSha256: null,
       startPageNumber: startPage?.pageNumber ?? 0,
       endPageNumber: endPage?.pageNumber ?? 0,
       hasClosingOrder,
       hasBeginning,
       strength: c.strength,
-    });
+    };
   }
 
-  const pagesByCandidateId = new Map<number, PageData[]>();
+  // Current container's candidates
   for (const c of activeCandidates) {
+    allContainerCandidates.push(toSummary(c, containerId, pageMap, candidatePageSets));
     const pageIds = candidatePageSets.get(c.id) ?? [];
     pagesByCandidateId.set(c.id, pageIds.map((id) => pageMap.get(id)).filter((p): p is PageData => p != null));
+  }
+
+  // Sibling containers sharing the same source_batch
+  const siblingContainers = await dbc
+    .select({ id: researchSourceContainers.id, rightsStatus: researchSourceContainers.rightsStatus })
+    .from(researchSourceContainers)
+    .where(
+      and(
+        eq(researchSourceContainers.sourceBatch, container.sourceBatch),
+        ne(researchSourceContainers.id, containerId),
+      ),
+    );
+
+  for (const sibling of siblingContainers) {
+    // Skip rights-restricted siblings (same fail-closed logic as main container)
+    if (restrictedStatuses.includes(sibling.rightsStatus as string)) continue;
+
+    const siblingCands = await dbc
+      .select()
+      .from(researchCaseCandidates)
+      .where(eq(researchCaseCandidates.containerId, sibling.id));
+
+    const siblingActive = siblingCands.filter(
+      (c) => c.reviewStatus !== "rejected" && c.status !== "rejected",
+    );
+
+    if (siblingActive.length === 0) continue;
+
+    // Build page sets for this sibling
+    const sibCandPageSets = new Map<number, number[]>();
+    const sibPageMap = new Map<number, PageData>();
+
+    for (const c of siblingActive) {
+      const [cb] = await dbc
+        .select()
+        .from(researchCaseCandidateBoundaries)
+        .where(eq(researchCaseCandidateBoundaries.candidateId, c.id));
+      if (!cb) { sibCandPageSets.set(c.id, []); continue; }
+
+      const [startBound, endBound] = await Promise.all([
+        dbc.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.startBoundaryId)).then((r) => r[0]),
+        dbc.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.endBoundaryId)).then((r) => r[0]),
+      ]);
+      if (!startBound || !endBound) { sibCandPageSets.set(c.id, []); continue; }
+
+      const sibPages = await dbc
+        .select()
+        .from(researchSourcePages)
+        .where(eq(researchSourcePages.containerId, sibling.id));
+
+      const startPageRow = sibPages.find((p) => p.id === startBound.pageId);
+      const endPageRow = sibPages.find((p) => p.id === endBound.pageId);
+      if (!startPageRow || !endPageRow) { sibCandPageSets.set(c.id, []); continue; }
+
+      const minPage = Math.min(startPageRow.pageNumber, endPageRow.pageNumber);
+      const maxPage = Math.max(startPageRow.pageNumber, endPageRow.pageNumber);
+      const pageIds = sibPages
+        .filter((p) => p.pageNumber >= minPage && p.pageNumber <= maxPage)
+        .map((p) => p.id);
+      sibCandPageSets.set(c.id, pageIds);
+
+      // Populate sibPageMap for pages we haven't loaded yet
+      const newPageIds = pageIds.filter((id) => !sibPageMap.has(id));
+      if (newPageIds.length > 0) {
+        const exts = await dbc
+          .select()
+          .from(researchPageExtractions)
+          .where(inArray(researchPageExtractions.pageId, newPageIds))
+          .orderBy(desc(researchPageExtractions.id));
+        const latestBySibPage = new Map<number, typeof exts[0]>();
+        for (const ex of exts) { if (!latestBySibPage.has(ex.pageId)) latestBySibPage.set(ex.pageId, ex); }
+        for (const sp of sibPages.filter((p) => newPageIds.includes(p.id))) {
+          const ex = latestBySibPage.get(sp.id);
+          sibPageMap.set(sp.id, { id: sp.id, pageNumber: sp.pageNumber, text: ex?.rawText ?? "", isBlank: ex?.isBlank ?? false });
+        }
+      }
+    }
+
+    for (const c of siblingActive) {
+      allContainerCandidates.push(toSummary(c, sibling.id, sibPageMap, sibCandPageSets));
+      const pageIds = sibCandPageSets.get(c.id) ?? [];
+      pagesByCandidateId.set(c.id, pageIds.map((id) => sibPageMap.get(id)).filter((p): p is PageData => p != null));
+    }
   }
 
   const relationships = detectAllCrossFileRelationships(allContainerCandidates, pagesByCandidateId);

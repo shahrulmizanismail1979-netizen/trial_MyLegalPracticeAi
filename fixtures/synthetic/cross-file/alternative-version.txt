@@ -1,0 +1,67 @@
+IN THE HIGH COURT OF MALAYA AT KUALA LUMPUR
+(CIVIL DIVISION)
+SUIT NO: 22NCVC-123-06/2023
+
+BETWEEN
+
+AHMAD BIN IBRAHIM (NRIC: 650101-01-1234)                 PLAINTIFF
+
+AND
+
+MEGA CORPORATION SDN BHD (Company No. 198901012345)      DEFENDANT
+
+GROUNDS OF JUDGMENT
+
+CORAM: DATO' SRI YUSOF BIN HARUN, JC
+
+Heard: 14–16 March 2023
+Delivered: 12 May 2023
+
+[2023] MLJU 4801
+
+INTRODUCTION
+
+1. This is an alternative reporter version of the same judgment published by a
+different law reporting service. The citation differs but the underlying judicial
+text is substantially identical to the primary version already captured in
+duplicate-case.txt. Minor editorial differences (paragraph spacing, headers) exist
+but the ratio decidendi is identical.
+
+BACKGROUND
+
+2. The Plaintiff claims damages for breach of a supply contract. The Defendant
+denies liability and counterclaims for losses arising from the Plaintiff's alleged
+failure to deliver goods on time.
+
+3. The facts are largely undisputed. Parties entered into a Supply Agreement dated
+1 January 2022. The Plaintiff was to deliver 500 units of industrial compressors by
+30 June 2022. Only 320 units were delivered by that date.
+
+FINDINGS
+
+4. This Court finds, on a balance of probabilities, that the Plaintiff was in breach
+of the Supply Agreement by failing to deliver the full quantity by the stipulated date.
+
+5. The Defendant's counterclaim succeeds in part. Damages for the shortfall of
+180 units are assessed at RM 90,000 (being RM 500 per unit).
+
+6. The Plaintiff's claim for the price of goods delivered (320 units × RM 800 = RM
+256,000) succeeds. The Defendant is entitled to set off the counterclaim award.
+
+CONCLUSION AND ORDERS
+
+7. Accordingly, this Court makes the following orders:
+
+   (a) Judgment for the Plaintiff in the sum of RM 256,000;
+   (b) Set-off of the Defendant's counterclaim of RM 90,000;
+   (c) Net judgment sum: RM 166,000 in favour of the Plaintiff;
+   (d) Interest at 5% per annum from the date of filing until full settlement;
+   (e) Costs to the Plaintiff, to be taxed if not agreed.
+
+Order accordingly.
+
+DATO' SRI YUSOF BIN HARUN
+JUDICIAL COMMISSIONER
+HIGH COURT OF MALAYA, KUALA LUMPUR
+
+Date: 12 May 2023

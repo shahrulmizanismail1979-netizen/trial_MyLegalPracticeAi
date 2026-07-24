@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { logger } from "../../lib/logger";
 import { z } from "zod/v4";
 import {
   db,
@@ -283,10 +284,24 @@ router.post(
     }
 
     const actor = actorFrom(req);
+
+    // Append-only lineage: reject the original candidate and create a new one
+    // with the adjusted boundary. This preserves the immutable lineage chain.
     const [cb] = await db.select().from(researchCaseCandidateBoundaries).where(eq(researchCaseCandidateBoundaries.candidateId, candidateId));
+    if (!cb) {
+      res.status(400).json({ error: "Candidate has no boundaries; cannot move boundary", code: "NO_BOUNDARIES" }); return;
+    }
+
+    const [startBound] = await db.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.startBoundaryId));
+    const [endBound] = await db.select().from(researchCaseBoundaries).where(eq(researchCaseBoundaries.id, cb.endBoundaryId));
+    if (!startBound || !endBound) {
+      res.status(400).json({ error: "Boundary records not found", code: "BOUNDARIES_MISSING" }); return;
+    }
+
+    let newCandidateId: number | null = null;
 
     await db.transaction(async (tx) => {
-      // Insert new boundary row
+      // 1. Create a new boundary at the requested page
       await tx.insert(researchCaseBoundaries).values({
         runId: candidate.runId ?? 0,
         pageId: newPageId,
@@ -300,33 +315,69 @@ router.post(
       }).onConflictDoNothing();
 
       const [newBound] = await tx.select().from(researchCaseBoundaries).where(
-        and(
-          eq(researchCaseBoundaries.pageId, newPageId),
-          eq(researchCaseBoundaries.boundaryRole, boundaryRole),
-        ),
+        and(eq(researchCaseBoundaries.pageId, newPageId), eq(researchCaseBoundaries.boundaryRole, boundaryRole)),
       );
+      if (!newBound) return; // boundary insert collision — treat as no-op
 
-      if (newBound && cb) {
-        if (boundaryRole === "start") {
-          await tx.update(researchCaseCandidateBoundaries).set({ startBoundaryId: newBound.id }).where(eq(researchCaseCandidateBoundaries.id, cb.id));
-        } else {
-          await tx.update(researchCaseCandidateBoundaries).set({ endBoundaryId: newBound.id }).where(eq(researchCaseCandidateBoundaries.id, cb.id));
-        }
-      }
+      // 2. Create a new candidate with the adjusted boundary span
+      const newStartBoundId = boundaryRole === "start" ? newBound.id : cb.startBoundaryId;
+      const newEndBoundId = boundaryRole === "end" ? newBound.id : cb.endBoundaryId;
+      const newStartPageId = boundaryRole === "start" ? newPageId : candidate.startPageId;
 
+      const [newCand] = await tx.insert(researchCaseCandidates).values({
+        containerId: candidate.containerId,
+        runId: candidate.runId,
+        startPageId: newStartPageId,
+        strength: candidate.strength,
+        pageCount: null,
+        reviewStatus: "review_required",
+        spans: candidate.spans,
+        detail: {
+          moveBoundaryFrom: candidateId,
+          boundaryRole,
+          oldBoundaryId: boundaryRole === "start" ? cb.startBoundaryId : cb.endBoundaryId,
+          newBoundaryId: newBound.id,
+          reason,
+        },
+      }).returning({ id: researchCaseCandidates.id });
+
+      if (!newCand) return;
+      newCandidateId = newCand.id;
+
+      await tx.insert(researchCaseCandidateBoundaries).values({
+        candidateId: newCand.id,
+        startBoundaryId: newStartBoundId,
+        endBoundaryId: newEndBoundId,
+      }).onConflictDoNothing();
+
+      // 3. Mark the original candidate as rejected (superseded by the new one)
+      await tx.update(researchCaseCandidates)
+        .set({ reviewStatus: "rejected", reviewedBy: actor, reviewedAt: new Date(),
+               detail: { ...(candidate.detail as Record<string, unknown>), supersededBy: newCand.id, supersededReason: "MOVE_BOUNDARY" } })
+        .where(eq(researchCaseCandidates.id, candidateId));
+
+      // 4. Record transformation and audit (append-only)
       const [transformation] = await tx.insert(researchTransformations).values({
         containerId: candidate.containerId,
         kind: "candidate.move_boundary",
-        detail: { candidateId, boundaryRole, oldBoundaryId: boundaryRole === "start" ? cb?.startBoundaryId : cb?.endBoundaryId, newPageId, reason },
+        detail: { originalCandidateId: candidateId, newCandidateId: newCand.id, boundaryRole, newPageId, reason },
         actor,
       }).returning({ id: researchTransformations.id });
 
-      await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "MOVE_BOUNDARY", actor, detail: { boundaryRole, newPageId, reason }, transformationId: transformation.id });
-      await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MOVE_BOUNDARY", actor, detail: { containerId: candidate.containerId, boundaryRole, newPageId, reason } });
+      await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "MOVE_BOUNDARY", actor, detail: { newCandidateId: newCand.id, boundaryRole, newPageId, reason }, transformationId: transformation.id });
+      await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MOVE_BOUNDARY", actor, detail: { containerId: candidate.containerId, newCandidateId: newCand.id, boundaryRole, newPageId, reason } });
     });
 
-    const [updated] = await db.select().from(researchCaseCandidates).where(eq(researchCaseCandidates.id, candidateId));
-    res.json(updated);
+    // 5. Re-validate the container so the new candidate gets coherence checks
+    if (newCandidateId !== null) {
+      try {
+        await startValidation(candidate.containerId, actor);
+      } catch (e) {
+        logger.warn({ err: e, containerId: candidate.containerId }, "Could not enqueue validation after move-boundary");
+      }
+    }
+
+    res.status(201).json({ originalCandidateId: candidateId, newCandidateId, message: "Boundary moved; new candidate created" });
   },
 );
 
@@ -460,6 +511,13 @@ router.post(
       await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:SPLIT", actor, detail: { containerId: candidate.containerId, splitPageId, newCandidateIds, reason } });
     });
 
+    // Enqueue re-validation so the new candidates get coherence checks
+    try {
+      await startValidation(candidate.containerId, actor);
+    } catch (e) {
+      logger.warn({ err: e, containerId: candidate.containerId }, "Could not enqueue validation after split");
+    }
+
     res.status(201).json({ originalCandidateId: candidateId, newCandidateIds, message: "Split successful" });
   },
 );
@@ -544,6 +602,13 @@ router.post(
       }
       await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MERGE", actor, detail: { containerId: candidate.containerId, targetCandidateId, mergedCandidateId: merged.id, reason } });
     });
+
+    // Enqueue re-validation so the merged candidate gets coherence checks
+    try {
+      await startValidation(candidate.containerId, actor);
+    } catch (e) {
+      logger.warn({ err: e, containerId: candidate.containerId }, "Could not enqueue validation after merge");
+    }
 
     res.status(201).json({ mergedCandidateId, originalIds: [candidateId, targetCandidateId], message: "Merge successful" });
   },
@@ -850,6 +915,12 @@ router.post(
 
     if (candidates.length !== candidateIds.length) {
       res.status(400).json({ error: "One or more candidates not found", code: "CANDIDATES_NOT_FOUND" }); return;
+    }
+
+    // Rights gate: requester must have view access to each candidate's container
+    for (const candidate of candidates) {
+      const ok = await requireContainerView(req, res, candidate.containerId);
+      if (!ok) return; // requireContainerView already sent 404
     }
 
     // Check none are in an approved span already

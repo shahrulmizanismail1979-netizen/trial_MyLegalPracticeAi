@@ -1,71 +1,119 @@
-// Minimal staff-only page-review UI (Phase 04). A server-rendered shell
-// that loads data from the JSON endpoints in ./extraction.ts. No inline
-// document content is embedded server-side; everything is fetched with the
-// caller's own credentials, so every access re-runs the rights gate.
+// Staff-only page-review + Phase 06 candidate review UI.
+// Renders a server-side HTML shell; all data is fetched client-side using
+// the caller's own credentials so every access re-runs the rights gate.
 
 export function reviewUiHtml(containerId: number): string {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Page Review — Container ${containerId}</title>
+<title>Container Review — ${containerId}</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f4; color: #1c1917; }
-  header { background: #1c1917; color: #fafaf9; padding: .75rem 1rem; display: flex; gap: 1rem; align-items: baseline; }
-  header h1 { font-size: 1rem; margin: 0; }
-  main { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 1rem; padding: 1rem; align-items: start; }
-  .panel { background: #fff; border: 1px solid #d6d3d1; border-radius: 6px; padding: .75rem; }
-  .panel h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #78716c; margin: 0 0 .5rem; }
-  #pages button { display: block; width: 100%; text-align: left; margin-bottom: 2px; padding: .35rem .5rem; border: 1px solid #e7e5e4; background: #fafaf9; border-radius: 4px; cursor: pointer; }
-  #pages button.active { background: #1c1917; color: #fff; }
-  #pages .warn { color: #b45309; font-weight: 600; }
-  pre { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: .8rem; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 4px; padding: .5rem; max-height: 40vh; overflow: auto; }
-  img#page-image { max-width: 100%; border: 1px solid #d6d3d1; }
-  .warning { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 4px; padding: .35rem .5rem; font-size: .8rem; margin-bottom: .25rem; }
-  .block { border-left: 3px solid #a8a29e; padding: .25rem .5rem; margin-bottom: .25rem; font-size: .8rem; }
-  .block .meta { color: #78716c; font-size: .7rem; }
-  .correction { border: 1px solid #e7e5e4; border-radius: 4px; padding: .5rem; margin-bottom: .5rem; font-size: .8rem; }
-  textarea { width: 100%; min-height: 8rem; font-family: ui-monospace, monospace; font-size: .8rem; }
-  input[type=text] { width: 100%; }
-  button.primary { background: #1c1917; color: #fff; border: 0; border-radius: 4px; padding: .5rem 1rem; cursor: pointer; margin-top: .5rem; }
-  #status { font-size: .8rem; color: #78716c; }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,sans-serif;margin:0;background:#f5f5f4;color:#1c1917}
+  header{background:#1c1917;color:#fafaf9;padding:.75rem 1rem;display:flex;gap:1rem;align-items:baseline}
+  header h1{font-size:1rem;margin:0}
+  .tabs{display:flex;gap:0;border-bottom:2px solid #d6d3d1;background:#fff;padding:0 1rem}
+  .tab{padding:.6rem 1.2rem;cursor:pointer;border:none;background:none;font-size:.85rem;color:#78716c;border-bottom:2px solid transparent;margin-bottom:-2px}
+  .tab.active{color:#1c1917;font-weight:600;border-bottom-color:#1c1917}
+  .pane{display:none;padding:1rem}
+  .pane.active{display:block}
+  /* Page review pane */
+  .pg-grid{display:grid;grid-template-columns:200px 1fr 1fr;gap:1rem;align-items:start}
+  /* Candidate review pane */
+  .cand-grid{display:grid;grid-template-columns:220px 1fr;gap:1rem;align-items:start}
+  .panel{background:#fff;border:1px solid #d6d3d1;border-radius:6px;padding:.75rem}
+  .panel h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#78716c;margin:0 0 .5rem}
+  #pages button,.cand-list button{display:block;width:100%;text-align:left;margin-bottom:2px;padding:.35rem .5rem;border:1px solid #e7e5e4;background:#fafaf9;border-radius:4px;cursor:pointer;font-size:.8rem}
+  #pages button.active,.cand-list button.active{background:#1c1917;color:#fff}
+  .badge{display:inline-block;padding:1px 6px;border-radius:9px;font-size:.7rem;font-weight:600;margin-left:4px}
+  .badge.PASS{background:#d1fae5;color:#065f46}
+  .badge.FAIL{background:#fee2e2;color:#991b1b}
+  .badge.UNCERTAIN{background:#fef3c7;color:#92400e}
+  .badge.NOT_APPLICABLE{background:#f3f4f6;color:#6b7280}
+  .badge.reviewed{background:#d1fae5;color:#065f46}
+  .badge.rejected{background:#fee2e2;color:#991b1b}
+  .badge.review_required{background:#fef3c7;color:#92400e}
+  .badge.auto_accepted{background:#dbeafe;color:#1e40af}
+  pre{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.8rem;background:#fafaf9;border:1px solid #e7e5e4;border-radius:4px;padding:.5rem;max-height:35vh;overflow:auto}
+  img#page-image{max-width:100%;border:1px solid #d6d3d1}
+  .warning{background:#fef3c7;border:1px solid #f59e0b;border-radius:4px;padding:.35rem .5rem;font-size:.8rem;margin-bottom:.25rem}
+  .block{border-left:3px solid #a8a29e;padding:.25rem .5rem;margin-bottom:.25rem;font-size:.8rem}
+  .block .meta{color:#78716c;font-size:.7rem}
+  .correction{border:1px solid #e7e5e4;border-radius:4px;padding:.5rem;margin-bottom:.5rem;font-size:.8rem}
+  textarea{width:100%;min-height:8rem;font-family:ui-monospace,monospace;font-size:.8rem}
+  input[type=text]{width:100%;padding:.3rem .5rem;border:1px solid #d6d3d1;border-radius:4px;font-size:.8rem}
+  .actions{display:flex;flex-wrap:wrap;gap:.4rem;margin:.5rem 0}
+  button.primary{background:#1c1917;color:#fff;border:0;border-radius:4px;padding:.5rem 1rem;cursor:pointer;font-size:.8rem}
+  button.danger{background:#dc2626;color:#fff;border:0;border-radius:4px;padding:.5rem 1rem;cursor:pointer;font-size:.8rem}
+  button.secondary{background:#fff;color:#1c1917;border:1px solid #d6d3d1;border-radius:4px;padding:.5rem 1rem;cursor:pointer;font-size:.8rem}
+  #status,#cand-status{font-size:.8rem;color:#78716c;margin-top:.4rem}
+  .check-row{display:flex;justify-content:space-between;align-items:center;padding:.25rem 0;border-bottom:1px solid #f3f4f6;font-size:.8rem}
+  .check-row:last-child{border-bottom:none}
+  .check-name{font-family:ui-monospace,monospace;font-size:.75rem;color:#44403c}
+  .rel-row{padding:.3rem .5rem;background:#fafaf9;border:1px solid #e7e5e4;border-radius:4px;margin-bottom:.25rem;font-size:.8rem}
+  .action-row{padding:.3rem .5rem;border-bottom:1px solid #f3f4f6;font-size:.75rem;color:#57534e}
 </style>
 </head>
 <body>
 <header>
-  <h1>Page Review — Container ${containerId}</h1>
+  <h1>Container ${containerId} — Review UI</h1>
   <span id="run-status"></span>
 </header>
-<main>
-  <div class="panel">
-    <h2>Pages</h2>
-    <div id="pages">Loading…</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('pages')">Page Review</button>
+  <button class="tab" onclick="switchTab('candidates')">Candidates &amp; Coherence</button>
+</div>
+
+<!-- ═══ PAGE REVIEW PANE ═════════════════════════════════════════════════ -->
+<div id="pane-pages" class="pane active">
+  <div class="pg-grid">
+    <div class="panel">
+      <h2>Pages</h2>
+      <div id="pages">Loading…</div>
+    </div>
+    <div class="panel">
+      <h2>Original page</h2>
+      <div id="image-holder">Select a page.</div>
+      <h2 style="margin-top:1rem">Extracted text (raw, immutable)</h2>
+      <pre id="raw-text"></pre>
+      <h2>Warnings</h2>
+      <div id="warnings"></div>
+    </div>
+    <div class="panel">
+      <h2>Detected blocks</h2>
+      <div id="blocks" style="max-height:30vh;overflow:auto"></div>
+      <h2 style="margin-top:1rem">Correction history</h2>
+      <div id="corrections"></div>
+      <h2>New correction (appends a version — raw output is preserved)</h2>
+      <textarea id="corrected-text" placeholder="Corrected page text"></textarea>
+      <input type="text" id="correction-reason" placeholder="Reason for correction" style="margin-top:.3rem">
+      <button class="primary" id="submit-correction" style="margin-top:.5rem">Submit correction</button>
+      <div id="status"></div>
+    </div>
   </div>
-  <div class="panel">
-    <h2>Original page</h2>
-    <div id="image-holder">Select a page.</div>
-    <h2 style="margin-top:1rem">Extracted text (raw, immutable)</h2>
-    <pre id="raw-text"></pre>
-    <h2>Warnings</h2>
-    <div id="warnings"></div>
+</div>
+
+<!-- ═══ CANDIDATES & COHERENCE PANE ════════════════════════════════════ -->
+<div id="pane-candidates" class="pane">
+  <div class="cand-grid">
+    <div class="panel">
+      <h2>Candidates</h2>
+      <div class="cand-list" id="cand-list">Loading…</div>
+    </div>
+    <div class="panel" id="cand-detail-panel">
+      <p style="color:#78716c;font-size:.85rem">Select a candidate to review.</p>
+    </div>
   </div>
-  <div class="panel">
-    <h2>Detected blocks</h2>
-    <div id="blocks" style="max-height:30vh;overflow:auto"></div>
-    <h2 style="margin-top:1rem">Correction history</h2>
-    <div id="corrections"></div>
-    <h2>New correction (appends a version — raw output is preserved)</h2>
-    <textarea id="corrected-text" placeholder="Corrected page text"></textarea>
-    <input type="text" id="correction-reason" placeholder="Reason for correction">
-    <button class="primary" id="submit-correction">Submit correction</button>
-    <div id="status"></div>
-  </div>
-</main>
+</div>
+
 <script>
 const BASE = location.pathname.replace(/\\/containers\\/\\d+\\/review-ui$/, "");
 const CONTAINER_ID = ${containerId};
 let currentPage = null;
+let currentCandidateId = null;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -75,10 +123,25 @@ async function j(url, opts) {
   return r.json();
 }
 
+// ── Tab switching ──────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t, i) => {
+    const active = (i === 0 && name === "pages") || (i === 1 && name === "candidates");
+    t.classList.toggle("active", active);
+  });
+  document.getElementById("pane-pages").classList.toggle("active", name === "pages");
+  document.getElementById("pane-candidates").classList.toggle("active", name === "candidates");
+  if (name === "candidates" && document.getElementById("cand-list").textContent === "Loading…") {
+    loadCandidates();
+  }
+}
+
+// ── Page review ────────────────────────────────────────────────────────────
+
 async function loadPages() {
   const data = await j(BASE + "/containers/" + CONTAINER_ID + "/pages");
-  document.getElementById("run-status").textContent =
-    "run #" + data.runId + " — " + data.status;
+  document.getElementById("run-status").textContent = "run #" + data.runId + " — " + data.status;
   const holder = document.getElementById("pages");
   holder.innerHTML = "";
   for (const p of data.pages) {
@@ -144,6 +207,181 @@ document.getElementById("submit-correction").onclick = async () => {
     status.textContent = "Failed: " + e.message;
   }
 };
+
+// ── Candidate & coherence review ──────────────────────────────────────────
+
+async function loadCandidates() {
+  const list = document.getElementById("cand-list");
+  try {
+    // Use the segmentation endpoint to list candidates for this container
+    const data = await j(BASE + "/containers/" + CONTAINER_ID + "/candidates").catch(() => null);
+    const candidates = Array.isArray(data) ? data : (data?.candidates ?? []);
+    list.innerHTML = "";
+    if (candidates.length === 0) {
+      list.textContent = "No candidates found.";
+      return;
+    }
+    for (const c of candidates) {
+      const b = document.createElement("button");
+      const statusBadge = '<span class="badge ' + esc(c.reviewStatus ?? "review_required") + '">' + esc(c.reviewStatus ?? "?") + "</span>";
+      b.innerHTML = "#" + c.id + statusBadge + "<br><small>" + esc(c.strength ?? "—") + "</small>";
+      b.onclick = () => loadCandidate(c.id, b);
+      list.appendChild(b);
+    }
+  } catch (e) {
+    list.textContent = "Failed to load candidates: " + e.message;
+  }
+}
+
+async function loadCandidate(id, btn) {
+  currentCandidateId = id;
+  document.querySelectorAll(".cand-list button").forEach((b) => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+
+  const panel = document.getElementById("cand-detail-panel");
+  panel.innerHTML = "Loading…";
+
+  try {
+    const [checks, rels, actions] = await Promise.all([
+      j(BASE + "/candidates/" + id + "/coherence").catch(() => []),
+      j(BASE + "/candidates/" + id + "/relationships").catch(() => []),
+      j(BASE + "/candidates/" + id + "/review/actions").catch(() => []),
+    ]);
+
+    const checkRows = checks.length
+      ? checks.map((c) =>
+          '<div class="check-row"><span class="check-name">' + esc(c.checkType) + '</span>' +
+          '<span class="badge ' + esc(c.result) + '">' + esc(c.result) + '</span></div>'
+        ).join("")
+      : "<small>No coherence checks recorded yet.</small>";
+
+    const relRows = rels.length
+      ? rels.map((r) =>
+          '<div class="rel-row"><b>' + esc(r.relationshipType) + '</b> ' +
+          '← cand #' + esc(r.sourceCandidateId) + ' → cand #' + esc(r.targetCandidateId) + '</div>'
+        ).join("")
+      : "<small>No cross-file relationships.</small>";
+
+    const actionRows = actions.length
+      ? actions.map((a) =>
+          '<div class="action-row"><b>' + esc(a.actionType) + '</b> by ' + esc(a.actor) +
+          ' <small>' + esc(a.createdAt) + '</small></div>'
+        ).join("")
+      : "<small>No review actions yet.</small>";
+
+    panel.innerHTML = \`
+      <h2>Candidate #\${id} — Coherence Checks</h2>
+      <div>\${checkRows}</div>
+
+      <h2 style="margin-top:1rem">Review Actions</h2>
+      <div class="actions">
+        <button class="primary" onclick="reviewAction(\${id},'approve')">✓ Approve</button>
+        <button class="danger" onclick="reviewAction(\${id},'reject')">✗ Reject</button>
+        <button class="secondary" onclick="reviewAction(\${id},'reprocess')">↻ Re-validate</button>
+        <button class="secondary" onclick="showSplitForm(\${id})">⊢ Split</button>
+        <button class="secondary" onclick="showMergeForm(\${id})">⊔ Merge</button>
+      </div>
+      <div id="cand-action-form"></div>
+      <div id="cand-status"></div>
+
+      <h2 style="margin-top:1rem">Cross-file Relationships</h2>
+      <div>\${relRows}</div>
+
+      <h2 style="margin-top:1rem">Audit Trail</h2>
+      <div>\${actionRows}</div>
+    \`;
+  } catch (e) {
+    panel.innerHTML = "Failed to load: " + esc(e.message);
+  }
+}
+
+async function reviewAction(id, action) {
+  const status = document.getElementById("cand-status");
+  if (!status) return;
+  const reasonNeeded = action === "reject";
+  const reason = reasonNeeded ? prompt("Reason for rejection (required):") : "";
+  if (reasonNeeded && !reason) return;
+  status.textContent = "Saving…";
+  try {
+    await j(BASE + "/candidates/" + id + "/review/" + action, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason || "Reviewer action from UI" }),
+    });
+    status.textContent = action + " successful. Refreshing…";
+    setTimeout(() => loadCandidates(), 600);
+  } catch (e) {
+    status.textContent = "Failed: " + esc(e.message);
+  }
+}
+
+function showSplitForm(id) {
+  const form = document.getElementById("cand-action-form");
+  if (!form) return;
+  form.innerHTML = \`
+    <div style="border:1px solid #d6d3d1;border-radius:4px;padding:.75rem;margin-top:.5rem;background:#fafaf9">
+      <b>Split candidate #\${id}</b><br>
+      <label style="font-size:.8rem">Split at page ID: <input type="number" id="split-page-id" style="width:100px"></label><br>
+      <label style="font-size:.8rem">Reason: <input type="text" id="split-reason" style="width:100%"></label><br>
+      <button class="primary" style="margin-top:.4rem" onclick="doSplit(\${id})">Execute Split</button>
+    </div>
+  \`;
+}
+
+async function doSplit(id) {
+  const status = document.getElementById("cand-status");
+  const splitPageId = parseInt(document.getElementById("split-page-id")?.value ?? "");
+  const reason = document.getElementById("split-reason")?.value ?? "";
+  if (!splitPageId || !reason) { if (status) status.textContent = "Split page ID and reason are required."; return; }
+  if (status) status.textContent = "Splitting…";
+  try {
+    const result = await j(BASE + "/candidates/" + id + "/review/split", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ splitPageId, reason }),
+    });
+    if (status) status.textContent = "Split successful. New IDs: " + JSON.stringify(result.newCandidateIds) + ". Refreshing…";
+    document.getElementById("cand-action-form").innerHTML = "";
+    setTimeout(() => loadCandidates(), 800);
+  } catch (e) {
+    if (status) status.textContent = "Split failed: " + esc(e.message);
+  }
+}
+
+function showMergeForm(id) {
+  const form = document.getElementById("cand-action-form");
+  if (!form) return;
+  form.innerHTML = \`
+    <div style="border:1px solid #d6d3d1;border-radius:4px;padding:.75rem;margin-top:.5rem;background:#fafaf9">
+      <b>Merge candidate #\${id} with another</b><br>
+      <label style="font-size:.8rem">Target candidate ID: <input type="number" id="merge-target-id" style="width:100px"></label><br>
+      <label style="font-size:.8rem">Reason: <input type="text" id="merge-reason" style="width:100%"></label><br>
+      <button class="primary" style="margin-top:.4rem" onclick="doMerge(\${id})">Execute Merge</button>
+    </div>
+  \`;
+}
+
+async function doMerge(id) {
+  const status = document.getElementById("cand-status");
+  const targetCandidateId = parseInt(document.getElementById("merge-target-id")?.value ?? "");
+  const reason = document.getElementById("merge-reason")?.value ?? "";
+  if (!targetCandidateId || !reason) { if (status) status.textContent = "Target candidate ID and reason are required."; return; }
+  if (status) status.textContent = "Merging…";
+  try {
+    const result = await j(BASE + "/candidates/" + id + "/review/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetCandidateId, reason }),
+    });
+    if (status) status.textContent = "Merge successful. Merged ID: " + result.mergedCandidateId + ". Refreshing…";
+    document.getElementById("cand-action-form").innerHTML = "";
+    setTimeout(() => loadCandidates(), 800);
+  } catch (e) {
+    if (status) status.textContent = "Merge failed: " + esc(e.message);
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 loadPages().catch((e) => {
   document.getElementById("pages").textContent = "Failed to load: " + e.message;
