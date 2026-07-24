@@ -18,6 +18,7 @@ import {
 import { and, desc, eq, inArray, like, ne } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { getContainer } from "../data/containers";
+import type { CrossFileRelationshipType } from "./crossFileDetector";
 import { transitionContainer } from "../domain/containerStateMachine";
 import { recordAuditEvent } from "../domain/audit";
 import { enqueue, registerProcessor } from "../processing";
@@ -430,7 +431,13 @@ async function validateProcessor(ctx: ProcessorContext) {
 
   const relationships = detectAllCrossFileRelationships(allContainerCandidates, pagesByCandidateId);
 
+  // Auto-insert only POSSIBLE_* types. EXACT_DUPLICATE, ALTERNATIVE_VERSION,
+  // RELATED_APPEAL, CONFIRMED_*, and CORRECTED_VERSION are set only through
+  // human reviewer actions (link-duplicate / link-continuation / link-related).
+  const AUTO_INSERT_TYPES: CrossFileRelationshipType[] = ["POSSIBLE_CONTINUATION", "POSSIBLE_DUPLICATE"];
+
   for (const { sourceCandidateId, targetCandidateId, relationship } of relationships) {
+    if (!AUTO_INSERT_TYPES.includes(relationship.relationshipType)) continue;
     await dbc
       .insert(researchCrossFileRelationships)
       .values({
@@ -480,11 +487,14 @@ async function validateProcessor(ctx: ProcessorContext) {
     });
 
     if (needsReview) {
-      await transitionContainer(containerId, "SEGMENTATION_REVIEW_REQUIRED", {
-        actor: `job:${job.id}`,
-        detail: { runId: run.id, failCount: totalFail, uncertainCount: totalUncertain },
-        dbc: tx,
-      });
+      // Skip self-transition if already in the target state (idempotent re-validation).
+      if (container.processingState !== "SEGMENTATION_REVIEW_REQUIRED") {
+        await transitionContainer(containerId, "SEGMENTATION_REVIEW_REQUIRED", {
+          actor: `job:${job.id}`,
+          detail: { runId: run.id, failCount: totalFail, uncertainCount: totalUncertain },
+          dbc: tx,
+        });
+      }
     } else {
       await transitionContainer(containerId, "EDITORIAL_REVIEW_PENDING", {
         actor: `job:${job.id}`,

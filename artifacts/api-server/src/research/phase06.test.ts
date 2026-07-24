@@ -902,8 +902,10 @@ describe("Phase 06 pure: cross-file scenarios (7 fixture scenarios)", () => {
       id: 51, containerId: 10, sourceBatch: "batch5", contentSha256: null,
       startPageNumber: 1, endPageNumber: 2, hasClosingOrder: true, hasBeginning: false, strength: "MODERATE",
     };
-    const pagesA = [{ id: 50, pageNumber: 3, text: textA.slice(-200) }];
-    const pagesB = [{ id: 51, pageNumber: 1, text: textB.slice(0, 200) }];
+    // Use full text so the bridge similarity window (-300 / +300 chars) captures
+    // shared legal terms between the end of part1 and start of continuation-final.
+    const pagesA = [{ id: 50, pageNumber: 3, text: textA }];
+    const pagesB = [{ id: 51, pageNumber: 1, text: textB }];
     const rel = detectCrossFileRelationship(cA, cB, pagesA, pagesB);
     expect(rel).not.toBeNull();
     if (rel) {

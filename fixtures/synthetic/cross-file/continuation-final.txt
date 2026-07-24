@@ -1,43 +1,51 @@
--- CONTINUATION (FINAL PART) --
+[14] The Court, having reviewed the Defendant's Notice of Defects dated 10 January
+2022 identifying 127 alleged defects in the works, is not satisfied that the alleged
+defects are substantiated by the evidence placed before the Court.
 
-This text continues directly from the preceding file and does not have the usual
-case header. The Court resumes its analysis from where it left off.
+[15] The Plaintiff's expert, Mr. Tan Ah Kow, gave evidence that he inspected the
+works on 20 February 2022 and found only 12 items of minor defect, with a combined
+rectification cost of RM 48,000. The Court accepts this evidence.
 
-Further consideration of the evidence:
+[16] The Defendant's own expert, Encik Razif bin Hassan, conceded under
+cross-examination that 89 of the 127 items listed in the Notice of Defects were
+either non-existent or represented normal wear associated with construction
+processes. The Court finds that the Notice of Defects was exaggerated.
 
-38. Having reviewed the documentary evidence in totality, this Court accepts the
-Plaintiff's version of events. The contemporaneous emails exchanged between the
-parties in February 2021 are particularly persuasive.
+DETERMINATION ON COUNTERCLAIM
 
-39. The Defendant's reliance on the force majeure clause fails. The clause requires
-notice within 7 days of the triggering event. No such notice was given.
+[17] The Defendant's counterclaim for delay damages fails. The primary cause of
+delay to the works was the Defendant's failure to honour progress payments as
+certified. The Notice of Delay issued by the Plaintiff on 5 December 2021 was
+validly served and the extension of time claimed is allowed.
 
-40. The Defendant's expert witness, Mr. David Lim, conceded under cross-examination
-that an industry-standard supplier would have had contingency stock to meet the
-contractual delivery date notwithstanding supply-chain disruptions of the magnitude
-described.
+[18] The Defendant's counterclaim for defect rectification costs similarly fails
+save for the sum of RM 48,000 accepted by both experts as representing genuine
+minor defects. The counterclaim succeeds only to that limited extent.
 
-DAMAGES
+QUANTIFICATION
 
-41. The Plaintiff has proven damages of RM 320,000 for lost profits on forward
-contracts that could not be fulfilled due to the Defendant's breach.
+[19] The Plaintiff's claim succeeds in the sum of RM 7,500,000 (being outstanding
+progress payments) less the agreed defect credit of RM 180,000 assessed by the
+Court's own computation of the Defendant's proven items, yielding a net judgment
+sum of RM 7,320,000.00.
 
-42. The Plaintiff is also entitled to consequential damages of RM 45,000 for the
-additional procurement costs incurred in sourcing substitute components on short
-notice.
+[20] Interest shall run on the judgment sum at 5% per annum from the date of the
+writ until full settlement.
 
-43. Pre-judgment interest at 5% per annum from the date of breach (1 March 2021) to
-the date of this judgment.
+ORDER
 
-CONCLUSION
+[21] Accordingly, judgment is entered for the Plaintiff in the sum of RM 7,320,000.00
+together with interest and costs.
 
-44. This Court accordingly enters judgment for the Plaintiff in the total sum of RM
-365,000 plus interest as stated above.
+[22] The Defendant's counterclaim is dismissed save for the RM 48,000 defect credit
+already incorporated in the judgment sum above.
 
-45. Costs are awarded to the Plaintiff, to be taxed if not agreed.
+[23] Costs are awarded to the Plaintiff to be taxed if not agreed.
 
 Order accordingly.
 
-(JUDGE'S SIGNATURE BLOCK ON PRECEDING COVER PAGE)
+(MOHD FARID HARUN)
+Judge
+High Court of Malaya at Kuala Lumpur
 
-Date: 28 June 2023
+Date: 30 November 2022
