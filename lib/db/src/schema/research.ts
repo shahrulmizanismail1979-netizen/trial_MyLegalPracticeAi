@@ -2143,3 +2143,35 @@ export type ResearchQuotationCollection = typeof researchQuotationCollections.$i
 export type ResearchWorkspaceQuotation = typeof researchWorkspaceQuotations.$inferSelect;
 export type ResearchComparisonTable = typeof researchComparisonTables.$inferSelect;
 export type ResearchAuthoritiesTable = typeof researchAuthoritiesTables.$inferSelect;
+
+// ── Phase 12c: Granular deletion manifests ────────────────────────────────
+
+/**
+ * Records every granular-deletion request for a container. The manifest
+ * itself is stored in object storage (at manifest_key); this row lets the
+ * GET /deletion-manifest route retrieve it without scanning object storage.
+ */
+export const researchDeletionManifests = pgTable(
+  "research_deletion_manifests",
+  {
+    id: serial("id").primaryKey(),
+    containerId: integer("container_id")
+      .references(() => researchSourceContainers.id)
+      .notNull(),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+    actor: text("actor").notNull(),
+    layersRequested: jsonb("layers_requested").$type<string[]>().notNull(),
+    manifestKey: text("manifest_key").notNull(),
+    /** Full manifest JSON stored for resilient retrieval when object storage is unavailable. */
+    manifestBody: jsonb("manifest_body").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_deletion_manifests_container_idx").on(t.containerId),
+  ],
+);
+
+export type ResearchDeletionManifest =
+  typeof researchDeletionManifests.$inferSelect;

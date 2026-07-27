@@ -47,6 +47,12 @@ import {
   type ExportFormat,
   type ExportScope,
 } from "../export/exportService";
+import {
+  deleteContainerLayers,
+  getLatestDeletionManifest,
+  LAYER_KINDS,
+  type LayerKind,
+} from "../retention/deletionService";
 
 // Denied gated operations must not leak container existence: callers who
 // cannot even VIEW the container get the same 404 as a non-existent id;
@@ -602,6 +608,92 @@ router.get(
       .limit(50);
 
     res.json({ containerId: id, total: events.length, events });
+  },
+);
+
+// ── Phase 12c: Granular deletion + manifest routes ────────────────────────
+
+const DeleteLayersBody = z.object({
+  layers: z.array(z.enum(LAYER_KINDS as unknown as [string, ...string[]])).min(1),
+});
+
+/**
+ * DELETE /containers/:id/layers
+ * Body: { layers: LayerKind[] }
+ * Owner/administrator only. Deletes the specified data layers for the
+ * container and returns a deletion manifest. Failures on individual
+ * layers are collected; already-completed layers are not rolled back.
+ * The manifest always states backupConfirmed: false.
+ */
+router.delete(
+  "/containers/:id/layers",
+  requireResearchRole("owner", "administrator"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+
+    const parsed = DeleteLayersBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: z.treeifyError(parsed.error) });
+      return;
+    }
+
+    const actor = req.authEmail ?? `role:${req.researchRole ?? "unknown"}`;
+
+    try {
+      // Verify the container exists and the caller has view access.
+      const { decision } = await checkContainerAccess(
+        id,
+        req.researchRole ?? null,
+        "view",
+        { actor },
+      );
+      if (!decision.allowed) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof EntityNotFoundError) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      throw err;
+    }
+
+    const manifest = await deleteContainerLayers(
+      id,
+      parsed.data.layers as LayerKind[],
+      actor,
+    );
+
+    res.json(manifest);
+  },
+);
+
+/**
+ * GET /containers/:id/deletion-manifest
+ * Returns the most recent deletion manifest for a container from object
+ * storage. Owner and administrator only.
+ */
+router.get(
+  "/containers/:id/deletion-manifest",
+  requireResearchRole("owner", "administrator"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+
+    const manifest = await getLatestDeletionManifest(id);
+    if (!manifest) {
+      res.status(404).json({ error: "No deletion manifest found for this container" });
+      return;
+    }
+    res.json(manifest);
   },
 );
 

@@ -52,6 +52,7 @@ const {
   researchAuditEvents,
   researchUsers,
   researchCandidateReviewActions,
+  researchCandidateCoherenceChecks,
 } = await import("@workspace/db");
 const { eq, like, inArray, and, isNotNull } = await import("drizzle-orm");
 
@@ -308,6 +309,10 @@ afterAll(async () => {
     const candidateIds = candidateRows.map((c) => c.id);
 
     if (candidateIds.length > 0) {
+      await db
+        .delete(researchCandidateCoherenceChecks)
+        .where(inArray(researchCandidateCoherenceChecks.candidateId, candidateIds))
+        .catch(() => {});
       await db
         .delete(researchCandidateReviewActions)
         .where(inArray(researchCandidateReviewActions.candidateId, candidateIds));
