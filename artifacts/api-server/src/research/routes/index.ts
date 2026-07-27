@@ -40,6 +40,13 @@ import {
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { emitAuditEvent } from "../domain/audit";
 import { AuditAction } from "../domain/auditEvents";
+import {
+  buildExport,
+  EXPORT_FORMATS,
+  EXPORT_SCOPES,
+  type ExportFormat,
+  type ExportScope,
+} from "../export/exportService";
 
 // Denied gated operations must not leak container existence: callers who
 // cannot even VIEW the container get the same 404 as a non-existent id;
@@ -489,29 +496,66 @@ router.post("/containers/:id/external-ai-submissions", async (req, res) => {
   }
 });
 
-// Export gate: rights caps + express approval in the latest rights record.
+// ── Phase 12b: Real export implementation ────────────────────────────────
+
+/**
+ * POST /containers/:id/exports
+ * Body: { format: ExportFormat, scope?: ExportScope }
+ * Streams the generated file with appropriate Content-Disposition header.
+ */
 router.post("/containers/:id/exports", async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
     res.status(400).json({ error: "Invalid container id" });
     return;
   }
+
+  const format = req.body?.format as string | undefined;
+  const scope = (req.body?.scope as string | undefined) ?? "full";
+
+  if (!format || !(EXPORT_FORMATS as readonly string[]).includes(format)) {
+    res.status(400).json({
+      error: `Invalid or missing format. Supported: ${EXPORT_FORMATS.join(", ")}`,
+    });
+    return;
+  }
+  if (!(EXPORT_SCOPES as readonly string[]).includes(scope)) {
+    res.status(400).json({
+      error: `Invalid scope. Supported: ${EXPORT_SCOPES.join(", ")}`,
+    });
+    return;
+  }
+
   try {
-    const container = await assertExportAllowed(id, req.researchRole ?? null, {
+    await assertExportAllowed(id, req.researchRole ?? null, {
       actor: req.authEmail ?? undefined,
     });
+
+    const actor = req.authEmail ?? `role:${req.researchRole ?? "unknown"}`;
+
+    // Emit the audit event before building (so it's recorded even if the render fails).
     void emitAuditEvent({
       entityType: "container",
       entityId: id,
       event: AuditAction.EXPORT_REQUESTED,
-      actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
-      detail: { format: req.body?.format ?? null, scope: req.body?.scope ?? null },
+      actor,
+      detail: { format, scope },
     });
-    res.json({
-      gate: "passed",
-      containerId: container.id,
-      note: "Export mechanics arrive in a later phase; approval verified.",
-    });
+
+    const result = await buildExport(
+      id,
+      format as ExportFormat,
+      scope as ExportScope,
+      actor,
+    );
+
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.filename}"`,
+    );
+    res.setHeader("Content-Length", result.buffer.length);
+    res.send(result.buffer);
   } catch (err) {
     if (err instanceof AccessDeniedError) {
       await denyGatedOp(req, res, id, err);
@@ -521,9 +565,45 @@ router.post("/containers/:id/exports", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "JUDGMENT_NOT_FOUND") {
+      res.status(422).json({ error: "No verified judgment found for this container" });
+      return;
+    }
     throw err;
   }
 });
+
+/**
+ * GET /containers/:id/exports/history
+ * Returns the last 50 EXPORT_REQUESTED audit events for a container.
+ * Owner and administrator only.
+ */
+router.get(
+  "/containers/:id/exports/history",
+  requireResearchRole("owner", "administrator"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+
+    const events = await db
+      .select()
+      .from(researchAuditEvents)
+      .where(
+        and(
+          eq(researchAuditEvents.entityType, "container"),
+          eq(researchAuditEvents.entityId, id),
+          eq(researchAuditEvents.event, AuditAction.EXPORT_REQUESTED),
+        ),
+      )
+      .orderBy(desc(researchAuditEvents.createdAt))
+      .limit(50);
+
+    res.json({ containerId: id, total: events.length, events });
+  },
+);
 
 // ── Phase 12a: Admin audit-event query route ──────────────────────────────
 
