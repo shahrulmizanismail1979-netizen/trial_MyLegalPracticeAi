@@ -1511,6 +1511,7 @@ export const researchDuplicateLinks = pgTable(
 );
 
 // Per-user annotations on a verified judgment (paragraph-level).
+// Phase 11b extended with char offsets, tags, and is_public visibility flag.
 export const researchAnnotations = pgTable(
   "research_annotations",
   {
@@ -1528,6 +1529,13 @@ export const researchAnnotations = pgTable(
       .default("note")
       .notNull(),
     body: text("body").notNull(),
+    // Phase 11b: character-offset highlight range (null = whole paragraph).
+    charStart: integer("char_start"),
+    charEnd: integer("char_end"),
+    // Phase 11b: free-form tags (array of strings).
+    tags: jsonb("tags").$type<string[]>(),
+    // Phase 11b: public annotations are visible to all users with view access.
+    isPublic: boolean("is_public").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1542,6 +1550,7 @@ export const researchAnnotations = pgTable(
 );
 
 // Per-user bookmarks on a verified judgment.
+// Phase 11b extended with optional folder association.
 export const researchBookmarks = pgTable(
   "research_bookmarks",
   {
@@ -1553,6 +1562,9 @@ export const researchBookmarks = pgTable(
       .references(() => researchVerifiedJudgments.id)
       .notNull(),
     label: text("label"),
+    // Phase 11b: optional folder the bookmark belongs to.
+    // FK to research_folders added via 0018-phase11b-workspace.sql migration.
+    folderId: integer("folder_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1949,3 +1961,185 @@ export const researchLegislationRefs = pgTable(
 
 export type ResearchAuthority = typeof researchAuthorities.$inferSelect;
 export type ResearchLegislationRef = typeof researchLegislationRefs.$inferSelect;
+
+// ── Phase 11b: Research Workspace ────────────────────────────────────────
+
+export const FOLDER_KINDS = ["research", "course", "matter"] as const;
+export type FolderKind = (typeof FOLDER_KINDS)[number];
+
+/** Personal/course/matter folders that organise verified judgments. */
+export const researchFolders = pgTable(
+  "research_folders",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    kind: text("kind").$type<FolderKind>().default("research").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    sharedWithStudents: boolean("shared_with_students").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("research_folders_owner_idx").on(t.ownerId),
+  ],
+);
+
+/** Membership of a judgment in a folder.  Unique per (folder, judgment). */
+export const researchFolderItems = pgTable(
+  "research_folder_items",
+  {
+    id: serial("id").primaryKey(),
+    folderId: integer("folder_id")
+      .references(() => researchFolders.id)
+      .notNull(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_folder_items_folder_judgment_uq").on(t.folderId, t.judgmentId),
+    index("research_folder_items_folder_idx").on(t.folderId),
+    index("research_folder_items_judgment_idx").on(t.judgmentId),
+  ],
+);
+
+/** A stored search query + filters, private to the owner. */
+export const researchSavedSearches = pgTable(
+  "research_saved_searches",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    name: text("name").notNull(),
+    /** Serialised search query: { q?: string, court?: string, dateFrom?: string, dateTo?: string, ... } */
+    query: jsonb("query").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_saved_searches_owner_idx").on(t.ownerId)],
+);
+
+/** An ordered list of judgments to read, optionally shared with students. */
+export const researchReadingLists = pgTable(
+  "research_reading_lists",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    name: text("name").notNull(),
+    sharedWithStudents: boolean("shared_with_students").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_reading_lists_owner_idx").on(t.ownerId)],
+);
+
+/** One item in a reading list.  Unique per (list, judgment). */
+export const researchReadingListItems = pgTable(
+  "research_reading_list_items",
+  {
+    id: serial("id").primaryKey(),
+    listId: integer("list_id")
+      .references(() => researchReadingLists.id)
+      .notNull(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    position: integer("position").default(0).notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_reading_list_items_list_judgment_uq").on(t.listId, t.judgmentId),
+    index("research_reading_list_items_list_idx").on(t.listId),
+  ],
+);
+
+/** Named collection of saved quotation passages. */
+export const researchQuotationCollections = pgTable(
+  "research_quotation_collections",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_quotation_collections_owner_idx").on(t.ownerId)],
+);
+
+/** One saved passage extracted from a validated AI proposition. */
+export const researchWorkspaceQuotations = pgTable(
+  "research_workspace_quotations",
+  {
+    id: serial("id").primaryKey(),
+    collectionId: integer("collection_id")
+      .references(() => researchQuotationCollections.id)
+      .notNull(),
+    propositionId: integer("proposition_id")
+      .references(() => researchAiPropositions.id)
+      .notNull(),
+    passageText: text("passage_text").notNull(),
+    label: text("label"),
+    charStart: integer("char_start"),
+    charEnd: integer("char_end"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_workspace_quotations_collection_idx").on(t.collectionId)],
+);
+
+/**
+ * Case-comparison table: up to 10 judgment columns × N field rows.
+ * Field names reference AI analysis proposition fieldName values
+ * (e.g. "holdingOnEachIssue", "reasoning").
+ */
+export const researchComparisonTables = pgTable(
+  "research_comparison_tables",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    name: text("name").notNull(),
+    /** Array of judgment IDs (max 10, enforced at the application layer). */
+    judgmentIds: jsonb("judgment_ids").$type<number[]>().default([]).notNull(),
+    /** AI analysis fieldName strings to include as rows. */
+    fieldNames: jsonb("field_names").$type<string[]>().default([]).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_comparison_tables_owner_idx").on(t.ownerId)],
+);
+
+/**
+ * User-created authorities table scoped to one or more judgments.
+ * Populated on-read from Phase 11a's research_authorities +
+ * research_legislation_refs.
+ */
+export const researchAuthoritiesTables = pgTable(
+  "research_authorities_tables",
+  {
+    id: serial("id").primaryKey(),
+    ownerId: integer("owner_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    name: text("name").notNull(),
+    judgmentIds: jsonb("judgment_ids").$type<number[]>().default([]).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("research_authorities_tables_owner_idx").on(t.ownerId)],
+);
+
+export type ResearchFolder = typeof researchFolders.$inferSelect;
+export type ResearchFolderItem = typeof researchFolderItems.$inferSelect;
+export type ResearchSavedSearch = typeof researchSavedSearches.$inferSelect;
+export type ResearchReadingList = typeof researchReadingLists.$inferSelect;
+export type ResearchReadingListItem = typeof researchReadingListItems.$inferSelect;
+export type ResearchQuotationCollection = typeof researchQuotationCollections.$inferSelect;
+export type ResearchWorkspaceQuotation = typeof researchWorkspaceQuotations.$inferSelect;
+export type ResearchComparisonTable = typeof researchComparisonTables.$inferSelect;
+export type ResearchAuthoritiesTable = typeof researchAuthoritiesTables.$inferSelect;
