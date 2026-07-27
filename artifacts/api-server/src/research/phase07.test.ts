@@ -946,13 +946,11 @@ describe("editorial processor job", () => {
 
     await startEditorialClassification(containerId, "test-runner");
 
-    // Retry loop: in a full suite run other workers compete for runNextJob(), so
-    // keep running until the container advances past EDITORIAL_REVIEW_PENDING or
-    // we exhaust the retry budget. If runNextJob() returns null while the
-    // container is still pending, re-enqueue (the previous job may have been
-    // consumed by a worker without the editorial processor registered).
+    // Retry loop: pass EDITORIAL_JOB_KIND so runNextJob() only claims editorial
+    // classification jobs and cannot steal jobs from other test files that also
+    // write to the shared research_jobs table during a full suite run.
     for (let i = 0; i < 15; i++) {
-      const job = await runNextJob();
+      const job = await runNextJob(EDITORIAL_JOB_KIND);
       const c = await getContainer(containerId);
       if (
         c?.processingState === "JUDGMENT_VERIFICATION_PENDING" ||
