@@ -1600,3 +1600,98 @@ export type ResearchDuplicateLink = typeof researchDuplicateLinks.$inferSelect;
 export type ResearchAnnotation = typeof researchAnnotations.$inferSelect;
 export type ResearchBookmark = typeof researchBookmarks.$inferSelect;
 export type ResearchSearchIndex = typeof researchSearchIndex.$inferSelect;
+
+// ── Phase 09: Exact Quotations & Citation Tools ───────────────────────────
+
+export const QUOTATION_KINDS = ["exact", "altered"] as const;
+export type QuotationKind = (typeof QUOTATION_KINDS)[number];
+
+export const QUOTATION_ALTERATION_KINDS = [
+  "omission",
+  "insertion",
+  "alteration",
+] as const;
+export type QuotationAlterationKind =
+  (typeof QUOTATION_ALTERATION_KINDS)[number];
+
+// One row per saved quotation. The selectedText and all provenance fields are
+// immutable after creation. The kind flips to "altered" when any alteration
+// row is recorded against this quotation.
+export const researchQuotations = pgTable(
+  "research_quotations",
+  {
+    id: serial("id").primaryKey(),
+    // Parent verified judgment (immutable FK)
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    // ── Denormalized provenance (captured at creation, never updated) ──────
+    caseName: text("case_name"),
+    citation: text("citation"),           // neutral citation
+    court: text("court"),
+    judge: text("judge"),                 // may be a comma-joined list
+    decisionDate: text("decision_date"),  // ISO string or formatted date
+    paragraphIdentifier: text("paragraph_identifier"), // e.g. "[1]"
+    sourcePageId: integer("source_page_id").references(
+      () => researchSourcePages.id,
+    ),
+    // ── Selection ─────────────────────────────────────────────────────────
+    // The exact selected text (verified byte-for-byte at creation time)
+    selectedText: text("selected_text").notNull(),
+    // Character offsets into the deterministically reconstructed judicial text
+    charStart: integer("char_start").notNull(),
+    charEnd: integer("char_end").notNull(),
+    // SHA-256 of the full reconstructed judicial text at creation time.
+    // On read, the current judicial text checksum is compared to this value;
+    // a mismatch is surfaced as sourceChanged: true.
+    sourceChecksum: text("source_checksum").notNull(),
+    // ── Authorship ────────────────────────────────────────────────────────
+    creatorId: integer("creator_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    userNote: text("user_note"),
+    // "exact" until any alteration record is appended; then "altered".
+    kind: text("kind").$type<QuotationKind>().default("exact").notNull(),
+  },
+  (t) => [
+    index("research_quotations_judgment_idx").on(t.judgmentId),
+    index("research_quotations_creator_idx").on(t.creatorId),
+  ],
+);
+
+// Append-only alteration records. Each row represents one deliberate change
+// the researcher made to the original selection text.
+// Omissions → shown as […] in rendered output.
+// Insertions → shown as [added text] in rendered output.
+// The original selectedText on the parent row is never changed.
+export const researchQuotationAlterations = pgTable(
+  "research_quotation_alterations",
+  {
+    id: serial("id").primaryKey(),
+    quotationId: integer("quotation_id")
+      .references(() => researchQuotations.id)
+      .notNull(),
+    kind: text("kind").$type<QuotationAlterationKind>().notNull(),
+    // Character positions within the selectedText of the parent quotation
+    positionStart: integer("position_start").notNull(),
+    positionEnd: integer("position_end").notNull(),
+    originalText: text("original_text").notNull(),
+    replacementText: text("replacement_text").notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    recordedBy: integer("recorded_by")
+      .references(() => researchUsers.id)
+      .notNull(),
+  },
+  (t) => [
+    index("research_quotation_alterations_quotation_idx").on(t.quotationId),
+  ],
+);
+
+export type ResearchQuotation = typeof researchQuotations.$inferSelect;
+export type ResearchQuotationAlteration =
+  typeof researchQuotationAlterations.$inferSelect;

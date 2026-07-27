@@ -26,6 +26,7 @@ import candidateReviewRouter from "./candidateReview";
 import editorialRouter from "./editorial";
 import searchRouter from "./search";
 import viewerRouter from "./viewer";
+import quotationsRouter, { listForJudgmentHandler } from "./quotations";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -218,6 +219,14 @@ router.use(editorialRouter);
 
 router.use("/search", searchRouter);
 router.use("/judgments", viewerRouter);
+
+// ── Phase 09: exact quotations & citation tools ────────────────────────────
+
+router.use("/quotations", quotationsRouter);
+// Judgment-scoped quotation listing (shares the /judgments prefix already
+// claimed by viewerRouter, so we register it explicitly here rather than
+// inside viewerRouter to avoid touching that file).
+router.get("/judgments/:judgmentId/quotations", listForJudgmentHandler);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller
