@@ -1452,6 +1452,11 @@ export const researchCaseMetadata = pgTable(
     index("research_case_metadata_judgment_idx").on(t.judgmentId),
     index("research_case_metadata_field_idx").on(t.fieldName),
     index("research_case_metadata_container_idx").on(t.containerId),
+    uniqueIndex("research_case_metadata_judgment_field_version_uq").on(
+      t.judgmentId,
+      t.fieldName,
+      t.processorVersion,
+    ),
   ],
 );
 

@@ -169,7 +169,13 @@ async function metadataProcessor(ctx: ProcessorContext): Promise<{}> {
         processorVersion: METADATA_EXTRACTOR_VERSION,
         reviewerStatus: "pending",
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing({
+        target: [
+          researchCaseMetadata.judgmentId,
+          researchCaseMetadata.fieldName,
+          researchCaseMetadata.processorVersion,
+        ],
+      });
   }
 
   logger.info(

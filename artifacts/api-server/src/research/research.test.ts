@@ -111,7 +111,7 @@ describe("adapter registry", () => {
     });
     expect(getAdapters().search.name).toBe("test-search");
     setAdapters(previous);
-    expect(getAdapters().search.name).toBe("postgres-search-stub");
+    expect(getAdapters().search.name).toBe("postgres-fts");
   });
 });
 

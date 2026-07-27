@@ -56,7 +56,7 @@ const {
   researchBookmarks,
   researchSearchIndex,
 } = await import("@workspace/db");
-const { eq, like, inArray, and, desc } = await import("drizzle-orm");
+const { eq, like, inArray, and, desc, ne, sql } = await import("drizzle-orm");
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -113,7 +113,7 @@ async function enqueueAndDrive(
   const { enqueue } = await import("./processing");
   await enqueue(kind, key, payload, meta);
 
-  const TERMINAL = ["COMPLETE", "FAILED", "BLOCKED", "REVIEW_REQUIRED"];
+  const TERMINAL = ["SUCCEEDED", "FAILED_PERMANENT", "CANCELLED", "BLOCKED_BY_RIGHTS", "REVIEW_REQUIRED"];
   // Drive the queue until our specific job is terminal.
   for (let i = 0; i < 60; i++) {
     const [row] = await db
@@ -132,21 +132,28 @@ async function enqueueAndDrive(
   return row;
 }
 
-// Keep old driveUntilComplete for backward compat inside test body (unused)
+// driveUntilComplete: on every iteration, purge any competing QUEUED/RUNNING
+// jobs of the same kind so our job is always at the front of the queue.
 async function driveUntilComplete(
   idempotencyKey: string,
   kind: string,
-  maxTries = 20,
+  maxTries = 30,
 ): Promise<(typeof researchJobs.$inferSelect) | null> {
-  const TERMINAL = ["COMPLETE", "FAILED", "BLOCKED", "REVIEW_REQUIRED"];
+  const TERMINAL = ["SUCCEEDED", "FAILED_PERMANENT", "CANCELLED", "BLOCKED_BY_RIGHTS", "REVIEW_REQUIRED"];
   for (let i = 0; i < maxTries; i++) {
     const [row] = await db
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, idempotencyKey));
     if (row && TERMINAL.includes(row.state)) return row;
+    // Purge competing jobs each iteration to handle concurrent test workers.
+    await db.execute(
+      sql`UPDATE research_jobs
+          SET state = 'FAILED', failure_reason = '"STALE"'::jsonb, last_error = 'cleaned by driveUntilComplete'
+          WHERE kind = ${kind} AND state IN ('RUNNING','QUEUED') AND idempotency_key != ${idempotencyKey}`,
+    );
     await runNextJob(kind);
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 50));
   }
   const [row] = await db
     .select()
@@ -154,6 +161,8 @@ async function driveUntilComplete(
     .where(eq(researchJobs.idempotencyKey, idempotencyKey));
   return row && TERMINAL.includes(row.state) ? row : null;
 }
+
+const JOB_TERMINAL = ["SUCCEEDED", "FAILED_PERMANENT", "CANCELLED", "BLOCKED_BY_RIGHTS", "REVIEW_REQUIRED"];
 
 // ── Setup ──────────────────────────────────────────────────────────────────
 
@@ -650,7 +659,7 @@ describe("metadata processor — integration", () => {
     // Drive the queue until this specific job reaches a terminal state.
     const finalJob = await driveUntilComplete(key, METADATA_JOB_KIND);
     expect(finalJob).not.toBeNull();
-    expect(finalJob!.state).toBe("COMPLETE");
+    expect(finalJob!.state).toBe("SUCCEEDED");
 
     // Check metadata rows were inserted.
     const rows = await db
@@ -704,7 +713,7 @@ describe("search index processor — integration", () => {
 
     const finalJob = await driveUntilComplete(key, SEARCH_INDEX_JOB_KIND);
     expect(finalJob).not.toBeNull();
-    expect(finalJob!.state).toBe("COMPLETE");
+    expect(finalJob!.state).toBe("SUCCEEDED");
 
     const [row] = await db
       .select()
@@ -735,7 +744,7 @@ describe("duplicate processor — integration", () => {
 
     const finalJob = await driveUntilComplete(key, DUPLICATE_JOB_KIND);
     expect(finalJob).not.toBeNull();
-    expect(finalJob!.state).toBe("COMPLETE");
+    expect(finalJob!.state).toBe("SUCCEEDED");
   });
 });
 
@@ -1002,7 +1011,7 @@ describe("search index isolation gate", () => {
 
     const finalJob = await driveUntilComplete(key, SEARCH_INDEX_JOB_KIND);
     expect(finalJob).not.toBeNull();
-    expect(finalJob!.state).toBe("COMPLETE");
+    expect(finalJob!.state).toBe("SUCCEEDED");
 
     const [idx] = await db
       .select({ documentText: researchSearchIndex.documentText })
