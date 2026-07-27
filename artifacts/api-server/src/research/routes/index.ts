@@ -32,8 +32,14 @@ import authoritiesRouter from "./authorities";
 import workspaceRouter from "./workspace";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
-import { db, researchReviewItems } from "@workspace/db";
-import { desc, eq } from "drizzle-orm";
+import {
+  db,
+  researchReviewItems,
+  researchAuditEvents,
+} from "@workspace/db";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { emitAuditEvent } from "../domain/audit";
+import { AuditAction } from "../domain/auditEvents";
 
 // Denied gated operations must not leak container existence: callers who
 // cannot even VIEW the container get the same 404 as a non-existent id;
@@ -429,6 +435,17 @@ router.post(
       const record = await recordRightsDecision(id, parsed.data, {
         actor: req.authEmail ?? `role:${req.researchRole}`,
       });
+      void emitAuditEvent({
+        entityType: "container",
+        entityId: id,
+        event: AuditAction.ADMIN_ACTION,
+        actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
+        detail: {
+          adminAction: "rights_decision",
+          rightsStatus: parsed.data.status,
+          rightsRecordId: record.id,
+        },
+      });
       res.status(201).json(record);
     } catch (err) {
       if (err instanceof EntityNotFoundError) {
@@ -483,6 +500,13 @@ router.post("/containers/:id/exports", async (req, res) => {
     const container = await assertExportAllowed(id, req.researchRole ?? null, {
       actor: req.authEmail ?? undefined,
     });
+    void emitAuditEvent({
+      entityType: "container",
+      entityId: id,
+      event: AuditAction.EXPORT_REQUESTED,
+      actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
+      detail: { format: req.body?.format ?? null, scope: req.body?.scope ?? null },
+    });
     res.json({
       gate: "passed",
       containerId: container.id,
@@ -500,5 +524,58 @@ router.post("/containers/:id/exports", async (req, res) => {
     throw err;
   }
 });
+
+// ── Phase 12a: Admin audit-event query route ──────────────────────────────
+
+/**
+ * GET /api/research/audit-events
+ * Paginated audit log. Owner and administrator only.
+ * Filters: actor, action (event name), entityKind, entityId, dateFrom, dateTo.
+ * Returns events in descending created_at order (newest first).
+ */
+router.get(
+  "/audit-events",
+  requireResearchRole("owner", "administrator"),
+  async (req, res) => {
+    const actor = typeof req.query.actor === "string" ? req.query.actor : undefined;
+    const action = typeof req.query.action === "string" ? req.query.action : undefined;
+    const entityKind = typeof req.query.entityKind === "string" ? req.query.entityKind : undefined;
+    const entityId = req.query.entityId ? Number(req.query.entityId) : undefined;
+    const dateFrom = typeof req.query.dateFrom === "string" ? new Date(req.query.dateFrom) : undefined;
+    const dateTo = typeof req.query.dateTo === "string" ? new Date(req.query.dateTo) : undefined;
+    const limit = Math.min(Number(req.query.limit ?? 50), 200);
+    const offset = Number(req.query.offset ?? 0);
+
+    const conditions = [];
+    if (actor) conditions.push(eq(researchAuditEvents.actor, actor));
+    if (action) conditions.push(eq(researchAuditEvents.event, action));
+    if (entityKind) conditions.push(eq(researchAuditEvents.entityType, entityKind));
+    if (entityId !== undefined && !isNaN(entityId)) {
+      conditions.push(eq(researchAuditEvents.entityId, entityId));
+    }
+    if (dateFrom && !isNaN(dateFrom.getTime())) {
+      conditions.push(gte(researchAuditEvents.createdAt, dateFrom));
+    }
+    if (dateTo && !isNaN(dateTo.getTime())) {
+      conditions.push(lte(researchAuditEvents.createdAt, dateTo));
+    }
+
+    const rows = await db
+      .select()
+      .from(researchAuditEvents)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(researchAuditEvents.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Count total matching rows for pagination metadata.
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(researchAuditEvents)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    res.json({ total: count, limit, offset, events: rows });
+  },
+);
 
 export default router;

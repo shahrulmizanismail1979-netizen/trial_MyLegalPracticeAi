@@ -21,6 +21,8 @@ import {
   researchVerifiedJudgments,
   researchRightsRecords,
 } from "@workspace/db";
+import { emitAuditEvent } from "../domain/audit";
+import { AuditAction } from "../domain/auditEvents";
 import type {
   ResearchAiProvider,
   ResearchAiAnalysisRun,
@@ -132,6 +134,20 @@ export async function runAiAnalysis(
     "AI analysis input boundary assembled",
   );
 
+  // Audit: analysis requested (before LLM call).
+  void emitAuditEvent({
+    entityType: "judgment",
+    entityId: judgmentId,
+    event: AuditAction.AI_ANALYSIS_REQUESTED,
+    detail: {
+      providerId,
+      providerName: provider.name,
+      modelName: provider.modelName,
+      promptVersion: provider.promptVersion,
+      judicialTextLength: input.judicialTextLength,
+    },
+  });
+
   // ── 3. Call the LLM ────────────────────────────────────────────────────
   const callLlm: LlmCallFn = opts?.callLlm ?? makeDefaultLlmCall(provider);
 
@@ -148,6 +164,18 @@ export async function runAiAnalysis(
       `LLM call failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+
+  // Audit: AI provider used (after successful LLM call).
+  void emitAuditEvent({
+    entityType: "ai_provider",
+    entityId: providerId,
+    event: AuditAction.AI_PROVIDER_USED,
+    detail: {
+      judgmentId,
+      modelName: provider.modelName,
+      promptVersion: provider.promptVersion,
+    },
+  });
 
   // ── 4. Parse and validate the structured output ────────────────────────
   let parsed: ReturnType<typeof AiAnalysisOutputSchema.parse>;

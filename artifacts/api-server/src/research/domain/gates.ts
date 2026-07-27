@@ -14,6 +14,7 @@ import {
   type AccessRestrictions,
 } from "./access";
 import { recordAuditEvent } from "./audit";
+import { AuditAction } from "./auditEvents";
 import { EntityNotFoundError, type DbClient } from "./types";
 
 // Enforcement gates (Phase 02). Every gate resolves the container's current
@@ -84,7 +85,7 @@ export async function checkContainerAccess(
     await recordAuditEvent(dbc, {
       entityType: "container",
       entityId: containerId,
-      event: "access-denied",
+      event: AuditAction.ACCESS_DENIED,
       actor: opts.actor ?? (role ? `role:${role}` : "unauthenticated"),
       detail: {
         action,

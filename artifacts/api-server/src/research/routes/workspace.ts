@@ -10,6 +10,8 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { z } from "zod/v4";
 import { requireResearchRole } from "../auth";
 import { checkContainerAccess, getRestrictions } from "../domain/gates";
+import { emitAuditEvent } from "../domain/audit";
+import { AuditAction } from "../domain/auditEvents";
 import { EntityNotFoundError } from "../domain/types";
 import {
   db,
@@ -536,6 +538,20 @@ router.post(
     const parsed = SaveQuotationBody.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: z.treeifyError(parsed.error) }); return; }
     const row = await saveQuotation(collectionId, parsed.data, db);
+    // Audit: quotation saved (passage text is safe metadata; keep it short via sanitiser).
+    void emitAuditEvent({
+      entityType: "quotation",
+      entityId: row.id,
+      event: AuditAction.QUOTATION_CREATED,
+      actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
+      detail: {
+        collectionId,
+        propositionId: parsed.data.propositionId,
+        label: parsed.data.label ?? null,
+        // passage text is included — sanitiseForAudit will truncate if > 500 chars
+        passageText: parsed.data.passageText,
+      },
+    });
     res.status(201).json(row);
   },
 );

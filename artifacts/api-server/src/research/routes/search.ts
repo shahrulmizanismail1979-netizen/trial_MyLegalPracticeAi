@@ -8,6 +8,8 @@ import { z } from "zod/v4";
 import { requireResearchRole } from "../auth";
 import { checkContainerAccess } from "../domain/gates";
 import { EntityNotFoundError } from "../domain/types";
+import { emitAuditEvent } from "../domain/audit";
+import { AuditAction } from "../domain/auditEvents";
 import {
   db,
   researchVerifiedJudgments,
@@ -77,6 +79,15 @@ router.get("/", async (req, res) => {
       // Container gone — skip silently.
     }
   }
+
+  // Audit: search executed. Query string is safe metadata; result text is not included.
+  void emitAuditEvent({
+    entityType: "search",
+    entityId: 0,
+    event: AuditAction.SEARCH_EXECUTED,
+    actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
+    detail: { q, court: court ?? null, resultCount: visible.length, role: req.researchRole ?? null },
+  });
 
   res.json({ query: q, total: visible.length, results: visible });
 });

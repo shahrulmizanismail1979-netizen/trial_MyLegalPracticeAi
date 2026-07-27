@@ -221,7 +221,7 @@ describe("quarantine and enforcement gates", () => {
           eq(researchAuditEvents.entityId, container.id),
         ),
       );
-    expect(audits.filter((a) => a.event === "access-denied").length)
+    expect(audits.filter((a) => a.event === "ACCESS_DENIED").length)
       .toBeGreaterThanOrEqual(2);
   });
 

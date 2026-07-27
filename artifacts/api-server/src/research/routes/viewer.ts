@@ -8,6 +8,8 @@ import { z } from "zod/v4";
 import { requireResearchRole } from "../auth";
 import { checkContainerAccess } from "../domain/gates";
 import { EntityNotFoundError } from "../domain/types";
+import { emitAuditEvent } from "../domain/audit";
+import { AuditAction } from "../domain/auditEvents";
 import {
   db,
   researchVerifiedJudgments,
@@ -96,6 +98,14 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+    // Audit: document accessed (fire-and-forget; must not carry judgment text).
+    void emitAuditEvent({
+      entityType: "judgment",
+      entityId: id,
+      event: AuditAction.DOCUMENT_ACCESSED,
+      actor: req.authEmail ?? `role:${req.researchRole ?? "unknown"}`,
+      detail: { containerId: judgment.containerId, role: req.researchRole ?? null },
+    });
     res.json(judgment);
   } catch (err) {
     if (err instanceof EntityNotFoundError) {
