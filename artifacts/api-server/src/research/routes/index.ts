@@ -83,9 +83,12 @@ async function denyGatedOp(
 // There are NO public URLs into research data — sharing by public URL is
 // structurally impossible from this router.
 
+import { csrfGuard } from "./csrf";
+
 const router: IRouter = Router();
 
 router.use(resolveResearchRole);
+router.use(csrfGuard);
 
 router.get("/health", (_req, res) => {
   const adapters = getAdapters();

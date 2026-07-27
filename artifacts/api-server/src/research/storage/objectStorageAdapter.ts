@@ -1,4 +1,5 @@
 import type { StorageAdapter } from "../adapters";
+import { validateStorageKey } from "./keyValidation";
 
 // Default storage adapter: Replit private object storage via the sidecar's
 // signed-URL API. Containers are stored under <PRIVATE_OBJECT_DIR>/research/.
@@ -47,6 +48,7 @@ export const objectStorageAdapter: StorageAdapter = {
   name: "replit-object-storage",
 
   async put(key, bytes, contentType = "application/octet-stream") {
+    validateStorageKey(key);
     const { bucket, prefix } = parsePrivateDir();
     const objectName = `${prefix ? `${prefix}/` : ""}research/${key}`;
     const uploadUrl = await signUrl(bucket, objectName, "PUT");
@@ -63,6 +65,7 @@ export const objectStorageAdapter: StorageAdapter = {
   },
 
   async get(key) {
+    validateStorageKey(key);
     const { bucket } = parsePrivateDir();
     const downloadUrl = await signUrl(bucket, key, "GET");
     const resp = await fetch(downloadUrl, {
@@ -75,6 +78,7 @@ export const objectStorageAdapter: StorageAdapter = {
   },
 
   async remove(key) {
+    validateStorageKey(key);
     const { bucket } = parsePrivateDir();
     const deleteUrl = await signUrl(bucket, key, "DELETE");
     await fetch(deleteUrl, {

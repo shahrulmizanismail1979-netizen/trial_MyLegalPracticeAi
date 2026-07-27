@@ -1,5 +1,39 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
+
+// ── Filename sanitisation ──────────────────────────────────────────────────
+
+/**
+ * Safe character set for uploaded filenames.
+ * We allow Latin letters, digits, dot, hyphen, underscore, and space.
+ * Any other character is replaced with `_`.
+ */
+const SAFE_FILENAME_RE = /[^A-Za-z0-9._\- ]/g;
+
+/**
+ * Sanitise an uploaded file's declared name for safe storage and display.
+ *
+ * Process:
+ * 1. Strip every directory component (`path.basename`) — prevents path traversal.
+ * 2. Reject names that contain NUL bytes before or after stripping.
+ * 3. Replace characters outside the safe set with `_`.
+ * 4. Return `null` for names that are empty or entirely dots after sanitisation
+ *    (e.g. `".."`, `"..."`) — the caller must reject these uploads.
+ */
+export function sanitiseFilename(raw: string): string | null {
+  if (raw.includes("\0")) return null;
+  // Strip directory components — renders "../../etc/passwd.pdf" → "passwd.pdf"
+  // Also handle Windows-style backslash separators (path.basename only strips
+  // the OS separator, so on Linux "C:\Windows\evil.pdf" is treated as one token).
+  const afterBackslash = raw.split("\\").at(-1) ?? raw;
+  const base = path.basename(afterBackslash);
+  if (!base || base.includes("\0")) return null;
+  // Replace every disallowed character with an underscore
+  const clean = base.replace(SAFE_FILENAME_RE, "_");
+  // Reject purely-dot names (e.g. "..", "...")
+  if (!clean || /^\.+$/.test(clean)) return null;
+  return clean;
+}
 import {
   db,
   researchSourceContainers,
@@ -88,21 +122,45 @@ export async function processUpload(
   const items: ResearchUploadBatchItem[] = [];
 
   for (const file of files) {
-    const ext = path.extname(file.originalName).toLowerCase();
+    // ── Filename sanitisation ───────────────────────────────────────────────
+    // Sanitise the declared filename before any further processing.
+    // A null result means the name is structurally unsafe (e.g. path traversal
+    // sequences, NUL bytes, or empty after stripping).
+    const safeName = sanitiseFilename(file.originalName);
+    if (!safeName) {
+      items.push(
+        await createBatchItem({
+          batchId: batch.id,
+          originalPath: file.originalName,
+          state: "REJECTED",
+          sizeBytes: file.bytes.length,
+          errorReport: {
+            code: "UNSAFE_FILENAME",
+            message: `File name '${file.originalName}' contains unsafe characters or path components`,
+            retryable: false,
+          },
+        }),
+      );
+      continue;
+    }
+    // Use the sanitised name for all downstream processing
+    const safeFile: UploadedFile = { ...file, originalName: safeName };
+
+    const ext = path.extname(safeFile.originalName).toLowerCase();
     const isArchive =
       ext === ".zip" ||
-      (ext !== ".docx" && isZipSignature(file.bytes));
+      (ext !== ".docx" && isZipSignature(safeFile.bytes));
 
     const logical: LogicalFile[] = [];
     if (isArchive) {
-      const inspection = inspectZip(file.originalName, file.bytes);
+      const inspection = inspectZip(safeFile.originalName, safeFile.bytes);
       if (inspection.zipRejection) {
         items.push(
           await createBatchItem({
             batchId: batch.id,
-            originalPath: file.originalName,
+            originalPath: safeFile.originalName,
             state: "REJECTED",
-            sizeBytes: file.bytes.length,
+            sizeBytes: safeFile.bytes.length,
             errorReport: rejectionReport(inspection.zipRejection),
           }),
         );
@@ -128,25 +186,25 @@ export async function processUpload(
       }
     } else {
       const result = validateFile(
-        file.originalName,
-        file.bytes,
-        file.declaredMime,
+        safeFile.originalName,
+        safeFile.bytes,
+        safeFile.declaredMime,
       );
       if (!result.ok) {
         items.push(
           await createBatchItem({
             batchId: batch.id,
-            originalPath: file.originalName,
+            originalPath: safeFile.originalName,
             state: "REJECTED",
-            sizeBytes: file.bytes.length,
+            sizeBytes: safeFile.bytes.length,
             errorReport: rejectionReport(result.rejection),
           }),
         );
         continue;
       }
       logical.push({
-        path: file.originalName,
-        bytes: file.bytes,
+        path: safeFile.originalName,
+        bytes: safeFile.bytes,
         mimeType: result.mimeType,
       });
     }
