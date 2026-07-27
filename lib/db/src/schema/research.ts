@@ -1380,7 +1380,13 @@ export const METADATA_FIELDS = [
 ] as const;
 export type MetadataFieldName = (typeof METADATA_FIELDS)[number];
 
-export const METADATA_METHODS = ["regex", "heuristic"] as const;
+export const METADATA_METHODS = [
+  "regex",
+  "heuristic",
+  /** Extracted from a suspected publisher-supplied headnote or editorial page.
+   *  Input boundary: the AI pipeline MUST exclude rows with this method. */
+  "publisher_supplied",
+] as const;
 export type MetadataMethod = (typeof METADATA_METHODS)[number];
 
 export const METADATA_REVIEWER_STATUSES = [
@@ -1695,3 +1701,137 @@ export const researchQuotationAlterations = pgTable(
 export type ResearchQuotation = typeof researchQuotations.$inferSelect;
 export type ResearchQuotationAlteration =
   typeof researchQuotationAlterations.$inferSelect;
+
+// ── Phase 10: AI-Generated Headnotes & Case Analysis ─────────────────────
+
+export const AI_PROVIDER_NAMES = ["gemini", "openai"] as const;
+export type AiProviderName = (typeof AI_PROVIDER_NAMES)[number];
+
+export const AI_RUN_STATUSES = [
+  "DRAFT",
+  "REVIEWING",
+  "APPROVED",
+  "REJECTED",
+] as const;
+export type AiRunStatus = (typeof AI_RUN_STATUSES)[number];
+
+export const AI_CONFIDENCE_CATEGORIES = [
+  "HIGH",
+  "MEDIUM",
+  "LOW",
+  "INSUFFICIENT_EVIDENCE",
+] as const;
+export type AiConfidenceCategory = (typeof AI_CONFIDENCE_CATEGORIES)[number];
+
+export const AI_UNCERTAINTY_LABELS = [
+  "NOT_STATED_IN_VERIFIED_JUDGMENT",
+  "INSUFFICIENT_EVIDENCE",
+  "LEGAL_CLASSIFICATION_UNCERTAIN",
+  "RATIO_OBITER_REVIEW_REQUIRED",
+  "HUMAN_REVIEW_REQUIRED",
+] as const;
+export type AiUncertaintyLabel = (typeof AI_UNCERTAINTY_LABELS)[number];
+
+export const AI_PROPOSITION_REVIEW_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+export type AiPropositionReviewStatus =
+  (typeof AI_PROPOSITION_REVIEW_STATUSES)[number];
+
+/** Approved AI provider configuration (one row per provider entry).
+ *  AI is disabled by default; an administrator must explicitly enable. */
+export const researchAiProviders = pgTable("research_ai_providers", {
+  id: serial("id").primaryKey(),
+  name: text("name").$type<AiProviderName>().notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  modelName: text("model_name").notNull(),
+  temperature: doublePrecision("temperature").default(0.2).notNull(),
+  maxTokens: integer("max_tokens").default(8192).notNull(),
+  promptVersion: text("prompt_version").default("analysis@1").notNull(),
+  approvedBy: text("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** One generation run per (judgment × prompt version × model version). */
+export const researchAiAnalysisRuns = pgTable(
+  "research_ai_analysis_runs",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    providerId: integer("provider_id")
+      .references(() => researchAiProviders.id)
+      .notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    modelVersion: text("model_version").notNull(),
+    /** Object-storage key for the raw model response (never DB-stored). */
+    rawOutputStorageKey: text("raw_output_storage_key"),
+    status: text("status").$type<AiRunStatus>().default("DRAFT").notNull(),
+    reviewerEmail: text("reviewer_email"),
+    reviewNotes: text("review_notes"),
+    /** Summary of evidence validation: counts per field, rejection reasons. */
+    evidenceValidationResult: jsonb("evidence_validation_result")
+      .$type<Record<string, unknown>>(),
+    criticalWarningCount: integer("critical_warning_count").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("research_ai_analysis_runs_judgment_idx").on(t.judgmentId),
+    index("research_ai_analysis_runs_status_idx").on(t.status),
+  ],
+);
+
+/** One row per proposition within a run. */
+export const researchAiPropositions = pgTable(
+  "research_ai_propositions",
+  {
+    id: serial("id").primaryKey(),
+    runId: integer("run_id")
+      .references(() => researchAiAnalysisRuns.id)
+      .notNull(),
+    /** UUID supplied by the model (stable identifier for the claim). */
+    propositionId: text("proposition_id").notNull(),
+    /** Which of the 17 analysis fields this proposition belongs to. */
+    fieldName: text("field_name").notNull(),
+    content: text("content").notNull(),
+    /** Paragraph IDs from the judgment (e.g. ["[1]","[5]"]) — model-supplied. */
+    supportingParagraphIds: jsonb("supporting_paragraph_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    /** Validation results for each passage; see ValidatedPassage in analysis/schema.ts. */
+    validatedPassages: jsonb("validated_passages")
+      .$type<unknown[]>()
+      .default([])
+      .notNull(),
+    confidenceCategory: text("confidence_category")
+      .$type<AiConfidenceCategory>()
+      .notNull(),
+    uncertaintyLabel: text("uncertainty_label").$type<AiUncertaintyLabel>(),
+    reviewStatus: text("review_status")
+      .$type<AiPropositionReviewStatus>()
+      .default("pending")
+      .notNull(),
+    reviewerEmail: text("reviewer_email"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("research_ai_propositions_run_idx").on(t.runId),
+    uniqueIndex("research_ai_propositions_run_prop_uq").on(
+      t.runId,
+      t.propositionId,
+    ),
+  ],
+);
+
+export type ResearchAiProvider = typeof researchAiProviders.$inferSelect;
+export type ResearchAiAnalysisRun = typeof researchAiAnalysisRuns.$inferSelect;
+export type ResearchAiProposition = typeof researchAiPropositions.$inferSelect;

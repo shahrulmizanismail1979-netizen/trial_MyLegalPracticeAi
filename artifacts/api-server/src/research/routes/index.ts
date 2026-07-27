@@ -27,6 +27,7 @@ import editorialRouter from "./editorial";
 import searchRouter from "./search";
 import viewerRouter from "./viewer";
 import quotationsRouter, { listForJudgmentHandler } from "./quotations";
+import analysisRouter from "./analysis";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -223,6 +224,10 @@ router.use("/judgments", viewerRouter);
 // ── Phase 09: exact quotations & citation tools ────────────────────────────
 
 router.use("/quotations", quotationsRouter);
+
+// ── Phase 10: AI-generated headnotes & case analysis ─────────────────────
+
+router.use(analysisRouter);
 // Judgment-scoped quotation listing (shares the /judgments prefix already
 // claimed by viewerRouter, so we register it explicitly here rather than
 // inside viewerRouter to avoid touching that file).
