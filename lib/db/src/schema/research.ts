@@ -1835,3 +1835,117 @@ export const researchAiPropositions = pgTable(
 export type ResearchAiProvider = typeof researchAiProviders.$inferSelect;
 export type ResearchAiAnalysisRun = typeof researchAiAnalysisRuns.$inferSelect;
 export type ResearchAiProposition = typeof researchAiPropositions.$inferSelect;
+
+// ── Phase 11a: Authorities & Legislation Extraction ───────────────────────
+
+/** 14 treatment labels + UNCLEAR for uncertain or unsubstantiated treatment. */
+export const AUTHORITY_TREATMENTS = [
+  "APPLIED",
+  "FOLLOWED",
+  "APPROVED",
+  "ADOPTED",
+  "DISTINGUISHED",
+  "CONSIDERED",
+  "DISCUSSED",
+  "EXPLAINED",
+  "CRITICISED",
+  "DOUBTED",
+  "DECLINED_TO_FOLLOW",
+  "OVERRULED",
+  "REFERRED_TO",
+  "UNCLEAR",
+] as const;
+export type AuthorityTreatment = (typeof AUTHORITY_TREATMENTS)[number];
+
+/** Review lifecycle for each authority record. */
+export const AUTHORITY_REVIEW_STATUSES = [
+  "pending_review",
+  "approved",
+  "rejected",
+] as const;
+export type AuthorityReviewStatus = (typeof AUTHORITY_REVIEW_STATUSES)[number];
+
+/** Modes for how a statutory provision is used. */
+export const LEGISLATION_MODES = [
+  "applied",
+  "interpreted",
+  "mentioned",
+  "challenged",
+  "constitutionality_considered",
+] as const;
+export type LegislationMode = (typeof LEGISLATION_MODES)[number];
+
+/**
+ * One row per cited case extracted from an AI analysis run's casesConsidered
+ * propositions.  Idempotent on (run_id, proposition_id).
+ */
+export const researchAuthorities = pgTable(
+  "research_authorities",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    runId: integer("run_id")
+      .references(() => researchAiAnalysisRuns.id)
+      .notNull(),
+    propositionId: integer("proposition_id")
+      .references(() => researchAiPropositions.id)
+      .notNull(),
+    caseName: text("case_name").notNull(),
+    citation: text("citation"),
+    sourceParagraphId: text("source_paragraph_id"),
+    treatment: text("treatment").$type<AuthorityTreatment>().notNull(),
+    treatmentEvidence: text("treatment_evidence"),
+    reviewStatus: text("review_status")
+      .$type<AuthorityReviewStatus>()
+      .default("pending_review")
+      .notNull(),
+    reviewerEmail: text("reviewer_email"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_authorities_run_prop_uq").on(t.runId, t.propositionId),
+    index("research_authorities_judgment_idx").on(t.judgmentId),
+    index("research_authorities_citation_idx").on(t.citation),
+  ],
+);
+
+/**
+ * One row per statutory provision extracted from an AI analysis run's
+ * statutesConsidered propositions.  Idempotent on (run_id, proposition_id).
+ */
+export const researchLegislationRefs = pgTable(
+  "research_legislation_refs",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull(),
+    runId: integer("run_id")
+      .references(() => researchAiAnalysisRuns.id)
+      .notNull(),
+    propositionId: integer("proposition_id")
+      .references(() => researchAiPropositions.id)
+      .notNull(),
+    statute: text("statute").notNull(),
+    provision: text("provision"),
+    jurisdiction: text("jurisdiction"),
+    sourceParagraphId: text("source_paragraph_id"),
+    mode: text("mode").$type<LegislationMode>().notNull(),
+    supportingPassage: text("supporting_passage"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_legislation_refs_run_prop_uq").on(t.runId, t.propositionId),
+    index("research_legislation_refs_judgment_idx").on(t.judgmentId),
+  ],
+);
+
+export type ResearchAuthority = typeof researchAuthorities.$inferSelect;
+export type ResearchLegislationRef = typeof researchLegislationRefs.$inferSelect;

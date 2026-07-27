@@ -28,6 +28,7 @@ import searchRouter from "./search";
 import viewerRouter from "./viewer";
 import quotationsRouter, { listForJudgmentHandler } from "./quotations";
 import analysisRouter from "./analysis";
+import authoritiesRouter from "./authorities";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import { db, researchReviewItems } from "@workspace/db";
@@ -232,6 +233,10 @@ router.use(analysisRouter);
 // claimed by viewerRouter, so we register it explicitly here rather than
 // inside viewerRouter to avoid touching that file).
 router.get("/judgments/:judgmentId/quotations", listForJudgmentHandler);
+
+// ── Phase 11a: Authorities & legislation extraction ───────────────────────
+
+router.use(authoritiesRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller
