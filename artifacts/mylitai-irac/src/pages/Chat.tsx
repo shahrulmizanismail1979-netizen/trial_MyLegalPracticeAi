@@ -120,16 +120,16 @@ export default function Chat() {
   const empty = messages.length === 0 && !streamText;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-serif font-semibold text-primary flex items-center gap-3">
-          <MessagesSquare className="w-7 h-7 text-secondary" />
+    <div className="w-full px-4 py-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-serif font-semibold text-primary flex items-center gap-3">
+          <MessagesSquare className="w-6 h-6 text-secondary" />
           {t("chat.title")}
         </h1>
-        <p className="text-muted-foreground mt-2">{t("chat.desc")}</p>
+        <p className="text-muted-foreground mt-1 text-sm">{t("chat.desc")}</p>
       </div>
 
-      <Card className="flex flex-col" style={{ height: "calc(100vh - 14rem)" }}>
+      <Card className="flex flex-col" style={{ height: "calc(100vh - 9rem)" }}>
         <CardHeader className="border-b border-border shrink-0 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-end gap-3">
             <div className="flex-1 space-y-1.5">
