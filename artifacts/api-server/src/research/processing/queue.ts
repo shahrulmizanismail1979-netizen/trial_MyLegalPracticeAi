@@ -67,14 +67,22 @@ export async function enqueue(
 }
 
 /**
- * Atomically claim the oldest QUEUED job (optionally of a given kind).
- * Single-statement UPDATE with SKIP LOCKED semantics so concurrent workers
+ * Atomically claim the oldest QUEUED job (optionally filtered by a single
+ * kind or an allowlist of kinds).  Passing `kinds` restricts claims to that
+ * set, which prevents test workers from accidentally stealing jobs belonging
+ * to other workers that have different processor registrations.
+ * Single-statement UPDATE with SKIP LOCKED semantics so concurrent callers
  * never double-claim; the audit event is written in the same transaction.
  */
 export async function claimNext(
   kind?: string,
   dbc: DbClient = db,
+  kinds?: string[],
 ): Promise<ResearchJob | null> {
+  const kindsFilter =
+    kinds && kinds.length > 0
+      ? sql`AND kind = ANY(ARRAY[${sql.raw(kinds.map((k) => `'${k.replace(/'/g, "''")}'`).join(","))}])`
+      : sql``;
   return dbc.transaction(async (tx) => {
     const rows = await tx.execute(sql`
       UPDATE research_jobs SET
@@ -84,7 +92,8 @@ export async function claimNext(
         started_at = COALESCE(started_at, now())
       WHERE id = (
         SELECT id FROM research_jobs
-        WHERE state = 'QUEUED' ${kind ? sql`AND kind = ${kind}` : sql``}
+        WHERE state = 'QUEUED'
+          ${kind ? sql`AND kind = ${kind}` : kindsFilter}
         ORDER BY id
         FOR UPDATE SKIP LOCKED
         LIMIT 1

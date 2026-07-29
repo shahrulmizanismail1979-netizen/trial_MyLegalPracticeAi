@@ -65,6 +65,8 @@ export function reviewUiHtml(containerId: number): string {
 <div class="tabs">
   <button class="tab active" onclick="switchTab('pages')">Page Review</button>
   <button class="tab" onclick="switchTab('candidates')">Candidates &amp; Coherence</button>
+  <button class="tab" onclick="switchTab('spans')">Cross-file Spans</button>
+  <button class="tab" onclick="switchTab('audit')">Audit Trail</button>
 </div>
 
 <!-- ═══ PAGE REVIEW PANE ═════════════════════════════════════════════════ -->
@@ -109,6 +111,41 @@ export function reviewUiHtml(containerId: number): string {
   </div>
 </div>
 
+<!-- ═══ CROSS-FILE SPANS PANE ══════════════════════════════════════════ -->
+<div id="pane-spans" class="pane">
+  <div class="cand-grid">
+    <div class="panel">
+      <h2>Cross-file Spans</h2>
+      <div id="spans-list">Loading…</div>
+    </div>
+    <div class="panel" id="span-detail-panel">
+      <p style="color:#78716c;font-size:.85rem">Select a span to review.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AUDIT TRAIL PANE ═══════════════════════════════════════════════ -->
+<div id="pane-audit" class="pane">
+  <div class="panel">
+    <h2>Audit Trail</h2>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;align-items:center">
+      <label style="font-size:.8rem">Filter by stage:
+        <select id="audit-stage-filter" style="margin-left:.25rem;padding:.2rem .4rem;font-size:.8rem;border:1px solid #d6d3d1;border-radius:4px" onchange="loadAudit()">
+          <option value="">All stages</option>
+          <option value="upload">Upload</option>
+          <option value="rights">Rights</option>
+          <option value="extraction">Extraction</option>
+          <option value="segmentation">Segmentation</option>
+          <option value="verification">Verification</option>
+          <option value="search">Search</option>
+          <option value="export">Export</option>
+        </select>
+      </label>
+    </div>
+    <div id="audit-events" style="max-height:65vh;overflow:auto">Loading…</div>
+  </div>
+</div>
+
 <script>
 const BASE = location.pathname.replace(/\\/containers\\/\\d+\\/review-ui$/, "");
 const CONTAINER_ID = ${containerId};
@@ -125,15 +162,23 @@ async function j(url, opts) {
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
+const TAB_NAMES = ["pages", "candidates", "spans", "audit"];
 function switchTab(name) {
   document.querySelectorAll(".tab").forEach((t, i) => {
-    const active = (i === 0 && name === "pages") || (i === 1 && name === "candidates");
-    t.classList.toggle("active", active);
+    t.classList.toggle("active", TAB_NAMES[i] === name);
   });
-  document.getElementById("pane-pages").classList.toggle("active", name === "pages");
-  document.getElementById("pane-candidates").classList.toggle("active", name === "candidates");
+  for (const n of TAB_NAMES) {
+    const pane = document.getElementById("pane-" + n);
+    if (pane) pane.classList.toggle("active", n === name);
+  }
   if (name === "candidates" && document.getElementById("cand-list").textContent === "Loading…") {
     loadCandidates();
+  }
+  if (name === "spans" && document.getElementById("spans-list").textContent === "Loading…") {
+    loadSpans();
+  }
+  if (name === "audit" && document.getElementById("audit-events").textContent === "Loading…") {
+    loadAudit();
   }
 }
 
@@ -284,6 +329,17 @@ async function loadCandidate(id, btn) {
       <div id="cand-action-form"></div>
       <div id="cand-status"></div>
 
+      <h2 style="margin-top:1rem">Quotation Integrity Check</h2>
+      <p style="font-size:.8rem;color:#78716c;margin:0 0 .5rem">
+        Paste one or more passages (10–500 chars each, one per line) from an
+        <b>independent source</b> (e.g. a published law report or court record).
+        The system will verify each passage appears verbatim in the OCR extraction.
+      </p>
+      <textarea id="quot-passages" rows="5" style="width:100%;font-size:.8rem;font-family:monospace;box-sizing:border-box"
+        placeholder="Paste passages to verify here, one per line…"></textarea>
+      <button class="secondary" style="margin-top:.4rem" onclick="runQuotCheck(\${id})">Check passages in OCR source</button>
+      <div id="quot-results"></div>
+
       <h2 style="margin-top:1rem">Cross-file Relationships</h2>
       <div>\${relRows}</div>
 
@@ -378,6 +434,138 @@ async function doMerge(id) {
     setTimeout(() => loadCandidates(), 800);
   } catch (e) {
     if (status) status.textContent = "Merge failed: " + esc(e.message);
+  }
+}
+
+// ── Quotation integrity check ─────────────────────────────────────────────
+
+async function runQuotCheck(candidateId) {
+  const results = document.getElementById("quot-results");
+  if (!results) return;
+  const raw = (document.getElementById("quot-passages")?.value ?? "").trim();
+  const lines = raw.split("\n").map((l) => l.trim()).filter((l) => l.length >= 10 && l.length <= 500);
+  if (lines.length === 0) {
+    results.innerHTML = '<span style="color:#ef4444">Paste at least one passage (10–500 chars) to check.</span>';
+    return;
+  }
+  results.textContent = "Checking…";
+  try {
+    const data = await j(BASE + "/containers/" + CONTAINER_ID + "/quotation-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateId, quotesToVerify: lines }),
+    });
+    results.innerHTML = (data.quotes ?? []).map((q) =>
+      '<div class="action-row">' +
+      (q.foundInSource
+        ? '<span style="color:#22c55e">✓</span>'
+        : '<span style="color:#ef4444">✗</span>') +
+      " <code style=\"font-size:.75rem\">" + esc(q.text.slice(0, 120)) + (q.text.length > 120 ? "…" : "") + "</code></div>"
+    ).join("") + '<div style="font-size:.8rem;color:#78716c;margin-top:.25rem">' + esc(data.integrityNote ?? "") + "</div>";
+  } catch (e) {
+    results.innerHTML = '<span style="color:#ef4444">Check failed: ' + esc(e.message) + "</span>";
+  }
+}
+
+// ── Cross-file spans ──────────────────────────────────────────────────────
+
+async function loadSpans() {
+  const list = document.getElementById("spans-list");
+  if (!list) return;
+  try {
+    const data = await j(BASE + "/cross-file-spans").catch(() => ({ spans: [] }));
+    const spans = Array.isArray(data) ? data : (data?.spans ?? []);
+    // Show all spans — fine-grained filtering is available via the detail panel.
+    list.innerHTML = "";
+    if (spans.length === 0) {
+      list.textContent = "No cross-file spans found.";
+      return;
+    }
+    for (const s of spans) {
+      const b = document.createElement("button");
+      b.innerHTML = "Span #" + s.id + ' <span class="badge ' + esc(String(s.status ?? "PROPOSED")) + '">' +
+        esc(String(s.status ?? "PROPOSED")) + "</span>" +
+        "<br><small>" + (s.candidateIds ?? []).length + " candidate(s)</small>";
+      b.onclick = () => loadSpan(s.id, b);
+      list.appendChild(b);
+    }
+  } catch (e) {
+    list.textContent = "Failed to load spans: " + esc(e.message);
+  }
+}
+
+async function loadSpan(id, btn) {
+  document.querySelectorAll("#spans-list button").forEach((b) => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  const panel = document.getElementById("span-detail-panel");
+  if (!panel) return;
+  panel.innerHTML = "Loading…";
+  try {
+    const data = await j(BASE + "/cross-file-spans/" + id);
+    const span = data.span ?? data;
+    const candidateIds = data.candidateIds ?? [];
+    panel.innerHTML = \`
+      <h2>Cross-file Span #\${id}</h2>
+      <div class="check-row"><span>Status</span><span class="badge \${esc(span.status)}">\${esc(span.status)}</span></div>
+      <div class="check-row"><span>Candidates</span><span>\${esc(candidateIds.join(", ") || "none")}</span></div>
+      \${span.note ? '<p style="font-size:.8rem;margin:.5rem 0"><b>Note:</b> ' + esc(span.note) + "</p>" : ""}
+      \${span.status === "PROPOSED" ? \`
+      <div class="actions" style="margin-top:.75rem">
+        <button class="primary" onclick="spanAction(\${id},'approve')">✓ Approve Split</button>
+        <button class="danger" onclick="spanAction(\${id},'reject')">✗ Reject Split</button>
+      </div>
+      \` : '<p style="font-size:.8rem;color:#78716c;margin-top:.5rem">Span is <b>' + esc(span.status) + '</b> — no further action available.</p>'}
+      <div id="span-status" style="font-size:.8rem;color:#78716c;margin-top:.4rem"></div>
+    \`;
+  } catch (e) {
+    panel.innerHTML = "Failed to load span: " + esc(e.message);
+  }
+}
+
+async function spanAction(id, action) {
+  const status = document.getElementById("span-status");
+  const reason = action === "reject" ? prompt("Reason for rejection (required):") : "Approved via review UI";
+  if (action === "reject" && !reason) return;
+  if (status) status.textContent = "Saving…";
+  try {
+    await j(BASE + "/cross-file-spans/" + id + "/" + action, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+    if (status) status.textContent = action + " successful. Refreshing…";
+    setTimeout(() => loadSpans(), 600);
+  } catch (e) {
+    if (status) status.textContent = "Failed: " + esc(e.message);
+  }
+}
+
+// ── Audit trail ───────────────────────────────────────────────────────────
+
+async function loadAudit() {
+  const el = document.getElementById("audit-events");
+  if (!el) return;
+  el.textContent = "Loading…";
+  const stageEl = document.getElementById("audit-stage-filter");
+  const stage = stageEl && "value" in stageEl ? stageEl.value : "";
+  try {
+    const url = BASE + "/containers/" + CONTAINER_ID + "/audit" +
+      (stage ? "?stage=" + encodeURIComponent(stage) : "");
+    const data = await j(url);
+    const events = data.events ?? [];
+    if (events.length === 0) {
+      el.textContent = "No audit events" + (stage ? " for stage: " + stage : "") + ".";
+      return;
+    }
+    el.innerHTML = events.map((e) =>
+      '<div class="action-row"><b>' + esc(e.event) + '</b>' +
+      (e.fromState ? " <span style=\\"color:#78716c\\">" + esc(e.fromState) + " → " + esc(e.toState) + "</span>" : "") +
+      " by " + esc(e.actor) +
+      " <small style=\\"color:#a8a29e\\">" + esc(new Date(e.createdAt).toLocaleString()) + "</small>" +
+      "</div>"
+    ).join("");
+  } catch (e) {
+    el.textContent = "Failed to load audit trail: " + esc(e.message);
   }
 }
 

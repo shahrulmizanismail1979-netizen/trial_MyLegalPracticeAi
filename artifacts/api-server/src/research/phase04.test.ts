@@ -30,6 +30,8 @@ const { runNextJob } = await import("./processing");
 const {
   db,
   researchJobs,
+  researchValidationRuns,
+  researchCandidateCoherenceChecks,
   researchSourceContainers,
   researchSourcePages,
   researchExtractionRuns,
@@ -259,12 +261,48 @@ afterAll(async () => {
         ),
       );
     // Only this run's jobs: extract-container-<id>-... for our containers.
+    // Delete coherence checks → validation runs (FK chain) → jobs.
     for (const cid of containerIds) {
-      await db
-        .delete(researchJobs)
+      const jobsToDelete = await db
+        .select({ id: researchJobs.id })
+        .from(researchJobs)
         .where(like(researchJobs.idempotencyKey, `extract-container-${cid}-%`));
+      if (jobsToDelete.length > 0) {
+        const jids = jobsToDelete.map((j) => j.id);
+        const vrIds = (
+          await db
+            .select({ id: researchValidationRuns.id })
+            .from(researchValidationRuns)
+            .where(inArray(researchValidationRuns.jobId, jids))
+        ).map((r) => r.id);
+        if (vrIds.length > 0) {
+          await db
+            .delete(researchCandidateCoherenceChecks)
+            .where(inArray(researchCandidateCoherenceChecks.validationRunId, vrIds));
+          await db
+            .delete(researchValidationRuns)
+            .where(inArray(researchValidationRuns.id, vrIds));
+        }
+        await db
+          .delete(researchJobs)
+          .where(inArray(researchJobs.id, jids));
+      }
     }
     if (trackedJobIds.length > 0) {
+      const vrIds = (
+        await db
+          .select({ id: researchValidationRuns.id })
+          .from(researchValidationRuns)
+          .where(inArray(researchValidationRuns.jobId, trackedJobIds))
+      ).map((r) => r.id);
+      if (vrIds.length > 0) {
+        await db
+          .delete(researchCandidateCoherenceChecks)
+          .where(inArray(researchCandidateCoherenceChecks.validationRunId, vrIds));
+        await db
+          .delete(researchValidationRuns)
+          .where(inArray(researchValidationRuns.id, vrIds));
+      }
       await db
         .delete(researchJobs)
         .where(inArray(researchJobs.id, trackedJobIds));

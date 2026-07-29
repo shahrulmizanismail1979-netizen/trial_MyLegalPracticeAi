@@ -624,9 +624,17 @@ describe("Phase 05 — single-case.txt golden fixture", () => {
 
   it("container moves to SEGMENTATION_PROPOSED or SEGMENTATION_REVIEW_REQUIRED", async () => {
     const c = await getContainer(containerId);
-    expect(["SEGMENTATION_PROPOSED", "SEGMENTATION_REVIEW_REQUIRED"]).toContain(
-      c?.processingState,
-    );
+    // Phase 14: clean segmentation auto-advances to EDITORIAL_REVIEW_PENDING
+    // (and potentially further). All three are valid outcomes here.
+    expect([
+      "SEGMENTATION_PROPOSED",
+      "SEGMENTATION_REVIEW_REQUIRED",
+      "EDITORIAL_REVIEW_PENDING",
+      "EDITORIAL_REVIEW_REQUIRED",
+      "JUDGMENT_VERIFICATION_PENDING",
+      "VERIFIED",
+      "SEARCHABLE",
+    ]).toContain(c?.processingState);
   });
 
   it("at least one candidate proposed", async () => {
@@ -686,9 +694,14 @@ describe("Phase 05 — no-judgment.txt golden fixture", () => {
     // Admin-only content (cause list / TOC) may produce zero or uncertain candidates.
     // SEGMENTATION_PROPOSED = zero candidates; SEGMENTATION_REVIEW_REQUIRED = uncertain candidates.
     // Both are valid outcomes — the engine should not auto-accept cause-list rows as judgments.
-    expect(["SEGMENTATION_PROPOSED", "SEGMENTATION_REVIEW_REQUIRED"]).toContain(
-      c?.processingState,
-    );
+    // Phase 14: clean segmentation auto-advances to EDITORIAL_REVIEW_PENDING.
+    expect([
+      "SEGMENTATION_PROPOSED",
+      "SEGMENTATION_REVIEW_REQUIRED",
+      "EDITORIAL_REVIEW_PENDING",
+      "EDITORIAL_REVIEW_REQUIRED",
+      "JUDGMENT_VERIFICATION_PENDING",
+    ]).toContain(c?.processingState);
     const run = await getLatestSegmentationRun(containerId);
     const candidates = await db
       .select()

@@ -38,7 +38,7 @@ import {
   researchReviewItems,
   researchAuditEvents,
 } from "@workspace/db";
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { emitAuditEvent } from "../domain/audit";
 import { AuditAction } from "../domain/auditEvents";
 import {
@@ -702,6 +702,211 @@ router.get(
       return;
     }
     res.json(manifest);
+  },
+);
+
+// ── Phase 14: Per-container audit trail ───────────────────────────────────
+
+/**
+ * GET /containers/:id/audit
+ * Returns all audit events for a container in chronological order.
+ * Optional ?stage= filter: upload | rights | extraction | segmentation |
+ *   verification | search | export
+ */
+router.get(
+  "/containers/:id/audit",
+  requireResearchRole("owner", "administrator", "rights_reviewer", "legal_reviewer"),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+    try {
+      const { decision } = await checkContainerAccess(id, req.researchRole ?? null, "view", {
+        actor: req.authEmail ?? undefined,
+        audit: false,
+      });
+      if (!decision.allowed) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof EntityNotFoundError) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      throw err;
+    }
+
+    const stage = typeof req.query.stage === "string" ? req.query.stage : undefined;
+
+    // Stage → event-prefix allow-list
+    const STAGE_PREFIXES: Record<string, string[]> = {
+      upload:       ["upload", "state-transition", "duplicate", "batch"],
+      rights:       ["rights", "state-transition", "access"],
+      extraction:   ["ocr", "extraction", "state-transition"],
+      segmentation: ["segmentation", "boundary", "state-transition"],
+      verification: ["editorial", "editorial-classification", "judgment", "state-transition"],
+      search:       ["search"],
+      export:       ["export", "print"],
+    };
+
+    const rows = await db
+      .select()
+      .from(researchAuditEvents)
+      .where(
+        and(
+          eq(researchAuditEvents.entityType, "container"),
+          eq(researchAuditEvents.entityId, id),
+        ),
+      )
+      .orderBy(researchAuditEvents.createdAt)
+      .limit(500);
+
+    const allowedPrefixes = stage ? STAGE_PREFIXES[stage] : undefined;
+    const filtered = allowedPrefixes
+      ? rows.filter((r) =>
+          allowedPrefixes.some((p) => r.event.toLowerCase().startsWith(p)),
+        )
+      : rows;
+
+    res.json({ containerId: id, stage: stage ?? "all", total: filtered.length, events: filtered });
+  },
+);
+
+// ── Phase 14: Quotation-integrity check ───────────────────────────────────
+
+const QuotationCheckBody = z.object({
+  candidateId: z.number().int().positive(),
+  /**
+   * Strings the reviewer wants to verify against the raw OCR/extraction.
+   * Each must be 10–500 characters. Supply passages from an independent
+   * source (e.g. a published law report) — NOT strings copied from the
+   * review UI itself.  At most 20 strings per call.
+   */
+  quotesToVerify: z
+    .array(z.string().min(10).max(500))
+    .min(1)
+    .max(20),
+});
+
+/**
+ * POST /containers/:id/quotation-check
+ * Body: { candidateId: number, quotesToVerify: string[] }
+ *
+ * For each string in `quotesToVerify` (provided by the reviewer from an
+ * independent source — e.g. a published law report or court document) this
+ * endpoint reports whether the string appears verbatim in the container's
+ * raw OCR/extraction corpus.
+ *
+ * The source of the strings to check is intentionally kept external to the
+ * pipeline: if they came from the extraction corpus itself the check would
+ * be circular and unable to detect extraction errors.
+ */
+router.post(
+  "/containers/:id/quotation-check",
+  requireResearchRole(
+    "owner",
+    "administrator",
+    "rights_reviewer",
+    "legal_reviewer",
+    "researcher",
+  ),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid container id" });
+      return;
+    }
+
+    const parsed = QuotationCheckBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: z.treeifyError(parsed.error) });
+      return;
+    }
+
+    try {
+      const { decision } = await checkContainerAccess(id, req.researchRole ?? null, "view", {
+        actor: req.authEmail ?? undefined,
+      });
+      if (!decision.allowed) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof EntityNotFoundError) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      throw err;
+    }
+
+    const {
+      researchCaseCandidates: rcc,
+      researchSourcePages: rsp,
+      researchPageExtractions: rpe,
+    } = await import("@workspace/db");
+
+    // Confirm candidate belongs to this container (authorization boundary).
+    const [candidate] = await db
+      .select({ id: rcc.id })
+      .from(rcc)
+      .where(and(eq(rcc.id, parsed.data.candidateId), eq(rcc.containerId, id)))
+      .limit(1);
+
+    if (!candidate) {
+      res.status(404).json({ error: "Candidate not found on this container" });
+      return;
+    }
+
+    // Build full source corpus from the container's raw OCR/extraction pages.
+    // This is the authoritative verbatim text from the ingestion pipeline.
+    const allPages = await db
+      .select()
+      .from(rsp)
+      .where(eq(rsp.containerId, id));
+
+    const allPageIds = allPages.map((p) => p.id);
+
+    const allExtractions = allPageIds.length > 0
+      ? await db
+          .select()
+          .from(rpe)
+          .where(inArray(rpe.pageId, allPageIds))
+      : [];
+
+    // Latest extraction per page (highest id wins).
+    const latestByPage = new Map<number, string>();
+    const sortedExts = [...allExtractions].sort((a, b) => b.id - a.id);
+    for (const ex of sortedExts) {
+      if (!latestByPage.has(ex.pageId) && ex.rawText) {
+        latestByPage.set(ex.pageId, ex.rawText);
+      }
+    }
+    const fullSourceText = allPages
+      .sort((a, b) => a.pageNumber - b.pageNumber)
+      .map((p) => latestByPage.get(p.id) ?? "")
+      .join("\n");
+
+    // Check each reviewer-supplied string against the independent source corpus.
+    // foundInSource=true  → exact passage present in OCR output (expected)
+    // foundInSource=false → passage absent — OCR error, wrong container, or
+    //                       the passage was not in this document.
+    const quotes = parsed.data.quotesToVerify.map((text) => ({
+      text,
+      foundInSource: fullSourceText.includes(text),
+    }));
+
+    const foundCount = quotes.filter((q) => q.foundInSource).length;
+    res.json({
+      containerId: id,
+      candidateId: parsed.data.candidateId,
+      quotesChecked: quotes.length,
+      quotes,
+      integrityNote: `${foundCount}/${quotes.length} supplied passages verified verbatim in source extraction corpus.`,
+      checkedAt: new Date().toISOString(),
+    });
   },
 );
 

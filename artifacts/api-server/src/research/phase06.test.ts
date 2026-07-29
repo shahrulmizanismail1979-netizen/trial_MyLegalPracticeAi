@@ -60,7 +60,7 @@ const {
   researchRightsRecords,
   researchUsers,
 } = await import("@workspace/db");
-const { eq, like, inArray, and } = await import("drizzle-orm");
+const { eq, like, inArray, and, sql } = await import("drizzle-orm");
 
 // ── Pure function tests (no DB) ────────────────────────────────────────────
 
@@ -273,6 +273,21 @@ beforeAll(async () => {
       role: "owner",
     })
     .onConflictDoNothing();
+
+  // Cancel orphaned QUEUED validation and segmentation jobs whose containers no
+  // longer exist (left behind by previous test runs that had a cleanup failure).
+  // This prevents drain loops from consuming iterations on ghost jobs before
+  // reaching the container under test.
+  await db.execute(sql`
+    UPDATE research_jobs
+    SET state = 'FAILED_PERMANENT'
+    WHERE kind IN ('container.validate', 'container.segment')
+      AND state = 'QUEUED'
+      AND NOT EXISTS (
+        SELECT 1 FROM research_source_containers
+        WHERE id = (research_jobs.payload->>'containerId')::int
+      )
+  `);
 
   registerSegmentationProcessor();
   registerValidationProcessor();

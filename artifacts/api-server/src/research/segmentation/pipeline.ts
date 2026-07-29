@@ -28,6 +28,7 @@ import { composeCandidate } from "./candidateComposer";
 import type { PageInput, BlockInput } from "./signalDetector";
 import { startValidation } from "../validation/pipeline";
 
+
 export const SEGMENT_JOB_KIND = "container.segment";
 export const SEGMENT_PROCESSOR_VERSION = "container.segment@1";
 
@@ -523,6 +524,13 @@ async function segmentProcessor(ctx: ProcessorContext) {
       "Failed to auto-enqueue validation job after segmentation; operator can trigger manually",
     );
   }
+
+  // Phase 14 note: EDITORIAL_REVIEW_PENDING transition and editorial job
+  // enqueue are handled by the validation processor (validation/pipeline.ts)
+  // AFTER it completes coherence checks — not here. Moving it here would fire
+  // before validation runs, putting the container in a state the validation
+  // processor rejects (INVALID_STATE). The correct pipeline order is:
+  //   segmentation → validation → editorial classification.
 
   return {
     outputChecksum: sha16(

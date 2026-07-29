@@ -110,12 +110,20 @@ export function registerProcessor(
 /**
  * Claim and run the next queued job. Returns the claimed job (outcome is
  * applied to the row) or null when the queue is empty.
+ *
+ * When `kind` is omitted the claim is restricted to job kinds that have a
+ * registered processor in the current worker.  This prevents test workers
+ * that only register a subset of processors from accidentally claiming and
+ * permanently failing jobs that belong to a different test worker.
  */
 export async function runNextJob(
   kind?: string,
   dbc?: DbClient,
 ): Promise<ResearchJob | null> {
-  const job = await claimNext(kind, dbc);
+  // When no kind filter is specified, restrict to registered processor kinds
+  // so workers with partial processor registrations don't steal each other's jobs.
+  const registeredKinds = kind === undefined ? Object.keys(processors) : undefined;
+  const job = await claimNext(kind, dbc, registeredKinds);
   if (!job) return null;
   const entry = processors[job.kind];
   try {
@@ -153,10 +161,14 @@ export async function runNextJob(
       }
     }
     if (!entry) {
+      // No processor registered for this job kind — permanent failure.
+      // Retrying cannot help because the processor is still absent; marking
+      // as non-retryable prevents an infinite re-queue loop in test workers
+      // that only register a subset of processors.
       throw new ProcessorFailure(
         "NO_PROCESSOR",
         `No processor registered for job kind '${job.kind}'`,
-        true,
+        false,
       );
     }
     const result = await entry.processor({
