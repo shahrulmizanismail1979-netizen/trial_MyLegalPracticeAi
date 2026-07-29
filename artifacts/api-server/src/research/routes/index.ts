@@ -30,6 +30,7 @@ import quotationsRouter, { listForJudgmentHandler } from "./quotations";
 import analysisRouter from "./analysis";
 import authoritiesRouter from "./authorities";
 import workspaceRouter from "./workspace";
+import queueExportRouter from "./queueExport";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
 import {
@@ -264,6 +265,10 @@ router.use(authoritiesRouter);
 // ── Phase 11b: Research Workspace ────────────────────────────────────────
 
 router.use(workspaceRouter);
+
+// ── Phase 12 stress: Queue export / import ───────────────────────────────
+
+router.use(queueExportRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller

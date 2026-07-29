@@ -33,6 +33,9 @@ async function buildAll() {
       // which breaks when bundled. Keep external so Node resolves it from node_modules.
       "stripe-replit-sync",
       "pdf-parse",
+      "pdfkit",
+      "fontkit",
+      "brotli",
       "@napi-rs/canvas",
       "sharp",
       "better-sqlite3",

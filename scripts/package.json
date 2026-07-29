@@ -10,13 +10,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "push-convey-users-to-prod": "tsx ./src/push-convey-users-to-prod.ts"
   },
-  "devDependencies": {
-    "@types/node": "catalog:",
-    "tsx": "catalog:"
-  },
   "dependencies": {
     "@workspace/db": "workspace:*",
     "drizzle-orm": "catalog:",
+    "pdfkit": "^0.19.1",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/pdfkit": "^0.17.6",
+    "tsx": "catalog:"
   }
 }

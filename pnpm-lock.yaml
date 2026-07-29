@@ -2857,6 +2857,9 @@ importers:
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.1(@types/pg@8.18.0)(pg@8.20.0)
+      pdfkit:
+        specifier: ^0.19.1
+        version: 0.19.1
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -2864,6 +2867,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@types/pdfkit':
+        specifier: ^0.17.6
+        version: 0.17.6
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
