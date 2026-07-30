@@ -28,3 +28,4 @@
 - [Research segmentation state machine path](research-segmentation-state-machine.md) — SEGMENTATION_PENDING can only go to SEGMENTATION_PROPOSED; reach SEGMENTATION_REVIEW_REQUIRED via a second transition from PROPOSED.
 - [Phase 06 test cleanup isolation](phase06-test-cleanup.md) — auto-triggered validation jobs can be run by runNextJob() outside trackedContainerIds; cleanup must query validation_runs by both containerId AND trackedJobIds.
 - [Chat isolation and upload submitter binding](chat-isolation-upload-binding.md) — CCB/Lit conversations now isolated per access_code_id; requireLitAuth gates lit gemini routes; research containers record uploaded_by from batch.
+- [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.
