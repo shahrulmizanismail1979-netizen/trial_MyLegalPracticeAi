@@ -88,7 +88,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ADMIN_ALLOWED_EMAILS = "shahrulmizanismail1979@gmail.com,mahmudhamdi80@gmail.com,shahrulmizan@ukm.edu.my"
+ADMIN_ALLOWED_EMAILS = "shahrulmizanismail1979@gmail.com,mahmudhamdi80@gmail.com,shahrulmizan@ukm.edu.my,aimanhaziqedu@gmail.com"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-a69d1a31-5518-4034-aeae-d74008bd9097"
