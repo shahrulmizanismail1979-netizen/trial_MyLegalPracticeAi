@@ -9,7 +9,8 @@ import {
   FileText,
   BarChart3,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import { basePath } from "@/lib/clerk";
 
@@ -27,6 +28,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/kohorts", icon: Layers, label: "Kohorts" },
     { href: "/admin/pricing", icon: CreditCard, label: "Pricing" },
     { href: "/admin/vouchers", icon: Ticket, label: "Vouchers" },
+    { href: "/admin/documents", icon: BookOpen, label: "Documents" },
   ];
 
   return (

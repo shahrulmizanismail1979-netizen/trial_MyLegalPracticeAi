@@ -17,6 +17,7 @@ import KohortsPage from "@/pages/admin/kohorts";
 import PricingPage from "@/pages/admin/pricing";
 import VouchersPage from "@/pages/admin/vouchers";
 import ContributionsPage from "@/pages/admin/contributions";
+import DocumentsPage from "@/pages/admin/documents";
 import {
   clerkPubKey,
   clerkProxyUrl,
@@ -91,6 +92,11 @@ function Router() {
       <Route path="/admin/vouchers">
         <AdminGuard>
           <VouchersPage />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/documents">
+        <AdminGuard>
+          <DocumentsPage />
         </AdminGuard>
       </Route>
       <Route component={NotFound} />
