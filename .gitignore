@@ -59,3 +59,7 @@ fixtures/**/*.tif
 fixtures/**/*.tiff
 fixtures/**/*.png
 fixtures/**/*.jpg
+
+# Auto-generated stress test results
+stress-report.md
+stress-results.json
