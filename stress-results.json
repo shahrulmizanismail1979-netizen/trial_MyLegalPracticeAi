@@ -2,8 +2,8 @@
   "memoryAtScale": [
     {
       "containerCount": 0,
-      "rssBytes": 155160576,
-      "heapUsedBytes": 36724328,
+      "rssBytes": 160595968,
+      "heapUsedBytes": 29530936,
       "containerRows": 0,
       "jobRows": 0,
       "transformRows": 0,
@@ -11,8 +11,8 @@
     },
     {
       "containerCount": 53,
-      "rssBytes": 229629952,
-      "heapUsedBytes": 54907032,
+      "rssBytes": 230645760,
+      "heapUsedBytes": 44011552,
       "containerRows": 50,
       "jobRows": 53,
       "transformRows": 53,
@@ -20,8 +20,8 @@
     },
     {
       "containerCount": 102,
-      "rssBytes": 235429888,
-      "heapUsedBytes": 41719616,
+      "rssBytes": 239734784,
+      "heapUsedBytes": 85315832,
       "containerRows": 97,
       "jobRows": 102,
       "transformRows": 102,
@@ -29,8 +29,8 @@
     },
     {
       "containerCount": 152,
-      "rssBytes": 237727744,
-      "heapUsedBytes": 76358968,
+      "rssBytes": 130117632,
+      "heapUsedBytes": 35770968,
       "containerRows": 145,
       "jobRows": 152,
       "transformRows": 152,
@@ -38,8 +38,8 @@
     },
     {
       "containerCount": 202,
-      "rssBytes": 242307072,
-      "heapUsedBytes": 61042144,
+      "rssBytes": 152756224,
+      "heapUsedBytes": 36365272,
       "containerRows": 193,
       "jobRows": 202,
       "transformRows": 202,
@@ -57,28 +57,28 @@
     "queuedBefore": 202,
     "drained": 202,
     "orphanedRunning": 0,
-    "drainMs": 7497
+    "drainMs": 7183
   },
   "throughput": {
     "uploadMs": {
-      "min": 986,
-      "avg": 1063,
-      "p95": 1200,
-      "max": 1200,
+      "min": 1053,
+      "avg": 1129,
+      "p95": 1258,
+      "max": 1258,
       "count": 4
     },
     "ingestJobMs": {
-      "min": 1737,
-      "avg": 1874,
-      "p95": 1960,
-      "max": 1960,
+      "min": 1611,
+      "avg": 1796,
+      "p95": 2182,
+      "max": 2182,
       "count": 4
     },
     "segmentJobMs": {
-      "min": 98,
+      "min": 96,
       "avg": 125,
-      "p95": 182,
-      "max": 182,
+      "p95": 208,
+      "max": 208,
       "count": 20
     }
   },
@@ -86,10 +86,10 @@
     "containersSegmented": 20,
     "totalCandidates": 20,
     "jobMs": {
-      "min": 98,
+      "min": 96,
       "avg": 125,
-      "p95": 182,
-      "max": 182,
+      "p95": 208,
+      "max": 208,
       "count": 20
     }
   },
@@ -105,12 +105,12 @@
   "concurrentUsers": {
     "batch5x20": {
       "totalUploads": 100,
-      "durationMs": 4166,
+      "durationMs": 3868,
       "successRate": 1
     },
     "batch10x20": {
       "totalUploads": 200,
-      "durationMs": 8949,
+      "durationMs": 7109,
       "successRate": 1
     }
   },
@@ -118,18 +118,18 @@
     "queries": 50,
     "latencyMs": {
       "min": 0,
-      "avg": 1,
+      "avg": 2,
       "p95": 1,
-      "max": 30,
+      "max": 96,
       "count": 50
     }
   },
   "backupSnapshot": {
-    "containerRows": 12926,
-    "jobRows": 12915,
-    "transformRows": 2638,
-    "rightsRows": 8607,
-    "auditEventRows": 435128,
+    "containerRows": 13044,
+    "jobRows": 12937,
+    "transformRows": 2602,
+    "rightsRows": 8695,
+    "auditEventRows": 441077,
     "storagePuts": 510,
     "storageBytes": 281238
   },
