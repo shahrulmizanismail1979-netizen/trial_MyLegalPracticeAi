@@ -1,20 +1,21 @@
 {
-  "phase": "07",
-  "name": "Publisher-Content Isolation & Verified Judicial Text",
+  "phase": "14",
+  "name": "Controlled Pilot",
   "status": "complete",
-  "startedAt": "2026-07-24",
-  "completedAt": "2026-07-24",
-  "report": "docs/reports/phase-07-completion.md",
-  "decisionRecord": "docs/decisions/0008-phase-07-publisher-content-isolation.md",
+  "startedAt": "2026-07-28",
+  "completedAt": "2026-07-29",
+  "report": "docs/reports/phase-14-completion.md",
+  "decisionRecord": "docs/decisions/0015-phase-14-controlled-pilot.md",
   "previousPhase": {
-    "phase": "06",
-    "name": "Consolidation (Validation, Human Review & Cross-File Reconstruction)",
+    "phase": "13",
+    "name": "Synthetic Stress Corpus & Capacity Report",
     "status": "complete",
-    "report": "docs/reports/phase-06-completion.md"
+    "report": "docs/reports/phase-13-completion.md"
   },
   "nextPhase": {
-    "phase": "08",
-    "name": "Search & Research UI",
-    "status": "pending"
+    "phase": "15",
+    "name": "Full Corpus Import",
+    "status": "pending",
+    "notes": "Preconditions documented in docs/operations/full-corpus-import.md. Requires Task #7 (upload submitter binding) and Task #21 (chat isolation) resolved before import begins."
   }
 }

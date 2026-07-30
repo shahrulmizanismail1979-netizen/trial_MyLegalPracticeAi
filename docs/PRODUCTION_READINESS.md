@@ -2,7 +2,9 @@
 
 **Assessed:** 2026-07-30  
 **Assessor:** Platform engineering team  
-**Evidence base:** Phase completion reports 00–07 (docs/reports/); merged test files phases 08–14; pilot-report.md (2026-07-29); ADRs 0001–0009; RIGHTS_MODEL.md; SECURITY_MODEL.md; ARCHITECTURE.md; open task register.
+**Evidence base:** Phase completion reports 00–14 (docs/reports/); pilot-report.md (2026-07-29); ADRs 0001–0015; RIGHTS_MODEL.md; SECURITY_MODEL.md; ARCHITECTURE.md; open task register.
+
+> **Note:** Phase tracking records (current-phase.json, completion reports for phases 08–14, ADRs 0010–0015, PHASES.md phases 10–14) were stale at the time of initial writing — frozen at phase 07. These records were corrected and completed on 2026-07-30 as Task #97. The readiness assessment itself is unaffected; the underlying evidence (test results, pilot data, security findings) is unchanged.
 
 ---
 
