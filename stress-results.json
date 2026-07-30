@@ -2,8 +2,8 @@
   "memoryAtScale": [
     {
       "containerCount": 0,
-      "rssBytes": 160251904,
-      "heapUsedBytes": 29818816,
+      "rssBytes": 154419200,
+      "heapUsedBytes": 36957632,
       "containerRows": 0,
       "jobRows": 0,
       "transformRows": 0,
@@ -11,38 +11,38 @@
     },
     {
       "containerCount": 53,
-      "rssBytes": 231903232,
-      "heapUsedBytes": 85213072,
-      "containerRows": 0,
+      "rssBytes": 230498304,
+      "heapUsedBytes": 58442952,
+      "containerRows": 50,
       "jobRows": 53,
-      "transformRows": 0,
+      "transformRows": 53,
       "storageBytes": 34162
     },
     {
       "containerCount": 102,
-      "rssBytes": 245694464,
-      "heapUsedBytes": 57848696,
-      "containerRows": 0,
+      "rssBytes": 235016192,
+      "heapUsedBytes": 47280864,
+      "containerRows": 97,
       "jobRows": 102,
-      "transformRows": 0,
+      "transformRows": 102,
       "storageBytes": 63826
     },
     {
       "containerCount": 152,
-      "rssBytes": 267890688,
-      "heapUsedBytes": 87313472,
-      "containerRows": 0,
+      "rssBytes": 237899776,
+      "heapUsedBytes": 84607440,
+      "containerRows": 145,
       "jobRows": 152,
-      "transformRows": 0,
+      "transformRows": 152,
       "storageBytes": 94274
     },
     {
       "containerCount": 202,
-      "rssBytes": 285519872,
-      "heapUsedBytes": 104748704,
-      "containerRows": 0,
+      "rssBytes": 241999872,
+      "heapUsedBytes": 71874192,
+      "containerRows": 193,
       "jobRows": 202,
-      "transformRows": 0,
+      "transformRows": 202,
       "storageBytes": 124727
     }
   ],
@@ -57,29 +57,40 @@
     "queuedBefore": 202,
     "drained": 202,
     "orphanedRunning": 0,
-    "drainMs": 13257
+    "drainMs": 9059
   },
   "throughput": {
     "uploadMs": {
-      "min": 1102,
-      "avg": 1337,
-      "p95": 1640,
-      "max": 1640,
+      "min": 1047,
+      "avg": 1113,
+      "p95": 1209,
+      "max": 1209,
       "count": 4
     },
     "ingestJobMs": {
-      "min": 2896,
-      "avg": 3314,
-      "p95": 3899,
-      "max": 3899,
+      "min": 1809,
+      "avg": 2265,
+      "p95": 3087,
+      "max": 3087,
       "count": 4
     },
     "segmentJobMs": {
-      "min": 0,
-      "avg": 0,
-      "p95": 0,
-      "max": 0,
-      "count": 0
+      "min": 95,
+      "avg": 115,
+      "p95": 218,
+      "max": 218,
+      "count": 20
+    }
+  },
+  "segmentation": {
+    "containersSegmented": 20,
+    "totalCandidates": 20,
+    "jobMs": {
+      "min": 95,
+      "avg": 115,
+      "p95": 218,
+      "max": 218,
+      "count": 20
     }
   },
   "retryBehaviour": {
@@ -89,17 +100,17 @@
   },
   "jobResumption": {
     "stalledJobs": 3,
-    "resumedOk": 0
+    "resumedOk": 3
   },
   "concurrentUsers": {
     "batch5x20": {
       "totalUploads": 100,
-      "durationMs": 6677,
+      "durationMs": 3880,
       "successRate": 1
     },
     "batch10x20": {
       "totalUploads": 200,
-      "durationMs": 12220,
+      "durationMs": 7658,
       "successRate": 1
     }
   },
@@ -107,18 +118,18 @@
     "queries": 50,
     "latencyMs": {
       "min": 0,
-      "avg": 1,
+      "avg": 3,
       "p95": 1,
-      "max": 15,
+      "max": 108,
       "count": 50
     }
   },
   "backupSnapshot": {
-    "containerRows": 12585,
-    "jobRows": 12933,
-    "transformRows": 2032,
-    "rightsRows": 8722,
-    "auditEventRows": 445832,
+    "containerRows": 13174,
+    "jobRows": 13034,
+    "transformRows": 2622,
+    "rightsRows": 8794,
+    "auditEventRows": 452550,
     "storagePuts": 510,
     "storageBytes": 281238
   },
