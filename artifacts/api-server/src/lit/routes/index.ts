@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import authRouter from "./auth";
+import authRouter, { requireLitAuth } from "./auth";
 import adminRouter from "./admin";
 import theoryRouter from "./theory";
 import workflowsRouter from "./workflows";

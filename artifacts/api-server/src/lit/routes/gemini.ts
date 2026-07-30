@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { litConversations as conversationsTable, litMessages as messagesTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { and, eq, asc, desc } from "drizzle-orm";
 import { generateContentStreamCompat } from "../lib/aiProvider";
 
 const router: IRouter = Router();
@@ -46,31 +46,60 @@ Default to answering as a SENIOR COUNSEL advising a busy practising advocate & s
 If the user is plainly a student asking to understand a concept, you may explain more fully — but never pad practitioner questions with academic exposition.
 Keep all citation-accuracy rules above: never fabricate citations, fees or thresholds; if unsure, say so and state what to verify.`;
 
-router.get("/litConversations", async (req, res) => {
-  const litConversations = await db.select().from(conversationsTable);
+/**
+ * Access code ID bound to the current session by requireLitAuth.
+ * number → subscriber session (sees only their own conversations).
+ */
+function callerAccessCodeId(res: import("express").Response): number {
+  return res.locals["litAccessCodeId"] as number;
+}
+
+router.get("/litConversations", async (_req, res) => {
+  const accessId = callerAccessCodeId(res);
+  const litConversations = await db
+    .select()
+    .from(conversationsTable)
+    .where(eq(conversationsTable.accessCodeId, accessId))
+    .orderBy(desc(conversationsTable.createdAt));
   res.json(litConversations);
 });
 
 router.post("/litConversations", async (req, res) => {
   const { title } = req.body;
-  const [conversation] = await db.insert(conversationsTable).values({ title }).returning();
+  const accessId = callerAccessCodeId(res);
+  const [conversation] = await db
+    .insert(conversationsTable)
+    .values({ title, accessCodeId: accessId })
+    .returning();
   res.status(201).json(conversation);
 });
 
 router.get("/litConversations/:id", async (req, res) => {
-  const id = parseInt((req.params.id as string));
-  const [conversation] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id));
+  const id = parseInt(req.params.id as string);
+  const accessId = callerAccessCodeId(res);
+  const [conversation] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
   }
-  const msgs = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, id)).orderBy(asc(messagesTable.createdAt));
+  const msgs = await db
+    .select()
+    .from(messagesTable)
+    .where(eq(messagesTable.conversationId, id))
+    .orderBy(asc(messagesTable.createdAt));
   res.json({ ...conversation, litMessages: msgs });
 });
 
 router.delete("/litConversations/:id", async (req, res) => {
-  const id = parseInt((req.params.id as string));
-  const [conversation] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id));
+  const id = parseInt(req.params.id as string);
+  const accessId = callerAccessCodeId(res);
+  const [conversation] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
@@ -81,16 +110,34 @@ router.delete("/litConversations/:id", async (req, res) => {
 });
 
 router.get("/litConversations/:id/litMessages", async (req, res) => {
-  const id = parseInt((req.params.id as string));
-  const msgs = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, id)).orderBy(asc(messagesTable.createdAt));
+  const id = parseInt(req.params.id as string);
+  const accessId = callerAccessCodeId(res);
+  // Ownership check before returning messages.
+  const [conversation] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
+  if (!conversation) {
+    res.status(404).json({ error: "LitConversation not found" });
+    return;
+  }
+  const msgs = await db
+    .select()
+    .from(messagesTable)
+    .where(eq(messagesTable.conversationId, id))
+    .orderBy(asc(messagesTable.createdAt));
   res.json(msgs);
 });
 
 router.post("/litConversations/:id/litMessages", async (req, res) => {
-  const id = parseInt((req.params.id as string));
+  const id = parseInt(req.params.id as string);
   const { content } = req.body;
 
-  const [conversation] = await db.select().from(conversationsTable).where(eq(conversationsTable.id, id));
+  const accessId = callerAccessCodeId(res);
+  const [conversation] = await db
+    .select()
+    .from(conversationsTable)
+    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
@@ -98,7 +145,11 @@ router.post("/litConversations/:id/litMessages", async (req, res) => {
 
   await db.insert(messagesTable).values({ conversationId: id, role: "user", content });
 
-  const existingMessages = await db.select().from(messagesTable).where(eq(messagesTable.conversationId, id)).orderBy(asc(messagesTable.createdAt));
+  const existingMessages = await db
+    .select()
+    .from(messagesTable)
+    .where(eq(messagesTable.conversationId, id))
+    .orderBy(asc(messagesTable.createdAt));
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -137,7 +188,9 @@ router.post("/litConversations/:id/litMessages", async (req, res) => {
     res.write(`data: ${JSON.stringify({ content: note })}\n\n`);
   }
 
-  await db.insert(messagesTable).values({ conversationId: id, role: "assistant", content: fullResponse });
+  await db
+    .insert(messagesTable)
+    .values({ conversationId: id, role: "assistant", content: fullResponse });
 
   res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   res.end();

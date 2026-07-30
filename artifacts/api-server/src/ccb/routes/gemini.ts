@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db, ccbConversations, ccbMessages } from "@workspace/db";
 import { ai } from "@workspace/integrations-gemini-ai";
@@ -22,10 +22,23 @@ const CreateConversationBody = z.object({ title: z.string().min(1) });
 const ConversationIdParam = z.object({ id: z.coerce.number().int().positive() });
 const SendMessageBody = z.object({ content: z.string().min(1) });
 
+/**
+ * Access code ID bound to the current session by requirePractitioner.
+ * null → admin/static-code session (unrestricted view).
+ * number → subscriber session (sees only their own conversations).
+ */
+function callerAccessCodeId(res: import("express").Response): number | null {
+  return (res.locals["ccbAccessCodeId"] as number | null) ?? null;
+}
+
 router.get("/gemini/conversations", async (_req, res): Promise<void> => {
+  const accessId = callerAccessCodeId(res);
+  const filter =
+    accessId !== null ? eq(ccbConversations.accessCodeId, accessId) : undefined;
   const conversations = await db
     .select()
     .from(ccbConversations)
+    .where(filter)
     .orderBy(desc(ccbConversations.createdAt));
   res.json(conversations);
 });
@@ -36,9 +49,10 @@ router.post("/gemini/conversations", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const accessId = callerAccessCodeId(res);
   const [conversation] = await db
     .insert(ccbConversations)
-    .values({ title: parsed.data.title })
+    .values({ title: parsed.data.title, accessCodeId: accessId })
     .returning();
   res.status(201).json(conversation);
 });
@@ -49,10 +63,15 @@ router.get("/gemini/conversations/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const [conversation] = await db
-    .select()
-    .from(ccbConversations)
-    .where(eq(ccbConversations.id, params.data.id));
+  const accessId = callerAccessCodeId(res);
+  const filter =
+    accessId !== null
+      ? and(
+          eq(ccbConversations.id, params.data.id),
+          eq(ccbConversations.accessCodeId, accessId),
+        )
+      : eq(ccbConversations.id, params.data.id);
+  const [conversation] = await db.select().from(ccbConversations).where(filter);
   if (!conversation) {
     res.status(404).json({ error: "Conversation not found" });
     return;
@@ -71,10 +90,18 @@ router.delete("/gemini/conversations/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
+  const accessId = callerAccessCodeId(res);
+  const filter =
+    accessId !== null
+      ? and(
+          eq(ccbConversations.id, params.data.id),
+          eq(ccbConversations.accessCodeId, accessId),
+        )
+      : eq(ccbConversations.id, params.data.id);
   await db.delete(ccbMessages).where(eq(ccbMessages.conversationId, params.data.id));
   const [deleted] = await db
     .delete(ccbConversations)
-    .where(eq(ccbConversations.id, params.data.id))
+    .where(filter)
     .returning();
   if (!deleted) {
     res.status(404).json({ error: "Conversation not found" });
@@ -87,6 +114,21 @@ router.get("/gemini/conversations/:id/messages", async (req, res): Promise<void>
   const params = ConversationIdParam.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  // Ownership check: verify the conversation belongs to this caller before
+  // returning its messages.
+  const accessId = callerAccessCodeId(res);
+  const convFilter =
+    accessId !== null
+      ? and(
+          eq(ccbConversations.id, params.data.id),
+          eq(ccbConversations.accessCodeId, accessId),
+        )
+      : eq(ccbConversations.id, params.data.id);
+  const [conversation] = await db.select().from(ccbConversations).where(convFilter);
+  if (!conversation) {
+    res.status(404).json({ error: "Conversation not found" });
     return;
   }
   const messages = await db
@@ -109,10 +151,16 @@ router.post("/gemini/conversations/:id/messages", async (req, res): Promise<void
     return;
   }
 
-  const [conversation] = await db
-    .select()
-    .from(ccbConversations)
-    .where(eq(ccbConversations.id, params.data.id));
+  // Ownership check before mutating.
+  const accessId = callerAccessCodeId(res);
+  const convFilter =
+    accessId !== null
+      ? and(
+          eq(ccbConversations.id, params.data.id),
+          eq(ccbConversations.accessCodeId, accessId),
+        )
+      : eq(ccbConversations.id, params.data.id);
+  const [conversation] = await db.select().from(ccbConversations).where(convFilter);
   if (!conversation) {
     res.status(404).json({ error: "Conversation not found" });
     return;

@@ -49,6 +49,7 @@ import { registerContainer, routeToReview } from "../data/containers";
 import {
   createBatch,
   createBatchItem,
+  getBatch,
   getBatchItem,
   listBatchItemsInStates,
   setBatchStatus,
@@ -453,6 +454,10 @@ async function ingestProcessor({
     .limit(1);
   if (existing) return markDuplicate(existing.id);
 
+  // Resolve the uploader identity from the batch record (Task #7).
+  const batch = await getBatch(item.batchId, dbc);
+  const uploadedBy = batch?.uploadedBy ?? null;
+
   let container;
   try {
     container = await registerContainer(
@@ -463,6 +468,7 @@ async function ingestProcessor({
         sizeBytes: item.sizeBytes ?? 0,
         mimeType: item.mimeType,
         storageKey: item.stagingKey,
+        uploadedBy,
         provenance: {
           enteredVia: "upload",
           batchId: item.batchId,

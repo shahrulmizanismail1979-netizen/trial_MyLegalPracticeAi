@@ -65,6 +65,10 @@ export async function requirePractitioner(
     return;
   }
   const code = (payload.code ?? "").trim().toUpperCase();
+  // Task #21: resolve access code to a DB row ID so the gemini routes can
+  // isolate conversations per subscriber. Static/admin codes resolve to null
+  // (no per-subscriber restriction).
+  let resolvedAccessCodeId: number | null = null;
   if (code && !STATIC_CODES.includes(code)) {
     try {
       const rows = await db.select().from(ccbAccessCodes).where(eq(ccbAccessCodes.code, code));
@@ -77,10 +81,12 @@ export async function requirePractitioner(
         res.status(401).json({ error: "Access code expired" });
         return;
       }
+      resolvedAccessCodeId = row.id;
     } catch {
       // Best-effort — don't block requests on a transient DB error.
     }
   }
+  res.locals["ccbAccessCodeId"] = resolvedAccessCodeId;
   next();
 }
 

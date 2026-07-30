@@ -141,6 +141,9 @@ export const researchSourceContainers = pgTable(
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  // Identity of the person who uploaded this file (email or role-string).
+  // NULL for containers created before this column was added (Task #7).
+  uploadedBy: text("uploaded_by"),
   },
   (t) => [
     // Race-safe SHA-256 dedup: concurrent ingest jobs cannot both register

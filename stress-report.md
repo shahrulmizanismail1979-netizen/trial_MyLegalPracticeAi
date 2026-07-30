@@ -1,6 +1,6 @@
 # Stress Corpus and Capacity Report
 
-Generated: 2026-07-30T03:42:23.463Z
+Generated: 2026-07-30T04:56:21.931Z
 
 ---
 
@@ -8,20 +8,20 @@ Generated: 2026-07-30T03:42:23.463Z
 
 | Field | Value |
 |---|---|
-| Tested corpus size | 202 containers (upload+ingest), 20 (full segmentation) |
+| Tested corpus size | 202 containers (upload+ingest), 0 (full segmentation) |
 | Safe batch size | 50 files per upload call; safe for continuous queue drain up to >200 (not reached in test) containers in-process |
-| Peak RSS | 228.6 MB at 102 containers |
-| Peak heap | 81.4 MB at 102 containers |
+| Peak RSS | 272.3 MB at 202 containers |
+| Peak heap | 99.9 MB at 202 containers |
 | Upload failure rate | 0.0% (path-traversal names correctly rejected) |
 | Retry result | 5 staging failures; 5 retries succeeded; no silent data loss |
-| Job resumption | 3 stalled jobs re-queued, 3 completed successfully |
-| Search latency p50 | 2ms |
+| Job resumption | 3 stalled jobs re-queued, 0 completed successfully |
+| Search latency p50 | 1ms |
 | Search latency p95 | 1ms |
-| Search latency p99 | 96ms (worst observed) |
+| Search latency p99 | 15ms (worst observed) |
 | Storage (in-memory adapter) | 0.3 MB for 510 objects |
-| DB row growth — containers | 13044 total rows at end of run |
-| DB row growth — jobs | 12937 total rows at end of run |
-| DB row growth — audit events | 441077 total rows at end of run |
+| DB row growth — containers | 12585 total rows at end of run |
+| DB row growth — jobs | 12933 total rows at end of run |
+| DB row growth — audit events | 445832 total rows at end of run |
 | Recommended deployment topology | See section below |
 | Features requiring external workers | See section below |
 | Features safe for Replit hosting | See section below |
@@ -32,11 +32,11 @@ Generated: 2026-07-30T03:42:23.463Z
 
 | Containers processed | RSS | Heap used | Container rows | Job rows | Storage written |
 |---|---|---|---|---|---|
-| 0 | 153.2 MB | 28.2 MB | 0 | 0 | 0.0 MB |
-| 53 | 220.0 MB | 42.0 MB | 50 | 53 | 0.0 MB |
-| 102 | 228.6 MB | 81.4 MB | 97 | 102 | 0.1 MB |
-| 152 | 124.1 MB | 34.1 MB | 145 | 152 | 0.1 MB |
-| 202 | 145.7 MB | 34.7 MB | 193 | 202 | 0.1 MB |
+| 0 | 152.8 MB | 28.4 MB | 0 | 0 | 0.0 MB |
+| 53 | 221.2 MB | 81.3 MB | 0 | 53 | 0.0 MB |
+| 102 | 234.3 MB | 55.2 MB | 0 | 102 | 0.1 MB |
+| 152 | 255.5 MB | 83.3 MB | 0 | 152 | 0.1 MB |
+| 202 | 272.3 MB | 99.9 MB | 0 | 202 | 0.1 MB |
 
 ---
 
@@ -44,9 +44,9 @@ Generated: 2026-07-30T03:42:23.463Z
 
 | Stage | Min | Avg | p95 | Max | Samples |
 |---|---|---|---|---|---|
-| Upload batch (50 files) | 1053ms | 1129ms | 1258ms | 1258ms | 4 |
-| Ingest queue drain (50 jobs) | 1611ms | 1796ms | 2182ms | 2182ms | 4 |
-| Segmentation job (1 container) | 96ms | 125ms | 208ms | 208ms | 20 |
+| Upload batch (50 files) | 1102ms | 1337ms | 1640ms | 1640ms | 4 |
+| Ingest queue drain (50 jobs) | 2896ms | 3314ms | 3899ms | 3899ms | 4 |
+| Segmentation job (1 container) | 0ms | 0ms | 0ms | 0ms | 0 |
 
 ---
 
@@ -54,8 +54,8 @@ Generated: 2026-07-30T03:42:23.463Z
 
 | Scenario | Total uploads | Duration | Success rate |
 |---|---|---|---|
-| 5 users × 20 files | 100 | 3868ms | 100.0% |
-| 10 users × 20 files | 200 | 7109ms | 100.0% |
+| 5 users × 20 files | 100 | 6677ms | 100.0% |
+| 10 users × 20 files | 200 | 12220ms | 100.0% |
 
 ---
 
@@ -66,7 +66,7 @@ Generated: 2026-07-30T03:42:23.463Z
 5 other files in the same batch succeeded without interference.
 
 **Job resumption (D09):** 3 jobs set to RUNNING then re-queued (simulating crash).
-All 3 completed successfully on re-drain.
+All 0 completed successfully on re-drain.
 
 **Failure isolation (D14):** batch with 3 injected failures: 2 succeeded, 3 failed.
 Subsequent clean batch: all 5 succeeded.
@@ -80,9 +80,9 @@ Isolation confirmed: ✓ YES.
 
 | Metric | Value |
 |---|---|
-| p50 | 2ms |
+| p50 | 1ms |
 | p95 | 1ms |
-| Worst observed | 96ms |
+| Worst observed | 15ms |
 | Min | 0ms |
 
 Indexes present on research_search_index: `document` (GIN tsvector, English), `document_ms` (GIN tsvector, simple), `container_id`, `court`, `decision_date`.
@@ -98,14 +98,14 @@ Row counts at end-of-run snapshot:
 
 | Table | Rows |
 |---|---|
-| research_source_containers | 13044 |
-| research_jobs | 12937 |
-| research_transformations | 2602 |
-| research_rights_records | 8695 |
-| research_audit_events | 441077 |
+| research_source_containers | 12585 |
+| research_jobs | 12933 |
+| research_transformations | 2032 |
+| research_rights_records | 8722 |
+| research_audit_events | 445832 |
 
-Growth rate at observed scale: approximately 2184 audit events per container ingested.
-For a 10,000-container corpus, projected audit table size: ~21835495 rows.
+Growth rate at observed scale: approximately 2207 audit events per container ingested.
+For a 10,000-container corpus, projected audit table size: ~22070891 rows.
 Backup window recommendation: daily pg_dump for corpora < 100 k containers; WAL streaming for larger corpora.
 
 ---
@@ -182,7 +182,7 @@ Operations that cannot complete within a Replit deployment's time or memory wind
 | Container registration and dedup | ~15 ms/job; 0 orphaned RUNNING jobs after drain |
 | Rights-review workflow | Synchronous DB transaction; no memory growth |
 | Search (FTS) | p95 1ms; GIN index scales to 100 k+ rows |
-| Segmentation (≤ 15 pages/container) | 125ms avg; bounded by page count |
+| Segmentation (≤ 15 pages/container) | n/ams avg; bounded by page count |
 | Concurrent uploads (10 users) | 100.0% success rate; SKIP LOCKED prevents double-claim |
 | Export (per-container) | Rights-gated synchronous generation; predictable memory |
 | Retry and job resumption | maxAttempts=3; stalled RUNNING jobs re-drainable after restart |

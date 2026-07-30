@@ -1,4 +1,10 @@
-import { Router, type IRouter, type Request } from "express";
+import {
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import { db } from "@workspace/db";
 import { litAccessCodes } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -209,5 +215,58 @@ router.post("/logout", (req, res) => {
     res.json({ message: "Logged out successfully" });
   });
 });
+
+/**
+ * Express middleware that enforces Lit session authentication and binds the
+ * caller's access code ID to res.locals.litAccessCodeId for downstream use
+ * (Task #21 — subscriber chat isolation).
+ *
+ * Re-checks the DB on every request (portal-expiry-enforcement: sessions and
+ * JWTs may outlive access codes, so expiry must be verified per-request).
+ */
+export async function requireLitAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const sess = req.session as unknown as Record<string, unknown>;
+  const authenticated = sess?.authenticated === true;
+  const accessCodeId = sess?.accessCodeId as number | undefined;
+
+  if (!authenticated || !accessCodeId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  try {
+    const [record] = await db
+      .select()
+      .from(litAccessCodes)
+      .where(eq(litAccessCodes.id, accessCodeId))
+      .limit(1);
+
+    if (!record || record.status !== "active") {
+      req.session.destroy(() => {});
+      res.status(401).json({ error: "Access code revoked or expired" });
+      return;
+    }
+
+    if (record.expiresAt && record.expiresAt < new Date()) {
+      await db
+        .update(litAccessCodes)
+        .set({ status: "expired" })
+        .where(eq(litAccessCodes.id, record.id));
+      req.session.destroy(() => {});
+      res.status(401).json({ error: "Access code expired" });
+      return;
+    }
+
+    res.locals["litAccessCodeId"] = accessCodeId;
+    next();
+  } catch (err) {
+    req.log.error({ err }, "requireLitAuth DB check failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
 
 export default router;
