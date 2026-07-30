@@ -775,6 +775,119 @@ router.get(
   },
 );
 
+// ── Phase 14: Candidate analysis-passages (for auto-fire quotation check) ──
+
+/**
+ * GET /containers/:id/candidates/:candidateId/analysis-passages
+ *
+ * Returns up to 20 unique, valid verbatim passages (10–500 chars each) that
+ * the AI analysis pipeline extracted from this candidate's judgment. These
+ * are used to pre-populate the review UI's quotation-check textarea so the
+ * check fires automatically when analysis data is present.
+ */
+router.get(
+  "/containers/:id/candidates/:candidateId/analysis-passages",
+  requireResearchRole(
+    "owner",
+    "administrator",
+    "rights_reviewer",
+    "legal_reviewer",
+    "researcher",
+  ),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    const candidateId = Number(req.params.candidateId);
+    if (!Number.isInteger(id) || !Number.isInteger(candidateId)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+
+    try {
+      const { decision } = await checkContainerAccess(
+        id,
+        req.researchRole ?? null,
+        "view",
+        { actor: req.authEmail ?? undefined },
+      );
+      if (!decision.allowed) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+    } catch (err) {
+      if (err instanceof EntityNotFoundError) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      throw err;
+    }
+
+    const {
+      researchVerifiedJudgments: rvj,
+      researchAiAnalysisRuns: raar,
+      researchAiPropositions: rap,
+    } = await import("@workspace/db");
+
+    // Find the judgment linked to this candidate (one-to-one via candidateId).
+    const [judgment] = await db
+      .select({ id: rvj.id })
+      .from(rvj)
+      .where(eq(rvj.candidateId, candidateId))
+      .limit(1);
+
+    if (!judgment) {
+      res.json({ passages: [] });
+      return;
+    }
+
+    // Latest analysis run for this judgment (any status — reviewers need to
+    // see passages even for DRAFT runs).
+    const [run] = await db
+      .select({ id: raar.id })
+      .from(raar)
+      .where(eq(raar.judgmentId, judgment.id))
+      .orderBy(desc(raar.id))
+      .limit(1);
+
+    if (!run) {
+      res.json({ passages: [] });
+      return;
+    }
+
+    // Collect all validated passages across propositions.
+    const propRows = await db
+      .select({ validatedPassages: rap.validatedPassages })
+      .from(rap)
+      .where(eq(rap.runId, run.id));
+
+    const seen = new Set<string>();
+    const passages: string[] = [];
+
+    for (const row of propRows) {
+      const vp = row.validatedPassages as Array<{
+        text: string;
+        valid: boolean;
+      }> | null;
+      if (!Array.isArray(vp)) continue;
+      for (const p of vp) {
+        if (
+          p.valid &&
+          typeof p.text === "string" &&
+          p.text.length >= 10 &&
+          p.text.length <= 500 &&
+          !seen.has(p.text)
+        ) {
+          seen.add(p.text);
+          passages.push(p.text);
+          if (passages.length >= 20) break;
+        }
+      }
+      if (passages.length >= 20) break;
+    }
+
+    res.json({ passages });
+  },
+);
+
 // ── Phase 14: Quotation-integrity check ───────────────────────────────────
 
 const QuotationCheckBody = z.object({

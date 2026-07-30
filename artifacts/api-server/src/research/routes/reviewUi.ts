@@ -287,11 +287,13 @@ async function loadCandidate(id, btn) {
   panel.innerHTML = "Loading…";
 
   try {
-    const [checks, rels, actions] = await Promise.all([
+    const [checks, rels, actions, passagesData] = await Promise.all([
       j(BASE + "/candidates/" + id + "/coherence").catch(() => []),
       j(BASE + "/candidates/" + id + "/relationships").catch(() => []),
       j(BASE + "/candidates/" + id + "/review/actions").catch(() => []),
+      j(BASE + "/containers/" + CONTAINER_ID + "/candidates/" + id + "/analysis-passages").catch(() => ({ passages: [] })),
     ]);
+    const autoPassages = (passagesData?.passages ?? []).slice(0, 20);
 
     const checkRows = checks.length
       ? checks.map((c) =>
@@ -330,11 +332,16 @@ async function loadCandidate(id, btn) {
       <div id="cand-status"></div>
 
       <h2 style="margin-top:1rem">Quotation Integrity Check</h2>
-      <p style="font-size:.8rem;color:#78716c;margin:0 0 .5rem">
-        Paste one or more passages (10–500 chars each, one per line) from an
-        <b>independent source</b> (e.g. a published law report or court record).
-        The system will verify each passage appears verbatim in the OCR extraction.
-      </p>
+      \${autoPassages.length > 0
+        ? '<p style="font-size:.8rem;color:#78716c;margin:0 0 .5rem">' +
+          '<b>' + autoPassages.length + ' passage' + (autoPassages.length === 1 ? '' : 's') + ' pre-loaded from AI analysis.</b> ' +
+          'Results are shown below. You may also replace or add passages (10–500 chars each, one per line) from an ' +
+          '<b>independent source</b> (e.g. a published law report) and re-check.</p>'
+        : '<p style="font-size:.8rem;color:#78716c;margin:0 0 .5rem">' +
+          'Paste one or more passages (10–500 chars each, one per line) from an ' +
+          '<b>independent source</b> (e.g. a published law report or court record). ' +
+          'The system will verify each passage appears verbatim in the OCR extraction.</p>'
+      }
       <textarea id="quot-passages" rows="5" style="width:100%;font-size:.8rem;font-family:monospace;box-sizing:border-box"
         placeholder="Paste passages to verify here, one per line…"></textarea>
       <button class="secondary" style="margin-top:.4rem" onclick="runQuotCheck(\${id})">Check passages in OCR source</button>
@@ -346,6 +353,14 @@ async function loadCandidate(id, btn) {
       <h2 style="margin-top:1rem">Audit Trail</h2>
       <div>\${actionRows}</div>
     \`;
+
+    // Auto-fire the quotation check when the analysis pipeline has already
+    // validated passages for this candidate (>= 1 passage found).
+    if (autoPassages.length > 0) {
+      const ta = document.getElementById("quot-passages");
+      if (ta) ta.value = autoPassages.join("\n");
+      runQuotCheck(id);
+    }
   } catch (e) {
     panel.innerHTML = "Failed to load: " + esc(e.message);
   }
