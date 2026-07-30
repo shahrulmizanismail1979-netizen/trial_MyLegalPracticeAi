@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS research_source_containers (
   rights_status text NOT NULL DEFAULT 'UNREVIEWED',
   processing_state text NOT NULL DEFAULT 'UPLOADED',
   provenance jsonb NOT NULL,
+  uploaded_by text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

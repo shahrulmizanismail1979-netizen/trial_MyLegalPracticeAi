@@ -1,6 +1,37 @@
 import type { Request, Response, NextFunction } from "express";
 import { db, researchUsers, type ResearchRole } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { isStaffEmail } from "../middlewares/requireAdmin";
+
+/**
+ * Staff emails (from ADMIN_ALLOWED_EMAILS) that have no research_users row yet
+ * are auto-provisioned as "owner" on first access. This ensures admin accounts
+ * work on a fresh production DB without requiring manual SQL inserts.
+ */
+async function autoProvisionStaff(email: string): Promise<{ id: number; role: ResearchRole }> {
+  const [existing] = await db
+    .select({ id: researchUsers.id, role: researchUsers.role })
+    .from(researchUsers)
+    .where(eq(researchUsers.email, email));
+  if (existing) return existing as { id: number; role: ResearchRole };
+
+  const displayName = email.split("@")[0] ?? email;
+  const [inserted] = await db
+    .insert(researchUsers)
+    .values({ email, displayName, role: "owner", active: true })
+    .onConflictDoNothing()
+    .returning({ id: researchUsers.id, role: researchUsers.role });
+
+  // Race: another request beat us to the insert — re-read.
+  if (!inserted) {
+    const [row] = await db
+      .select({ id: researchUsers.id, role: researchUsers.role })
+      .from(researchUsers)
+      .where(eq(researchUsers.email, email));
+    return row as { id: number; role: ResearchRole };
+  }
+  return inserted as { id: number; role: ResearchRole };
+}
 
 // Research-role resolution (Phase 02). Runs AFTER the existing staff gate
 // (requireAuth + requireStaff), which already guarantees an authenticated
@@ -39,7 +70,14 @@ export async function resolveResearchRole(
     if (user && user.active) {
       req.researchRole = user.role;
       req.researchUserId = user.id;
-    } else {
+    } else if (!user && isStaffEmail(email)) {
+      // Admin email with no research_users row yet — auto-provision as owner
+      // so new installs (e.g. fresh production DB) work without manual SQL.
+      const provisioned = await autoProvisionStaff(email);
+      req.researchRole = provisioned.role as ResearchRole;
+      req.researchUserId = provisioned.id;
+    } else if (!user) {
+      // Row exists but active = false — explicitly deactivated, treat as guest.
       req.researchRole = "guest";
       req.researchUserId = null;
     }
