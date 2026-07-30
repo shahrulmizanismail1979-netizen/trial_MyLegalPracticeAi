@@ -1,11 +1,11 @@
 {
   "pilotBatch": "pilot-v1",
-  "generatedAt": "2026-07-29T10:06:27.291Z",
+  "generatedAt": "2026-07-29T15:57:44.383Z",
   "description": "Phase 14 controlled-pilot corpus — five source files representing specific edge-case variants. No commercial materials. All content is purely synthetic.",
   "files": [
     {
       "filename": "pilot-a-dense-30cases.pdf",
-      "sha256": "d54037a100bdd94b0543fd60ade94851cb4490024bf35d28608f1729219eadb7",
+      "sha256": "bc4c8734ba0dfacdb8b33f775ce78d79f325bffc834c6df603fcbb10d9860d10",
       "sizeBytes": 39332,
       "variant": "dense-multi-case",
       "expectedCases": 30,
@@ -14,7 +14,7 @@
     },
     {
       "filename": "pilot-b-4cases.pdf",
-      "sha256": "8891d219bdedd5f80ae56885cb651c69447bce015966bf504cb5c46c8b9b39c9",
+      "sha256": "5c62c108891d16500719146ebcf69dd391dac4a65b4db167aee4f6eec4b8476f",
       "sizeBytes": 6060,
       "variant": "multi-case",
       "expectedCases": 4,
@@ -23,7 +23,7 @@
     },
     {
       "filename": "pilot-c-scanned.pdf",
-      "sha256": "3eeadb9ed22aeccfff0032cf4f8d47e9b1ce89a638c9f8a291e7308e788d5f12",
+      "sha256": "2ed1df08e6b947aec5ef978769fadff755ebb84114190fb3e4d845ca4a62012d",
       "sizeBytes": 1377,
       "variant": "scanned",
       "expectedCases": 1,
@@ -32,7 +32,7 @@
     },
     {
       "filename": "pilot-d-duplicate.pdf",
-      "sha256": "ed76881d7e1d403cf47b057ea2f3b9daefa40b96d935ae82c71d48eb2b5aafec",
+      "sha256": "7a412b582d25c10e7a262dce7177948499705dff527e4068b7606b5f0804d7a7",
       "sizeBytes": 2252,
       "variant": "duplicate",
       "expectedCases": 1,
@@ -41,7 +41,7 @@
     },
     {
       "filename": "pilot-e1-split-part1.pdf",
-      "sha256": "26422f6652d63816469a2058ee2d80406e4fec16409f715e4ab14d4017a22ddd",
+      "sha256": "5886ccce6df331041cf1084a83bddfbf13c58cd8a6f64429fb83995bdbe33fcf",
       "sizeBytes": 2059,
       "variant": "split-part1",
       "expectedCases": "unknown",
@@ -50,7 +50,7 @@
     },
     {
       "filename": "pilot-e2-split-part2.pdf",
-      "sha256": "50189d7d021e189ba3e740e5e30d5b8a1d8633563865336741ed236d17bccce2",
+      "sha256": "c2578e32335d6d7efb2d2b53cc06ac71d2709bcb76352e6650584517fbd217f9",
       "sizeBytes": 2010,
       "variant": "split-part2",
       "expectedCases": "unknown",
