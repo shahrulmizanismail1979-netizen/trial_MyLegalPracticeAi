@@ -7,10 +7,12 @@ const RUN_ID = randomUUID();
 const BATCH = `test-batch-${RUN_ID}`;
 
 const { getAdapters, setAdapters } = await import("./adapters");
-const { enqueue, claimNext, complete, fail, runNextJob } =
+const { enqueue, claimNext, complete, fail, runNextJob, registerProcessor } =
   await import("./processing");
 const { registerContainer, getContainer, routeToReview } =
   await import("./data/containers");
+const { recordRightsDecision } = await import("./data/rights");
+const { transitionContainer } = await import("./domain/containerStateMachine");
 const {
   db,
   researchJobs,
@@ -18,6 +20,7 @@ const {
   researchTransformations,
   researchReviewItems,
   researchAuditEvents,
+  researchRightsRecords,
 } = await import("@workspace/db");
 const { eq, like, inArray, and } = await import("drizzle-orm");
 
@@ -53,6 +56,9 @@ afterAll(async () => {
     await db
       .delete(researchReviewItems)
       .where(inArray(researchReviewItems.containerId, ids));
+    await db
+      .delete(researchRightsRecords)
+      .where(inArray(researchRightsRecords.containerId, ids));
     await db
       .delete(researchAuditEvents)
       .where(
@@ -237,5 +243,107 @@ describe("job queue", () => {
       .where(eq(researchJobs.id, job!.id));
     expect(row!.state).toBe("SUCCEEDED");
     expect(row!.outputChecksum).toBe("0".repeat(64));
+  });
+
+  it("runNextJob() without a kind filter does not claim jobs for unregistered processor kinds", async () => {
+    // Enqueue a job whose kind has no registered processor in this worker.
+    // runNextJob() with no kind arg must restrict claims to registered kinds,
+    // so this job must remain QUEUED and not be stolen.
+    const unregisteredKind = `editorial.unregistered.${RUN_ID}`;
+    const key = `no-steal-${RUN_ID}`;
+    const job = await enqueue(unregisteredKind, key, {});
+    expect(job).not.toBeNull();
+
+    // Run the job runner once with no kind filter.  It should return null (or
+    // a job of a *registered* kind) — never the unregistered job.
+    const claimed = await runNextJob();
+    if (claimed) {
+      // If something else was in the queue, verify it was NOT our unregistered job.
+      expect(claimed.kind).not.toBe(unregisteredKind);
+    }
+
+    // The unregistered job must still be QUEUED — not claimed, not failed.
+    const [row] = await db
+      .select()
+      .from(researchJobs)
+      .where(eq(researchJobs.idempotencyKey, key));
+    expect(row!.state).toBe("QUEUED");
+    expect(row!.attempts).toBe(0);
+  });
+
+  it("runNextJob() fails a job for an unregistered processor kind with NO_PROCESSOR — no retry loop", async () => {
+    // Set up a rights-approved container so the rights gate passes and execution
+    // reaches the processor lookup, which then throws NO_PROCESSOR (retryable:false).
+    // This proves the unregistered-kind path ends FAILED_PERMANENT in a single
+    // attempt even when maxAttempts > 1.
+    // Use a unique salt so this container never collides with other fixtures in the run.
+    const uniqueBytes = Buffer.from(`noproc-container-${RUN_ID}`);
+    const container = await registerContainer({
+      originalName: "noproc-test.txt",
+      sourceBatch: BATCH,
+      contentSha256: createHash("sha256").update(uniqueBytes).digest("hex"),
+      sizeBytes: uniqueBytes.length,
+      mimeType: "text/plain",
+      provenance: { enteredVia: "test-noproc", runId: RUN_ID },
+    });
+    await recordRightsDecision(
+      container.id,
+      {
+        status: "PRIVATE_PROCESSING_APPROVED",
+        reason: "task-86 test approval",
+        source: "Test source",
+        dateObtained: new Date("2026-01-01T00:00:00Z"),
+        declaredSourceType: "official_court",
+        licenceReference: null,
+        approvedUsers: ["reviewer@test"],
+        approvedPurposes: ["research"],
+        storagePermitted: true,
+        analysisPermitted: true,
+        externalProcessingPermitted: false,
+        studentAccessPermitted: false,
+        printingPermitted: true,
+        exportPermitted: false,
+        retentionPeriod: null,
+        expiryDate: null,
+        reviewer: "reviewer@test",
+        reviewDate: new Date("2026-01-02T00:00:00Z"),
+        notes: null,
+      },
+      { actor: `tester-${RUN_ID}` },
+    );
+    for (const to of [
+      "RIGHTS_REVIEW_REQUIRED",
+      "RIGHTS_APPROVED",
+    ] as const) {
+      await transitionContainer(container.id, to, {
+        actor: `tester-${RUN_ID}`,
+        detail: { cause: "task-86-test" },
+      });
+    }
+
+    const unregisteredKind = `editorial.noproc.${RUN_ID}`;
+    const key = `noproc-${RUN_ID}`;
+    // maxAttempts:3 to prove we don't retry even when retries are allowed.
+    const job = await enqueue(
+      unregisteredKind,
+      key,
+      { containerId: container.id },
+      { maxAttempts: 3 },
+    );
+    expect(job).not.toBeNull();
+
+    // runNextJob with explicit kind bypasses the registry filter, passes the rights
+    // check (container is approved), and then fails with NO_PROCESSOR (retryable:false).
+    await runNextJob(unregisteredKind);
+
+    const [row] = await db
+      .select()
+      .from(researchJobs)
+      .where(eq(researchJobs.idempotencyKey, key));
+    // Must be FAILED_PERMANENT — not re-queued despite maxAttempts:3.
+    expect(row!.state).toBe("FAILED_PERMANENT");
+    expect(row!.failureReason?.code).toBe("NO_PROCESSOR");
+    // Exactly one attempt: the failure is non-retryable so no re-queue loop.
+    expect(row!.attempts).toBe(1);
   });
 });
