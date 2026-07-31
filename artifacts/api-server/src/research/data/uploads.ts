@@ -3,6 +3,7 @@ import {
   researchUploadBatches,
   researchUploadBatchItems,
   researchJobs,
+  researchSourceContainers,
   type ResearchUploadBatch,
   type ResearchUploadBatchItem,
   type BatchItemState,
@@ -157,12 +158,15 @@ export interface BatchItemWithTiming extends ResearchUploadBatchItem {
   jobState: string | null;
   jobStartedAt: Date | null;
   jobFinishedAt: Date | null;
+  /** Processing state of the linked research container (null if not yet created). */
+  containerState: string | null;
 }
 
 /**
- * Like listBatchItems but joins research_jobs to surface per-item job timing
- * (jobState, jobStartedAt, jobFinishedAt). Used by the batch-detail API so
- * the frontend can show per-file ETA labels.
+ * Like listBatchItems but joins research_jobs AND research_source_containers to
+ * surface per-item job timing and container pipeline state. Used by the
+ * batch-detail API so the frontend can show per-file ETA labels and pipeline
+ * progress after rights approval.
  */
 export async function listBatchItemsWithTiming(
   batchId: number,
@@ -174,9 +178,14 @@ export async function listBatchItemsWithTiming(
       jobState: researchJobs.state,
       jobStartedAt: researchJobs.startedAt,
       jobFinishedAt: researchJobs.finishedAt,
+      containerState: researchSourceContainers.processingState,
     })
     .from(researchUploadBatchItems)
     .leftJoin(researchJobs, eq(researchUploadBatchItems.jobId, researchJobs.id))
+    .leftJoin(
+      researchSourceContainers,
+      eq(researchUploadBatchItems.containerId, researchSourceContainers.id),
+    )
     .where(eq(researchUploadBatchItems.batchId, batchId))
     .orderBy(researchUploadBatchItems.id);
 
@@ -185,6 +194,7 @@ export async function listBatchItemsWithTiming(
     jobState: r.jobState ?? null,
     jobStartedAt: r.jobStartedAt ?? null,
     jobFinishedAt: r.jobFinishedAt ?? null,
+    containerState: r.containerState ?? null,
   }));
 }
 

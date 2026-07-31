@@ -62,6 +62,8 @@ interface BatchItem {
   jobState?: string | null;
   jobStartedAt?: string | null;
   jobFinishedAt?: string | null;
+  /** Processing state of the linked research container (null until ingest completes) */
+  containerState?: string | null;
 }
 
 interface Progress {
@@ -280,10 +282,17 @@ function BatchDetailDialog({
     refetchInterval: (query) => {
       const d = query.state.data;
       if (!d) return false;
+      // Poll while ingest jobs are active OR while containers are moving
+      // through the research pipeline (anything that isn't terminal).
+      const TERMINAL_CONTAINER_STATES = new Set([
+        "SEARCHABLE", "DELETED", "DUPLICATE", "REJECTED",
+      ]);
       const active = d.items.some(
-        (i) => i.state === "PENDING" || i.state === "QUEUED" || i.state === "PROCESSING",
+        (i) =>
+          i.state === "PENDING" || i.state === "QUEUED" || i.state === "PROCESSING" ||
+          (i.containerState != null && !TERMINAL_CONTAINER_STATES.has(i.containerState)),
       );
-      return active ? 3000 : false;
+      return active ? 4000 : false;
     },
   });
 
@@ -362,39 +371,78 @@ function BatchDetailDialog({
             <ProgressBar progress={data.progress} />
 
             {(() => {
-              const ingestedCount = data.items.filter(
-                (i) => i.state === "INGESTED",
-              ).length;
-              return ingestedCount > 0 ? (
-                <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2.5">
-                  <div className="text-sm">
-                    <span className="font-medium text-amber-300">
-                      {ingestedCount} document{ingestedCount !== 1 ? "s" : ""} awaiting rights approval
+              const awaitingRights = data.items.filter(
+                (i) => i.containerState === "RIGHTS_REVIEW_REQUIRED",
+              );
+              const PIPELINE_ACTIVE_STATES = new Set([
+                "RIGHTS_APPROVED", "INVENTORY_PENDING", "INVENTORIED",
+                "EXTRACTION_PENDING", "OCR_REVIEW_REQUIRED", "TEXT_EXTRACTED",
+                "SEGMENTATION_PENDING", "SEGMENTATION_PROPOSED",
+                "SEGMENTATION_REVIEW_REQUIRED", "EDITORIAL_REVIEW_PENDING",
+                "EDITORIAL_REVIEW_REQUIRED", "JUDGMENT_VERIFICATION_PENDING",
+              ]);
+              const pipelineActive = data.items.filter(
+                (i) => i.containerState != null && PIPELINE_ACTIVE_STATES.has(i.containerState),
+              );
+              const pipelineDone = data.items.filter(
+                (i) => i.containerState === "SEARCHABLE",
+              );
+
+              if (awaitingRights.length > 0) {
+                return (
+                  <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2.5">
+                    <div className="text-sm">
+                      <span className="font-medium text-amber-300">
+                        {awaitingRights.length} document{awaitingRights.length !== 1 ? "s" : ""} awaiting rights approval
+                      </span>
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        — approve to start extraction & indexing pipeline
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => approveRightsMut.mutate()}
+                      disabled={approveRightsMut.isPending}
+                      className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white border-0"
+                    >
+                      {approveRightsMut.isPending ? (
+                        <>
+                          <Loader2 size={13} className="mr-1.5 animate-spin" />
+                          Approving…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={13} className="mr-1.5" />
+                          Approve Rights & Start Pipeline
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              }
+              if (pipelineActive.length > 0) {
+                return (
+                  <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-md px-3 py-2.5 text-sm">
+                    <Loader2 size={14} className="animate-spin text-blue-400 shrink-0" />
+                    <span className="text-blue-300 font-medium">
+                      Pipeline running —
                     </span>
-                    <span className="text-muted-foreground ml-2 text-xs">
-                      — approve to start extraction & indexing pipeline
+                    <span className="text-muted-foreground">
+                      {pipelineActive.length} document{pipelineActive.length !== 1 ? "s" : ""} processing
+                      {pipelineDone.length > 0 && `, ${pipelineDone.length} indexed`}
                     </span>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => approveRightsMut.mutate()}
-                    disabled={approveRightsMut.isPending}
-                    className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white border-0"
-                  >
-                    {approveRightsMut.isPending ? (
-                      <>
-                        <Loader2 size={13} className="mr-1.5 animate-spin" />
-                        Approving…
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle size={13} className="mr-1.5" />
-                        Approve Rights & Start Pipeline
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : null;
+                );
+              }
+              if (pipelineDone.length > 0 && pipelineDone.length === data.items.filter(i => i.containerState != null).length) {
+                return (
+                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-md px-3 py-2.5 text-sm">
+                    <CheckCircle size={14} className="text-green-400 shrink-0" />
+                    <span className="text-green-300 font-medium">All documents indexed and searchable</span>
+                  </div>
+                );
+              }
+              return null;
             })()}
 
             {data.state === "ACTIVE" && (
@@ -435,7 +483,7 @@ function BatchDetailDialog({
                           {item.originalPath.split("/").pop()}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <BatchItemStateIcon state={item.state} />
                             <Badge
                               variant="outline"
@@ -443,6 +491,22 @@ function BatchDetailDialog({
                             >
                               {item.state}
                             </Badge>
+                            {item.containerState && item.state === "INGESTED" && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  item.containerState === "SEARCHABLE"
+                                    ? "bg-green-500/10 text-green-400 border-green-500/30"
+                                    : item.containerState === "RIGHTS_REVIEW_REQUIRED"
+                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                      : item.containerState.includes("PENDING") || item.containerState.includes("REVIEW")
+                                        ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                                        : "bg-secondary text-muted-foreground border-border"
+                                }`}
+                              >
+                                {item.containerState.replace(/_/g, " ")}
+                              </Badge>
+                            )}
                           </div>
                           {item.errorReport && (
                             <p className="text-xs text-red-400 mt-1 max-w-xs truncate" title={item.errorReport}>
