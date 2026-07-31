@@ -2,8 +2,8 @@
   "memoryAtScale": [
     {
       "containerCount": 0,
-      "rssBytes": 155369472,
-      "heapUsedBytes": 35676576,
+      "rssBytes": 163561472,
+      "heapUsedBytes": 30449112,
       "containerRows": 0,
       "jobRows": 0,
       "transformRows": 0,
@@ -11,8 +11,8 @@
     },
     {
       "containerCount": 53,
-      "rssBytes": 207441920,
-      "heapUsedBytes": 65502464,
+      "rssBytes": 205156352,
+      "heapUsedBytes": 59248864,
       "containerRows": 50,
       "jobRows": 53,
       "transformRows": 53,
@@ -20,17 +20,17 @@
     },
     {
       "containerCount": 102,
-      "rssBytes": 231317504,
-      "heapUsedBytes": 52629328,
-      "containerRows": 97,
+      "rssBytes": 225177600,
+      "heapUsedBytes": 43820712,
+      "containerRows": 96,
       "jobRows": 102,
-      "transformRows": 102,
+      "transformRows": 101,
       "storageBytes": 63826
     },
     {
       "containerCount": 152,
-      "rssBytes": 233807872,
-      "heapUsedBytes": 82609816,
+      "rssBytes": 241786880,
+      "heapUsedBytes": 74190344,
       "containerRows": 145,
       "jobRows": 152,
       "transformRows": 152,
@@ -38,8 +38,8 @@
     },
     {
       "containerCount": 202,
-      "rssBytes": 238714880,
-      "heapUsedBytes": 60089592,
+      "rssBytes": 243183616,
+      "heapUsedBytes": 66865528,
       "containerRows": 192,
       "jobRows": 202,
       "transformRows": 201,
@@ -57,28 +57,28 @@
     "queuedBefore": 202,
     "drained": 202,
     "orphanedRunning": 1,
-    "drainMs": 4934
+    "drainMs": 5312
   },
   "throughput": {
     "uploadMs": {
-      "min": 866,
-      "avg": 965,
-      "p95": 1053,
-      "max": 1053,
+      "min": 843,
+      "avg": 1170,
+      "p95": 1875,
+      "max": 1875,
       "count": 4
     },
     "ingestJobMs": {
-      "min": 924,
-      "avg": 1234,
-      "p95": 1443,
-      "max": 1443,
+      "min": 1181,
+      "avg": 1328,
+      "p95": 1499,
+      "max": 1499,
       "count": 4
     },
     "segmentJobMs": {
       "min": 92,
-      "avg": 127,
-      "p95": 296,
-      "max": 296,
+      "avg": 154,
+      "p95": 363,
+      "max": 363,
       "count": 20
     }
   },
@@ -87,9 +87,9 @@
     "totalCandidates": 20,
     "jobMs": {
       "min": 92,
-      "avg": 127,
-      "p95": 296,
-      "max": 296,
+      "avg": 154,
+      "p95": 363,
+      "max": 363,
       "count": 20
     }
   },
@@ -105,12 +105,12 @@
   "concurrentUsers": {
     "batch5x20": {
       "totalUploads": 100,
-      "durationMs": 3294,
+      "durationMs": 2514,
       "successRate": 1
     },
     "batch10x20": {
       "totalUploads": 200,
-      "durationMs": 5390,
+      "durationMs": 4826,
       "successRate": 1
     }
   },
@@ -120,16 +120,16 @@
       "min": 0,
       "avg": 1,
       "p95": 1,
-      "max": 17,
+      "max": 22,
       "count": 50
     }
   },
   "backupSnapshot": {
-    "containerRows": 13393,
-    "jobRows": 13192,
-    "transformRows": 2686,
-    "rightsRows": 8952,
-    "auditEventRows": 464062,
+    "containerRows": 14008,
+    "jobRows": 13807,
+    "transformRows": 3361,
+    "rightsRows": 9037,
+    "auditEventRows": 469652,
     "storagePuts": 510,
     "storageBytes": 281238
   },
