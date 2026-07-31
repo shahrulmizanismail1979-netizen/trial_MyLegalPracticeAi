@@ -19,7 +19,9 @@ import {
   restartBatch,
   registerIngestionProcessors,
 } from "../ingestion/service";
-import { registerInventoryProcessor } from "../ingestion/inventory";
+import { registerInventoryProcessor, startInventory } from "../ingestion/inventory";
+import { recordRightsDecision } from "../data/rights";
+import { getContainer } from "../data/containers";
 import { LIMITS } from "../ingestion/validation";
 import { ProcessorFailure } from "../processing/handlers";
 import { StateTransitionError, EntityNotFoundError } from "../domain/types";
@@ -186,6 +188,86 @@ router.post(
       req.authEmail ?? `role:${req.researchRole}`,
     );
     res.json({ cancelled });
+  },
+);
+
+/**
+ * Bulk rights approval for a batch. Finds all INGESTED batch items whose
+ * container is still at RIGHTS_REVIEW_REQUIRED, records an OFFICIAL_COURT_SOURCE
+ * rights decision for each, then kicks off the inventory job so the pipeline
+ * continues automatically (RIGHTS_REVIEW_REQUIRED → RIGHTS_APPROVED →
+ * INVENTORY_PENDING → full pipeline).
+ *
+ * Idempotent: already-approved containers are skipped.
+ */
+router.post(
+  "/:id/approve-rights",
+  requireResearchRole(...OPERATIONAL),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: "Invalid batch id" });
+      return;
+    }
+    const batch = await getBatch(id);
+    if (!batch) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const actor = req.authEmail ?? `role:${req.researchRole}`;
+    const items = await listBatchItems(id);
+    const now = new Date();
+
+    let approved = 0;
+    let skipped = 0;
+    const errors: { containerId: number; error: string }[] = [];
+
+    for (const item of items) {
+      if (!item.containerId) continue;
+      const container = await getContainer(item.containerId);
+      if (!container) continue;
+      if (container.processingState !== "RIGHTS_REVIEW_REQUIRED") {
+        skipped += 1;
+        continue;
+      }
+      try {
+        await recordRightsDecision(
+          item.containerId,
+          {
+            status: "OFFICIAL_COURT_SOURCE",
+            reason:
+              "Official court judgment — approved for research use (bulk batch approval)",
+            source: batch.declaredSource,
+            dateObtained: now,
+            declaredSourceType: "official_court_judgment",
+            licenceReference: null,
+            approvedUsers: [],
+            approvedPurposes: ["research", "analysis", "ai_processing"],
+            storagePermitted: true,
+            analysisPermitted: true,
+            externalProcessingPermitted: true,
+            studentAccessPermitted: false,
+            printingPermitted: false,
+            exportPermitted: false,
+            retentionPeriod: null,
+            expiryDate: null,
+            reviewer: actor,
+            reviewDate: now,
+            notes: `Bulk-approved via admin batch #${id}`,
+          },
+          { actor },
+        );
+        await startInventory(item.containerId, actor);
+        approved += 1;
+      } catch (err) {
+        errors.push({
+          containerId: item.containerId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
+    res.json({ approved, skipped, errors });
   },
 );
 

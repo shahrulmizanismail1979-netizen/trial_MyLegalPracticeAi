@@ -174,6 +174,14 @@ async function cancelBatch(batchId: number): Promise<void> {
   });
 }
 
+async function approveRights(
+  batchId: number,
+): Promise<{ approved: number; skipped: number }> {
+  return apiFetch(`/api/research/uploads/${batchId}/approve-rights`, {
+    method: "POST",
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Style helpers
 // ---------------------------------------------------------------------------
@@ -300,6 +308,22 @@ function BatchDetailDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const approveRightsMut = useMutation({
+    mutationFn: () => approveRights(batchId!),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["research-batch", batchId] });
+      queryClient.invalidateQueries({ queryKey: ["research-batches"] });
+      if (result.approved > 0) {
+        toast.success(
+          `Rights approved for ${result.approved} document${result.approved !== 1 ? "s" : ""} — pipeline started`,
+        );
+      } else {
+        toast.info("All documents already past rights review");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -336,6 +360,42 @@ function BatchDetailDialog({
             </div>
 
             <ProgressBar progress={data.progress} />
+
+            {(() => {
+              const ingestedCount = data.items.filter(
+                (i) => i.state === "INGESTED",
+              ).length;
+              return ingestedCount > 0 ? (
+                <div className="flex items-center justify-between gap-3 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2.5">
+                  <div className="text-sm">
+                    <span className="font-medium text-amber-300">
+                      {ingestedCount} document{ingestedCount !== 1 ? "s" : ""} awaiting rights approval
+                    </span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      — approve to start extraction & indexing pipeline
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => approveRightsMut.mutate()}
+                    disabled={approveRightsMut.isPending}
+                    className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white border-0"
+                  >
+                    {approveRightsMut.isPending ? (
+                      <>
+                        <Loader2 size={13} className="mr-1.5 animate-spin" />
+                        Approving…
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={13} className="mr-1.5" />
+                        Approve Rights & Start Pipeline
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : null;
+            })()}
 
             {data.state === "ACTIVE" && (
               <div className="flex justify-end">
