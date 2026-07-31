@@ -31,6 +31,7 @@ import {
   AlertCircle,
   Loader2,
   FolderOpen,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,6 +43,9 @@ type BatchItemState =
   | "PENDING"
   | "QUEUED"
   | "PROCESSING"
+  | "INGESTED"
+  | "DUPLICATE"
+  | "REJECTED"
   | "DONE"
   | "FAILED"
   | "DEAD_LETTER"
@@ -54,6 +58,10 @@ interface BatchItem {
   originalPath: string;
   state: BatchItemState;
   errorReport?: string | null;
+  // Job timing (present when a job row exists for this item)
+  jobState?: string | null;
+  jobStartedAt?: string | null;
+  jobFinishedAt?: string | null;
 }
 
 interface Progress {
@@ -76,6 +84,48 @@ interface Batch {
 interface BatchDetail extends Batch {
   progress: Progress;
   items: BatchItem[];
+  /** Average ingest duration (seconds) across already-finished items, or null */
+  avgSecondsPerItem?: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// ETA helpers
+// ---------------------------------------------------------------------------
+
+const FALLBACK_SECS_PER_ITEM = 45; // used when no finished items yet
+
+function fmtEta(seconds: number): string {
+  if (seconds < 90) return `~${Math.round(seconds)}s`;
+  return `~${Math.round(seconds / 60)} min`;
+}
+
+/** Returns a short ETA label for items that are still waiting/processing. */
+function itemEtaLabel(
+  item: BatchItem,
+  queueIndex: number, // position among still-pending items (0-based)
+  avgSecs: number,
+): string | null {
+  const terminal = new Set<BatchItemState>([
+    "INGESTED",
+    "DUPLICATE",
+    "REJECTED",
+    "DONE",
+    "DEAD_LETTER",
+    "FAILED",
+    "CANCELLED",
+  ]);
+  if (terminal.has(item.state)) return null;
+
+  if (
+    item.jobState === "RUNNING" ||
+    item.state === "PROCESSING"
+  ) {
+    return "processing…";
+  }
+
+  // Item is queued — estimate based on queue position
+  const waitSecs = avgSecs * (queueIndex + 1);
+  return `queued · est. ${fmtEta(waitSecs)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +182,9 @@ const BATCH_ITEM_STATE_STYLES: Record<BatchItemState, string> = {
   PENDING: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
   QUEUED: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   PROCESSING: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  INGESTED: "bg-green-500/10 text-green-400 border-green-500/20",
+  DUPLICATE: "bg-secondary text-muted-foreground border-border",
+  REJECTED: "bg-red-500/10 text-red-400 border-red-500/20",
   DONE: "bg-green-500/10 text-green-400 border-green-500/20",
   FAILED: "bg-red-500/10 text-red-400 border-red-500/20",
   DEAD_LETTER: "bg-red-500/10 text-red-400 border-red-500/20",
@@ -148,14 +201,17 @@ const BATCH_STATE_STYLES: Record<BatchState, string> = {
 function BatchItemStateIcon({ state }: { state: BatchItemState }) {
   switch (state) {
     case "DONE":
+    case "INGESTED":
       return <CheckCircle size={14} className="text-green-400" />;
     case "PROCESSING":
     case "QUEUED":
       return <Loader2 size={14} className="text-blue-400 animate-spin" />;
     case "DEAD_LETTER":
     case "FAILED":
+    case "REJECTED":
       return <AlertCircle size={14} className="text-red-400" />;
     case "CANCELLED":
+    case "DUPLICATE":
       return <XCircle size={14} className="text-muted-foreground" />;
     default:
       return <Clock size={14} className="text-yellow-400" />;
@@ -301,52 +357,204 @@ function BatchDetailDialog({
                 <TableRow>
                   <TableHead>File</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
+                  <TableHead className="w-[140px] text-right pr-4">ETA</TableHead>
+                  <TableHead className="w-[48px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono text-xs max-w-[350px] truncate">
-                      {item.originalPath.split("/").pop()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <BatchItemStateIcon state={item.state} />
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${BATCH_ITEM_STATE_STYLES[item.state]}`}
-                        >
-                          {item.state}
-                        </Badge>
-                      </div>
-                      {item.errorReport && (
-                        <p className="text-xs text-red-400 mt-1 max-w-xs truncate" title={item.errorReport}>
-                          {item.errorReport}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(item.state === "DEAD_LETTER" || item.state === "FAILED") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => retryMut.mutate({ itemId: item.id })}
-                          disabled={retryMut.isPending}
-                          title="Retry"
-                        >
-                          <RotateCcw size={14} />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(() => {
+                  const avg = data.avgSecondsPerItem ?? FALLBACK_SECS_PER_ITEM;
+                  let queueIdx = 0;
+                  return data.items.map((item) => {
+                    const isPending = item.state === "PENDING" || item.state === "QUEUED";
+                    const eta = itemEtaLabel(item, queueIdx, avg);
+                    if (isPending) queueIdx += 1;
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-xs max-w-[300px] truncate">
+                          {item.originalPath.split("/").pop()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <BatchItemStateIcon state={item.state} />
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${BATCH_ITEM_STATE_STYLES[item.state] ?? "bg-secondary text-muted-foreground border-border"}`}
+                            >
+                              {item.state}
+                            </Badge>
+                          </div>
+                          {item.errorReport && (
+                            <p className="text-xs text-red-400 mt-1 max-w-xs truncate" title={item.errorReport}>
+                              {item.errorReport}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right pr-4">
+                          {eta && (
+                            <span className="text-xs text-muted-foreground">
+                              {eta}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {(item.state === "DEAD_LETTER" || item.state === "FAILED") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => retryMut.mutate({ itemId: item.id })}
+                              disabled={retryMut.isPending}
+                              title="Retry"
+                            >
+                              <RotateCcw size={14} />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+                })()}
               </TableBody>
             </Table>
           </div>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline Guide
+// ---------------------------------------------------------------------------
+
+const PIPELINE_STAGES = [
+  {
+    step: "1",
+    name: "Upload",
+    desc: "PDF files are uploaded in a batch and staged in object storage.",
+  },
+  {
+    step: "2",
+    name: "Ingest",
+    desc: "Each file is validated (PDF, size, duplicate check) and queued for extraction.",
+  },
+  {
+    step: "3",
+    name: "Validation",
+    desc: "Structural integrity check — ensures the document is parseable and non-empty.",
+  },
+  {
+    step: "4",
+    name: "Metadata Extraction",
+    desc: "AI extracts case name, citation, court, date, parties, and legal domain.",
+  },
+  {
+    step: "5",
+    name: "Segmentation",
+    desc: "Judgment text is split into logical sections (facts, issues, reasoning, holding).",
+  },
+  {
+    step: "6",
+    name: "Rights Review",
+    desc: "An admin confirms reproduction rights are cleared before the document goes live.",
+  },
+  {
+    step: "7",
+    name: "Editorial",
+    desc: "Optional quality pass — editorial annotations, flags, or enrichment are applied.",
+  },
+  {
+    step: "8",
+    name: "Search Index",
+    desc: "Approved text and metadata are written to the vector and full-text search indexes.",
+  },
+];
+
+const POWERED_PORTALS = [
+  { name: "MyLitAI", slug: "mylitai" },
+  { name: "MyLitAI IRAC", slug: "mylitai-irac" },
+  { name: "MySyalitAI", slug: "mysyariahai" },
+  { name: "MyCorpLegalAI", slug: "mycorplegalai" },
+  { name: "MyCrimAI", slug: "mycrimai" },
+  { name: "MyAccidentAI", slug: "myaccidentai" },
+  { name: "MyCCBLitAI", slug: "myccblitai" },
+  { name: "MyConveyLitAI", slug: "myconveylitai" },
+];
+
+function PipelineGuide() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="bg-card border border-border rounded-md overflow-hidden">
+      {/* Header — always visible */}
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-secondary/40 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2">
+          <BookOpen size={15} className="text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">
+            How the research pipeline works
+          </span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            — from uploaded PDF to searchable judgment
+          </span>
+        </div>
+        {open ? (
+          <ChevronDown size={15} className="text-muted-foreground shrink-0" />
+        ) : (
+          <ChevronRight size={15} className="text-muted-foreground shrink-0" />
+        )}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-5 space-y-5 border-t border-border pt-4">
+          {/* Stage list */}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+              Pipeline stages
+            </p>
+            <ol className="space-y-2">
+              {PIPELINE_STAGES.map((s) => (
+                <li key={s.step} className="flex gap-3">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    {s.step}
+                  </span>
+                  <div>
+                    <span className="text-sm font-medium text-foreground">
+                      {s.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {s.desc}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Portals */}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+              Portals powered by this corpus
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {POWERED_PORTALS.map((p) => (
+                <span
+                  key={p.slug}
+                  className="inline-flex items-center gap-1.5 bg-secondary border border-border rounded-full px-3 py-1 text-xs text-foreground"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                  {p.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -568,26 +776,27 @@ export default function DocumentsPage() {
                   label: "Total batches",
                   value: batches.length,
                   icon: FolderOpen,
+                  color: undefined as string | undefined,
                 },
                 {
                   label: "Completed",
                   value: batches.filter((b) => b.state === "COMPLETED").length,
                   icon: CheckCircle,
-                  color: "text-green-400",
+                  color: "text-green-400" as string | undefined,
                 },
                 {
                   label: "Active",
                   value: batches.filter((b) => b.state === "ACTIVE").length,
                   icon: Loader2,
-                  color: "text-blue-400",
+                  color: "text-blue-400" as string | undefined,
                 },
                 {
                   label: "Partial / failed",
                   value: batches.filter((b) => b.state === "PARTIAL").length,
                   icon: AlertCircle,
-                  color: "text-yellow-400",
+                  color: "text-yellow-400" as string | undefined,
                 },
-              ] as const
+              ]
             ).map(({ label, value, icon: Icon, color }) => (
               <div
                 key={label}
@@ -604,6 +813,9 @@ export default function DocumentsPage() {
             ))}
           </div>
         )}
+
+        {/* Pipeline guide */}
+        <PipelineGuide />
 
         {/* Batch list */}
         <div className="bg-card border border-border rounded-md overflow-hidden">

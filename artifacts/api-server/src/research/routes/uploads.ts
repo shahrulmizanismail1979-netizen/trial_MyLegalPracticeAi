@@ -7,6 +7,8 @@ import {
   getBatchItem,
   listBatches,
   listBatchItems,
+  listBatchItemsWithTiming,
+  computeAvgSecondsPerItem,
   computeProgress,
   syncDeadLetters,
 } from "../data/uploads";
@@ -112,8 +114,22 @@ router.get("/:id", requireResearchRole(...OPERATIONAL), async (req, res) => {
     return;
   }
   await syncDeadLetters(id);
-  const items = await listBatchItems(id);
-  res.json({ batch, progress: computeProgress(items), items });
+  const items = await listBatchItemsWithTiming(id);
+  const avgSecondsPerItem = computeAvgSecondsPerItem(items);
+  res.json({
+    batch,
+    progress: computeProgress(items),
+    avgSecondsPerItem,
+    items: items.map((i) => ({
+      id: i.id,
+      originalPath: i.originalPath,
+      state: i.state,
+      errorReport: i.errorReport,
+      jobState: i.jobState,
+      jobStartedAt: i.jobStartedAt,
+      jobFinishedAt: i.jobFinishedAt,
+    })),
+  });
 });
 
 router.post(

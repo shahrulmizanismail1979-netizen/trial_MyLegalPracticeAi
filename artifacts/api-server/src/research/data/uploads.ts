@@ -152,6 +152,61 @@ export async function listBatchItems(
     .orderBy(researchUploadBatchItems.id);
 }
 
+// Extended item type that carries the ingest-job timing fields.
+export interface BatchItemWithTiming extends ResearchUploadBatchItem {
+  jobState: string | null;
+  jobStartedAt: Date | null;
+  jobFinishedAt: Date | null;
+}
+
+/**
+ * Like listBatchItems but joins research_jobs to surface per-item job timing
+ * (jobState, jobStartedAt, jobFinishedAt). Used by the batch-detail API so
+ * the frontend can show per-file ETA labels.
+ */
+export async function listBatchItemsWithTiming(
+  batchId: number,
+  dbc: DbClient = db,
+): Promise<BatchItemWithTiming[]> {
+  const rows = await dbc
+    .select({
+      item: researchUploadBatchItems,
+      jobState: researchJobs.state,
+      jobStartedAt: researchJobs.startedAt,
+      jobFinishedAt: researchJobs.finishedAt,
+    })
+    .from(researchUploadBatchItems)
+    .leftJoin(researchJobs, eq(researchUploadBatchItems.jobId, researchJobs.id))
+    .where(eq(researchUploadBatchItems.batchId, batchId))
+    .orderBy(researchUploadBatchItems.id);
+
+  return rows.map((r) => ({
+    ...r.item,
+    jobState: r.jobState ?? null,
+    jobStartedAt: r.jobStartedAt ?? null,
+    jobFinishedAt: r.jobFinishedAt ?? null,
+  }));
+}
+
+/**
+ * Average ingest time (seconds) across items in the batch that already
+ * finished. Returns null when there is not enough data.
+ */
+export function computeAvgSecondsPerItem(
+  items: BatchItemWithTiming[],
+): number | null {
+  const durations: number[] = [];
+  for (const it of items) {
+    if (it.jobStartedAt && it.jobFinishedAt) {
+      const secs =
+        (it.jobFinishedAt.getTime() - it.jobStartedAt.getTime()) / 1000;
+      if (secs > 0) durations.push(secs);
+    }
+  }
+  if (durations.length === 0) return null;
+  return durations.reduce((a, b) => a + b, 0) / durations.length;
+}
+
 /** Guarded batch-item transition: row lock, allowed-map check, audit event. */
 export async function transitionBatchItem(
   itemId: number,
