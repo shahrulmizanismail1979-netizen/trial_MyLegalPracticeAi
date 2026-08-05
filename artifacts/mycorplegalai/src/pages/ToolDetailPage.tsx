@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
 import { useTts } from "@/lib/tts";
+import { FileUploadDropzone, buildContextFromFiles } from "@/components/FileUploadDropzone";
 
 const TIER_LABELS: Record<string, string> = {
   firm: "Firm",
@@ -25,6 +26,7 @@ export default function ToolDetailPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,9 +89,11 @@ export default function ToolDetailPage() {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
   };
 
-  const isFormValid = tool.formFields
-    .filter((f) => f.required)
-    .every((f) => formValues[f.id]?.trim());
+  const isFormValid = tool.isValid
+    ? tool.isValid(formValues)
+    : tool.formFields
+        .filter((f) => f.required)
+        .every((f) => formValues[f.id]?.trim());
 
   const handleGenerate = async () => {
     if (!isFormValid || isLoading) return;
@@ -179,6 +183,7 @@ export default function ToolDetailPage() {
     setFormValues({});
     setOutput("");
     setError(null);
+    setResetKey((k) => k + 1); // remounts file dropzones so their file lists clear
   };
 
   return (
@@ -220,7 +225,19 @@ export default function ToolDetailPage() {
                 {field.helpText && (
                   <p className="text-[10px] text-muted-foreground">{field.helpText}</p>
                 )}
-                {field.type === "textarea" ? (
+                {field.type === "files" ? (
+                  <FileUploadDropzone
+                    key={`${field.id}-${resetKey}`}
+                    label={field.label}
+                    hint={field.filesHint}
+                    onFilesExtracted={(files) =>
+                      updateField(
+                        field.id,
+                        buildContextFromFiles(files, field.filesHeading ?? "UPLOADED DOCUMENTS:"),
+                      )
+                    }
+                  />
+                ) : field.type === "textarea" ? (
                   <textarea
                     value={formValues[field.id] ?? ""}
                     onChange={(e) => updateField(field.id, e.target.value)}

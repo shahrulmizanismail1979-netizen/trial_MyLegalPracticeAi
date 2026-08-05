@@ -13,11 +13,15 @@ export type ToolCategory = "transactional" | "compliance" | "drafting" | "adviso
 export interface FormField {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "date" | "number";
+  type: "text" | "textarea" | "select" | "date" | "number" | "files";
   placeholder?: string;
   required?: boolean;
   options?: { value: string; label: string }[];
   helpText?: string;
+  /** For type "files": heading injected before the extracted document text in the prompt. */
+  filesHeading?: string;
+  /** For type "files": dropzone hint line. */
+  filesHint?: string;
 }
 
 export interface PractitionerTool {
@@ -31,6 +35,8 @@ export interface PractitionerTool {
   formFields: FormField[];
   buildPrompt: (values: Record<string, string>) => string;
   exampleScenario?: string;
+  /** Optional cross-field validation (e.g. "facts typed OR documents uploaded"). */
+  isValid?: (values: Record<string, string>) => boolean;
 }
 
 export const TOOL_CATEGORIES: { id: ToolCategory; label: string; description: string }[] = [
@@ -55,30 +61,67 @@ export const PRACTITIONER_TOOLS: PractitionerTool[] = [
     exampleScenario: "Client needs opinion on whether proposed related-party transaction requires shareholder approval under CA 2016",
     formFields: [
       { id: "clientName", label: "Client / Addressee", type: "text", placeholder: "e.g., Board of Directors, ABC Sdn Bhd", required: true },
-      { id: "matterTitle", label: "Matter / Subject", type: "text", placeholder: "e.g., Proposed Acquisition of XYZ Shares", required: true },
-      { id: "facts", label: "Key Facts & Background", type: "textarea", placeholder: "Set out the relevant factual background, parties involved, transaction details, and key commercial terms...", required: true },
-      { id: "issues", label: "Legal Issues to Address", type: "textarea", placeholder: "1. Whether the proposed transaction constitutes a related-party transaction\n2. Whether shareholder approval is required\n3. Whether any exemptions apply", required: true },
-      { id: "jurisdiction", label: "Primary Legislation", type: "select", required: true, options: [
+      { id: "matterTitle", label: "Matter / Subject", type: "text", placeholder: "e.g., Proposed Franchise Arrangement with XYZ Sdn Bhd", required: true },
+      {
+        id: "factDocs",
+        label: "Client Instructions & Background Documents",
+        type: "files",
+        helpText: "Upload the client's instruction email, agreements, and correspondence. The AI will use these to establish the factual background — and, if you leave the issues blank, to frame the legal questions itself.",
+        filesHint: "Client email (EML/TXT), agreements, correspondence — PDF, DOCX, TXT, MD, EML",
+        filesHeading: "CLIENT INSTRUCTIONS & BACKGROUND DOCUMENTS (uploaded by the practitioner — treat these as the factual record and the source of the client's instructions):",
+      },
+      { id: "facts", label: "Key Facts & Background (Optional if documents uploaded)", type: "textarea", placeholder: "Set out or supplement the relevant factual background, parties involved, transaction details, and key commercial terms..." },
+      { id: "issues", label: "Legal Issues to Address (Optional)", type: "textarea", placeholder: "Leave blank to let the AI identify and frame the questions from the client's instructions, or list them:\n1. Whether the arrangement is a franchise under the Franchise Act 1998\n2. Whether registration is required before signing", helpText: "If left blank, the AI will derive the questions to be answered from the uploaded client instructions." },
+      {
+        id: "lawDocs",
+        label: "Legislation, Cases & Authorities",
+        type: "files",
+        helpText: "Upload the primary legislation (e.g. Franchise Act 1998) and all relevant cases. The analysis will be grounded primarily in what you upload.",
+        filesHint: "Acts, regulations, guidelines, judgments — PDF, DOCX, TXT, MD",
+        filesHeading: "PRIMARY LEGISLATION, CASES & AUTHORITIES (uploaded by the practitioner — ground the legal analysis primarily in these materials, citing exact sections and cases from them):",
+      },
+      { id: "jurisdiction", label: "Or Pick Common Legislation (Optional)", type: "select", helpText: "Quick pick for common corporate statutes — skip this if you uploaded the legislation above.", options: [
         { value: "ca2016", label: "Companies Act 2016" },
         { value: "cmsa2007", label: "CMSA 2007 (Listed Company)" },
         { value: "both", label: "Both CA 2016 & CMSA 2007" },
         { value: "macc", label: "MACC Act 2009 / Anti-Corruption" },
         { value: "aml", label: "AMLA 2001 / AML Compliance" },
       ]},
+      {
+        id: "templateDocs",
+        label: "Firm Opinion Template / House Style (Optional)",
+        type: "files",
+        helpText: "Upload a past opinion or your firm's template — the opinion will follow its structure, headings and house style exactly.",
+        filesHint: "One or two examples of your firm's opinion format — PDF, DOCX, TXT",
+        filesHeading: "FIRM TEMPLATE / HOUSE STYLE (follow the structure, section headings, numbering and drafting style of this template exactly when producing the opinion):",
+      },
       { id: "additionalContext", label: "Additional Context (Optional)", type: "textarea", placeholder: "Any other relevant information, prior advice, or specific concerns..." },
     ],
-    buildPrompt: (v) => `Draft a formal legal opinion letter addressed to ${v.clientName} regarding: ${v.matterTitle}
-
+    isValid: (v) =>
+      Boolean(v.clientName?.trim()) &&
+      Boolean(v.matterTitle?.trim()) &&
+      Boolean(v.facts?.trim() || v.factDocs?.trim()),
+    buildPrompt: (v) => {
+      const legislationLabel =
+        v.jurisdiction === "ca2016" ? "Companies Act 2016"
+        : v.jurisdiction === "cmsa2007" ? "CMSA 2007"
+        : v.jurisdiction === "both" ? "CA 2016 and CMSA 2007"
+        : v.jurisdiction === "macc" ? "MACC Act 2009"
+        : v.jurisdiction === "aml" ? "AMLA 2001"
+        : "";
+      return `Draft a formal legal opinion letter addressed to ${v.clientName} regarding: ${v.matterTitle}
+${v.factDocs ? `\n${v.factDocs}\n` : ""}
 KEY FACTS:
-${v.facts}
+${v.facts?.trim() ? v.facts : "Derive the factual background from the uploaded client instructions and documents above. Recite the material facts accurately and note any factual gaps as assumptions."}
 
 LEGAL ISSUES TO ADDRESS:
-${v.issues}
+${v.issues?.trim() ? v.issues : "No issues were specified. Carefully analyse the client's instructions and documents, identify the legal questions the client needs answered, state them expressly in the opinion, and then answer each one."}
+${v.lawDocs ? `\n${v.lawDocs}\n` : ""}${legislationLabel ? `\nPrimary legislation focus: ${legislationLabel}` : ""}${!v.lawDocs && !legislationLabel ? "\nPrimary legislation: identify the applicable Malaysian legislation yourself from the facts and issues." : ""}
+${v.lawDocs ? "Ground the applicable-law analysis primarily in the uploaded legislation and authorities, citing exact section numbers and the uploaded cases. Only go beyond the uploaded materials where necessary, and flag clearly when you do." : ""}
+${v.templateDocs ? `\n${v.templateDocs}\n` : ""}${v.additionalContext ? `\nAdditional context: ${v.additionalContext}` : ""}
 
-Primary legislation focus: ${v.jurisdiction === "ca2016" ? "Companies Act 2016" : v.jurisdiction === "cmsa2007" ? "CMSA 2007" : v.jurisdiction === "both" ? "CA 2016 and CMSA 2007" : v.jurisdiction === "macc" ? "MACC Act 2009" : "AMLA 2001"}
-${v.additionalContext ? `\nAdditional context: ${v.additionalContext}` : ""}
-
-Format as a proper legal opinion with: (1) Introduction and scope, (2) Facts recited, (3) Issues identified, (4) Applicable law and analysis with section references, (5) Conclusions and recommendations, (6) Qualifications and assumptions. Use Malaysian legal drafting conventions.`
+${v.templateDocs ? "Follow the uploaded firm template's structure, headings, numbering and house style exactly." : "Format as a proper legal opinion with: (1) Introduction and scope, (2) Facts recited, (3) Issues identified, (4) Applicable law and analysis with section references, (5) Conclusions and recommendations, (6) Qualifications and assumptions."} Use Malaysian legal drafting conventions.`;
+    }
   },
   {
     id: "transaction-advisor",
