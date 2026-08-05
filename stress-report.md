@@ -1,6 +1,6 @@
 # Stress Corpus and Capacity Report
 
-Generated: 2026-07-31T07:33:56.575Z
+Generated: 2026-08-05T08:26:19.415Z
 
 ---
 
@@ -10,18 +10,18 @@ Generated: 2026-07-31T07:33:56.575Z
 |---|---|
 | Tested corpus size | 202 containers (upload+ingest), 20 (full segmentation) |
 | Safe batch size | 50 files per upload call; safe for continuous queue drain up to >200 (not reached in test) containers in-process |
-| Peak RSS | 231.9 MB at 202 containers |
-| Peak heap | 63.8 MB at 202 containers |
+| Peak RSS | 234.1 MB at 202 containers |
+| Peak heap | 41.9 MB at 202 containers |
 | Upload failure rate | 0.0% (path-traversal names correctly rejected) |
 | Retry result | 5 staging failures; 5 retries succeeded; no silent data loss |
 | Job resumption | 3 stalled jobs re-queued, 3 completed successfully |
 | Search latency p50 | 1ms |
 | Search latency p95 | 1ms |
-| Search latency p99 | 22ms (worst observed) |
+| Search latency p99 | 30ms (worst observed) |
 | Storage (in-memory adapter) | 0.3 MB for 510 objects |
-| DB row growth — containers | 14008 total rows at end of run |
-| DB row growth — jobs | 13807 total rows at end of run |
-| DB row growth — audit events | 469652 total rows at end of run |
+| DB row growth — containers | 17018 total rows at end of run |
+| DB row growth — jobs | 16923 total rows at end of run |
+| DB row growth — audit events | 497208 total rows at end of run |
 | Recommended deployment topology | See section below |
 | Features requiring external workers | See section below |
 | Features safe for Replit hosting | See section below |
@@ -32,11 +32,11 @@ Generated: 2026-07-31T07:33:56.575Z
 
 | Containers processed | RSS | Heap used | Container rows | Job rows | Storage written |
 |---|---|---|---|---|---|
-| 0 | 156.0 MB | 29.0 MB | 0 | 0 | 0.0 MB |
-| 53 | 195.7 MB | 56.5 MB | 50 | 53 | 0.0 MB |
-| 102 | 214.7 MB | 41.8 MB | 96 | 102 | 0.1 MB |
-| 152 | 230.6 MB | 70.8 MB | 145 | 152 | 0.1 MB |
-| 202 | 231.9 MB | 63.8 MB | 192 | 202 | 0.1 MB |
+| 0 | 156.6 MB | 34.2 MB | 0 | 0 | 0.0 MB |
+| 53 | 206.1 MB | 62.6 MB | 50 | 53 | 0.0 MB |
+| 102 | 227.1 MB | 43.9 MB | 97 | 102 | 0.1 MB |
+| 152 | 229.7 MB | 66.3 MB | 145 | 152 | 0.1 MB |
+| 202 | 234.1 MB | 41.9 MB | 192 | 202 | 0.1 MB |
 
 ---
 
@@ -44,9 +44,9 @@ Generated: 2026-07-31T07:33:56.575Z
 
 | Stage | Min | Avg | p95 | Max | Samples |
 |---|---|---|---|---|---|
-| Upload batch (50 files) | 843ms | 1170ms | 1875ms | 1875ms | 4 |
-| Ingest queue drain (50 jobs) | 1181ms | 1328ms | 1499ms | 1499ms | 4 |
-| Segmentation job (1 container) | 92ms | 154ms | 363ms | 363ms | 20 |
+| Upload batch (50 files) | 1000ms | 1077ms | 1252ms | 1252ms | 4 |
+| Ingest queue drain (50 jobs) | 1088ms | 1344ms | 1434ms | 1434ms | 4 |
+| Segmentation job (1 container) | 116ms | 164ms | 530ms | 530ms | 20 |
 
 ---
 
@@ -54,8 +54,8 @@ Generated: 2026-07-31T07:33:56.575Z
 
 | Scenario | Total uploads | Duration | Success rate |
 |---|---|---|---|
-| 5 users × 20 files | 100 | 2514ms | 100.0% |
-| 10 users × 20 files | 200 | 4826ms | 100.0% |
+| 5 users × 20 files | 100 | 2910ms | 100.0% |
+| 10 users × 20 files | 200 | 4377ms | 100.0% |
 
 ---
 
@@ -82,7 +82,7 @@ Isolation confirmed: ✓ YES.
 |---|---|
 | p50 | 1ms |
 | p95 | 1ms |
-| Worst observed | 22ms |
+| Worst observed | 30ms |
 | Min | 0ms |
 
 Indexes present on research_search_index: `document` (GIN tsvector, English), `document_ms` (GIN tsvector, simple), `container_id`, `court`, `decision_date`.
@@ -98,14 +98,14 @@ Row counts at end-of-run snapshot:
 
 | Table | Rows |
 |---|---|
-| research_source_containers | 14008 |
-| research_jobs | 13807 |
-| research_transformations | 3361 |
-| research_rights_records | 9037 |
-| research_audit_events | 469652 |
+| research_source_containers | 17018 |
+| research_jobs | 16923 |
+| research_transformations | 6802 |
+| research_rights_records | 9432 |
+| research_audit_events | 497208 |
 
-Growth rate at observed scale: approximately 2325 audit events per container ingested.
-For a 10,000-container corpus, projected audit table size: ~23250099 rows.
+Growth rate at observed scale: approximately 2461 audit events per container ingested.
+For a 10,000-container corpus, projected audit table size: ~24614257 rows.
 Backup window recommendation: daily pg_dump for corpora < 100 k containers; WAL streaming for larger corpora.
 
 ---
@@ -182,7 +182,7 @@ Operations that cannot complete within a Replit deployment's time or memory wind
 | Container registration and dedup | ~15 ms/job; 0 orphaned RUNNING jobs after drain |
 | Rights-review workflow | Synchronous DB transaction; no memory growth |
 | Search (FTS) | p95 1ms; GIN index scales to 100 k+ rows |
-| Segmentation (≤ 15 pages/container) | 154ms avg; bounded by page count |
+| Segmentation (≤ 15 pages/container) | 164ms avg; bounded by page count |
 | Concurrent uploads (10 users) | 100.0% success rate; SKIP LOCKED prevents double-claim |
 | Export (per-container) | Rights-gated synchronous generation; predictable memory |
 | Retry and job resumption | maxAttempts=3; stalled RUNNING jobs re-drainable after restart |
