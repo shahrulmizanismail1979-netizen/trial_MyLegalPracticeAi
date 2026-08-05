@@ -19,3 +19,10 @@ uri = "file://poster-assets/poster-A1.pdf"
 type = "pdf"
 title = "Poster A1 — Paralegal Maya Pertama di Malaysia"
 description = "Poster pertandingan HIK@M 2026, saiz A1 (594mm × 841mm), sedia untuk cetak."
+
+[[outputs]]
+id = "2_IjQPojJBrUH_pE1HUoI"
+uri = "file://poster-assets/poster-A1-melaka.pdf"
+type = "pdf"
+title = "Poster A1 (Potret) — Paralegal Maya Pertama di Malaysia · Edisi Melaka"
+description = "Poster HIK@M 2026 saiz A1 potret (594mm × 841mm), reka bentuk baharu dengan fokus Melaka — Melaka Maju Fasa II, Bandar Pintar, IPT Melaka, PKS & B40/M40 Melaka. Sedia untuk cetak."
