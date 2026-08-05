@@ -12,3 +12,10 @@ id = "CEIZDBwl-MHNk178UzBe3"
 uri = "file://exports/ai-web-books-source.zip"
 type = "unspecified"
 title = "AI Web Books — Full Source Code"
+
+[[outputs]]
+id = "WfDiVwVGKjZRg7YQAmu98"
+uri = "file://poster-assets/poster-A1.pdf"
+type = "pdf"
+title = "Poster A1 — Paralegal Maya Pertama di Malaysia (HIK@M 2026)"
+description = "Poster saiz A1 (594mm × 841mm) untuk pertandingan HIK@M 2026. Merangkumi semua 7 kriteria penilaian: Kebaharuan (E1), Impak SDG (E2), Analisis Pasaran (E5), Strategi Pemasaran (E6), dan Kesediaan Teknologi (E7)."
