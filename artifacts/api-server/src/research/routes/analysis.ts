@@ -30,6 +30,10 @@ import {
   AI_ANALYSIS_DISCLAIMER,
 } from "../analysis/service";
 import { enqueueAiAnalysis } from "../analysis/processor";
+import {
+  extractAuthorities,
+  extractLegislation,
+} from "../authorities/extractor";
 import { runAiAnalysis, AnalysisError } from "../analysis/generator";
 import { getEnabledProvider } from "../analysis/service";
 import { db, researchVerifiedJudgments, researchAiAnalysisRuns } from "@workspace/db";
@@ -365,6 +369,29 @@ router.patch(
         error: "Run not found or transition not allowed",
       });
       return;
+    }
+
+    // On approval, auto-extract authorities and legislation refs.
+    // Extraction failures are logged but never block the approval — the
+    // manual POST /judgments/:id/authorities/extract endpoint remains
+    // available for re-extraction and backfill.
+    if (action === "approve") {
+      try {
+        await extractAuthorities(runId, db);
+      } catch (err) {
+        console.error(
+          `[analysis] auto-extract authorities failed for run ${runId}:`,
+          err,
+        );
+      }
+      try {
+        await extractLegislation(runId, db);
+      } catch (err) {
+        console.error(
+          `[analysis] auto-extract legislation failed for run ${runId}:`,
+          err,
+        );
+      }
     }
 
     res.json(run);
