@@ -35,6 +35,8 @@ import CourtToolsPage from "@/pages/court-tools";
 import CaseWorkspacePage from "@/pages/case-workspace";
 import AIToolkitPage from "@/pages/ai-toolkit";
 import DraftingPage from "@/pages/drafting";
+import MattersPage from "@/pages/matters";
+import MatterDetailPage from "@/pages/matter-detail";
 import PricingPage from "@/pages/pricing";
 import AccountPage from "@/pages/account";
 import NotFound from "@/pages/not-found";
@@ -95,6 +97,8 @@ function AuthGate() {
         <Route path="/case-workspace" component={CaseWorkspacePage} />
         <Route path="/ai-toolkit" component={AIToolkitPage} />
         <Route path="/drafting" component={DraftingPage} />
+        <Route path="/matters" component={MattersPage} />
+        <Route path="/matters/:id" component={MatterDetailPage} />
         <Route path="/pricing" component={PricingPage} />
         <Route path="/account" component={AccountPage} />
         <Route component={NotFound} />

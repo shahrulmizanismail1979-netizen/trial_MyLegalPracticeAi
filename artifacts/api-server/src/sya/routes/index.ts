@@ -26,6 +26,7 @@ import billingRouter from "./billing";
 import voiceRouter from "./voice";
 
 import practiceDirectionsRouter from "./practice-directions";
+import mattersRouter from "./matters";
 import { tierHasFeature, type FeatureKey } from "../lib/tiers";
 import { ensureCodeNotExpired } from "../lib/auth";
 
@@ -97,5 +98,6 @@ router.use(voiceModeRouter);
 router.use(billingRouter);
 router.use(voiceRouter);
 router.use(practiceDirectionsRouter);
+router.use(mattersRouter);
 
 export default router;

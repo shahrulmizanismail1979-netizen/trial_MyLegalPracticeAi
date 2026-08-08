@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExportActions from "@/components/export-actions";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export default function CausePapersPage() {
   const { t, mode } = useLanguage();
@@ -531,6 +532,13 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
                 </p>
               </CardContent>
             </Card>
+          )}
+          {draftResult && !isDrafting && (
+            <SaveToMatterPanel
+              draftTitle={selectedPaper ? (mode === "bm" ? selectedPaper.titleBm : selectedPaper.titleEn) : ts("AI Draft", "Draf AI")}
+              draftContent={draftResult}
+              kind="draft"
+            />
           )}
           <div ref={draftEndRef} />
         </div>

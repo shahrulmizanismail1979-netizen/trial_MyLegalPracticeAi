@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { tierHasFeature } from "@/lib/tiers";
 import UpgradePrompt from "@/components/upgrade-prompt";
 import ExportActions from "@/components/export-actions";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,7 +150,7 @@ export default function DocumentGeneratorPage() {
 }
 
 function DocumentGeneratorPageInner() {
-  const { mode } = useLanguage();
+  const { mode, ts } = useLanguage();
   const { gate } = useGate();
   const t = (en: string, bm: string) => mode === "bm" ? bm : en;
 
@@ -343,6 +344,15 @@ function DocumentGeneratorPageInner() {
                 <p className="text-xs text-muted-foreground italic mt-3">
                   {t("This is an AI-generated draft. Review and amend before filing.", "Ini adalah draf yang dijana AI. Semak dan pinda sebelum memfailkan.")}
                 </p>
+                {!generating && (
+                  <div className="mt-3">
+                    <SaveToMatterPanel
+                      draftTitle={currentDocType ? (mode === "bm" ? currentDocType.titleBm : currentDocType.titleEn) : ts("Generated Document", "Dokumen Dijana")}
+                      draftContent={generatedDoc}
+                      kind="document"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

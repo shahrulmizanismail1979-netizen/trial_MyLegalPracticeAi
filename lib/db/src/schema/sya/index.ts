@@ -11,3 +11,4 @@ export * from "./messages";
 export * from "./quranicVerses";
 export * from "./fatwa";
 export * from "./practiceDirections";
+export * from "./matters";
