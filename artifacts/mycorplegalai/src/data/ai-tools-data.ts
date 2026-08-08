@@ -133,7 +133,15 @@ ${v.templateDocs ? "Follow the uploaded firm template's structure, headings, num
     color: "text-emerald-400",
     exampleScenario: "Acquiring 100% of a manufacturing Sdn Bhd with RM50m turnover — which structure is optimal?",
     formFields: [
-      { id: "dealDescription", label: "Transaction Description", type: "textarea", placeholder: "Describe the proposed deal: buyer, target, industry, size, rationale...", required: true },
+      {
+        id: "dealDocs",
+        label: "Deal Documents (Term Sheet, LOI, Heads of Terms)",
+        type: "files",
+        helpText: "Upload the term sheet, letter of intent, draft SPA, or any deal documents — the structuring advice will be grounded in what you upload, so you don't need to retype the deal terms.",
+        filesHint: "Term sheet, LOI, heads of terms, draft agreements — PDF, DOCX, TXT, MD",
+        filesHeading: "DEAL DOCUMENTS (uploaded by the practitioner — extract the parties, target, consideration, structure and key commercial terms from these documents and ground the structuring analysis in them):",
+      },
+      { id: "dealDescription", label: "Transaction Description (Optional if documents uploaded)", type: "textarea", placeholder: "Describe or supplement the proposed deal: buyer, target, industry, size, rationale..." },
       { id: "targetType", label: "Target Company Type", type: "select", required: true, options: [
         { value: "sdn-bhd", label: "Private Company (Sdn Bhd)" },
         { value: "bhd", label: "Public Company (Bhd)" },
@@ -146,15 +154,18 @@ ${v.templateDocs ? "Follow the uploaded firm template's structure, headings, num
       { id: "keyAssets", label: "Key Assets of Target", type: "textarea", placeholder: "Land, plant & machinery, licenses, contracts, IP, employees, inventory..." },
       { id: "concerns", label: "Specific Concerns", type: "textarea", placeholder: "Tax efficiency, speed, regulatory approvals needed, existing liabilities, employee transfer, change of control clauses..." },
     ],
+    isValid: (v) =>
+      Boolean(v.targetType?.trim()) &&
+      Boolean(v.dealDescription?.trim() || v.dealDocs?.trim()),
     buildPrompt: (v) => `Advise on the optimal transaction structure for the following proposed deal in Malaysia:
-
-TRANSACTION: ${v.dealDescription}
+${v.dealDocs ? `\n${v.dealDocs}\n` : ""}
+TRANSACTION: ${v.dealDescription?.trim() ? v.dealDescription : "Derive the transaction details (buyer, target, industry, size, rationale, key commercial terms) from the uploaded deal documents above. Note any gaps as assumptions."}
 TARGET TYPE: ${v.targetType}
 DEAL VALUE: ${v.dealValue || "Not specified"}
 STAKE: ${v.percentageAcquired || "Not specified"}
 KEY ASSETS: ${v.keyAssets || "Not specified"}
 CONCERNS: ${v.concerns || "None specified"}
-
+${v.dealDocs ? "\nGround the analysis in the uploaded deal documents: reference their actual terms (consideration, conditions, warranties, structure) when comparing structures, and flag any provisions in them that favour or preclude a particular structure.\n" : ""}
 Compare and analyze:
 1. **Share Acquisition** — process, stamp duty (0.3%), RPGT implications, successor liability, regulatory approvals
 2. **Asset/Business Acquisition** — process, stamp duty on assets, GST/SST, cherry-picking assets, employee transfer (s.20A EA 1955), license transferability
@@ -182,18 +193,30 @@ For each structure, analyze: (a) legal process and timeline, (b) tax implication
         { value: "investment", label: "Investment / Subscription of Shares" },
         { value: "merger", label: "Merger / Scheme of Arrangement" },
       ]},
-      { id: "findings", label: "Key Findings & Issues Identified", type: "textarea", placeholder: "List your DD findings, e.g.:\n- Constitution has pre-emption rights requiring waiver\n- Undisclosed litigation by former employee\n- Land title has caveat registered\n- Related party contracts not at arm's length\n- Tax returns not filed for 2 years\n- Directors' service contracts have 2-year notice periods", required: true },
+      {
+        id: "ddDocs",
+        label: "DD Documents & Source Materials",
+        type: "files",
+        helpText: "Upload the documents you reviewed — constitution, SSM searches, material contracts, litigation searches, title searches, DD questionnaire responses. The AI will extract findings from them and organise the report.",
+        filesHint: "Constitution, searches, material contracts, DD responses — PDF, DOCX, TXT, MD",
+        filesHeading: "DUE DILIGENCE DOCUMENTS & SOURCE MATERIALS (uploaded by the practitioner — extract the legal DD findings and issues directly from these documents, citing the specific document and clause/section each finding comes from):",
+      },
+      { id: "findings", label: "Key Findings & Issues Identified (Optional if documents uploaded)", type: "textarea", placeholder: "List or supplement your DD findings, e.g.:\n- Constitution has pre-emption rights requiring waiver\n- Undisclosed litigation by former employee\n- Land title has caveat registered\n- Related party contracts not at arm's length\n- Tax returns not filed for 2 years\n- Directors' service contracts have 2-year notice periods" },
       { id: "ddScope", label: "DD Scope / Categories Reviewed", type: "textarea", placeholder: "e.g., Corporate, Shareholding, Directors, Constitution, Material Contracts, Employment, Litigation, Real Property, IP, Tax, Regulatory" },
       { id: "additionalNotes", label: "Additional Notes", type: "textarea", placeholder: "Any qualifications, limitations of scope, or additional context..." },
     ],
+    isValid: (v) =>
+      Boolean(v.targetName?.trim()) &&
+      Boolean(v.transactionType?.trim()) &&
+      Boolean(v.findings?.trim() || v.ddDocs?.trim()),
     buildPrompt: (v) => `Generate a formal Legal Due Diligence Report for:
 
 TARGET: ${v.targetName} ${v.targetRegNo ? `(${v.targetRegNo})` : ""}
 TRANSACTION TYPE: ${v.transactionType}
-
+${v.ddDocs ? `\n${v.ddDocs}\n` : ""}
 FINDINGS:
-${v.findings}
-
+${v.findings?.trim() ? v.findings : "Extract the DD findings from the uploaded documents above. For each finding, cite the source document and the specific clause, section or entry it comes from. Flag anything in the documents that appears incomplete or requires further investigation."}
+${v.ddDocs && v.findings?.trim() ? "\nGround the report in the uploaded documents: verify and expand the typed findings against them, cite the source document for each finding, and add any additional issues apparent from the documents that were not listed above.\n" : ""}
 DD SCOPE: ${v.ddScope || "Full corporate legal DD"}
 NOTES: ${v.additionalNotes || "None"}
 
@@ -228,7 +251,15 @@ Use Malaysian legal DD report conventions and reference relevant CA 2016 section
     icon: FileText,
     color: "text-violet-400",
     formFields: [
-      { id: "clauseText", label: "Paste the SPA Clause(s)", type: "textarea", placeholder: "Paste the warranty clause, indemnity clause, condition precedent, MAC clause, non-compete, or any other SPA provision here...", required: true },
+      {
+        id: "spaDocs",
+        label: "Upload the SPA / Agreement",
+        type: "files",
+        helpText: "Upload the SPA or the relevant sections — the review will be grounded in the uploaded document, so you don't need to retype the clauses.",
+        filesHint: "SPA, draft agreement, or extracted clauses — PDF, DOCX, TXT, MD",
+        filesHeading: "SPA / AGREEMENT UNDER REVIEW (uploaded by the practitioner — review the clauses in this document, quoting the exact clause numbers and language from it):",
+      },
+      { id: "clauseText", label: "Or Paste the SPA Clause(s) (Optional if document uploaded)", type: "textarea", placeholder: "Paste the warranty clause, indemnity clause, condition precedent, MAC clause, non-compete, or any other SPA provision here..." },
       { id: "actingFor", label: "You Are Acting For", type: "select", required: true, options: [
         { value: "buyer", label: "Buyer / Purchaser" },
         { value: "seller", label: "Seller / Vendor" },
@@ -237,11 +268,14 @@ Use Malaysian legal DD report conventions and reference relevant CA 2016 section
       { id: "dealContext", label: "Deal Context (Optional)", type: "textarea", placeholder: "Brief description of the deal, target company, industry, deal value..." },
       { id: "specificConcerns", label: "Specific Concerns (Optional)", type: "textarea", placeholder: "Any particular issues you want analyzed..." },
     ],
+    isValid: (v) =>
+      Boolean(v.actingFor?.trim()) &&
+      Boolean(v.clauseText?.trim() || v.spaDocs?.trim()),
     buildPrompt: (v) => `Review the following SPA clause(s) from a Malaysian share/asset sale transaction. I am acting for the ${v.actingFor}.
-
+${v.spaDocs ? `\n${v.spaDocs}\n` : ""}
 CLAUSE TEXT:
-${v.clauseText}
-
+${v.clauseText?.trim() ? v.clauseText : "Review the clauses in the uploaded agreement above. Quote the exact clause numbers and language from the uploaded document in your analysis and redrafts."}
+${v.spaDocs && v.clauseText?.trim() ? "\nGround the review in the uploaded agreement: read the pasted clauses in the context of the full uploaded document, and cite exact clause numbers from it.\n" : ""}
 ${v.dealContext ? `DEAL CONTEXT: ${v.dealContext}` : ""}
 ${v.specificConcerns ? `SPECIFIC CONCERNS: ${v.specificConcerns}` : ""}
 
@@ -952,7 +986,15 @@ Reference specific Malaysian legislation, MITI guidelines, BNM regulations, and 
         { value: "ip-dispute", label: "IP / Trade Secret Dispute" },
         { value: "employment-dispute", label: "Senior Executive Dispute" },
       ]},
-      { id: "facts", label: "Key Facts", type: "textarea", placeholder: "Describe the dispute: parties involved, chronology of events, amounts in dispute, key documents, relationship between parties...", required: true },
+      {
+        id: "caseDocs",
+        label: "Case Documents & Correspondence",
+        type: "files",
+        helpText: "Upload the key documents — SHA/SPA/JVA, letters of demand, correspondence, pleadings, board minutes. The strategy will be grounded in the actual documents rather than a retyped summary.",
+        filesHint: "Agreements, letters of demand, correspondence, pleadings — PDF, DOCX, TXT, MD, EML",
+        filesHeading: "CASE DOCUMENTS & CORRESPONDENCE (uploaded by the practitioner — treat these as the factual and documentary record; extract the chronology, parties, contractual terms and dispute resolution clauses from them, citing the specific document and clause for each point):",
+      },
+      { id: "facts", label: "Key Facts (Optional if documents uploaded)", type: "textarea", placeholder: "Describe or supplement the dispute: parties involved, chronology of events, amounts in dispute, key documents, relationship between parties..." },
       { id: "relief", label: "Relief Sought", type: "textarea", placeholder: "e.g., Buyout order at fair value, damages for breach of warranty, injunction to prevent share disposal..." },
       { id: "existingClauses", label: "Dispute Resolution Clause (if any)", type: "textarea", placeholder: "Paste any existing arbitration or dispute resolution clause from the SHA/SPA/JVA..." },
       { id: "urgency", label: "Urgency", type: "select", options: [
@@ -961,14 +1003,17 @@ Reference specific Malaysian legislation, MITI guidelines, BNM regulations, and 
         { value: "defensive", label: "Defensive — Responding to claim" },
       ]},
     ],
+    isValid: (v) =>
+      Boolean(v.disputeType?.trim()) &&
+      Boolean(v.facts?.trim() || v.caseDocs?.trim()),
     buildPrompt: (v) => `Advise on the optimal dispute resolution strategy for the following Malaysian corporate dispute:
-
+${v.caseDocs ? `\n${v.caseDocs}\n` : ""}
 DISPUTE TYPE: ${v.disputeType}
-FACTS: ${v.facts}
+FACTS: ${v.facts?.trim() ? v.facts : "Derive the facts from the uploaded case documents above: reconstruct the chronology, identify the parties and their relationships, and note the amounts in dispute. Flag any factual gaps as assumptions."}
 RELIEF SOUGHT: ${v.relief || "Not specified"}
-EXISTING DR CLAUSE: ${v.existingClauses || "None / silent"}
+EXISTING DR CLAUSE: ${v.existingClauses?.trim() ? v.existingClauses : v.caseDocs ? "Check the uploaded agreements for any arbitration or dispute resolution clause and apply it in the forum-selection analysis." : "None / silent"}
 URGENCY: ${v.urgency || "Normal"}
-
+${v.caseDocs ? "\nGround the entire strategy in the uploaded documents: cite the specific document and clause for each contractual point, and base the evidence strategy on what the uploaded record actually shows.\n" : ""}
 Provide a comprehensive dispute resolution strategy covering:
 1. **Cause of Action Analysis** — identify all viable causes of action, statutory basis (CA 2016, Contracts Act 1950), and relevant case law
 2. **Forum Selection** — recommend Court (High Court / Commercial Division) vs AIAC Arbitration vs AIAC Mediation vs Statutory remedy, with pros/cons of each
@@ -996,7 +1041,15 @@ ${v.urgency === "urgent-injunction" ? "Emphasize urgent interim injunction proce
     color: "text-emerald-500",
     exampleScenario: "Review a 20-page supply agreement for a manufacturing company",
     formFields: [
-      { id: "contractText", label: "Contract Text", type: "textarea", placeholder: "Paste the full contract or key clauses you want reviewed...", required: true },
+      {
+        id: "contractDocs",
+        label: "Upload the Contract",
+        type: "files",
+        helpText: "Upload the contract to review — the clause-by-clause analysis will be grounded in the uploaded document, so you don't need to paste it.",
+        filesHint: "Full contract or relevant sections — PDF, DOCX, TXT, MD",
+        filesHeading: "CONTRACT UNDER REVIEW (uploaded by the practitioner — perform the review on this document, quoting the exact clause numbers and language from it):",
+      },
+      { id: "contractText", label: "Or Paste the Contract Text (Optional if document uploaded)", type: "textarea", placeholder: "Paste the full contract or key clauses you want reviewed..." },
       { id: "contractType", label: "Contract Type", type: "select", required: true, options: [
         { value: "spa-shares", label: "Share Purchase Agreement (SPA)" },
         { value: "spa-asset", label: "Asset Purchase Agreement" },
@@ -1020,11 +1073,15 @@ ${v.urgency === "urgent-injunction" ? "Emphasize urgent interim injunction proce
       ]},
       { id: "priorities", label: "Priority Areas (Optional)", type: "textarea", placeholder: "e.g., Focus on limitation of liability, IP ownership, termination rights, governing law..." },
     ],
+    isValid: (v) =>
+      Boolean(v.contractType?.trim()) &&
+      Boolean(v.actingFor?.trim()) &&
+      Boolean(v.contractText?.trim() || v.contractDocs?.trim()),
     buildPrompt: (v) => `Review the following ${v.contractType} under Malaysian law. I am acting for ${v.actingFor}.
-
+${v.contractDocs ? `\n${v.contractDocs}\n` : ""}
 CONTRACT TEXT:
-${v.contractText}
-
+${v.contractText?.trim() ? v.contractText : "Review the uploaded contract above. Quote the exact clause numbers and language from the uploaded document in your clause-by-clause analysis and suggested markup."}
+${v.contractDocs && v.contractText?.trim() ? "\nGround the review in the uploaded contract: read the pasted text in the context of the full uploaded document, and cite exact clause numbers from it.\n" : ""}
 ${v.priorities ? `PRIORITY AREAS: ${v.priorities}` : ""}
 
 Provide a comprehensive contract review with:
