@@ -10,6 +10,7 @@ import { CitationsList } from "@/components/CitationsList";
 import { DisclaimerNotice } from "@/components/DisclaimerNotice";
 import { JourneyStepper } from "@/components/JourneyStepper";
 import { SaveToVault } from "@/components/SaveToVault";
+import { SaveToMatter } from "@/components/SaveToMatter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -255,6 +256,7 @@ export default function Reply() {
                     content={streamDraft.content}
                     sourceFiles={replyFiles}
                   />
+                  <SaveToMatter kind="reply" defaultTitle={replyTitle} content={streamDraft.content} />
                   <Button variant="ghost" size="sm" onClick={handleCopy}>
                     {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                     {copied ? t("common.copied") : t("tool.drafting.copyText")}

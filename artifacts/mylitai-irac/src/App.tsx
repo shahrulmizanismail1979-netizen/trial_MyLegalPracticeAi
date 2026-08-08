@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter, Link, useLocation, Redirect } fr
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Scale, FileText, PenTool, Library as LibraryIcon, ScanSearch, Crown, AudioLines, Gavel, FolderLock, FileSignature, GitBranch, Mic, FolderOpen, CalendarClock, MessagesSquare, ChevronDown } from "lucide-react";
+import { Scale, FileText, PenTool, Library as LibraryIcon, ScanSearch, Crown, AudioLines, Gavel, FolderLock, FolderKanban, FileSignature, GitBranch, Mic, FolderOpen, CalendarClock, MessagesSquare, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -30,6 +30,8 @@ import OralPractice from "@/pages/OralPractice";
 import Bundles from "@/pages/Bundles";
 import BundleDetail from "@/pages/BundleDetail";
 import Diary from "@/pages/Diary";
+import Matters from "@/pages/Matters";
+import MatterFile from "@/pages/MatterFile";
 import Admin from "@/pages/Admin";
 import ClientVault from "@/pages/ClientVault";
 import LibraryTheory, { LibraryTheoryDetail } from "@/pages/LibraryTheory";
@@ -129,6 +131,7 @@ function Navbar() {
       label: t("nav.group.caseFiles"),
       icon: FolderOpen,
       items: [
+        { href: "/matters", label: t("nav.matters"), icon: FolderKanban },
         { href: "/bundles", label: t("nav.bundles"), icon: FolderOpen },
         { href: "/diary", label: t("nav.diary"), icon: CalendarClock },
         { href: "/vault", label: t("nav.vault"), icon: FolderLock },
@@ -280,6 +283,8 @@ function Router() {
         <Route path="/oral" component={OralPractice} />
         <Route path="/bundles/:id" component={BundleDetail} />
         <Route path="/bundles" component={Bundles} />
+        <Route path="/matters/:id" component={MatterFile} />
+        <Route path="/matters" component={Matters} />
         <Route path="/diary" component={Diary} />
         <Route path="/admin" component={Admin} />
         <Route path="/vault" component={ClientVault} />
