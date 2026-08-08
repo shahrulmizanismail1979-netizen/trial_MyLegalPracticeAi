@@ -1,0 +1,125 @@
+Salam Dr. Mizan,
+
+These are my initial comments after spending some time exploring the app.
+
+Overall, I think the content is already there. My main suggestion is not to add more features, but rather to reorganise the existing ones so that they mirror how lawyers actually work on a file.
+
+1. Reorganise Cause Papers and Workflows by Practice Area
+
+Currently, the Cause Papers and Workflows are separated. We think in terms of the file we are handling.
+
+For example, if I am handling a winding-up matter, I should simply click Winding Up and immediately see:
+
+* The complete workflow from start to finish.
+* Every document required at each stage.
+* The ability to draft each document directly from that page.
+
+For example:
+
+Winding Up
+
+* Statutory Demand
+* Wait 21 days (or the applicable timeline)
+* Winding-Up Petition
+* Affidavit Verifying Petition
+* Advertisement
+* Supporting Affidavits
+* Hearing
+* Winding-Up Order
+
+At every step, I should be able to click the relevant document and draft it immediately.
+
+I believe most of this content already exists in the app—it is simply scattered across different sections.
+
+⸻
+
+2. Make the Homepage More Practice-Oriented
+
+Instead of separating everything into Cause Papers and Workflows, perhaps the homepage could first organise matters by practice area.
+
+For example:
+
+* Civil Litigation
+* Insolvency
+* Banking & Recovery
+* Enforcement
+Maybe you can put all this categories as a tool you call "Your Online LA" ke apa. So can still keep the other tools, like bundle builders tu cuma refine kan sikit. 
+
+Once a user enters a practice area, they can drill down further.
+
+For example:
+
+Insolvency
+
+* Bankruptcy
+* Winding Up
+
+Selecting one of these would then display:
+
+* Workflow
+* Checklist
+* Cause Papers
+* Drafting tools
+
+All in one place.
+
+⸻
+
+3. Organise Civil Litigation by Application Type- Seperate from Enforcement. 
+
+For Civil Litigation, consider grouping documents according to the type of application, for example:
+
+* Writ Actions
+* Originating Summons
+* Summary Judgment
+* Trial Docs- Bundles of Pleadings, Issues, Facts, BOD, etc
+* Injunctions
+
+Each category would contain:
+
+* Workflow
+* Checklist
+* Required documents
+* Drafting tools
+
+⸻
+
+4. Organise Enforcement Separately
+
+Similarly, Enforcement could have its own category with items such as:
+
+* Garnishee Proceedings
+* Writ of Seizure and Sale (WSS)
+* Foreclosure
+* Judgment Debtor Summons
+* Committal Proceedings
+* Other enforcement mechanisms
+
+Again, each matter should contain the relevant workflow, checklist and drafting documents.
+
+⸻
+
+5. Make Checklists Matter-Specific
+
+Currently, the Banking & Recovery section has a checklist, which is useful.
+
+However, I think the checklist should be attached to the specific matter rather than existing as a standalone feature.
+
+For example, if I open Winding Up, I should immediately see:
+
+* Checklist
+* Workflow
+* Course Papers
+* Drafting tools
+
+Everything relating to that file should be available from a single page.
+
+⸻
+
+Overall Suggestion
+
+I genuinely think the app already contains most of the necessary content. The main improvement is to reorganise it around how lawyers actually handle files rather than around separate functions such as Workflows and Course Papers.
+
+In other words, a lawyer should begin by selecting the matter they are working on, and from there be guided through the entire process—from checklist, to workflow, to drafting every required document—without having to jump between different sections of the app.
+
+I believe this would make the app much more intuitive and significantly improve the overall user experience.
