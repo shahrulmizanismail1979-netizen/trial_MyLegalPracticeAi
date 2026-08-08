@@ -1008,14 +1008,22 @@ DATE: 14 June 2021`,
 
     await drainIngest();
 
-    const [i1] = await db
-      .select()
-      .from(researchUploadBatchItems)
-      .where(eq(researchUploadBatchItems.id, items1[0]!.id));
-    const [i2] = await db
-      .select()
-      .from(researchUploadBatchItems)
-      .where(eq(researchUploadBatchItems.id, items2[0]!.id));
+    // A parallel test worker may have claimed one of our ingest jobs and
+    // still be mid-run — poll briefly until both items settle.
+    let i1;
+    let i2;
+    for (let poll = 0; poll < 30; poll++) {
+      [i1] = await db
+        .select()
+        .from(researchUploadBatchItems)
+        .where(eq(researchUploadBatchItems.id, items1[0]!.id));
+      [i2] = await db
+        .select()
+        .from(researchUploadBatchItems)
+        .where(eq(researchUploadBatchItems.id, items2[0]!.id));
+      if (i1?.state === "INGESTED" && i2?.state === "INGESTED") break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     expect(i1?.state).toBe("INGESTED");
     expect(i2?.state).toBe("INGESTED");

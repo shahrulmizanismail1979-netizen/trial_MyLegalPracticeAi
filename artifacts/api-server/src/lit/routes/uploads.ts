@@ -1,6 +1,8 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
 import mammoth from "mammoth";
+import { db, litPendingUploads } from "@workspace/db";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { ObjectStorageService } from "../lib/objectStorage";
 
@@ -22,6 +24,81 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_FILES = 5;
 const MAX_CHARS_PER_FILE = 500_000;
+
+// Bind each issued upload path to the session's access code so one subscriber
+// cannot extract (and thereby delete) another subscriber's pending upload.
+// The registry is DB-backed (lit_pending_uploads) so ownership survives
+// restarts and holds across multiple API instances. Rows are one-time use:
+// consumed atomically (owner-checked DELETE ... RETURNING) at extraction.
+const PENDING_TTL_MS = 30 * 60 * 1000;
+
+// Idempotent boot-time ensure (mirrors lit/session.ts): production applies
+// SQL migrations additively, so guarantee the registry table exists before
+// the first upload request. Also see lib/db/sql/migrations/0024.
+const ensureTable = db
+  .execute(
+    sql`CREATE TABLE IF NOT EXISTS lit_pending_uploads (
+      id SERIAL PRIMARY KEY,
+      object_path TEXT NOT NULL UNIQUE,
+      access_code_id INTEGER NOT NULL
+        REFERENCES lit_access_codes(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+  )
+  .then(() => {})
+  .catch((err: unknown) =>
+    logger.error({ err }, "Failed to ensure lit_pending_uploads table"),
+  );
+
+async function registerPendingUpload(
+  objectPath: string,
+  accessCodeId: number,
+): Promise<void> {
+  await ensureTable;
+  // Opportunistically prune expired rows so the table stays small.
+  await db
+    .delete(litPendingUploads)
+    .where(lt(litPendingUploads.expiresAt, new Date()));
+  await db
+    .insert(litPendingUploads)
+    .values({
+      objectPath,
+      accessCodeId,
+      expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+    })
+    .onConflictDoUpdate({
+      target: litPendingUploads.objectPath,
+      set: {
+        accessCodeId,
+        expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+      },
+    });
+}
+
+// Atomically consumes the pending-upload row for this path IF it belongs to
+// the caller and has not expired. Returns true when the caller owns it.
+async function consumePendingUpload(
+  objectPath: string,
+  accessCodeId: number,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(litPendingUploads)
+    .where(
+      and(
+        eq(litPendingUploads.objectPath, objectPath),
+        eq(litPendingUploads.accessCodeId, accessCodeId),
+        gt(litPendingUploads.expiresAt, new Date()),
+      ),
+    )
+    .returning({ id: litPendingUploads.id });
+  return deleted.length > 0;
+}
+
+function sessionAccessCodeId(req: Request): number {
+  const sess = req.session as unknown as Record<string, unknown>;
+  return Number(sess.accessCodeId);
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -184,6 +261,7 @@ router.post("/upload-url", requireAuth, async (req, res): Promise<void> => {
       typeof req.body?.fileName === "string" ? req.body.fileName : "upload";
     const uploadURL = await objectStorage.getObjectEntityUploadURL();
     const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
+    await registerPendingUpload(objectPath, sessionAccessCodeId(req));
     logger.info({ fileName, objectPath }, "Issued supporting-doc upload URL");
     return void res.json({ uploadURL, objectPath });
   } catch (err) {
@@ -206,6 +284,8 @@ router.post("/extract-stored", requireAuth, async (req, res): Promise<void> => {
         .json({ error: `Too many files. Maximum ${MAX_FILES} files per upload.` });
     }
 
+    const callerCodeId = sessionAccessCodeId(req);
+
     // Process sequentially so we hold at most one (up to 100MB) file in memory
     // at a time, rather than all five at once — keeps peak RAM bounded.
     const results = [];
@@ -226,6 +306,15 @@ router.post("/extract-stored", requireAuth, async (req, res): Promise<void> => {
       > | null = null;
       try {
         if (!objectPath) throw new Error("Missing file reference.");
+        // Ownership check: only the session that requested the upload URL
+        // may extract (and thereby delete) the stored object. One-time use,
+        // consumed atomically so concurrent requests cannot double-extract.
+        const owned = await consumePendingUpload(objectPath, callerCodeId);
+        if (!owned) {
+          throw new Error(
+            "File reference is invalid or has expired. Please upload the file again.",
+          );
+        }
         objectFile = await objectStorage.getObjectEntityFile(objectPath);
         const [metadata] = await objectFile.getMetadata();
         const size = Number(metadata.size ?? 0);

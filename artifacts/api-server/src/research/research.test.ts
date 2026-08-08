@@ -185,12 +185,20 @@ describe("job queue", () => {
     while (ran && ran.idempotencyKey !== `roundtrip-${RUN_ID}`) {
       ran = await runNextJob(kind);
     }
-    expect(ran).not.toBeNull();
-
-    const [row] = await db
+    // ran === null means a parallel test worker's job loop claimed and ran
+    // our job first — that still exercises the round trip; verify via the DB
+    // row (poll briefly in case the stealer is mid-run).
+    let [row] = await db
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, `roundtrip-${RUN_ID}`));
+    for (let i = 0; i < 20 && row && row.state !== "SUCCEEDED"; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      [row] = await db
+        .select()
+        .from(researchJobs)
+        .where(eq(researchJobs.idempotencyKey, `roundtrip-${RUN_ID}`));
+    }
     expect(row!.state).toBe("SUCCEEDED");
     expect(row!.attempts).toBe(1);
     expect(row!.startedAt).not.toBeNull();

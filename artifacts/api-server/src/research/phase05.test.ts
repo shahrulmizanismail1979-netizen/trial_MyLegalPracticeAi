@@ -53,8 +53,14 @@ const {
   researchUsers,
   researchCandidateReviewActions,
   researchCandidateCoherenceChecks,
+  researchCrossFileRelationships,
+  researchCrossFileSpanSegments,
+  researchPageSections,
+  researchValidationRuns,
+  researchEditorialRuns,
+  researchVerifiedJudgments,
 } = await import("@workspace/db");
-const { eq, like, inArray, and, isNotNull } = await import("drizzle-orm");
+const { eq, like, inArray, and, isNotNull, sql } = await import("drizzle-orm");
 
 // ── Fixture helpers ────────────────────────────────────────────────────────
 
@@ -295,6 +301,15 @@ afterAll(async () => {
   // Clean up all seeded rows in FK-safe order
   if (trackedContainerIds.length === 0) return;
 
+  // FIRST: remove this file's still-queued jobs so parallel test workers
+  // stop processing them mid-cleanup (they insert validation/editorial rows
+  // that break the FK-ordered deletes below). Safe: ids came from the DB.
+  await db.execute(
+    sql.raw(
+      `DELETE FROM research_jobs WHERE state = 'QUEUED' AND (payload->>'containerId')::int IN (${trackedContainerIds.join(",")})`,
+    ),
+  );
+
   const runRows = await db
     .select({ id: researchSegmentationRuns.id })
     .from(researchSegmentationRuns)
@@ -321,9 +336,51 @@ afterAll(async () => {
         .where(inArray(researchCaseCandidateBoundaries.candidateId, candidateIds));
     }
 
-    await db
-      .delete(researchCaseCandidates)
-      .where(inArray(researchCaseCandidates.containerId, trackedContainerIds));
+    // Auto-triggered downstream jobs may have created Phase 06 rows that
+    // reference candidates (by containerId, not just runId) — clear them
+    // before candidates or the delete violates FKs. Other test files running
+    // in parallel share the job queue and can process THIS file's queued
+    // validation jobs mid-cleanup, inserting fresh coherence checks between
+    // our child-delete and the candidate delete — so retry the whole
+    // child-then-parent sequence until it sticks.
+    let candidatesDeleted = false;
+    for (let attempt = 0; attempt < 5 && !candidatesDeleted; attempt++) {
+      const allCandidateRows = await db
+        .select({ id: researchCaseCandidates.id })
+        .from(researchCaseCandidates)
+        .where(inArray(researchCaseCandidates.containerId, trackedContainerIds));
+      const allCandidateIds = allCandidateRows.map((c) => c.id);
+      if (allCandidateIds.length > 0) {
+        await db
+          .delete(researchCrossFileSpanSegments)
+          .where(inArray(researchCrossFileSpanSegments.candidateId, allCandidateIds));
+        await db
+          .delete(researchCrossFileRelationships)
+          .where(inArray(researchCrossFileRelationships.sourceCandidateId, allCandidateIds));
+        await db
+          .delete(researchCrossFileRelationships)
+          .where(inArray(researchCrossFileRelationships.targetCandidateId, allCandidateIds));
+        await db
+          .delete(researchCandidateCoherenceChecks)
+          .where(inArray(researchCandidateCoherenceChecks.candidateId, allCandidateIds));
+        await db
+          .delete(researchCandidateReviewActions)
+          .where(inArray(researchCandidateReviewActions.candidateId, allCandidateIds));
+        await db
+          .delete(researchCaseCandidateBoundaries)
+          .where(inArray(researchCaseCandidateBoundaries.candidateId, allCandidateIds));
+      }
+
+      try {
+        await db
+          .delete(researchCaseCandidates)
+          .where(inArray(researchCaseCandidates.containerId, trackedContainerIds));
+        candidatesDeleted = true;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
 
     const boundaryRows = await db
       .select({ id: researchCaseBoundaries.id })
@@ -352,6 +409,10 @@ afterAll(async () => {
   const pageIds = pageRows.map((p) => p.id);
 
   if (pageIds.length > 0) {
+    // Editorial passes create page sections referencing pages.
+    await db
+      .delete(researchPageSections)
+      .where(inArray(researchPageSections.pageId, pageIds));
     // page blocks and extractions (seeded via INSERT with runId=1)
     const extractionRows = await db
       .select({ id: researchPageExtractions.id })
@@ -384,6 +445,31 @@ afterAll(async () => {
     .delete(researchRightsRecords)
     .where(inArray(researchRightsRecords.containerId, trackedContainerIds));
 
+  // Validation/editorial rows reference jobs and containers — clear them
+  // before jobs/containers (auto-triggered downstream jobs create these).
+  const valRunIds = await db
+    .select({ id: researchValidationRuns.id })
+    .from(researchValidationRuns)
+    .where(inArray(researchValidationRuns.containerId, trackedContainerIds))
+    .then((rows) => rows.map((r) => r.id));
+  if (valRunIds.length > 0) {
+    await db
+      .delete(researchCandidateCoherenceChecks)
+      .where(inArray(researchCandidateCoherenceChecks.validationRunId, valRunIds));
+    await db
+      .delete(researchValidationRuns)
+      .where(inArray(researchValidationRuns.id, valRunIds));
+  }
+  await db
+    .delete(researchVerifiedJudgments)
+    .where(inArray(researchVerifiedJudgments.containerId, trackedContainerIds));
+  await db
+    .delete(researchPageSections)
+    .where(inArray(researchPageSections.containerId, trackedContainerIds));
+  await db
+    .delete(researchEditorialRuns)
+    .where(inArray(researchEditorialRuns.containerId, trackedContainerIds));
+
   // Delete extraction runs (FK: research_extraction_runs.container_id → research_source_containers)
   await db
     .delete(researchExtractionRuns)
@@ -395,9 +481,46 @@ afterAll(async () => {
       .where(inArray(researchJobs.id, trackedJobIds));
   }
 
-  await db
-    .delete(researchSourceContainers)
-    .where(inArray(researchSourceContainers.id, trackedContainerIds));
+  // In-flight jobs from parallel workers can repopulate container-referencing
+  // tables right up to this delete — re-clear them and retry until it sticks.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await db
+        .delete(researchSourceContainers)
+        .where(inArray(researchSourceContainers.id, trackedContainerIds));
+      break;
+    } catch (err) {
+      if (attempt === 4) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await db.delete(researchTransformations)
+        .where(inArray(researchTransformations.containerId, trackedContainerIds));
+      await db.delete(researchReviewItems)
+        .where(inArray(researchReviewItems.containerId, trackedContainerIds));
+      await db.delete(researchRightsRecords)
+        .where(inArray(researchRightsRecords.containerId, trackedContainerIds));
+      await db.delete(researchVerifiedJudgments)
+        .where(inArray(researchVerifiedJudgments.containerId, trackedContainerIds));
+      await db.delete(researchPageSections)
+        .where(inArray(researchPageSections.containerId, trackedContainerIds));
+      await db.delete(researchEditorialRuns)
+        .where(inArray(researchEditorialRuns.containerId, trackedContainerIds));
+      await db.delete(researchExtractionRuns)
+        .where(inArray(researchExtractionRuns.containerId, trackedContainerIds));
+      const lateValRunIds = await db
+        .select({ id: researchValidationRuns.id })
+        .from(researchValidationRuns)
+        .where(inArray(researchValidationRuns.containerId, trackedContainerIds))
+        .then((rows) => rows.map((r) => r.id));
+      if (lateValRunIds.length > 0) {
+        await db
+          .delete(researchCandidateCoherenceChecks)
+          .where(inArray(researchCandidateCoherenceChecks.validationRunId, lateValRunIds));
+        await db
+          .delete(researchValidationRuns)
+          .where(inArray(researchValidationRuns.id, lateValRunIds));
+      }
+    }
+  }
   await db
     .delete(researchUsers)
     .where(

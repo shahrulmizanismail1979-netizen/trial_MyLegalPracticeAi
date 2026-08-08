@@ -24,6 +24,7 @@ export * from "./corp-conversations";
 export * from "./corp-messages";
 export * from "./lit-access-codes";
 export * from "./lit-conversations";
+export * from "./lit-pending-uploads";
 export * from "./lit-messages";
 export * from "./lit-theory";
 export * from "./lit-workflows";

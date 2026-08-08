@@ -30,7 +30,10 @@ const { runNextJob } = await import("./processing");
 const {
   db,
   researchJobs,
+  researchUploadBatchItems,
   researchValidationRuns,
+  researchEditorialRuns,
+  researchVerifiedJudgments,
   researchCandidateCoherenceChecks,
   researchSourceContainers,
   researchSourcePages,
@@ -100,6 +103,49 @@ function unique(bytes: Buffer): Buffer {
 }
 
 const trackedJobIds: number[] = [];
+
+// Deletes jobs after clearing any rows that reference them (validation runs,
+// editorial runs — created by auto-triggered downstream processing, possibly
+// by parallel test workers mid-cleanup), retrying until it sticks.
+async function deleteJobsSafely(jobIds: number[]): Promise<void> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const vrIds = (
+        await db
+          .select({ id: researchValidationRuns.id })
+          .from(researchValidationRuns)
+          .where(inArray(researchValidationRuns.jobId, jobIds))
+      ).map((r) => r.id);
+      if (vrIds.length > 0) {
+        await db
+          .delete(researchCandidateCoherenceChecks)
+          .where(inArray(researchCandidateCoherenceChecks.validationRunId, vrIds));
+        await db
+          .delete(researchValidationRuns)
+          .where(inArray(researchValidationRuns.id, vrIds));
+      }
+      const erIds = (
+        await db
+          .select({ id: researchEditorialRuns.id })
+          .from(researchEditorialRuns)
+          .where(inArray(researchEditorialRuns.jobId, jobIds))
+      ).map((r) => r.id);
+      if (erIds.length > 0) {
+        await db
+          .delete(researchVerifiedJudgments)
+          .where(inArray(researchVerifiedJudgments.editorialRunId, erIds));
+        await db
+          .delete(researchEditorialRuns)
+          .where(inArray(researchEditorialRuns.id, erIds));
+      }
+      await db.delete(researchJobs).where(inArray(researchJobs.id, jobIds));
+      return;
+    } catch (err) {
+      if (attempt === 4) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+}
 async function drainJobs() {
   for (let i = 0; i < 100; i++) {
     const job = await runNextJob();
@@ -283,9 +329,7 @@ afterAll(async () => {
             .delete(researchValidationRuns)
             .where(inArray(researchValidationRuns.id, vrIds));
         }
-        await db
-          .delete(researchJobs)
-          .where(inArray(researchJobs.id, jids));
+        await deleteJobsSafely(jids);
       }
     }
     if (trackedJobIds.length > 0) {
@@ -303,9 +347,19 @@ afterAll(async () => {
           .delete(researchValidationRuns)
           .where(inArray(researchValidationRuns.id, vrIds));
       }
-      await db
-        .delete(researchJobs)
-        .where(inArray(researchJobs.id, trackedJobIds));
+      // drainJobs() can steal other test files' queued jobs (e.g. ingest jobs
+      // referenced by their upload_batch_items) — deleting those violates FKs
+      // and destroys rows the owning file's cleanup expects. Delete only jobs
+      // that nothing references; the owning file cleans up the rest.
+      const referenced = await db
+        .select({ jobId: researchUploadBatchItems.jobId })
+        .from(researchUploadBatchItems)
+        .where(inArray(researchUploadBatchItems.jobId, trackedJobIds));
+      const referencedIds = new Set(referenced.map((r) => r.jobId));
+      const deletableJobIds = trackedJobIds.filter((id) => !referencedIds.has(id));
+      if (deletableJobIds.length > 0) {
+        await deleteJobsSafely(deletableJobIds);
+      }
     }
     await db
       .delete(researchSourceContainers)
@@ -383,6 +437,13 @@ describe("phase 04: native-text extraction", () => {
     const container = await makeExtractionContainer("native-clean.pdf");
     await startExtraction(container.id, `tester-${RUN_ID}`);
     await drainJobs();
+    // A parallel test worker may have claimed our extract job and still be
+    // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
+    for (let poll = 0; poll < 30; poll++) {
+      const c = await getContainer(container.id);
+      if (c!.processingState !== "EXTRACTION_PENDING") break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
     // Second start: container is TEXT_EXTRACTED, so startExtraction refuses.
     await expect(
       startExtraction(container.id, `tester-${RUN_ID}`),
@@ -507,7 +568,17 @@ describe("phase 04: OCR extraction", () => {
       const first = await startExtraction(container.id, `tester-${RUN_ID}`);
       expect(first.jobId).not.toBeNull();
       await drainJobs();
-      const mid = await getContainer(container.id);
+      // A parallel test worker may have claimed our extract job and still be
+      // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
+      let mid = await getContainer(container.id);
+      for (
+        let poll = 0;
+        poll < 30 && mid!.processingState === "EXTRACTION_PENDING";
+        poll++
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        mid = await getContainer(container.id);
+      }
       expect(mid!.processingState).toBe("OCR_REVIEW_REQUIRED");
       const firstRun = await getLatestExtractionRun(container.id);
       firstRunId = firstRun!.id;
@@ -662,6 +733,13 @@ describe("phase 04: web layer (extraction routes + review UI)", () => {
       .expect(202);
     expect(kick.body.jobId).toBeTruthy();
     await drainJobs();
+    // A parallel test worker may have claimed our extract job and still be
+    // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
+    for (let poll = 0; poll < 30; poll++) {
+      const c = await getContainer(container.id);
+      if (c!.processingState !== "EXTRACTION_PENDING") break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     const pagesRes = await request(app)
       .get(`/api/research/containers/${container.id}/pages`)

@@ -70,6 +70,14 @@ const {
   researchCaseBoundaries,
   researchCaseCandidates,
   researchCaseCandidateBoundaries,
+  researchCandidateCoherenceChecks,
+  researchCandidateReviewActions,
+  researchCrossFileRelationships,
+  researchCrossFileSpanSegments,
+  researchPageSections,
+  researchValidationRuns,
+  researchEditorialRuns,
+  researchVerifiedJudgments,
   researchContainerInventories,
 } = await import("@workspace/db");
 const { eq, like, inArray, and, sql, or, desc } = await import("drizzle-orm");
@@ -579,6 +587,24 @@ afterAll(async () => {
         .where(inArray(researchCaseCandidates.containerId, allContainerIds));
       const candidateIds = candidates.map((c) => c.id);
       if (candidateIds.length > 0) {
+        // Auto-triggered downstream jobs may have created Phase 06 rows that
+        // reference candidates — clear them before candidates or the delete
+        // violates FKs.
+        await db
+          .delete(researchCrossFileSpanSegments)
+          .where(inArray(researchCrossFileSpanSegments.candidateId, candidateIds));
+        await db
+          .delete(researchCrossFileRelationships)
+          .where(inArray(researchCrossFileRelationships.sourceCandidateId, candidateIds));
+        await db
+          .delete(researchCrossFileRelationships)
+          .where(inArray(researchCrossFileRelationships.targetCandidateId, candidateIds));
+        await db
+          .delete(researchCandidateCoherenceChecks)
+          .where(inArray(researchCandidateCoherenceChecks.candidateId, candidateIds));
+        await db
+          .delete(researchCandidateReviewActions)
+          .where(inArray(researchCandidateReviewActions.candidateId, candidateIds));
         await db
           .delete(researchCaseCandidateBoundaries)
           .where(inArray(researchCaseCandidateBoundaries.candidateId, candidateIds));
@@ -610,6 +636,10 @@ afterAll(async () => {
         .where(inArray(researchSourcePages.containerId, allContainerIds));
       const pageIds = pages.map((p) => p.id);
       if (pageIds.length > 0) {
+        // Editorial passes create page sections referencing pages.
+        await db
+          .delete(researchPageSections)
+          .where(inArray(researchPageSections.pageId, pageIds));
         const extractions = await db
           .select({ id: researchPageExtractions.id })
           .from(researchPageExtractions)
@@ -674,6 +704,43 @@ afterAll(async () => {
       .where(inArray(researchUploadBatchItems.id, uploadItemIds));
   }
 
+  // Validation/editorial rows reference jobs and containers — clear them
+  // before jobs/containers (auto-triggered downstream jobs create these).
+  // Parallel test files share the job queue and can process this file's
+  // queued jobs mid-cleanup, so retry until it sticks.
+  if (allContainerIds.length > 0) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const valRunIds = await db
+        .select({ id: researchValidationRuns.id })
+        .from(researchValidationRuns)
+        .where(inArray(researchValidationRuns.containerId, allContainerIds))
+        .then((rows) => rows.map((r) => r.id));
+      try {
+        if (valRunIds.length > 0) {
+          await db
+            .delete(researchCandidateCoherenceChecks)
+            .where(inArray(researchCandidateCoherenceChecks.validationRunId, valRunIds));
+          await db
+            .delete(researchValidationRuns)
+            .where(inArray(researchValidationRuns.id, valRunIds));
+        }
+        await db
+          .delete(researchVerifiedJudgments)
+          .where(inArray(researchVerifiedJudgments.containerId, allContainerIds));
+        await db
+          .delete(researchPageSections)
+          .where(inArray(researchPageSections.containerId, allContainerIds));
+        await db
+          .delete(researchEditorialRuns)
+          .where(inArray(researchEditorialRuns.containerId, allContainerIds));
+        break;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+
   // ── Delete ALL jobs that reference our containers or batches ─────────────────
   //
   // This is the comprehensive job cleanup.  Ingest, segment, validate, editorial,
@@ -706,11 +773,40 @@ afterAll(async () => {
     .delete(researchJobs)
     .where(like(researchJobs.idempotencyKey, `%${RUN_ID}%`));
 
-  // Now it is safe to delete containers (batch_items FK cleared above)
+  // Now it is safe to delete containers (batch_items FK cleared above).
+  // In-flight jobs from parallel workers can repopulate container-referencing
+  // tables right up to this delete — re-clear them and retry until it sticks.
   if (allContainerIds.length > 0) {
-    await db
-      .delete(researchSourceContainers)
-      .where(inArray(researchSourceContainers.id, allContainerIds));
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await db
+          .delete(researchSourceContainers)
+          .where(inArray(researchSourceContainers.id, allContainerIds));
+        break;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await db.delete(researchVerifiedJudgments)
+          .where(inArray(researchVerifiedJudgments.containerId, allContainerIds));
+        await db.delete(researchPageSections)
+          .where(inArray(researchPageSections.containerId, allContainerIds));
+        await db.delete(researchEditorialRuns)
+          .where(inArray(researchEditorialRuns.containerId, allContainerIds));
+        const lateValRunIds = await db
+          .select({ id: researchValidationRuns.id })
+          .from(researchValidationRuns)
+          .where(inArray(researchValidationRuns.containerId, allContainerIds))
+          .then((rows) => rows.map((r) => r.id));
+        if (lateValRunIds.length > 0) {
+          await db
+            .delete(researchCandidateCoherenceChecks)
+            .where(inArray(researchCandidateCoherenceChecks.validationRunId, lateValRunIds));
+          await db
+            .delete(researchValidationRuns)
+            .where(inArray(researchValidationRuns.id, lateValRunIds));
+        }
+      }
+    }
   }
   if (batchIds.length > 0) {
     await db
@@ -819,19 +915,28 @@ describe("D01–D06: Upload pipeline at scale", () => {
         )
       ).rows as Array<{ n: number }>;
 
-      // Orphaned RUNNING ingest jobs for our batches
-      const [{ n: orphanedRunning }] = (
-        await db.execute(
-          sql`SELECT count(*)::int AS n FROM research_jobs rj
-              WHERE rj.state = 'RUNNING' AND rj.kind = 'container.ingest'
-              AND rj.id IN (
-                SELECT ubi.job_id FROM research_upload_batch_items ubi
-                INNER JOIN research_upload_batches ub ON ubi.batch_id = ub.id
-                WHERE ub.declared_source LIKE ${"stress-" + RUN_ID + "%"}
-                  AND ubi.job_id IS NOT NULL
-              )`,
-        )
-      ).rows as Array<{ n: number }>;
+      // Orphaned RUNNING ingest jobs for our batches. A parallel test
+      // worker's job loop may have claimed one of our queued ingest jobs and
+      // still be mid-run — that's a transient state, not an orphan. Poll
+      // briefly so only jobs stuck in RUNNING count.
+      let orphanedRunning = 0;
+      for (let poll = 0; poll < 30; poll++) {
+        const [{ n }] = (
+          await db.execute(
+            sql`SELECT count(*)::int AS n FROM research_jobs rj
+                WHERE rj.state = 'RUNNING' AND rj.kind = 'container.ingest'
+                AND rj.id IN (
+                  SELECT ubi.job_id FROM research_upload_batch_items ubi
+                  INNER JOIN research_upload_batches ub ON ubi.batch_id = ub.id
+                  WHERE ub.declared_source LIKE ${"stress-" + RUN_ID + "%"}
+                    AND ubi.job_id IS NOT NULL
+                )`,
+          )
+        ).rows as Array<{ n: number }>;
+        orphanedRunning = n ?? 0;
+        if (orphanedRunning === 0) break;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
 
       M.uploadReliability = {
         total: totalUploaded + totalRejected + totalDuplicates,
