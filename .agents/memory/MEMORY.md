@@ -30,4 +30,5 @@
 - [Chat isolation and upload submitter binding](chat-isolation-upload-binding.md) — CCB/Lit conversations now isolated per access_code_id; requireLitAuth gates lit gemini routes; research containers record uploaded_by from batch.
 - [Upload ownership registry](upload-ownership-registry.md) — presigned-upload ownership must live in a DB table (atomic owner-checked consume), never a process-local Map; ship migration + boot ensure.
 - [Research test cleanup FK race](research-test-cleanup-race.md) — parallel workers process each other's queued jobs mid-cleanup; retry child-then-parent deletes in afterAll.
+- [Practice hub content mapping](practice-hub-content-mapping.md) — map cause papers by exact formNumber (never id or shared order numbers); keep workflow keywords narrow or matters cross-contaminate.
 - [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.

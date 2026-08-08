@@ -118,6 +118,24 @@ export function useUpcomingDeadlines(days = 60) {
   });
 }
 
+export interface MatterWorkItem {
+  id: number;
+  kind: string;
+  title: string;
+  matter: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useMatterWork(matterId: number | null) {
+  return useQuery<MatterWorkItem[]>({
+    queryKey: [...KEY, 'work', matterId],
+    queryFn: () => api(`/${matterId}/work`),
+    enabled: matterId != null,
+  });
+}
+
 export function useDeadlineTriggers() {
   return useQuery<DeadlineTrigger[]>({
     queryKey: [...KEY, 'triggers'],

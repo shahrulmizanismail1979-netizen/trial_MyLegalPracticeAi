@@ -15,6 +15,8 @@ import Admin from "@/pages/Admin";
 import Dashboard from "@/pages/Dashboard";
 import Theory from "@/pages/Theory";
 import Workflows from "@/pages/Workflows";
+import PracticeHub from "@/pages/PracticeHub";
+import PracticeMatter from "@/pages/PracticeMatter";
 import Forms from "@/pages/Forms";
 import Jurisprudence from "@/pages/Jurisprudence";
 import Costs from "@/pages/Costs";
@@ -89,6 +91,8 @@ function Router() {
 
       {/* Protected App Routes */}
       <Route path="/app"><ProtectedRoute component={Dashboard} /></Route>
+      <Route path="/app/practice"><ProtectedRoute component={PracticeHub} /></Route>
+      <Route path="/app/practice/:matterId"><ProtectedRoute component={PracticeMatter} /></Route>
       <Route path="/app/theory"><ProtectedRoute component={Theory} /></Route>
       <Route path="/app/workflows"><ProtectedRoute component={Workflows} /></Route>
       <Route path="/app/forms"><ProtectedRoute component={Forms} /></Route>

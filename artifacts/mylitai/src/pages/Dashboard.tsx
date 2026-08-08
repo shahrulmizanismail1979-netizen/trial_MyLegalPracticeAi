@@ -104,6 +104,23 @@ export default function Dashboard() {
         description="Welcome to MyLitAi. Access your primary modules below or use the AI Senior Counsel for immediate guidance."
       />
 
+      {/* ─── Your Online LA — practice-first entry point ─────────────────── */}
+      <Link href="/app/practice">
+        <div className="cursor-pointer bg-primary/5 border border-primary/25 rounded-xl p-5 hover:bg-primary/10 hover:border-primary/40 transition-all">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-serif font-bold text-lg text-primary">Your Online LA — Work by Matter</p>
+              <p className="text-sm text-muted-foreground mt-1">Pick the file you are handling — Civil Litigation, Insolvency, Banking & Recovery or Enforcement — and get its workflow, checklist, cause papers and AI drafting on one page.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {['Civil Litigation', 'Insolvency', 'Banking & Recovery', 'Enforcement'].map(a => (
+                <span key={a} className="text-xs px-3 py-1.5 rounded-full border border-primary/30 bg-background text-primary font-medium">{a}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Link>
+
       {/* ─── Stats Overview ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">

@@ -15,8 +15,12 @@ import {
   ApiError,
   type MatterDeadline,
   type ComputedDeadline,
+  useMatterWork,
+  type MatterWorkItem,
   type MatterInput,
 } from '@/hooks/use-matters';
+import { findMatter } from '@/data/practice-hub';
+import { ExportButtons } from '@/components/ExportButtons';
 import {
   PageHeader,
   Card,
@@ -45,6 +49,9 @@ import {
   Hash,
   Banknote,
   Clock,
+  FileText,
+  ArrowRight,
+  GitBranch,
 } from 'lucide-react';
 
 const STATUS_OPTIONS = ['active', 'on-hold', 'closed'];
@@ -111,6 +118,10 @@ export default function MatterDetail() {
 
   const [editingDeadline, setEditingDeadline] = useState<MatterDeadline | null>(null);
   const [edForm, setEdForm] = useState({ title: '', dueDate: '', category: 'custom', basis: '', notes: '' });
+
+  const { data: matterWork } = useMatterWork(id);
+  const [viewDoc, setViewDoc] = useState<MatterWorkItem | null>(null);
+  const hubEntry = matter?.matterType ? findMatter(matter.matterType) : null;
 
   if (isLoading) return <div className="p-8 text-center text-primary animate-pulse">Loading matter…</div>;
   if (!matter) {
@@ -287,7 +298,7 @@ export default function MatterDetail() {
 
       <PageHeader
         title={matter.title}
-        description={matter.matterType ? `${matter.matterType}${matter.status ? ` · ${matter.status}` : ''}` : undefined}
+        description={matter.matterType ? `${hubEntry ? `${hubEntry.area.name} — ${hubEntry.matter.name}` : matter.matterType}${matter.status ? ` · ${matter.status}` : ''}` : undefined}
         action={
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2" onClick={openEdit}><Pencil className="h-4 w-4" /> Edit</Button>
@@ -321,6 +332,57 @@ export default function MatterDetail() {
             <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{matter.notes}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Practice hub link — workflow, checklist & next drafts for this file */}
+      {hubEntry && (
+        <Card className="mb-6 border-primary/25 bg-primary/5">
+          <CardContent className="p-5 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <GitBranch className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-serif font-semibold text-foreground">{hubEntry.matter.name} — workflow &amp; checklist</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Continue working this file: the step-by-step workflow, matter checklist and remaining cause papers. Drafts made there are filed straight into this matter.
+                </p>
+              </div>
+            </div>
+            <Link href={`/app/practice/${hubEntry.matter.id}?matter=${matter.id}`}>
+              <Button className="gap-2">Continue drafting <ArrowRight className="h-4 w-4" /></Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Documents filed in this matter */}
+      <div className="flex items-center gap-2 mb-4 mt-8">
+        <FileText className="h-5 w-5 text-primary" />
+        <h2 className="font-serif font-bold text-lg text-foreground">Documents</h2>
+        {(matterWork?.length ?? 0) > 0 && <Badge variant="outline">{matterWork!.length}</Badge>}
+      </div>
+      {(matterWork?.length ?? 0) === 0 ? (
+        <Card className="mb-8">
+          <CardContent className="p-8 text-center">
+            <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              No documents filed yet.{hubEntry ? ' Use “Continue drafting” above — completed drafts are saved into this matter automatically.' : ' Drafts saved from the drafting tools can be filed into this matter.'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+          {matterWork!.map((w) => (
+            <Card key={w.id} className="hover:border-primary/40 transition-colors cursor-pointer" onClick={() => setViewDoc(w)}>
+              <CardContent className="p-4 flex items-start gap-3">
+                <FileText className="h-4 w-4 text-primary mt-1 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-foreground truncate">{w.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Updated {fmtDate(w.updatedAt)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Deadline diary */}
@@ -586,6 +648,20 @@ export default function MatterDetail() {
             <Button className="flex-1" onClick={saveEditDeadline} disabled={updateDeadline.isPending}>Save changes</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* View filed document */}
+      <Modal isOpen={!!viewDoc} onClose={() => setViewDoc(null)} title={viewDoc?.title ?? 'Document'}>
+        {viewDoc && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <ExportButtons title={viewDoc.title} content={viewDoc.content} />
+            </div>
+            <div className="bg-background border border-border rounded-lg p-4 max-h-[55vh] overflow-y-auto">
+              <pre className="text-sm text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed">{viewDoc.content}</pre>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

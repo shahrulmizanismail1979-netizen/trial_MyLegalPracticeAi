@@ -9,6 +9,7 @@ export const translations = {
     'brand.affiliation': 'Faculty of Law, Universiti Kebangsaan Malaysia',
 
     // Navigation
+    'nav.practiceHub': 'Your Online LA',
     'nav.aiChambers': 'AI Chambers',
     'nav.oralAdvocacy': 'Oral Advocacy',
     'nav.subscription': 'Subscription',
@@ -116,6 +117,7 @@ export const translations = {
     'brand.affiliation': 'Fakulti Undang-Undang, Universiti Kebangsaan Malaysia',
 
     // Navigation
+    'nav.practiceHub': 'Your Online LA',
     'nav.aiChambers': 'Kebijakan AI',
     'nav.oralAdvocacy': 'Advokasi Lisan',
     'nav.subscription': 'Langganan',
