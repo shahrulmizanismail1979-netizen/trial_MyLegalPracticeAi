@@ -63,3 +63,6 @@ fixtures/**/*.jpg
 # Auto-generated stress test results
 stress-report.md
 stress-results.json
+
+stress-report.md
+stress-results.json
