@@ -212,9 +212,19 @@ export default function SubscribersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {sub.apps.map(app => (
-                          <Badge key={app} variant="secondary" className="text-[10px] px-1 py-0">{app}</Badge>
-                        ))}
+                        {sub.apps.length === 0 ? (
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] px-1 py-0 bg-red-500/10 text-red-500 border-red-500/20"
+                            title="No portal assigned — this subscriber's access code works nowhere. Edit the subscriber and pick their app to fix it."
+                          >
+                            No portal — assign app
+                          </Badge>
+                        ) : (
+                          sub.apps.map(app => (
+                            <Badge key={app} variant="secondary" className="text-[10px] px-1 py-0">{app}</Badge>
+                          ))
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

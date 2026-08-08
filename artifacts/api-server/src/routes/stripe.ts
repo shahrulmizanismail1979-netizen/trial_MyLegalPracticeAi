@@ -119,6 +119,14 @@ router.post("/checkout", async (req, res) => {
     return;
   }
 
+  // Non-bundle plans cover exactly one portal. Without an appUrl the
+  // provisioning step cannot tell which portal was purchased, leaving the
+  // subscriber with an access code that works nowhere — so require it.
+  if (tier !== "bundle" && !appUrl) {
+    res.status(400).json({ error: "Please choose an AI portal before subscribing." });
+    return;
+  }
+
   const priceId = await getActivePriceIdForTier(tier as CheckoutTier);
   if (!priceId) {
     req.log.error({ tier }, "No active Stripe price found for tier");

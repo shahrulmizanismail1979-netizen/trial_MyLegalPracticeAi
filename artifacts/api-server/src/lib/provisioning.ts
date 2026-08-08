@@ -787,6 +787,21 @@ export async function provisionFromCheckoutSession(
 
   await syncPortalAccessCodes({ accessCode, name, email, apps });
 
+  // Safety net: if the checkout metadata didn't identify a portal, the code
+  // above synced nowhere and the customer can't log in. Flag it loudly so the
+  // owner assigns the purchased portal in the admin panel (editing the
+  // subscriber's apps re-syncs the code automatically).
+  if (apps.length === 0) {
+    logger.error(
+      { subscriberId: subscriber?.id, email, tier },
+      "Provisioned subscriber has no portal assigned — access code is unusable until apps are set in admin",
+    );
+    await db.insert(activityTable).values({
+      type: "needs_portal_assignment",
+      description: `ACTION NEEDED: ${name} (${email}) paid but no portal was recorded — assign their app in Admin > Subscribers so access code ${accessCode} works`,
+    });
+  }
+
   await db.insert(activityTable).values({
     type: "subscriber_added",
     description: `Auto-provisioned subscriber ${name} (${email}) — ${tier ?? "?"}${trial ? " trial" : ""}, access code ${accessCode}`,
