@@ -6,9 +6,34 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { checkStaff } from "../middlewares/requireAdmin";
+import { db, contributionPendingUploadsTable } from "@workspace/db";
+import { lt, sql } from "drizzle-orm";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+// How long an issued upload grant stays valid before the uploader must
+// submit the contribution referencing it.
+const UPLOAD_GRANT_TTL_MS = 2 * 60 * 60 * 1000;
+
+// Idempotent boot-time ensure (mirrors lit/routes/uploads.ts): production
+// applies SQL migrations additively with no automatic runner, so guarantee
+// the grants table exists before the first upload request. Also see
+// lib/db/sql/migrations/0025.
+void db
+  .execute(
+    sql`CREATE TABLE IF NOT EXISTS contribution_pending_uploads (
+      id SERIAL PRIMARY KEY,
+      object_path TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+  )
+  .then(() => {})
+  .catch((err: unknown) =>
+    logger.error({ err }, "Failed to ensure contribution_pending_uploads table"),
+  );
 
 /**
  * POST /storage/uploads/request-url
@@ -29,6 +54,23 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+    // Record the server-issued grant so POST /contributions can prove this
+    // objectPath came from us (and consume it exactly once). Fail closed:
+    // without the grant row, the later submission would be rejected anyway.
+    await db
+      .insert(contributionPendingUploadsTable)
+      .values({
+        objectPath,
+        expiresAt: new Date(Date.now() + UPLOAD_GRANT_TTL_MS),
+      })
+      .onConflictDoNothing();
+
+    // Opportunistic cleanup of long-expired grants.
+    void db
+      .delete(contributionPendingUploadsTable)
+      .where(lt(contributionPendingUploadsTable.expiresAt, new Date(Date.now() - 24 * 60 * 60 * 1000)))
+      .catch(() => {});
 
     res.json(
       RequestUploadUrlResponse.parse({

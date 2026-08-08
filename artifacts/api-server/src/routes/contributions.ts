@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
 import { and, arrayContains, desc, eq, ilike, or, sql } from "drizzle-orm";
-import { db, contributionsTable, activityTable } from "@workspace/db";
+import {
+  db,
+  contributionsTable,
+  activityTable,
+  contributionPendingUploadsTable,
+} from "@workspace/db";
+import { gt } from "drizzle-orm";
 import {
   CreateContributionBody,
   GetContributionResponse,
@@ -30,6 +36,27 @@ router.post("/contributions", async (req, res): Promise<void> => {
   }
 
   const data = parsed.data;
+
+  // The objectPath must be a server-issued upload grant (recorded when the
+  // presigned upload URL was requested). Consume it atomically — one-time
+  // use — so nobody can submit a contribution pointing at an arbitrary or
+  // already-used private object key.
+  const consumed = await db
+    .delete(contributionPendingUploadsTable)
+    .where(
+      and(
+        eq(contributionPendingUploadsTable.objectPath, data.objectPath),
+        gt(contributionPendingUploadsTable.expiresAt, new Date()),
+      ),
+    )
+    .returning({ id: contributionPendingUploadsTable.id });
+
+  if (consumed.length === 0) {
+    res.status(403).json({
+      error: "objectPath was not issued by this server or has expired",
+    });
+    return;
+  }
 
   let extractionStatus: "pending" | "extracted" | "unsupported" | "failed" =
     "pending";

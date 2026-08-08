@@ -32,8 +32,24 @@ vi.mock("../lib/objectStorage", () => {
 
 // Imported after the mock so the singleton in the route uses the mocked storage.
 const { default: app } = await import("../app");
-const { db, contributionsTable } = await import("@workspace/db");
+const { db, contributionsTable, contributionPendingUploadsTable } =
+  await import("@workspace/db");
 const { inArray } = await import("drizzle-orm");
+
+/**
+ * Register a server-issued upload grant for an objectPath, mirroring what
+ * POST /storage/uploads/request-url does. POST /contributions consumes the
+ * grant atomically and rejects paths that were never granted.
+ */
+async function grantUpload(objectPath: string, expiresAt?: Date) {
+  await db
+    .insert(contributionPendingUploadsTable)
+    .values({
+      objectPath,
+      expiresAt: expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+    })
+    .onConflictDoNothing();
+}
 
 /** Build a minimal but valid single-page PDF whose text layer is extractable. */
 function buildPdf(textContent: string): Buffer {
@@ -72,12 +88,14 @@ const contributorEmail = `e2e-${RUN_ID}@example.test`;
 const createdIds: number[] = [];
 
 describe("contribution upload + extraction + knowledge-base (e2e)", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     fileRegistry.set(`/objects/uploads/${RUN_ID}-pdf`, buildPdf(PDF_TEXT));
     fileRegistry.set(
       `/objects/uploads/${RUN_ID}-txt`,
       Buffer.from(TXT_TEXT, "utf-8"),
     );
+    await grantUpload(`/objects/uploads/${RUN_ID}-pdf`);
+    await grantUpload(`/objects/uploads/${RUN_ID}-txt`);
   });
 
   afterAll(async () => {
@@ -86,6 +104,11 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
         .delete(contributionsTable)
         .where(inArray(contributionsTable.id, createdIds));
     }
+    // Remove any grants this run created but never consumed.
+    const { like } = await import("drizzle-orm");
+    await db
+      .delete(contributionPendingUploadsTable)
+      .where(like(contributionPendingUploadsTable.objectPath, `%${RUN_ID}%`));
   });
 
   it("extracts text from an uploaded PDF via the real pdf-parse pipeline", async () => {
@@ -161,6 +184,7 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
 
   it("accepts multiple categories and filters knowledge-base by any of them", async () => {
     fileRegistry.set(`/objects/uploads/${RUN_ID}-multi`, Buffer.from("Multi-category doc"));
+    await grantUpload(`/objects/uploads/${RUN_ID}-multi`);
 
     const res = await request(app)
       .post("/api/contributions")
@@ -197,6 +221,63 @@ describe("contribution upload + extraction + knowledge-base (e2e)", () => {
       .query({ category: "Conveyancing" });
     expect(nonMatching.status).toBe(200);
     expect(nonMatching.body.map((e: { id: number }) => e.id)).not.toContain(res.body.id);
+  });
+
+  it("rejects an objectPath the server never issued (403)", async () => {
+    // The object exists in storage, but no upload grant was ever issued for
+    // it — e.g. an attacker who learned somebody else's private object key.
+    const unownedPath = `/objects/uploads/${RUN_ID}-unowned`;
+    fileRegistry.set(unownedPath, Buffer.from("secret document"));
+
+    const res = await request(app)
+      .post("/api/contributions")
+      .send({
+        title: `Unowned Path ${RUN_ID}`,
+        categories: ["Litigation"],
+        contributorName: "E2E Tester",
+        contributorEmail,
+        fileName: "secret.txt",
+        objectPath: unownedPath,
+        contentType: "text/plain",
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/not issued|expired/i);
+  });
+
+  it("rejects reuse of an already-consumed grant (one-time use)", async () => {
+    // The PDF grant above was consumed by the first successful submission.
+    const res = await request(app)
+      .post("/api/contributions")
+      .send({
+        title: `Replay ${RUN_ID}`,
+        categories: ["Litigation"],
+        contributorName: "E2E Tester",
+        contributorEmail,
+        fileName: "sample.pdf",
+        objectPath: `/objects/uploads/${RUN_ID}-pdf`,
+        contentType: "application/pdf",
+      });
+    expect(res.status).toBe(403);
+  });
+
+  it("rejects an expired grant (403)", async () => {
+    const expiredPath = `/objects/uploads/${RUN_ID}-expired`;
+    fileRegistry.set(expiredPath, Buffer.from("expired doc"));
+    await grantUpload(expiredPath, new Date(Date.now() - 1000));
+
+    const res = await request(app)
+      .post("/api/contributions")
+      .send({
+        title: `Expired Grant ${RUN_ID}`,
+        categories: ["Litigation"],
+        contributorName: "E2E Tester",
+        contributorEmail,
+        fileName: "expired.txt",
+        objectPath: expiredPath,
+        contentType: "text/plain",
+      });
+    expect(res.status).toBe(403);
   });
 
   it("rejects a contribution with no categories", async () => {
