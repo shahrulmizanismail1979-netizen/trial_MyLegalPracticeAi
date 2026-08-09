@@ -90,7 +90,7 @@ function Router() {
       </Route>
 
       {/* Protected App Routes */}
-      <Route path="/app"><ProtectedRoute component={Dashboard} /></Route>
+      <Route path="/app"><Redirect to="/app/matters" /></Route>
       <Route path="/app/practice"><ProtectedRoute component={PracticeHub} /></Route>
       <Route path="/app/practice/:matterId"><ProtectedRoute component={PracticeMatter} /></Route>
       <Route path="/app/theory"><ProtectedRoute component={Theory} /></Route>

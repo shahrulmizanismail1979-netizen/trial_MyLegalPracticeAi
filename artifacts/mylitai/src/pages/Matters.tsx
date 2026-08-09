@@ -5,6 +5,7 @@ import {
   useCreateMatter,
   ApiError,
   type MatterInput,
+  daysUntil,
 } from '@/hooks/use-matters';
 import {
   PageHeader,
@@ -27,6 +28,9 @@ import {
   Building2,
   Hash,
   Sparkles,
+  CalendarClock,
+  AlertTriangle,
+  CircleCheck,
 } from 'lucide-react';
 
 const MATTER_TYPES = [
@@ -53,14 +57,44 @@ const COURTS = [
   'Federal Court',
 ];
 
+const LIT_STAGES = ['Pre-Trial', 'Trial', 'Judgment', 'Appeal', 'Closed'];
+
 const STATUS_META: Record<string, { label: string; color: string }> = {
   active: { label: 'Active', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   'on-hold': { label: 'On Hold', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   closed: { label: 'Closed', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
+  'Pre-Trial': { label: 'Pre-Trial', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  Trial: { label: 'Trial', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+  Judgment: { label: 'Judgment', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  Appeal: { label: 'Appeal', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+  Closed: { label: 'Closed', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
 };
 
 function statusMeta(s: string) {
   return STATUS_META[s] ?? STATUS_META.active;
+}
+
+function formatMoney(v: string | null) {
+  if (!v) return null;
+  const n = Number(v);
+  if (Number.isNaN(n)) return null;
+  return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR', maximumFractionDigits: 0 }).format(n);
+}
+
+function NextDeadlineBadge({ deadlines }: { deadlines?: { dueDate: string; title: string; status: string }[] }) {
+  if (!deadlines?.length) return null;
+  const pending = deadlines.filter(d => d.status !== 'done');
+  if (!pending.length) return <span className="text-[10px] text-emerald-400 flex items-center gap-1"><CircleCheck className="h-3 w-3" /> All done</span>;
+  const next = pending.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+  const d = daysUntil(next.dueDate);
+  if (d < 0) return (
+    <span className="text-[10px] font-bold text-red-400 flex items-center gap-1 truncate">
+      <AlertTriangle className="h-3 w-3 shrink-0" />{next.title.slice(0, 24)} — {Math.abs(d)}d overdue
+    </span>
+  );
+  if (d === 0) return <span className="text-[10px] font-bold text-red-400 flex items-center gap-1 truncate"><CalendarClock className="h-3 w-3 shrink-0" /> {next.title.slice(0, 24)} — due today</span>;
+  if (d <= 7) return <span className="text-[10px] font-semibold text-amber-400 flex items-center gap-1 truncate"><CalendarClock className="h-3 w-3 shrink-0" /> {next.title.slice(0, 24)} — in {d}d</span>;
+  return <span className="text-[10px] text-muted-foreground flex items-center gap-1 truncate"><CalendarClock className="h-3 w-3 shrink-0" /> {next.title.slice(0, 24)} — in {d}d</span>;
 }
 
 const EMPTY: MatterInput = {
@@ -76,13 +110,6 @@ const EMPTY: MatterInput = {
   status: 'active',
   notes: '',
 };
-
-function formatMoney(v: string | null) {
-  if (!v) return null;
-  const n = Number(v);
-  if (Number.isNaN(n)) return null;
-  return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR', maximumFractionDigits: 0 }).format(n);
-}
 
 export default function Matters() {
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -102,7 +129,7 @@ export default function Matters() {
     }
     try {
       await createMatter.mutateAsync(form);
-      toast({ title: 'Matter created', description: `“${form.title}” is now in your workspace.` });
+      toast({ title: 'Matter created', description: `"${form.title}" is now in your workspace.` });
       setOpen(false);
       setForm(EMPTY);
     } catch (e) {
@@ -119,12 +146,23 @@ export default function Matters() {
   };
 
   const list = matters ?? [];
+  // Sort by most-recently-updated for the default "All" view
+  const sorted = statusFilter ? list : [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  // Filter labels — include stage names too
+  const allStages = ['', 'active', 'on-hold', ...LIT_STAGES];
+  const filterLabels: Record<string, string> = {
+    '': 'All',
+    active: 'Active',
+    'on-hold': 'On Hold',
+    ...Object.fromEntries(LIT_STAGES.map(s => [s, s])),
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader
         title="Matters"
-        description="Your case files. Each matter holds the parties, suit number, claim and a live deadline diary — so every limitation date and procedural step lives in one place."
+        description="Your active case files. Open a matter to access AI insights, the procedural checklist, deadline diary, and drafting tools — all in one place."
         action={
           <Button onClick={() => setOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" /> New Matter
@@ -132,8 +170,8 @@ export default function Matters() {
         }
       />
 
-      <div className="flex items-center gap-2 mb-6">
-        {['', 'active', 'on-hold', 'closed'].map((s) => (
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {allStages.map((s) => (
           <button
             key={s || 'all'}
             onClick={() => setStatusFilter(s)}
@@ -143,21 +181,20 @@ export default function Matters() {
                 : 'text-muted-foreground border-border hover:border-primary/30'
             }`}
           >
-            {s === '' ? 'All' : statusMeta(s).label}
+            {filterLabels[s]}
           </button>
         ))}
       </div>
 
       {isLoading ? (
         <div className="p-8 text-center text-primary animate-pulse">Loading your matters…</div>
-      ) : list.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <Briefcase className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
             <h3 className="text-lg font-serif font-semibold text-foreground mb-1">No matters yet</h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-              Open a matter for each case you act in. Record the parties and suit number, then build a deadline
-              diary from ROC 2012 triggers — service, appearance, defence, O.14, set-down and more.
+              Open a matter for each case you act in. Record the parties and suit number, then use AI to generate a procedural checklist, get case insights, and track every deadline automatically.
             </p>
             <Button onClick={() => setOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" /> Create your first matter
@@ -166,7 +203,7 @@ export default function Matters() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {list.map((m) => {
+          {sorted.map((m) => {
             const sm = statusMeta(m.status);
             const money = formatMoney(m.claimAmount);
             return (
@@ -178,7 +215,7 @@ export default function Matters() {
                         {sm.label}
                       </span>
                       {m.matterType && (
-                        <span className="text-[10px] text-muted-foreground font-medium">{m.matterType}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{m.matterType}</span>
                       )}
                     </div>
                     <h3 className="font-serif font-bold text-base text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
@@ -204,6 +241,10 @@ export default function Matters() {
                         </div>
                       )}
                     </div>
+                    {/* Next deadline countdown */}
+                    <div className="pt-1 border-t border-border/50">
+                      <NextDeadlineBadge deadlines={(m as { deadlines?: { dueDate: string; title: string; status: string }[] }).deadlines} />
+                    </div>
                     {money && (
                       <Badge variant="outline" className="self-start">{money}</Badge>
                     )}
@@ -223,7 +264,7 @@ export default function Matters() {
           <div className="flex items-start gap-2 bg-primary/5 border border-primary/15 rounded-lg p-3">
             <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground">
-              Only a title is required. You can fill the rest now or later — and add deadlines once the matter is open.
+              Only a title is required. Once created, AI will auto-generate a procedural checklist and you can add deadlines, documents, and case insights.
             </p>
           </div>
 
