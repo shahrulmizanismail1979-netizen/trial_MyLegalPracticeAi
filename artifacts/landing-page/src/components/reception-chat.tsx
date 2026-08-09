@@ -157,21 +157,21 @@ export function ReceptionChat() {
   return (
     <section
       id="reception"
-      className="relative px-6 lg:px-8 max-w-3xl mx-auto -mt-6 md:-mt-10 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200"
+      className="relative px-6 lg:px-8 max-w-4xl mx-auto -mt-6 md:-mt-10 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200"
     >
-      <div className="rounded-2xl border border-primary/25 bg-card/80 backdrop-blur shadow-[0_0_50px_rgba(99,149,224,0.10)] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60 bg-secondary/40">
-          <div className="h-9 w-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
-            <Sparkles className="h-4 w-4" />
+      <div className="rounded-2xl border border-primary/25 bg-card/80 backdrop-blur shadow-[0_0_60px_rgba(99,149,224,0.12)] overflow-hidden">
+        <div className="flex items-center gap-4 px-6 py-5 border-b border-border/60 bg-secondary/40">
+          <div className="h-11 w-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+            <Sparkles className="h-5 w-5" />
           </div>
           <div className="text-left">
-            <p className="font-serif font-semibold leading-tight">AI Reception Counter</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-serif text-base font-semibold leading-tight">AI Reception Counter</p>
+            <p className="text-sm text-muted-foreground">
               Happy to help with anything — portals, pricing, free trial, free access. English /
               Bahasa Malaysia.
             </p>
           </div>
-          <span className="ml-auto flex items-center gap-1.5 text-xs text-primary">
+          <span className="ml-auto flex items-center gap-1.5 text-sm text-primary shrink-0">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
@@ -182,7 +182,7 @@ export function ReceptionChat() {
 
         <div
           ref={scrollRef}
-          className="max-h-96 overflow-y-auto px-5 py-4 space-y-4 text-sm text-left"
+          className="max-h-[28rem] overflow-y-auto px-6 py-5 space-y-4 text-base text-left"
           aria-live="polite"
         >
           {showGreeting && (
@@ -244,7 +244,7 @@ export function ReceptionChat() {
         </div>
 
         {showGreeting && (
-          <div className="flex flex-wrap gap-2 px-5 pb-3">
+          <div className="flex flex-wrap gap-2 px-6 pb-4">
             {SUGGESTIONS.map((suggestion) => (
               <button
                 key={suggestion}
@@ -259,7 +259,7 @@ export function ReceptionChat() {
         )}
 
         <form
-          className="flex items-center gap-2 border-t border-border/60 px-4 py-3 bg-secondary/30"
+          className="flex items-center gap-2 border-t border-border/60 px-5 py-4 bg-secondary/30"
           onSubmit={(e) => {
             e.preventDefault();
             void send(input);
@@ -270,14 +270,14 @@ export function ReceptionChat() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask me anything — I'm happy to help…"
             maxLength={4000}
-            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground/70 px-2 py-1.5"
+            className="flex-1 bg-transparent outline-none text-base placeholder:text-muted-foreground/70 px-2 py-2"
             aria-label="Ask the AI reception counter"
           />
           <Button
             type="submit"
             size="sm"
             disabled={streaming || input.trim() === ""}
-            className="rounded-full h-9 w-9 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="rounded-full h-10 w-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
             aria-label="Send message"
           >
             <SendHorizonal className="h-4 w-4" />

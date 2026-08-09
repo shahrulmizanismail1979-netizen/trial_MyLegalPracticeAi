@@ -124,8 +124,8 @@
   --chart-4: 330 55% 68%; /* rose pink */
   --chart-5: 35 70% 62%;  /* warm amber */
 
-  --app-font-sans: "Inter", sans-serif;
-  --app-font-serif: "Playfair Display", serif;
+  --app-font-sans: "Plus Jakarta Sans", sans-serif;
+  --app-font-serif: "Lora", serif;
   --app-font-mono: "Space Mono", monospace;
 
   --radius: 0.5rem;

@@ -17,10 +17,9 @@ export function Hero() {
           Malaysia's First AI-Powered Virtual Paralegal
         </div>
         
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold tracking-tight mb-8 leading-[1.1]">
-          AI Virtual Paralegals <br className="hidden md:block" />
-          <span className="text-gradient-gold">for the Malaysian</span>
-          <br className="hidden md:block" /> Legal Profession
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold tracking-tight mb-8 leading-[1.15]" style={{ textWrap: "balance" }}>
+          AI Virtual Paralegals{" "}
+          <span className="text-gradient-gold">for the Malaysian Legal Profession</span>
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
