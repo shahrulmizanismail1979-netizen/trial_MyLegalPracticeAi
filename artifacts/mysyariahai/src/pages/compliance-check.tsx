@@ -15,7 +15,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+
 const API_BASE = "/api/sya";
+
+function formatComplianceText(result: any, t: (en: string, bm: string) => string): string {
+  const lines: string[] = [];
+  if (result.overallVerdict) {
+    lines.push(`${t("Verdict", "Keputusan")}: ${String(result.overallVerdict).replace(/_/g, " ")}${result.complianceScore != null ? ` (${result.complianceScore}/10)` : ""}`);
+  }
+  if (result.summary) {
+    lines.push(result.summary, "");
+  }
+  if (result.prohibitedElements?.length) {
+    lines.push(t("Prohibited Elements Check:", "Semakan Elemen Larangan:"));
+    for (const pe of result.prohibitedElements) {
+      lines.push(`- ${pe.element}${pe.arabicTerm ? ` (${pe.arabicTerm})` : ""}: ${pe.detected ? t("DETECTED", "DIKESAN") : t("Not detected", "Tidak dikesan")}${pe.severity ? ` — ${pe.severity}` : ""}`);
+      if (pe.details) lines.push(`  ${pe.details}`);
+    }
+    lines.push("");
+  }
+  if (result.shariahPrinciples?.length) {
+    lines.push(t("Shariah Principles:", "Prinsip Syariah:"));
+    for (const sp of result.shariahPrinciples) {
+      lines.push(`- ${sp.principle}${sp.arabicTerm ? ` (${sp.arabicTerm})` : ""}: ${sp.status}`);
+      if (sp.explanation) lines.push(`  ${sp.explanation}`);
+    }
+    lines.push("");
+  }
+  if (result.modifications?.length) {
+    lines.push(t("Required Modifications:", "Pengubahsuaian Diperlukan:"));
+    for (const mod of result.modifications) {
+      lines.push(`- [${mod.priority}] ${mod.issue}`);
+      if (mod.currentState) lines.push(`  ${t("Current", "Semasa")}: ${mod.currentState}`);
+      if (mod.requiredChange) lines.push(`  ${t("Required", "Diperlukan")}: ${mod.requiredChange}`);
+    }
+    lines.push("");
+  }
+  if (result.practicalAdvice) {
+    lines.push(`${t("Practical Advice", "Nasihat Praktikal")}: ${result.practicalAdvice}`);
+  }
+  return lines.join("\n").trim();
+}
 
 const VERDICT_COLORS: Record<string, string> = {
   "COMPLIANT": "bg-emerald-900/30 text-emerald-400 border-emerald-800",
@@ -282,6 +323,17 @@ function ComplianceCheckPageInner() {
                   <p className="text-xs text-muted-foreground italic">{t("AI-generated compliance assessment. Consult qualified Shariah advisors for binding opinions.", "Penilaian pematuhan dijana AI. Rujuk penasihat Syariah berkelayakan untuk pendapat mengikat.")}</p>
                 </CardContent>
               </Card>
+
+              <SaveToMatterPanel
+                draftTitle={
+                  (txTypes?.find((tt: any) => tt.id === transactionType)
+                    ? `${t("Compliance Check", "Semakan Pematuhan")}: ${mode === "bm" ? txTypes.find((tt: any) => tt.id === transactionType).titleBm : txTypes.find((tt: any) => tt.id === transactionType).titleEn}`
+                    : t("Shariah Compliance Check", "Semakan Pematuhan Syariah"))
+                }
+                draftContent={formatComplianceText(result, t)}
+                parties={partiesInvolved || undefined}
+                kind="compliance"
+              />
             </div>
           )}
 

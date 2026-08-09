@@ -34,6 +34,7 @@ const {
   researchValidationRuns,
   researchEditorialRuns,
   researchVerifiedJudgments,
+  researchPageSections,
   researchCandidateCoherenceChecks,
   researchSourceContainers,
   researchSourcePages,
@@ -134,6 +135,10 @@ async function deleteJobsSafely(jobIds: number[]): Promise<void> {
         await db
           .delete(researchVerifiedJudgments)
           .where(inArray(researchVerifiedJudgments.editorialRunId, erIds));
+        await db
+          .update(researchPageSections)
+          .set({ editorialRunId: null })
+          .where(inArray(researchPageSections.editorialRunId, erIds));
         await db
           .delete(researchEditorialRuns)
           .where(inArray(researchEditorialRuns.id, erIds));

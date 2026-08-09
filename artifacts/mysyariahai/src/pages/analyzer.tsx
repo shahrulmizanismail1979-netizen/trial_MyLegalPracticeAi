@@ -7,6 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+
+function formatAnalyzerText(result: AnalysisResult, t: (en: string, bm: string) => string): string {
+  const lines: string[] = [];
+  if (result.summary) lines.push(result.summary, "");
+  if (result.quranicVerses?.length) {
+    lines.push(t("Quranic Verses:", "Ayat Al-Quran:"));
+    for (const v of result.quranicVerses) lines.push(`- ${v.reference}: ${v.relevance}`);
+    lines.push("");
+  }
+  if (result.fatwas?.length) {
+    lines.push(t("Fatwas:", "Fatwa:"));
+    for (const f of result.fatwas) lines.push(`- ${f.title}: ${f.relevance}`);
+    lines.push("");
+  }
+  if (result.provisions?.length) {
+    lines.push(t("Statutory Provisions:", "Peruntukan Statut:"));
+    for (const p of result.provisions) lines.push(`- ${p.title}: ${p.relevance}`);
+    lines.push("");
+  }
+  if (result.cases?.length) {
+    lines.push(t("Case Law:", "Kes Undang-Undang:"));
+    for (const c of result.cases) lines.push(`- ${c.caseName}${c.citation ? ` (${c.citation})` : ""}: ${c.relevance}`);
+    lines.push("");
+  }
+  if (result.practicalAdvice) lines.push(`${t("Practical Advice", "Nasihat Praktikal")}: ${result.practicalAdvice}`);
+  return lines.join("\n").trim();
+}
 
 interface AnalysisResult {
   summary: string;
@@ -46,7 +74,7 @@ const SUGGESTED_SCENARIOS = [
 ];
 
 export default function AnalyzerPage() {
-  const { t, mode } = useLanguage();
+  const { t, ts, mode } = useLanguage();
   const [, setLocation] = useLocation();
   const [situation, setSituation] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -460,6 +488,12 @@ export default function AnalyzerPage() {
           {result.disclaimer && (
             <p className="text-xs text-muted-foreground italic text-center">{result.disclaimer}</p>
           )}
+
+          <SaveToMatterPanel
+            draftTitle={ts("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}
+            draftContent={formatAnalyzerText(result, ts)}
+            kind="analysis"
+          />
 
           <div className="flex justify-center">
             <Button

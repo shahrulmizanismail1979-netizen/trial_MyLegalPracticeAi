@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { tierHasFeature } from "@/lib/tiers";
 import UpgradePrompt from "@/components/upgrade-prompt";
 import ExportActions from "@/components/export-actions";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -193,6 +194,15 @@ function LegalOpinionPageInner() {
                 <p className="text-xs text-muted-foreground italic mt-3">
                   {t("AI-generated legal opinion. Must be reviewed and verified by qualified counsel before use.", "Pendapat undang-undang dijana AI. Mesti disemak dan disahkan oleh peguam berkelayakan sebelum digunakan.")}
                 </p>
+                {!generating && (
+                  <div className="mt-3">
+                    <SaveToMatterPanel
+                      draftTitle={t("Legal Opinion", "Pendapat Undang-Undang")}
+                      draftContent={generatedOpinion}
+                      kind="opinion"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : generating ? (

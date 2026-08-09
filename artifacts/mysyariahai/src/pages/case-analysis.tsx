@@ -11,8 +11,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 const API_BASE = "/api/sya";
+
+function formatAnalysisText(result: any, t: (en: string, bm: string) => string): string {
+  const lines: string[] = [];
+  if (result.strengthAssessment) {
+    lines.push(`${t("Strength Assessment", "Penilaian Kekuatan")}: ${result.strengthAssessment.overall ?? ""} (${result.strengthAssessment.score ?? "?"}/10)`);
+    if (result.strengthAssessment.reasoning) lines.push(result.strengthAssessment.reasoning);
+    lines.push("");
+  }
+  if (result.predictedOutcomes?.length) {
+    lines.push(t("Predicted Outcomes:", "Keputusan Yang Diramalkan:"));
+    for (const po of result.predictedOutcomes) {
+      lines.push(`- [${po.probability}] ${po.outcome}`);
+      if (po.basis) lines.push(`  ${po.basis}`);
+    }
+    lines.push("");
+  }
+  if (result.precedentCases?.length) {
+    lines.push(t("Precedent Cases:", "Kes Terdahulu:"));
+    for (const pc of result.precedentCases) {
+      lines.push(`- ${pc.caseName}${pc.citation ? ` (${pc.citation})` : ""}`);
+      if (pc.applicability) lines.push(`  ${pc.applicability}`);
+    }
+    lines.push("");
+  }
+  const sa = result.strategicAdvice;
+  if (sa) {
+    lines.push(t("Strategic Advice:", "Nasihat Strategik:"));
+    if (sa.strengths?.length) lines.push(`${t("Strengths", "Kekuatan")}: ${sa.strengths.join("; ")}`);
+    if (sa.weaknesses?.length) lines.push(`${t("Weaknesses", "Kelemahan")}: ${sa.weaknesses.join("; ")}`);
+    if (sa.recommendations?.length) lines.push(`${t("Recommendations", "Cadangan")}: ${sa.recommendations.join("; ")}`);
+    if (sa.evidenceNeeded?.length) lines.push(`${t("Evidence Needed", "Bukti Diperlukan")}: ${sa.evidenceNeeded.join("; ")}`);
+  }
+  return lines.join("\n").trim();
+}
 
 const CASE_TYPES = [
   { value: "nafkah", labelEn: "Nafkah (Maintenance)", labelBm: "Nafkah" },
@@ -253,6 +288,14 @@ export default function CaseAnalysisPage() {
                   </p>
                 </CardContent>
               </Card>
+
+              <SaveToMatterPanel
+                draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}
+                draftContent={formatAnalysisText(result, t)}
+                parties={parties || undefined}
+                kind="analysis"
+                matterType={caseType || undefined}
+              />
             </div>
           )}
 
