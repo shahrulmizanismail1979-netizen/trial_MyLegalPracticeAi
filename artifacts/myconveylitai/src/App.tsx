@@ -26,7 +26,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function AuthRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated } = useApp();
   if (isAuthenticated) {
-    return <Redirect to="/dashboard" />;
+    // Redirect authenticated users to matters (case-centric home)
+    return <Redirect to="/matters" />;
   }
   return <Component />;
 }
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/pricing">
         <Pricing />
       </Route>
+      {/* /dashboard is the AI workspace — still accessible after login */}
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
       </Route>

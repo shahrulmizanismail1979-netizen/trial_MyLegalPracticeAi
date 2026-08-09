@@ -60,6 +60,70 @@ export type DeadlineInput = {
   status?: string;
 };
 
+// ── Case intelligence types ────────────────────────────────────────────────────
+
+export interface CaseNextStep {
+  action: string;
+  suggestedDeadline?: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface CaseRiskAssessment {
+  rating: "Low" | "Medium" | "High";
+  keyStrengths: string[];
+  keyWeaknesses: string[];
+}
+
+export interface CaseInsights {
+  nextSteps: CaseNextStep[];
+  caseSummary: string;
+  riskAssessment: CaseRiskAssessment;
+  cachedAt: string;
+  expiresAt: string;
+}
+
+export interface ChecklistItem {
+  id: number;
+  text: string;
+  done: boolean;
+  position: number;
+  createdAt: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  description: string;
+  minutes: number;
+  rate_usd: number | null;
+  entry_date: string;
+  created_at: string;
+}
+
+export interface TimeEntriesResult {
+  entries: TimeEntry[];
+  totalMinutes: number;
+}
+
+export interface StageHistoryItem {
+  id: number;
+  from_stage: string | null;
+  to_stage: string;
+  changed_at: string;
+}
+
+export interface CaseClient {
+  id: number;
+  name: string;
+  ic_number: string | null;
+  company_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -69,12 +133,35 @@ class ApiError extends Error {
 }
 export { ApiError };
 
-async function api(path: string, init?: RequestInit) {
+function authHeaders(): Record<string, string> {
   const token = localStorage.getItem("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${API_BASE}/api/corp/matters${path}`, {
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...authHeaders(),
+    },
+    ...init,
+  });
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new ApiError(
+      (msg as { error?: string }).error || `Request failed (${res.status})`,
+      res.status,
+    );
+  }
+  if (res.status === 204) return undefined;
+  return res.json();
+}
+
+async function clientsApi(path: string, init?: RequestInit) {
+  const res = await fetch(`${API_BASE}/api/corp/clients${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
     },
     ...init,
   });
@@ -90,6 +177,12 @@ async function api(path: string, init?: RequestInit) {
 
 const KEY = ["matters"];
 const upcomingKey = ["matters", "upcoming"];
+
+function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: KEY });
+}
+
+// ── Matter queries ─────────────────────────────────────────────────────────────
 
 export function useMatters(status?: string) {
   return useQuery<Matter[]>({
@@ -121,9 +214,7 @@ export function useMatterWork(matterId: number | null) {
   });
 }
 
-function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: KEY });
-}
+// ── Matter mutations ───────────────────────────────────────────────────────────
 
 export function useCreateMatter() {
   const qc = useQueryClient();
@@ -151,6 +242,8 @@ export function useDeleteMatter() {
     onSuccess: () => invalidateAll(qc),
   });
 }
+
+// ── Deadline mutations ─────────────────────────────────────────────────────────
 
 export function useAddDeadline() {
   const qc = useQueryClient();
@@ -183,6 +276,131 @@ export function useDeleteDeadline() {
   });
 }
 
+// ── Stage management ───────────────────────────────────────────────────────────
+
+export function useStageHistory(matterId: number | null) {
+  return useQuery<StageHistoryItem[]>({
+    queryKey: [...KEY, "stage-history", matterId],
+    queryFn: () => api(`/${matterId}/stage-history`),
+    enabled: matterId != null,
+  });
+}
+
+export function useUpdateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, stage }: { id: number; stage: string }) =>
+      api(`/${id}/status`, { method: "PATCH", body: JSON.stringify({ stage }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── AI insights ────────────────────────────────────────────────────────────────
+
+export function useAiInsights(matterId: number | null, enabled = true) {
+  return useQuery<CaseInsights>({
+    queryKey: [...KEY, "ai-insights", matterId],
+    queryFn: () => api(`/${matterId}/ai-insights`),
+    enabled: enabled && matterId != null,
+    staleTime: 1000 * 60 * 60 * 6,
+    retry: 1,
+  });
+}
+
+// ── Checklist ──────────────────────────────────────────────────────────────────
+
+export function useChecklist(matterId: number | null) {
+  return useQuery<ChecklistItem[]>({
+    queryKey: [...KEY, "checklist", matterId],
+    queryFn: () => api(`/${matterId}/checklist`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, text }: { matterId: number; text: string }) =>
+      api(`/${matterId}/checklist`, { method: "POST", body: JSON.stringify({ text }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useUpdateChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, itemId, done, text }: { matterId: number; itemId: number; done?: boolean; text?: string }) =>
+      api(`/${matterId}/checklist/${itemId}`, { method: "PATCH", body: JSON.stringify({ done, text }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, itemId }: { matterId: number; itemId: number }) =>
+      api(`/${matterId}/checklist/${itemId}`, { method: "DELETE" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Time recording ─────────────────────────────────────────────────────────────
+
+export function useTimeEntries(matterId: number | null) {
+  return useQuery<TimeEntriesResult>({
+    queryKey: [...KEY, "time", matterId],
+    queryFn: () => api(`/${matterId}/time-entries`),
+    enabled: matterId != null,
+  });
+}
+
+export function useLogTime() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, ...input }: { matterId: number; description: string; minutes: number; entry_date: string }) =>
+      api(`/${matterId}/time-entries`, { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteTimeEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, entryId }: { matterId: number; entryId: number }) =>
+      api(`/${matterId}/time-entries/${entryId}`, { method: "DELETE" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Clients ────────────────────────────────────────────────────────────────────
+
+export function useClients() {
+  return useQuery<CaseClient[]>({
+    queryKey: [...KEY, "clients"],
+    queryFn: () => clientsApi(""),
+  });
+}
+
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; company_name?: string; email?: string; phone?: string; notes?: string }) =>
+      clientsApi("", { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (clientId: number) =>
+      clientsApi(`/${clientId}`, { method: "DELETE" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 export const DEADLINE_CATEGORY_META: Record<string, { label: string; color: string }> = {
   filing: { label: "Filing", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
   compliance: { label: "Compliance", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
@@ -203,4 +421,8 @@ export function daysUntil(iso: string): number {
   const d0 = Date.UTC(due.getFullYear(), due.getMonth(), due.getDate());
   const n0 = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((d0 - n0) / 86400000);
+}
+
+export function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }

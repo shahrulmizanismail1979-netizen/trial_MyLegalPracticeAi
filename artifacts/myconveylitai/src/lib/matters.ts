@@ -1,7 +1,4 @@
 // React-query hooks + fetch helpers for the conveyancing matter-files feature.
-// All calls go through the shared proxy at `/api/convey/...` and attach the
-// bearer token saved at login (same pattern as src/lib/subscription.ts and
-// src/lib/exportDocx.ts). We do NOT regenerate the orval api client for these.
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -73,6 +70,70 @@ export interface SaveWorkInput {
   content: string;
 }
 
+// ── Case intelligence types ───────────────────────────────────────────────────
+
+export interface CaseNextStep {
+  action: string;
+  suggestedDeadline?: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface CaseRiskAssessment {
+  rating: 'Low' | 'Medium' | 'High';
+  keyStrengths: string[];
+  keyWeaknesses: string[];
+}
+
+export interface CaseInsights {
+  nextSteps: CaseNextStep[];
+  caseSummary: string;
+  riskAssessment: CaseRiskAssessment;
+  cachedAt: string;
+  expiresAt: string;
+}
+
+export interface ChecklistItem {
+  id: number;
+  text: string;
+  done: boolean;
+  position: number;
+  createdAt: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  description: string;
+  minutes: number;
+  rate_usd: number | null;
+  entry_date: string;
+  created_at: string;
+}
+
+export interface TimeEntriesResult {
+  entries: TimeEntry[];
+  totalMinutes: number;
+}
+
+export interface StageHistoryItem {
+  id: number;
+  from_stage: string | null;
+  to_stage: string;
+  changed_at: string;
+}
+
+export interface CaseClient {
+  id: number;
+  name: string;
+  ic_number: string | null;
+  company_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Matter type options (conveyancing transactions) ─────────────────────────
 export const MATTER_TYPE_OPTIONS = [
   { value: 'SPA', label: 'Sale & Purchase Agreement' },
@@ -127,6 +188,27 @@ async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(msg || `Request failed (${res.status})`, res.status);
   }
   if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+async function clientsApi<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api/convey/clients${path}`, {
+    credentials: 'include',
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeaders(),
+      ...(init?.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const data = await res.json();
+      msg = (data?.error as string) || msg;
+    } catch { /* ignore */ }
+    throw new ApiError(msg || `Request failed (${res.status})`, res.status);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -214,6 +296,129 @@ export function useDeleteDeadline() {
   return useMutation({
     mutationFn: ({ matterId, id }: { matterId: number; id: number }): Promise<{ success: boolean }> =>
       api(`/matters/${matterId}/deadlines/${id}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Stage management ───────────────────────────────────────────────────────────
+
+export function useStageHistory(matterId: number | null) {
+  return useQuery<StageHistoryItem[]>({
+    queryKey: [...KEY, 'stage-history', matterId],
+    queryFn: () => api<StageHistoryItem[]>(`/matters/${matterId}/stage-history`),
+    enabled: matterId != null,
+  });
+}
+
+export function useUpdateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, stage }: { id: number; stage: string }) =>
+      api(`/matters/${id}/status`, { method: 'PATCH', body: JSON.stringify({ stage }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── AI insights ────────────────────────────────────────────────────────────────
+
+export function useAiInsights(matterId: number | null, enabled = true) {
+  return useQuery<CaseInsights>({
+    queryKey: [...KEY, 'ai-insights', matterId],
+    queryFn: () => api<CaseInsights>(`/matters/${matterId}/ai-insights`),
+    enabled: enabled && matterId != null,
+    staleTime: 1000 * 60 * 60 * 6,
+    retry: 1,
+  });
+}
+
+// ── Checklist ──────────────────────────────────────────────────────────────────
+
+export function useChecklist(matterId: number | null) {
+  return useQuery<ChecklistItem[]>({
+    queryKey: [...KEY, 'checklist', matterId],
+    queryFn: () => api<ChecklistItem[]>(`/matters/${matterId}/checklist`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, text }: { matterId: number; text: string }) =>
+      api(`/matters/${matterId}/checklist`, { method: 'POST', body: JSON.stringify({ text }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useUpdateChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, itemId, done, text }: { matterId: number; itemId: number; done?: boolean; text?: string }) =>
+      api(`/matters/${matterId}/checklist/${itemId}`, { method: 'PATCH', body: JSON.stringify({ done, text }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, itemId }: { matterId: number; itemId: number }) =>
+      api(`/matters/${matterId}/checklist/${itemId}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Time recording ─────────────────────────────────────────────────────────────
+
+export function useTimeEntries(matterId: number | null) {
+  return useQuery<TimeEntriesResult>({
+    queryKey: [...KEY, 'time', matterId],
+    queryFn: () => api<TimeEntriesResult>(`/matters/${matterId}/time-entries`),
+    enabled: matterId != null,
+  });
+}
+
+export function useLogTime() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, ...input }: { matterId: number; description: string; minutes: number; entry_date: string }) =>
+      api(`/matters/${matterId}/time-entries`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteTimeEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, entryId }: { matterId: number; entryId: number }) =>
+      api(`/matters/${matterId}/time-entries/${entryId}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Clients ────────────────────────────────────────────────────────────────────
+
+export function useClients() {
+  return useQuery<CaseClient[]>({
+    queryKey: [...KEY, 'clients'],
+    queryFn: () => clientsApi<CaseClient[]>(''),
+  });
+}
+
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; company_name?: string; email?: string; phone?: string; notes?: string }) =>
+      clientsApi('', { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (clientId: number) =>
+      clientsApi(`/${clientId}`, { method: 'DELETE' }),
     onSuccess: () => invalidateAll(qc),
   });
 }

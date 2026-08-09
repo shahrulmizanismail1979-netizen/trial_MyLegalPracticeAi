@@ -1,51 +1,45 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import WorkspaceLayout from "./layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMatters, useAiInsights, daysUntil, fmtDate, generateFileRef, ApiError } from "@/hooks/use-matters";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Scale, Building, Landmark, FileText, Shield, 
-  BookOpen, Gavel, Briefcase, FileSearch, Calculator, 
-  AlertTriangle, Search, Cpu, Type, Target, Clock,
-  FileEdit, BookMarked, Calculator as CalculatorIcon, Sparkles
+import { Button } from "@/components/ui/button";
+import {
+  Scale, FolderKanban, Plus, ArrowRight, CalendarClock,
+  AlertTriangle, Sparkles, BrainCircuit, ChevronRight, Building, Landmark,
+  FileText, Shield, Hash, User, Target,
 } from "lucide-react";
-import { isAuthenticated, authHeaders } from "@/lib/auth";
+import { isAuthenticated } from "@/lib/auth";
 import { motion } from "framer-motion";
 
-// Helper to map string icon name to a Lucide React component
-const iconMap: Record<string, React.ElementType> = {
-  scale: Scale,
-  building: Building,
-  landmark: Landmark,
-  "file-text": FileText,
-  shield: Shield,
-  "book-open": BookOpen,
-  gavel: Gavel,
-  briefcase: Briefcase,
-  "file-search": FileSearch,
-  calculator: Calculator,
-  "alert-triangle": AlertTriangle,
-  search: Search,
-  cpu: Cpu,
-  type: Type
-};
+const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 
-function getIconComponent(iconName: string) {
-  const Icon = iconMap[iconName.toLowerCase()] || Scale;
-  return Icon;
+function statusColor(status: string) {
+  if (status === "Closed" || status === "closed") return "text-muted-foreground border-border bg-muted";
+  if (CCB_STAGES.includes(status)) {
+    const idx = CCB_STAGES.indexOf(status);
+    if (idx <= 1) return "text-amber-500 border-amber-500/30 bg-amber-500/10";
+    if (idx <= 3) return "text-blue-400 border-blue-400/30 bg-blue-400/10";
+    return "text-emerald-500 border-emerald-500/30 bg-emerald-500/10";
+  }
+  switch (status) {
+    case "open": return "text-emerald-500 border-emerald-500/30 bg-emerald-500/10";
+    case "closed": return "text-muted-foreground border-border bg-muted";
+    default: return "text-amber-500 border-amber-500/30 bg-amber-500/10";
+  }
 }
+
+const QUICK_LINKS = [
+  { href: "/workspace/tool/cause-paper-drafter", label: "Draft Cause Papers", icon: FileText, desc: "Statement of claim, defence, counterclaim" },
+  { href: "/workspace/tool/interlocutory-drafter", label: "Interlocutory Apps", icon: Scale, desc: "Injunctions, summary judgment, striking out" },
+  { href: "/workspace/tool/legal-opinion", label: "Legal Opinion", icon: Shield, desc: "Banking & commercial law opinions" },
+  { href: "/workspace/tool/debt-recovery-calc", label: "Debt Calculator", icon: Building, desc: "Interest, costs, judgment amounts" },
+];
 
 export default function WorkspaceIndex() {
   const [, setLocation] = useLocation();
-  const { data: tools, isLoading } = useQuery({
-    queryKey: ["ccb-tools"],
-    queryFn: async () => {
-      const res = await fetch("/api/ccb/tools/list", { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to load tools");
-      return res.json() as Promise<Array<{id:string;name:string;description:string;category:string;icon:string;fields:any[];example?:Record<string,string>;sampleNote?:string}>>;
-    },
-  });
+  const { data: matters, isLoading, error } = useMatters();
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -53,200 +47,161 @@ export default function WorkspaceIndex() {
     }
   }, [setLocation]);
 
-  if (isLoading) {
-    return (
-      <WorkspaceLayout>
-        <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
-          <div>
-            <Skeleton className="h-10 w-64 mb-2" />
-            <Skeleton className="h-5 w-96" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <Skeleton key={i} className="h-48 w-full rounded-xl" />
-            ))}
-          </div>
-        </div>
-      </WorkspaceLayout>
-    );
-  }
-
-  // Group tools by category
-  type ToolItem = NonNullable<typeof tools>[number];
-  const categories: Record<string, ToolItem[]> = {};
-  if (tools) {
-    tools.forEach(tool => {
-      if (!categories[tool.category]) {
-        categories[tool.category] = [];
-      }
-      categories[tool.category].push(tool);
-    });
-  }
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-  };
+  const isForbidden = error instanceof ApiError && error.status === 403;
+  const activeMatters = (matters ?? []).filter((m) => m.status !== "Closed" && m.status !== "closed");
 
   return (
     <WorkspaceLayout>
-      <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-12">
-        
-        {/* Hero Section */}
-        <div className="relative rounded-2xl overflow-hidden bg-card border border-border">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background z-0"></div>
-          <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-20 mix-blend-overlay z-0"></div>
-          
-          <div className="relative z-10 p-8 md:p-10">
-            <div className="max-w-2xl mb-8">
-              <h1 className="text-3xl md:text-4xl font-serif font-bold tracking-tight text-foreground mb-4">
-                Welcome to <span className="text-primary">MyCCBLitAI</span>
-              </h1>
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                The premium legal intelligence platform for Malaysian corporate and commercial litigation. Enhance your practice with AI-powered drafting, research, and strategy tools.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-background/60 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col">
-                <span className="text-3xl font-serif font-bold text-foreground" data-testid="stat-tool-count">{tools?.length ?? 0}</span>
-                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-1">AI Tools</span>
-              </div>
-              <div className="bg-background/60 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col">
-                <span className="text-3xl font-serif font-bold text-foreground">3</span>
-                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-1">Calculators</span>
-              </div>
-              <div className="bg-background/60 backdrop-blur-md border border-border/50 rounded-xl p-4 flex flex-col">
-                <span className="text-3xl font-serif font-bold text-foreground">8</span>
-                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider mt-1">Key Statutes</span>
-              </div>
-              <div className="bg-primary/20 backdrop-blur-md border border-primary/30 rounded-xl p-4 flex flex-col justify-center items-center">
-                <Sparkles className="w-8 h-8 text-primary mb-1" />
-                <span className="text-sm font-bold text-primary uppercase tracking-wider">AI-Powered</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
 
-        {/* Quick Actions */}
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start justify-between gap-4 flex-wrap"
+        >
+          <div>
+            <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground mb-2 flex items-center gap-3">
+              <Landmark className="h-7 w-7 text-primary" />
+              Case Command Centre
+            </h1>
+            <p className="text-muted-foreground max-w-2xl">
+              Banking litigation and corporate commercial matters — managed from instruction to enforcement.
+            </p>
+          </div>
+          {!isForbidden && (
+            <Link href="/workspace/matters">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> New Matter
+              </Button>
+            </Link>
+          )}
+        </motion.div>
+
+        {/* Active matters */}
         <div>
-          <h2 className="text-lg font-serif font-semibold text-foreground mb-4 flex items-center">
-            <Cpu className="w-5 h-5 mr-2 text-primary" />
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/workspace/tool/statement-of-claim">
-              <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group h-full" data-testid="quick-action-draft">
-                <CardContent className="p-5 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
-                    <FileEdit className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">Draft a Document</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Generate pleadings, letters & forms</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/workspace/chat">
-              <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group h-full" data-testid="quick-action-research">
-                <CardContent className="p-5 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
-                    <Search className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">Research Case Law</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Ask the Legal AI Chat assistant</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/workspace/calculators">
-              <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group h-full" data-testid="quick-action-calculate">
-                <CardContent className="p-5 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
-                    <CalculatorIcon className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">Calculate Fees</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Filing fees, interest & limitations</p>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            <Link href="/workspace/strategy">
-              <Card className="cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group h-full" data-testid="quick-action-strategy">
-                <CardContent className="p-5 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
-                    <Target className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">Plan Strategy</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Generate comprehensive case plans</p>
-                </CardContent>
-              </Card>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <FolderKanban className="h-4 w-4 text-primary" /> Active Matters
+            </h2>
+            <Link href="/workspace/matters">
+              <button className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                View all <ChevronRight className="h-3 w-3" />
+              </button>
             </Link>
           </div>
-        </div>
 
-        {/* Tools Grid */}
-        <div className="pt-4">
-          <h2 className="text-2xl font-serif font-bold tracking-tight text-foreground mb-6">AI Tools Directory</h2>
-          {Object.entries(categories).map(([category, categoryTools]) => (
-            <div key={category} className="space-y-6 mb-12">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-serif font-semibold text-primary">{category}</h2>
-                <div className="h-px flex-1 bg-border/50"></div>
-              </div>
-              
-              <motion.div 
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {categoryTools?.map(tool => {
-                  const IconComponent = getIconComponent(tool.icon);
-                  return (
-                    <motion.div variants={item} key={tool.id}>
-                      <Link href={`/workspace/tool/${tool.id}`}>
-                        <Card className="h-full cursor-pointer hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group bg-card/40 backdrop-blur-sm" data-testid={`card-tool-${tool.id}`}>
-                          <CardHeader>
-                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
-                              <IconComponent className="w-6 h-6 text-primary" />
-                            </div>
-                            <CardTitle className="font-serif group-hover:text-primary transition-colors">{tool.name}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="text-sm leading-relaxed line-clamp-3">
-                              {tool.description}
-                            </CardDescription>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
+          {isForbidden ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <FolderKanban className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <h3 className="font-serif font-semibold text-lg text-foreground mb-1">Matter files require a subscriber access code</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Sign in with a subscriber access code to access matter management.
+                </p>
+              </CardContent>
+            </Card>
+          ) : isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-36 w-full rounded-xl" />)}
             </div>
-          ))}
-
-          {(!tools || tools.length === 0) && (
-            <div className="text-center py-20 border border-dashed border-border rounded-xl bg-card/20">
-              <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No tools available</h3>
-              <p className="text-muted-foreground">Please check back later or contact the administrator.</p>
+          ) : activeMatters.length === 0 ? (
+            <Card>
+              <CardContent className="p-10 text-center">
+                <FolderKanban className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <h3 className="font-serif font-semibold text-lg text-foreground mb-1">No active matters</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
+                  Open a matter to track your banking litigation files, deadlines, and AI-generated cause papers.
+                </p>
+                <Link href="/workspace/matters">
+                  <Button className="gap-2"><Plus className="h-4 w-4" /> Create your first matter</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeMatters.slice(0, 4).map((m) => (
+                <motion.div key={m.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <Link href={`/workspace/matters/${m.id}`}>
+                    <Card className="hover:border-primary/40 transition-colors cursor-pointer h-full" data-testid={`card-matter-${m.id}`}>
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <h3 className="font-serif font-semibold text-foreground truncate">{m.title}</h3>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border shrink-0 ${statusColor(m.status)}`}>
+                            {m.status}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {m.reference && (
+                            <div className="flex items-center gap-1.5"><Hash className="h-3 w-3" /> {m.reference}</div>
+                          )}
+                          {m.clientName && (
+                            <div className="flex items-center gap-1.5"><User className="h-3 w-3" /> {m.clientName}</div>
+                          )}
+                          {m.matterType && (
+                            <div className="flex items-center gap-1.5"><Target className="h-3 w-3" /> {m.matterType}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
+                          <span className="text-[11px] text-muted-foreground">Updated {fmtDate(m.updatedAt)}</span>
+                          <ArrowRight className="h-4 w-4 text-primary" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
             </div>
           )}
+        </div>
+
+        {/* Quick action links */}
+        <div>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+            <BrainCircuit className="h-4 w-4 text-primary" /> AI Tools
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {QUICK_LINKS.map((q) => (
+              <Link key={q.href} href={q.href}>
+                <Card className="hover:border-primary/40 transition-colors cursor-pointer h-full group">
+                  <CardContent className="p-4">
+                    <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center mb-2">
+                      <q.icon className="h-4 w-4 text-primary" />
+                    </div>
+                    <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">{q.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{q.desc}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-3">
+            <Link href="/workspace/tool/list">
+              <button className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> View all AI tools <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Navigation tiles */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { href: "/workspace/matters", label: "Matter Files", icon: FolderKanban, desc: "All cases & files" },
+            { href: "/workspace/calculators", label: "Calculators", icon: Building, desc: "Interest & costs" },
+            { href: "/workspace/reference", label: "Reference", icon: Shield, desc: "Legislation & rules" },
+            { href: "/workspace/strategy", label: "Strategy", icon: Scale, desc: "Litigation planning" },
+          ].map((t) => (
+            <Link key={t.href} href={t.href}>
+              <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full">
+                <CardContent className="p-4 text-center">
+                  <t.icon className="h-6 w-6 text-primary mx-auto mb-2" />
+                  <p className="font-medium text-sm text-foreground">{t.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.desc}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
       </div>
     </WorkspaceLayout>
