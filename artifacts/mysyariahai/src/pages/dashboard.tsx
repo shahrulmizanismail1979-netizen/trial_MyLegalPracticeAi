@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { useUpcomingDeadlines, categoryMeta, daysUntil } from "@/hooks/use-matters";
+import { CalendarClock, AlertTriangle, ArrowRight } from "lucide-react";
 
 const COLORS = ["hsl(164 40% 35%)", "hsl(43 60% 45%)", "hsl(150 50% 35%)", "hsl(200 40% 40%)", "hsl(330 40% 40%)", "hsl(164 50% 25%)"];
 
@@ -17,6 +19,8 @@ export default function DashboardPage() {
   const [guideExpanded, setGuideExpanded] = useState(false);
   const { data: stats, error: statsError } = useQuery({ queryKey: ["dashboard-stats"], queryFn: api.dashboard.stats });
   const { data: distribution, error: distError } = useQuery({ queryKey: ["case-distribution"], queryFn: api.dashboard.caseDistribution });
+  const { data: upcoming } = useUpcomingDeadlines(30);
+  const urgentDeadlines = (upcoming ?? []).slice(0, 5);
 
   const statCards = [
     { label: t("Legal Provisions", "Peruntukan"), value: stats?.totalProvisions || 0, icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
@@ -49,6 +53,50 @@ export default function DashboardPage() {
             <p className="text-sm text-destructive">
               {t("Failed to load dashboard data. Please refresh the page.", "Gagal memuatkan data papan pemuka. Sila muat semula halaman.")}
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {urgentDeadlines.length > 0 && (
+        <Card className="border-amber-800/30 bg-amber-950/10" data-testid="dashboard-deadlines">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm font-semibold text-foreground">
+                  {t("Upcoming Syariah deadlines (30 days)", "Tarikh akhir Syariah akan datang (30 hari)")}
+                </h2>
+              </div>
+              <Link href="/matters">
+                <span className="inline-flex items-center gap-1 text-xs text-secondary hover:text-secondary/80 cursor-pointer font-medium">
+                  {t("View all matters", "Lihat semua fail kes")} <ArrowRight className="h-3 w-3" />
+                </span>
+              </Link>
+            </div>
+            <div className="space-y-1.5">
+              {urgentDeadlines.map((d) => {
+                const days = daysUntil(d.dueDate);
+                const cat = categoryMeta(d.category);
+                return (
+                  <Link key={d.id} href={`/matters/${d.matterId}`}>
+                    <div className="flex items-center gap-2 text-xs py-1 cursor-pointer hover:text-secondary transition-colors flex-wrap">
+                      {days < 0 ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-red-400">
+                          <AlertTriangle className="h-3 w-3" /> {t(`${Math.abs(days)}d overdue`, `Lewat ${Math.abs(days)}h`)}
+                        </span>
+                      ) : (
+                        <span className={`font-semibold ${days <= 7 ? "text-amber-400" : "text-muted-foreground"}`}>
+                          {days === 0 ? t("Today", "Hari ini") : t(`${days}d`, `${days}h`)}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
+                      <span className="text-foreground font-medium">{d.title}</span>
+                      <span className="text-muted-foreground">— {d.matterTitle}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
