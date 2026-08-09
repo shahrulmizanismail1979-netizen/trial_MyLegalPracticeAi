@@ -31,6 +31,6 @@
 - [Upload ownership registry](upload-ownership-registry.md) — presigned-upload ownership must live in a DB table (atomic owner-checked consume), never a process-local Map; ship migration + boot ensure.
 - [Research test cleanup FK race](research-test-cleanup-race.md) — parallel workers process each other's queued jobs mid-cleanup; retry child-then-parent deletes in afterAll.
 - [Practice hub content mapping](practice-hub-content-mapping.md) — map cause papers by exact formNumber (never id or shared order numbers); keep workflow keywords narrow or matters cross-contaminate.
-- [Portal matter-file pattern](portal-matter-files.md) — per-user tables in portals with mixed code/email logins must scope by owner_type+owner_id (ids collide); boot-ensure tables via direct SQL.
+- [Portal matter files pattern](portal-matter-files.md) — per-portal matter stores: mixed code/email-login portals must scope by owner_type+owner_id; unprefixed routers must scope auth middleware per-path; boot-ensure tables via awaited direct SQL.
 - [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.
 - [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.

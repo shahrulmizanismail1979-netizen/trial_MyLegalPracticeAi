@@ -16,6 +16,7 @@ import { exportTxt, exportMarkdown, exportPdf } from '@workspace/draft-export';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
+import { SaveToMatterPanel } from '@/components/SaveToMatterPanel';
 import { hasTier, EXPORT_MIN_TIER, TIER_LABELS } from '@/lib/tier';
 import {
   useSendChatMessage,
@@ -1593,7 +1594,10 @@ export function AIPanel() {
                   {submitBtn(draftMutation.isPending, 'Generate Draft', Sparkles, !draftType)}
                 </form>
                 {generatedDraft && (
-                  <OutputBlock title="Generated Draft" content={generatedDraft} onCopy={() => copyText(generatedDraft)} />
+                  <>
+                    <OutputBlock title="Generated Draft" content={generatedDraft} onCopy={() => copyText(generatedDraft)} />
+                    <SaveToMatterPanel title={draftType || 'Generated Draft'} kind="draft" content={generatedDraft} />
+                  </>
                 )}
               </div>
             );
@@ -1621,7 +1625,10 @@ export function AIPanel() {
                 {submitBtn(riskMutation.isPending, 'Scan for Risks', ShieldAlert, !riskScenario.trim())}
               </form>
               {riskResult && (
-                <OutputBlock title="Risk Analysis" content={riskResult} onCopy={() => copyText(riskResult)} />
+                <>
+                  <OutputBlock title="Risk Analysis" content={riskResult} onCopy={() => copyText(riskResult)} />
+                  <SaveToMatterPanel title={riskTxType ? `Risk Analysis — ${riskTxType}` : 'Risk Analysis'} kind="analysis" content={riskResult} />
+                </>
               )}
             </div>
           )}
@@ -1648,7 +1655,10 @@ export function AIPanel() {
                 {submitBtn(checklistMutation.isPending, 'Generate Checklist', ListChecks, !checklistTxType)}
               </form>
               {checklistResult && (
-                <OutputBlock title="Practitioner Checklist" content={checklistResult} onCopy={() => copyText(checklistResult)} />
+                <>
+                  <OutputBlock title="Practitioner Checklist" content={checklistResult} onCopy={() => copyText(checklistResult)} />
+                  <SaveToMatterPanel title={checklistTxType ? `Checklist — ${checklistTxType}` : 'Practitioner Checklist'} kind="checklist" content={checklistResult} />
+                </>
               )}
             </div>
           )}
@@ -1685,7 +1695,10 @@ export function AIPanel() {
                 {submitBtn(deadlinesMutation.isPending, 'Calculate Deadlines', Clock, !deadlinesTxType || !deadlinesKeyDate)}
               </form>
               {deadlinesResult && (
-                <OutputBlock title="Deadline Schedule" content={deadlinesResult} onCopy={() => copyText(deadlinesResult)} />
+                <>
+                  <OutputBlock title="Deadline Schedule" content={deadlinesResult} onCopy={() => copyText(deadlinesResult)} />
+                  <SaveToMatterPanel title={deadlinesTxType ? `Deadline Schedule — ${deadlinesTxType}` : 'Deadline Schedule'} kind="deadlines" content={deadlinesResult} />
+                </>
               )}
             </div>
           )}
@@ -1737,7 +1750,10 @@ export function AIPanel() {
                 {submitBtn(reviewMutation.isPending, 'Review Clause', FileSearch, !reviewClause.trim())}
               </form>
               {reviewResult && (
+                <>
                 <OutputBlock title="Clause Review" content={reviewResult} onCopy={() => copyText(reviewResult)} />
+                <SaveToMatterPanel title="Clause Review" kind="analysis" content={reviewResult} />
+                </>
               )}
             </div>
           )}

@@ -7,7 +7,7 @@ import {
   AlertTriangle, Gavel, FileText as FileTextAlt, TrendingUp,
   Briefcase, Globe, Swords, FileCheck, Handshake, Building,
   Drama, UserRoundSearch, Mic, GraduationCap, Presentation, Lock, Sparkles,
-  Menu, X
+  Menu, X, FolderKanban
 } from "lucide-react";
 import { AiToolsPanel } from "../ai-tools/AiToolsPanel";
 import { useAiContext } from "@/contexts/AiContext";
@@ -81,6 +81,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navSections = [
     { href: "/dashboard", label: "Dashboard", icon: Book },
+    { href: "/matters", label: "Matter Files", icon: FolderKanban },
   ];
 
   const librarySections = [

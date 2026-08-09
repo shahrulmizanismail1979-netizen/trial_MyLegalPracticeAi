@@ -14,6 +14,7 @@ import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Wa
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { apiUrl } from "@/lib/api";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export default function ToolPage() {
   const [, params] = useRoute("/workspace/tool/:toolId");
@@ -409,6 +410,17 @@ export default function ToolPage() {
                       <div className="flex items-center space-x-2 mt-4 text-primary">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm font-medium animate-pulse">Generating...</span>
+                      </div>
+                    )}
+                    {output && !isGenerating && (
+                      <div className="mt-6">
+                        <SaveToMatterPanel
+                          key={tool.id}
+                          draftTitle={tool.name}
+                          draftContent={output}
+                          kind="draft"
+                          refPrefix="CCB"
+                        />
                       </div>
                     )}
                     <div ref={endOfOutputRef} className="h-4" />

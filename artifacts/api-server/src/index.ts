@@ -10,6 +10,7 @@ import { seedApps } from "./acad/lib/seed";
 import { seedSyaContent } from "./sya/lib/seed";
 import { seedCrimContent } from "./crim/lib/seed";
 import { seedLitContent } from "./lit/lib/seed";
+import { ensureMatterFileTables } from "./lib/matterFiles";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -135,6 +136,12 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
+
+// Corporate-portal matter files (corp/ccb/convey): direct SQL CREATE IF NOT
+// EXISTS so production gets the tables on the next publish. Awaited before
+// listen — matter routes must never race table creation. A failure here is
+// fatal: better to crash and restart than serve a half-broken feature.
+await ensureMatterFileTables();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

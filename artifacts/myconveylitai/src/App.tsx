@@ -10,6 +10,8 @@ import { Pricing } from "@/pages/Pricing";
 import { Home } from "@/pages/Home";
 import { Dashboard } from "@/pages/Dashboard";
 import { Admin } from "@/pages/Admin";
+import { Matters } from "@/pages/Matters";
+import { MatterDetail } from "@/pages/MatterDetail";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,12 @@ function Router() {
       </Route>
       <Route path="/dashboard">
         <ProtectedRoute component={Dashboard} />
+      </Route>
+      <Route path="/matters">
+        <ProtectedRoute component={Matters} />
+      </Route>
+      <Route path="/matters/:id">
+        <ProtectedRoute component={MatterDetail} />
       </Route>
       <Route path="/admin">
         <Admin />

@@ -4,6 +4,7 @@ import authRouter, { requirePractitioner } from "./auth";
 import adminRouter from "./admin";
 import toolsRouter from "./tools";
 import geminiRouter from "./gemini";
+import mattersRouter from "./matters";
 
 const router: IRouter = Router();
 
@@ -15,5 +16,6 @@ router.use(adminRouter);
 router.use(requirePractitioner);
 router.use(toolsRouter);
 router.use(geminiRouter);
+router.use(mattersRouter);
 
 export default router;

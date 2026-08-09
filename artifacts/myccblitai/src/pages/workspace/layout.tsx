@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, Target, Grid } from "lucide-react";
+import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, Target, Grid, FolderKanban } from "lucide-react";
 import { clearToken, authHeaders } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 
@@ -64,6 +64,12 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
               <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${currentLocation.startsWith("/workspace/chat") ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`} data-testid="nav-chat">
                 <MessageSquare size={18} />
                 <span>Legal AI Chat</span>
+              </div>
+            </Link>
+            <Link href="/workspace/matters">
+              <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${currentLocation.startsWith("/workspace/matters") ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`} data-testid="nav-matters">
+                <FolderKanban size={18} />
+                <span>Matter Files</span>
               </div>
             </Link>
           </div>

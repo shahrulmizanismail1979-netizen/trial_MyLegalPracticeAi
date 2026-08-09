@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
 import { useTts } from "@/lib/tts";
 import { FileUploadDropzone, buildContextFromFiles } from "@/components/FileUploadDropzone";
+import { SaveToMatterPanel } from "@/components/SaveToMatterPanel";
 
 const TIER_LABELS: Record<string, string> = {
   firm: "Firm",
@@ -369,6 +370,11 @@ export default function ToolDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Save the completed draft into a matter file */}
+        {output && !isLoading && (
+          <SaveToMatterPanel draftTitle={tool.name} draftContent={output} />
+        )}
       </div>
     </AppLayout>
   );

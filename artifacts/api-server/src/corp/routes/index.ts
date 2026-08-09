@@ -3,6 +3,7 @@ import legalRouter from "./legal";
 import legalUploadsRouter from "./legal/uploads";
 import geminiRouter from "./gemini";
 import adminRouter from "./admin";
+import mattersRouter from "./matters";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(legalRouter);
 router.use(legalUploadsRouter);
 router.use(geminiRouter);
 router.use(adminRouter);
+router.use(mattersRouter);
 
 export default router;

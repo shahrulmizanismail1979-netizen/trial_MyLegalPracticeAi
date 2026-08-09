@@ -12,6 +12,7 @@ import currencyRouter from "./currency";
 import conveyRouter from "./convey";
 import conveySubscriptionRouter from "./convey-subscription";
 import conveyAdminRouter from "./convey-admin";
+import conveyMattersRouter from "./convey-matters";
 import legacyCodesRouter from "./legacy-codes";
 import accidentRouter from "./accident";
 import accidentAiRouter from "./accident-ai";
@@ -50,6 +51,8 @@ router.use("/research", requireAuth, requireStaff, researchRouter);
 router.use(conveyRouter);
 router.use(conveySubscriptionRouter);
 router.use(conveyAdminRouter);
+// MyConveyLitAI matter files (Task #110): /convey/matters, /convey/saved-work.
+router.use(conveyMattersRouter);
 // Legacy access-code import (x-admin-token auth): /legacy-codes/import.
 router.use(legacyCodesRouter);
 router.use("/accident", accidentRouter);

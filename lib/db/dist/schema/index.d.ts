@@ -18,7 +18,6 @@ export * from "./crim-workflows";
 export * from "./crim-sample-documents";
 export * from "./crim-glossary-terms";
 export * from "./crim-costs-fees";
-export * from "./crim-matters";
 export * from "./corp-access-codes";
 export * from "./corp-sessions";
 export * from "./corp-conversations";
@@ -47,3 +46,4 @@ export * from "./ccb-conversations";
 export * from "./ccb-messages";
 export * from "./research";
 export * from "./matter-files";
+//# sourceMappingURL=index.d.ts.map
