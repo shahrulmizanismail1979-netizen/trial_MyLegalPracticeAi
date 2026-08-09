@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useLanguage } from "@/lib/language-context";
@@ -12,7 +13,8 @@ export default function WorkflowsPage() {
   const { t, mode } = useLanguage();
   const { gate } = useGate();
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<any>(null);
+  const [, navigate] = useLocation();
+  const searchString = useSearch();
 
   const { data: workflows, isLoading } = useQuery({
     queryKey: ["workflows", gate, search],
@@ -23,14 +25,47 @@ export default function WorkflowsPage() {
     },
   });
 
-  if (selected) {
+  // Selection lives in the URL (?id=N) so matter files can deep-link here.
+  const selectedId = useMemo(() => {
+    const raw = new URLSearchParams(searchString).get("id");
+    const n = raw ? parseInt(raw, 10) : NaN;
+    return Number.isInteger(n) ? n : null;
+  }, [searchString]);
+
+  const selected = useMemo(
+    () => (selectedId != null ? workflows?.find((w: any) => w.id === selectedId) ?? null : null),
+    [selectedId, workflows],
+  );
+
+  // Deep-linked workflow may be filtered out by the list query (e.g. gate/search) —
+  // fetch it directly so the link still resolves.
+  const { data: directWorkflow, isError: directError } = useQuery({
+    queryKey: ["workflow", gate, selectedId],
+    queryFn: () => api.workflows.get(selectedId as number),
+    enabled: selectedId != null && !isLoading && !selected,
+    retry: false,
+  });
+
+  const select = (w: any | null) =>
+    navigate(w ? `/workflows?id=${w.id}` : "/workflows");
+
+  // Clear a dangling ?id that resolves to nothing.
+  useEffect(() => {
+    if (selectedId != null && !isLoading && !selected && directError) {
+      navigate("/workflows", { replace: true });
+    }
+  }, [selectedId, isLoading, selected, directError, navigate]);
+
+  const shown = selected ?? (selectedId != null ? directWorkflow : null);
+
+  if (shown) {
     return (
       <div className="p-4 lg:p-6 max-w-4xl mx-auto">
-        <Button variant="ghost" size="sm" onClick={() => setSelected(null)} className="mb-4 text-muted-foreground">
+        <Button variant="ghost" size="sm" onClick={() => select(null)} className="mb-4 text-muted-foreground">
           <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 19l-7-7 7-7"/></svg>
           {t("Back to Procedures", "Kembali ke Tatacara")}
         </Button>
-        <WorkflowDetail workflow={selected} />
+        <WorkflowDetail workflow={shown} />
       </div>
     );
   }
@@ -58,7 +93,7 @@ export default function WorkflowsPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {workflows?.map((w: any) => (
-            <Card key={w.id} className="border-border/50 cursor-pointer hover:border-secondary/30 transition-colors" onClick={() => setSelected(w)}>
+            <Card key={w.id} className="border-border/50 cursor-pointer hover:border-secondary/30 transition-colors" onClick={() => select(w)} data-testid={`workflow-card-${w.id}`}>
               <CardContent className="p-4">
                 <Badge variant="outline" className="mb-2 text-xs">{mode === "bm" ? w.categoryBm : w.category}</Badge>
                 <h3 className="font-serif font-semibold text-foreground text-sm">

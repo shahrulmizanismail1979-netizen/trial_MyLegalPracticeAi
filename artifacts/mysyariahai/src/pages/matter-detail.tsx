@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import {
+  suggestWorkflowId,
   useMatter,
   useMatterWork,
   useUpdateMatter,
@@ -85,6 +88,13 @@ export default function MatterDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<MatterInput>({});
+  const [workflowTouched, setWorkflowTouched] = useState(false);
+
+  const { data: workflowOptions } = useQuery<any[]>({
+    queryKey: ["workflows", "options"],
+    queryFn: () => api.workflows.list(),
+    staleTime: 5 * 60 * 1000,
+  });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewDoc, setViewDoc] = useState<{ title: string; content: string } | null>(null);
   const [dlOpen, setDlOpen] = useState(false);
@@ -120,7 +130,9 @@ export default function MatterDetailPage() {
       claimAmount: matter.claimAmount ?? "",
       status: matter.status,
       notes: matter.notes ?? "",
+      workflowId: matter.workflowId,
     });
+    setWorkflowTouched(false);
     setEditOpen(true);
   };
 
@@ -180,8 +192,8 @@ export default function MatterDetailPage() {
           <h1 className="text-2xl font-serif font-bold text-foreground" data-testid="matter-detail-title">{matter.title}</h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/workflows">
-            <Button variant="outline" size="sm" className="gap-1.5">
+          <Link href={matter.workflowId != null ? `/workflows?id=${matter.workflowId}` : "/workflows"}>
+            <Button variant="outline" size="sm" className="gap-1.5" data-testid="matter-workflow-link">
               <Workflow className="h-3.5 w-3.5" /> {t("Syariah procedure", "Tatacara Syariah")}
             </Button>
           </Link>
@@ -458,7 +470,16 @@ export default function MatterDetailPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("Matter type", "Jenis kes")}</Label>
-                <Select value={editForm.matterType ?? ""} onValueChange={(v) => setEditForm((f) => ({ ...f, matterType: v }))}>
+                <Select
+                  value={editForm.matterType ?? ""}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      matterType: v,
+                      workflowId: workflowTouched || f.workflowId != null ? f.workflowId : suggestWorkflowId(v, workflowOptions),
+                    }))
+                  }
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SYA_MATTER_TYPES.map((tt) => <SelectItem key={tt.value} value={tt.value}>{mode === "bm" ? tt.bm : tt.en}</SelectItem>)}
@@ -485,6 +506,29 @@ export default function MatterDetailPage() {
                   <SelectItem value="closed">{t("Closed", "Ditutup")}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("Syariah procedure", "Tatacara Syariah")}</Label>
+              <Select
+                value={editForm.workflowId != null ? String(editForm.workflowId) : "none"}
+                onValueChange={(v) => {
+                  setWorkflowTouched(true);
+                  setEditForm((f) => ({ ...f, workflowId: v === "none" ? null : parseInt(v, 10) }));
+                }}
+              >
+                <SelectTrigger data-testid="matter-edit-workflow"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("None", "Tiada")}</SelectItem>
+                  {(workflowOptions ?? []).map((w) => (
+                    <SelectItem key={w.id} value={String(w.id)}>
+                      {mode === "bm" ? w.titleBm : w.titleEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {t("The “Syariah procedure” button on this matter jumps straight to the selected procedure.", "Butang “Tatacara Syariah” pada fail ini terus membuka tatacara yang dipilih.")}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>{t("Notes", "Catatan")}</Label>

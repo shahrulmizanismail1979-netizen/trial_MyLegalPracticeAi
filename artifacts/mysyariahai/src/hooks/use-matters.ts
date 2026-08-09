@@ -315,6 +315,34 @@ export function matterTypeLabel(value: string | null, mode: string): string {
   return mode === "bm" ? t.bm : t.en;
 }
 
+/**
+ * Suggest the procedural workflow matching a matter type by matching keywords
+ * against the workflow's English title. Returns the workflow id or null.
+ */
+const WORKFLOW_KEYWORDS: Record<string, string[]> = {
+  cerai_fasakh: ["divorce (talaq)", "fasakh", "khuluk"],
+  nafkah: ["maintenance claim"],
+  hadhanah: ["custody"],
+  harta_sepencarian: ["harta sepencarian"],
+  faraid: ["faraid application"],
+  wasiat_hibah_wakaf: ["wasiat preparation", "hibah documentation"],
+  jenayah_syariah: ["criminal prosecution"],
+};
+
+export function suggestWorkflowId(
+  matterType: string | null | undefined,
+  workflows: { id: number; titleEn?: string | null }[] | undefined,
+): number | null {
+  if (!matterType || !workflows?.length) return null;
+  const keywords = WORKFLOW_KEYWORDS[matterType];
+  if (!keywords) return null;
+  for (const kw of keywords) {
+    const hit = workflows.find((w) => (w.titleEn ?? "").toLowerCase().includes(kw));
+    if (hit) return hit.id;
+  }
+  return null;
+}
+
 export const SYA_COURTS = [
   "Mahkamah Rendah Syariah",
   "Mahkamah Tinggi Syariah",

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import {
   useMatters,
   useCreateMatter,
+  suggestWorkflowId,
   useUpcomingDeadlines,
   ApiError,
   categoryMeta,
@@ -91,9 +94,30 @@ export default function MattersPage() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<MatterInput>(EMPTY);
+  const [workflowTouched, setWorkflowTouched] = useState(false);
+
+  const { data: workflowOptions } = useQuery<any[]>({
+    queryKey: ["workflows", "options"],
+    queryFn: () => api.workflows.list(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const set = (k: keyof MatterInput, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  const setMatterType = (v: string) =>
+    setForm((f) => ({
+      ...f,
+      matterType: v,
+      // Auto-suggest the matching Syariah procedure unless the user picked one.
+      workflowId: workflowTouched ? f.workflowId : suggestWorkflowId(v, workflowOptions),
+    }));
+
+  const openNew = () => {
+    setWorkflowTouched(false);
+    setForm({ ...EMPTY, workflowId: suggestWorkflowId(EMPTY.matterType, workflowOptions) });
+    setOpen(true);
+  };
 
   const submit = async () => {
     if (!form.title?.trim()) {
@@ -105,6 +129,7 @@ export default function MattersPage() {
       toast({ title: ts("Matter created", "Fail kes dibuka") });
       setOpen(false);
       setForm(EMPTY);
+      setWorkflowTouched(false);
     } catch (e) {
       toast({
         title: ts("Could not create matter", "Fail kes tidak dapat dibuka"),
@@ -131,7 +156,7 @@ export default function MattersPage() {
             )}
           </p>
         </div>
-        <Button onClick={() => setOpen(true)} className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="matters-new">
+        <Button onClick={openNew} className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="matters-new">
           <Plus className="h-4 w-4" /> {t("New Matter", "Fail Kes Baharu")}
         </Button>
       </div>
@@ -206,7 +231,7 @@ export default function MattersPage() {
                 "Buka fail kes bagi setiap kes yang anda kendalikan — rekodkan pihak-pihak dan nombor kes, failkan draf AI anda, dan bina diari tarikh akhir daripada pencetus tatacara Syariah.",
               )}
             </p>
-            <Button onClick={() => setOpen(true)} className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="matters-create-first">
+            <Button onClick={openNew} className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="matters-create-first">
               <Plus className="h-4 w-4" /> {t("Create your first matter", "Buka fail kes pertama anda")}
             </Button>
           </CardContent>
@@ -308,7 +333,7 @@ export default function MattersPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t("Matter type", "Jenis kes")}</Label>
-                <Select value={form.matterType ?? ""} onValueChange={(v) => set("matterType", v)}>
+                <Select value={form.matterType ?? ""} onValueChange={setMatterType}>
                   <SelectTrigger data-testid="matter-form-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SYA_MATTER_TYPES.map((tt) => (
@@ -338,6 +363,29 @@ export default function MattersPage() {
                 <Label>{t("Claim amount (RM)", "Jumlah tuntutan (RM)")}</Label>
                 <Input type="number" value={form.claimAmount ?? ""} onChange={(e) => set("claimAmount", e.target.value)} />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("Syariah procedure", "Tatacara Syariah")}</Label>
+              <Select
+                value={form.workflowId != null ? String(form.workflowId) : "none"}
+                onValueChange={(v) => {
+                  setWorkflowTouched(true);
+                  setForm((f) => ({ ...f, workflowId: v === "none" ? null : parseInt(v, 10) }));
+                }}
+              >
+                <SelectTrigger data-testid="matter-form-workflow"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("None", "Tiada")}</SelectItem>
+                  {(workflowOptions ?? []).map((w) => (
+                    <SelectItem key={w.id} value={String(w.id)}>
+                      {mode === "bm" ? w.titleBm : w.titleEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {t("Suggested from the matter type — the matter file links straight to this procedure.", "Dicadangkan daripada jenis kes — fail kes akan terus dipautkan ke tatacara ini.")}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>{t("Notes", "Catatan")}</Label>
