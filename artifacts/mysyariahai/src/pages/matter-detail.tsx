@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -77,6 +77,26 @@ export default function MatterDetailPage() {
   const { data: matter, isLoading } = useMatter(Number.isNaN(id) ? null : id);
   const { data: work } = useMatterWork(Number.isNaN(id) ? null : id);
   const updateMatter = useUpdateMatter();
+
+  // Workflow suggestion dismissal — persisted in sessionStorage per matter.
+  const [suggestionDismissed, setSuggestionDismissed] = useState<boolean>(() => {
+    if (Number.isNaN(id)) return false;
+    return sessionStorage.getItem(`sya-wf-suggest-dismissed-${id}`) === "1";
+  });
+
+  // Re-sync when the user navigates to a different matter (MatterDetailPage is reused).
+  useEffect(() => {
+    if (Number.isNaN(id)) {
+      setSuggestionDismissed(false);
+      return;
+    }
+    setSuggestionDismissed(sessionStorage.getItem(`sya-wf-suggest-dismissed-${id}`) === "1");
+  }, [id]);
+
+  const dismissSuggestion = () => {
+    setSuggestionDismissed(true);
+    sessionStorage.setItem(`sya-wf-suggest-dismissed-${id}`, "1");
+  };
   const deleteMatter = useDeleteMatter();
   const deleteWork = useDeleteWork();
   const { data: triggers } = useDeadlineTriggers();
@@ -222,6 +242,54 @@ export default function MatterDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Workflow suggestion banner — shown only for matters without a linked procedure */}
+      {(() => {
+        if (matter.workflowId != null || suggestionDismissed) return null;
+        const suggestedId = suggestWorkflowId(matter.matterType, workflowOptions);
+        if (suggestedId == null) return null;
+        const workflow = (workflowOptions ?? []).find((w) => w.id === suggestedId);
+        if (!workflow) return null;
+        const workflowName = mode === "bm" ? (workflow.titleBm ?? workflow.titleEn) : (workflow.titleEn ?? workflow.titleBm);
+        return (
+          <div
+            className="flex items-center gap-3 rounded-lg border border-secondary/30 bg-secondary/5 px-4 py-3 text-sm flex-wrap"
+            data-testid="workflow-suggestion-banner"
+          >
+            <Workflow className="h-4 w-4 text-secondary shrink-0" />
+            <span className="flex-1 text-foreground/80 min-w-0">
+              {t(
+                `Link the "${workflowName}" procedure to this matter?`,
+                `Pautan tatacara "${workflowName}" ke fail kes ini?`,
+              )}
+            </span>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                size="sm"
+                className="h-7 bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1.5"
+                disabled={updateMatter.isPending}
+                onClick={async () => {
+                  await updateMatter.mutateAsync({ id: matter.id, workflowId: suggestedId });
+                  toast({ title: ts("Procedure linked", "Tatacara dipautkan") });
+                }}
+                data-testid="workflow-suggestion-accept"
+              >
+                <Check className="h-3.5 w-3.5" />
+                {t("Link it", "Pautkan")}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-muted-foreground hover:text-foreground"
+                onClick={dismissSuggestion}
+                data-testid="workflow-suggestion-dismiss"
+              >
+                {t("Dismiss", "Abaikan")}
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Deadline diary */}
       <div className="space-y-3">
