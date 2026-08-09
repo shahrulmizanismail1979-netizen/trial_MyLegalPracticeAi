@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -70,7 +70,8 @@ function AuthGate() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={DashboardPage} />
+        <Route path="/">{() => <Redirect to="/matters" />}</Route>
+        <Route path="/dashboard" component={DashboardPage} />
         <Route path="/provisions" component={ProvisionsPage} />
         <Route path="/cases" component={CasesPage} />
         <Route path="/cause-papers" component={CausePapersPage} />

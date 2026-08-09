@@ -1,5 +1,5 @@
 import React from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -75,7 +75,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboardPage} />
 
       <Route path="/workspace">
-        {() => <WorkspaceRoute component={WorkspaceDashboard} />}
+        {() => <Redirect to="/workspace/matters" />}
       </Route>
       <Route path="/workspace/how-to-use">
         {() => <WorkspaceRoute component={HowToUsePage} />}

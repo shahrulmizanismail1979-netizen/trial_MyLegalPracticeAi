@@ -18,13 +18,29 @@ import {
   FileText,
   Workflow,
   Loader2,
+  Brain,
+  RefreshCw,
+  ChevronRight,
+  User,
+  Users,
+  Timer,
+  ClipboardList,
+  BarChart3,
+  Calendar,
+  Download,
+  Gavel,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { useCrimListWorkflows } from "@workspace/api-client-react";
@@ -52,17 +69,32 @@ import {
   useAddDeadlinesBulk,
   useUpdateDeadline,
   useDeleteDeadline,
+  useAiInsights,
+  useRefreshAiInsights,
+  useStageHistory,
+  useUpdateStage,
+  useChecklist,
+  useAddChecklistItem,
+  useUpdateChecklistItem,
+  useDeleteChecklistItem,
+  useTimeEntries,
+  useAddTimeEntry,
+  useDeleteTimeEntry,
+  useClients,
+  useCreateClient,
+  useUpdateClient,
+  CRIM_STAGES,
   categoryMeta,
   daysUntil,
-  STAGE_OPTIONS,
   type MatterDeadline,
   type ComputedDeadline,
   type SavedWorkItem,
   type MatterInput,
+  type ClientItem,
 } from "@/hooks/use-matters";
 
-const STATUS_OPTIONS = ["open", "on-hold", "closed"];
 const CATEGORY_OPTIONS = ["remand", "charge", "bail", "trial", "appeal", "revision", "custom"];
+const STATUS_OPTIONS = ["open", "on-hold", "closed"];
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
@@ -77,6 +109,573 @@ function CountdownBadge({ due, status }: { due: string; status: string }) {
   if (d === 0) return <span className="text-[11px] font-bold text-red-600">Due today</span>;
   if (d <= 7) return <span className="text-[11px] font-bold text-amber-600">in {d}d</span>;
   return <span className="text-[11px] font-medium text-muted-foreground">in {d}d</span>;
+}
+
+function RiskBadge({ rating }: { rating: "Low" | "Medium" | "High" }) {
+  const styles = {
+    Low: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    Medium: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    High: "bg-red-500/10 text-red-600 border-red-500/20",
+  };
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${styles[rating]}`}>{rating} Risk</span>;
+}
+
+function StageStepper({ currentStatus, matterId }: { currentStatus: string; matterId: number }) {
+  const updateStage = useUpdateStage();
+  const { toast } = useToast();
+  const currentIdx = CRIM_STAGES.indexOf(currentStatus);
+
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {CRIM_STAGES.map((stage, idx) => {
+        const isActive = stage === currentStatus;
+        const isPast = currentIdx >= 0 && idx < currentIdx;
+        return (
+          <button
+            key={stage}
+            onClick={async () => {
+              if (isActive) return;
+              try {
+                await updateStage.mutateAsync({ matterId, stage });
+                toast({ title: `Stage advanced to ${stage}` });
+              } catch (e) {
+                toast({ title: "Could not update stage", description: e instanceof Error ? e.message : "", variant: "destructive" });
+              }
+            }}
+            disabled={updateStage.isPending}
+            title={`Set stage to ${stage}`}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+              isActive
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : isPast
+                ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                : "bg-muted text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
+            }`}
+          >
+            {isPast && <Check className="h-3 w-3" />}
+            {stage}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AiInsightsPanel({ matterId }: { matterId: number }) {
+  const { data: insights, isLoading, error } = useAiInsights(matterId);
+  const refresh = useRefreshAiInsights();
+  const { toast } = useToast();
+
+  const handleRefresh = async () => {
+    try {
+      await refresh.mutateAsync(matterId);
+      toast({ title: "AI insights refreshed" });
+    } catch {
+      toast({ title: "Could not refresh insights", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-5 flex items-center gap-3">
+          <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
+          <p className="text-sm text-muted-foreground">Generating AI case analysis…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !insights) {
+    return (
+      <Card className="border-border/50">
+        <CardContent className="p-5 flex items-center gap-3">
+          <Brain className="h-5 w-5 text-muted-foreground shrink-0" />
+          <p className="text-sm text-muted-foreground flex-1">AI insights unavailable. Add documents and deadlines to enable analysis.</p>
+          <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleRefresh} disabled={refresh.isPending}>
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          <h3 className="font-serif font-semibold text-foreground">AI Case Analysis</h3>
+          <RiskBadge rating={insights.riskAssessment.rating} />
+        </div>
+        <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={handleRefresh} disabled={refresh.isPending}>
+          <RefreshCw className={`h-3.5 w-3.5 ${refresh.isPending ? "animate-spin" : ""}`} /> Refresh
+        </Button>
+      </div>
+
+      <Card className="border-border/50 bg-card/50">
+        <CardContent className="p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Case Summary</p>
+          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{insights.caseSummary}</p>
+        </CardContent>
+      </Card>
+
+      {insights.riskAssessment.keyStrengths.length > 0 || insights.riskAssessment.keyWeaknesses.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {insights.riskAssessment.keyStrengths.length > 0 && (
+            <Card className="border-emerald-500/20 bg-emerald-500/5">
+              <CardContent className="p-4">
+                <p className="text-xs uppercase tracking-wide text-emerald-600 font-semibold mb-2">Key Strengths</p>
+                <ul className="space-y-1">
+                  {insights.riskAssessment.keyStrengths.map((s, i) => (
+                    <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
+                      <CircleCheck className="h-3.5 w-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          {insights.riskAssessment.keyWeaknesses.length > 0 && (
+            <Card className="border-amber-500/20 bg-amber-500/5">
+              <CardContent className="p-4">
+                <p className="text-xs uppercase tracking-wide text-amber-600 font-semibold mb-2">Key Weaknesses</p>
+                <ul className="space-y-1">
+                  {insights.riskAssessment.keyWeaknesses.map((w, i) => (
+                    <li key={i} className="text-sm text-foreground/90 flex items-start gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : null}
+
+      {insights.nextSteps.length > 0 && (
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Prioritised Next Steps</p>
+          <div className="space-y-2">
+            {insights.nextSteps.map((step, i) => {
+              const priorityColors = {
+                high: "border-l-red-500 bg-red-500/5",
+                medium: "border-l-amber-500 bg-amber-500/5",
+                low: "border-l-slate-400 bg-slate-500/5",
+              };
+              const priorityBadge = {
+                high: "text-red-600 bg-red-500/10 border-red-500/20",
+                medium: "text-amber-600 bg-amber-500/10 border-amber-500/20",
+                low: "text-slate-500 bg-slate-500/10 border-slate-400/20",
+              };
+              return (
+                <div key={i} className={`border-l-2 pl-3 py-2 rounded-r ${priorityColors[step.priority]}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-foreground font-medium">{step.action}</p>
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border shrink-0 ${priorityBadge[step.priority]}`}>
+                      {step.priority}
+                    </span>
+                  </div>
+                  {step.suggestedDeadline && (
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> {step.suggestedDeadline}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChecklistTab({ matterId }: { matterId: number }) {
+  const { data: items, isLoading } = useChecklist(matterId);
+  const addItem = useAddChecklistItem();
+  const updateItem = useUpdateChecklistItem();
+  const deleteItem = useDeleteChecklistItem();
+  const { toast } = useToast();
+  const [newText, setNewText] = useState("");
+
+  const done = (items ?? []).filter((i) => i.done).length;
+  const total = (items ?? []).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  const toggle = async (item: { id: number; done: boolean }) => {
+    try {
+      await updateItem.mutateAsync({ matterId, itemId: item.id, done: !item.done });
+    } catch {
+      toast({ title: "Could not update item", variant: "destructive" });
+    }
+  };
+
+  const addCustom = async () => {
+    if (!newText.trim()) return;
+    try {
+      await addItem.mutateAsync({ matterId, item_text: newText.trim() });
+      setNewText("");
+    } catch {
+      toast({ title: "Could not add item", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground animate-pulse">Loading checklist…</div>;
+
+  return (
+    <div className="space-y-4">
+      {total > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{done} of {total} items completed</span>
+            <span className="font-semibold text-primary">{pct}%</span>
+          </div>
+          <Progress value={pct} className="h-2" />
+        </div>
+      )}
+
+      {total === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-10 text-center">
+            <ClipboardList className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="font-serif font-semibold text-foreground mb-1">Checklist generating…</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              An AI procedural checklist is being generated for this matter. It may take a moment to appear. You can also add items manually below.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {items!.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${item.done ? "opacity-60 border-border/30 bg-card/30" : "border-border/50 bg-card/50"}`}
+            >
+              <button
+                onClick={() => toggle(item)}
+                className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
+                  item.done ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
+                }`}
+              >
+                {item.done && <Check className="h-3 w-3" />}
+              </button>
+              <span className={`text-sm flex-1 ${item.done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                {item.item_text}
+              </span>
+              <button
+                onClick={async () => {
+                  try { await deleteItem.mutateAsync({ matterId, itemId: item.id }); }
+                  catch { toast({ title: "Could not delete item", variant: "destructive" }); }
+                }}
+                className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary shrink-0"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <Input
+          value={newText}
+          onChange={(e) => setNewText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addCustom()}
+          placeholder="Add a custom checklist item…"
+          className="flex-1"
+        />
+        <Button onClick={addCustom} disabled={addItem.isPending || !newText.trim()} className="gap-2">
+          <Plus className="h-4 w-4" /> Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function TimeTab({ matterId }: { matterId: number }) {
+  const { data, isLoading } = useTimeEntries(matterId);
+  const addEntry = useAddTimeEntry();
+  const deleteEntry = useDeleteTimeEntry();
+  const { toast } = useToast();
+  const [form, setForm] = useState({ description: "", minutes: "", rate_usd: "", entry_date: new Date().toISOString().slice(0, 10) });
+
+  const submitEntry = async () => {
+    if (!form.description.trim() || !form.minutes) return;
+    const mins = parseInt(form.minutes, 10);
+    if (isNaN(mins) || mins < 0) {
+      toast({ title: "Invalid minutes", variant: "destructive" });
+      return;
+    }
+    try {
+      await addEntry.mutateAsync({
+        matterId,
+        description: form.description.trim(),
+        minutes: mins,
+        rate_usd: form.rate_usd ? parseFloat(form.rate_usd) : null,
+        entry_date: form.entry_date,
+      });
+      setForm({ description: "", minutes: "", rate_usd: "", entry_date: new Date().toISOString().slice(0, 10) });
+      toast({ title: "Time entry logged" });
+    } catch {
+      toast({ title: "Could not log time", variant: "destructive" });
+    }
+  };
+
+  const total = data?.totalMinutes ?? 0;
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground animate-pulse">Loading time entries…</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Total time recorded</p>
+          <p className="text-2xl font-bold text-primary mt-0.5">{hours}h {mins}m</p>
+        </div>
+      </div>
+
+      <Card className="border-border/50 bg-card/50">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Log Time
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <div>
+            <Label className="text-xs">Description *</Label>
+            <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="e.g. Client conference, file review…" className="mt-1" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Minutes *</Label>
+              <Input type="number" min="0" value={form.minutes} onChange={(e) => setForm((f) => ({ ...f, minutes: e.target.value }))} placeholder="60" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Rate (USD/hr)</Label>
+              <Input type="number" min="0" step="0.01" value={form.rate_usd} onChange={(e) => setForm((f) => ({ ...f, rate_usd: e.target.value }))} placeholder="0.00" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Date</Label>
+              <Input type="date" value={form.entry_date} onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))} className="mt-1" />
+            </div>
+          </div>
+          <Button onClick={submitEntry} disabled={addEntry.isPending || !form.description.trim() || !form.minutes} className="w-full gap-2">
+            {addEntry.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Log time
+          </Button>
+        </CardContent>
+      </Card>
+
+      {(data?.entries.length ?? 0) === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-8 text-center">
+            <Timer className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No time entries yet. Log your first entry above.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {data!.entries.map((entry) => {
+            const h = Math.floor(entry.minutes / 60);
+            const m = entry.minutes % 60;
+            return (
+              <Card key={entry.id} className="border-border/50 bg-card/50">
+                <CardContent className="p-3 flex items-center gap-3">
+                  <Timer className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{entry.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {fmtDate(entry.entry_date)} · {h > 0 ? `${h}h ` : ""}{m > 0 ? `${m}m` : ""}
+                      {entry.rate_usd ? ` · $${parseFloat(entry.rate_usd).toFixed(2)}/hr` : ""}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try { await deleteEntry.mutateAsync({ matterId, entryId: entry.id }); }
+                      catch { toast({ title: "Could not delete entry", variant: "destructive" }); }
+                    }}
+                    className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamTab({ matterId, clientName }: { matterId: number; clientName: string | null }) {
+  const { data: clients } = useClients();
+  const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const { toast } = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [editClient, setEditClient] = useState<ClientItem | null>(null);
+  const [form, setForm] = useState({ name: "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
+
+  const suggested = clients?.find((c) => clientName && c.name.toLowerCase().includes(clientName.toLowerCase()));
+
+  const submitAdd = async () => {
+    if (!form.name.trim()) return;
+    try {
+      await createClient.mutateAsync({ name: form.name.trim(), ic_number: form.ic_number || undefined, company_name: form.company_name || undefined, email: form.email || undefined, phone: form.phone || undefined, address: form.address || undefined, notes: form.notes || undefined });
+      toast({ title: "Client saved" });
+      setAddOpen(false);
+      setForm({ name: "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
+    } catch {
+      toast({ title: "Could not save client", variant: "destructive" });
+    }
+  };
+
+  const submitEdit = async () => {
+    if (!editClient) return;
+    try {
+      await updateClient.mutateAsync({ id: editClient.id, ...form });
+      toast({ title: "Client updated" });
+      setEditClient(null);
+    } catch {
+      toast({ title: "Could not update client", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-serif font-semibold text-foreground flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" /> Client Records
+        </h3>
+        <Button size="sm" className="gap-2" onClick={() => {
+          setForm({ name: clientName ?? "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
+          setAddOpen(true);
+        }}>
+          <Plus className="h-4 w-4" /> Add client
+        </Button>
+      </div>
+
+      {suggested && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-2">Matched client</p>
+            <ClientCard client={suggested} onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }} />
+          </CardContent>
+        </Card>
+      )}
+
+      {(clients?.length ?? 0) === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-8 text-center">
+            <User className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No client records yet. Add a client card to track contact details.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {clients!.filter((c) => c.id !== suggested?.id).map((client) => (
+            <ClientCard key={client.id} client={client} onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }} />
+          ))}
+        </div>
+      )}
+
+      {/* Add client dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-serif">Add Client</DialogTitle></DialogHeader>
+          <ClientForm form={form} setForm={setForm} />
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button className="flex-1" onClick={submitAdd} disabled={createClient.isPending || !form.name.trim()}>
+              {createClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit client dialog */}
+      <Dialog open={!!editClient} onOpenChange={(o) => !o && setEditClient(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-serif">Edit Client</DialogTitle></DialogHeader>
+          <ClientForm form={form} setForm={setForm} />
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setEditClient(null)}>Cancel</Button>
+            <Button className="flex-1" onClick={submitEdit} disabled={updateClient.isPending}>
+              {updateClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ClientCard({ client, onEdit }: { client: ClientItem; onEdit: (c: ClientItem) => void }) {
+  return (
+    <Card className="border-border/50 bg-card/50">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5">
+            <p className="font-semibold text-foreground">{client.name}</p>
+            {client.ic_number && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3 w-3" /> {client.ic_number}</p>}
+            {client.company_name && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3 w-3" /> {client.company_name}</p>}
+            {client.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" /> {client.email}</p>}
+            {client.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="h-3 w-3" /> {client.phone}</p>}
+            {client.address && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3 w-3" /> {client.address}</p>}
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => onEdit(client)} className="shrink-0"><Pencil className="h-3.5 w-3.5" /></Button>
+        </div>
+        {client.notes && <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50 whitespace-pre-wrap">{client.notes}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientForm({ form, setForm }: { form: Record<string, string>; setForm: React.Dispatch<React.SetStateAction<Record<string, string>>> }) {
+  return (
+    <div className="space-y-3">
+      <div><Label>Full name *</Label><Input className="mt-1" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+      <div><Label>IC / Passport no.</Label><Input className="mt-1" value={form.ic_number} onChange={(e) => setForm((f) => ({ ...f, ic_number: e.target.value }))} /></div>
+      <div><Label>Company</Label><Input className="mt-1" value={form.company_name} onChange={(e) => setForm((f) => ({ ...f, company_name: e.target.value }))} /></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><Label>Email</Label><Input className="mt-1" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div>
+        <div><Label>Phone</Label><Input className="mt-1" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+      </div>
+      <div><Label>Address</Label><Textarea className="mt-1" rows={2} value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} /></div>
+      <div><Label>Notes</Label><Textarea className="mt-1" rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} /></div>
+    </div>
+  );
+}
+
+function downloadIcs(matter: { title: string; deadlines: MatterDeadline[] }) {
+  const escape = (s: string) => s.replace(/[,;\\]/g, (c) => `\\${c}`).replace(/\n/g, "\\n");
+  const dtFmt = (iso: string) => iso.slice(0, 10).replace(/-/g, "");
+  const uid = (id: number) => `crim-dl-${id}@mycrimai`;
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//MyCrimAI//Matter Calendar//EN",
+    ...matter.deadlines.flatMap((d) => [
+      "BEGIN:VEVENT",
+      `UID:${uid(d.id)}`,
+      `DTSTART;VALUE=DATE:${dtFmt(d.dueDate)}`,
+      `DTEND;VALUE=DATE:${dtFmt(d.dueDate)}`,
+      `SUMMARY:${escape(d.title)} [${matter.title}]`,
+      `DESCRIPTION:${escape(d.basis ?? "")}`,
+      "END:VEVENT",
+    ]),
+    "END:VCALENDAR",
+  ];
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${matter.title.replace(/[^a-z0-9]/gi, "-")}-deadlines.ics`;
+  a.click();
 }
 
 export function MatterDetailPage() {
@@ -136,7 +735,6 @@ export function MatterDetailPage() {
       charge: matter.charge ?? "",
       court: matter.court ?? "",
       caseNo: matter.caseNo ?? "",
-      stage: matter.stage ?? "",
       workflowId: matter.workflowId,
       status: matter.status,
       notes: matter.notes ?? "",
@@ -259,16 +857,36 @@ export function MatterDetailPage() {
   const done = deadlines.filter((d) => d.status === "done");
   const selectedTrigger = triggers?.find((t) => t.trigger === trigger);
 
-  const infoRows: { icon: typeof Building2; label: string; value: string }[] = [];
-  if (matter.fileRef) infoRows.push({ icon: Hash, label: "File ref", value: matter.fileRef });
-  if (matter.clientName) infoRows.push({ icon: Building2, label: "Client", value: matter.clientName });
-  if (matter.accusedName) infoRows.push({ icon: Scale, label: "Accused", value: matter.accusedName });
-  if (matter.charge) infoRows.push({ icon: Scale, label: "Charge", value: matter.charge });
-  if (matter.court) infoRows.push({ icon: Building2, label: "Court", value: matter.court });
-  if (matter.caseNo) infoRows.push({ icon: Hash, label: "Case no.", value: matter.caseNo });
+  // Timeline: merge deadlines + documents sorted by date
+  const timelineItems: Array<{ type: "deadline" | "doc"; date: string; label: string; id: number; extra?: string; item?: SavedWorkItem; dl?: MatterDeadline }> = [
+    ...deadlines.map((d) => ({ type: "deadline" as const, date: d.dueDate, label: d.title, id: d.id, extra: categoryMeta(d.category).label, dl: d })),
+    ...(matterWork ?? []).map((w) => ({ type: "doc" as const, date: w.updatedAt, label: w.title, id: w.id, item: w })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const hearingCategories = ["remand", "charge", "trial"];
+  const hearingDeadlines = deadlines.filter((d) => hearingCategories.includes(d.category));
+
+  // AI tool launch links with matter context
+  const matterParams = new URLSearchParams();
+  if (matter.title) matterParams.set("matterTitle", matter.title);
+  if (matter.accusedName) matterParams.set("accused", matter.accusedName);
+  if (matter.charge) matterParams.set("charge", matter.charge);
+  if (matter.caseNo) matterParams.set("caseNo", matter.caseNo);
+  if (matter.court) matterParams.set("court", matter.court);
+  const matterQuery = matterParams.toString();
+
+  const aiTools = [
+    { name: "Case Analyzer", href: `/workspace/ai/case-analyzer?${matterQuery}`, icon: Scale },
+    { name: "Document Drafter", href: `/workspace/ai/document-drafter?${matterQuery}`, icon: FileText },
+    { name: "Charge Analyzer", href: `/workspace/ai/charge-analyzer?${matterQuery}`, icon: Gavel },
+    { name: "Case Strategy", href: `/workspace/ai/case-strategy?${matterQuery}`, icon: Brain },
+    { name: "Legal Opinion", href: `/workspace/ai/legal-opinion?${matterQuery}`, icon: Scale },
+    { name: "Appeal Grounds", href: `/workspace/ai/appeal-grounds?${matterQuery}`, icon: ArrowRight },
+  ];
 
   return (
     <div className="pb-16">
+      {/* Header */}
       <Link href="/workspace/matters">
         <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
           <ArrowLeft className="h-4 w-4" /> All matters
@@ -276,176 +894,334 @@ export function MatterDetailPage() {
       </Link>
 
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
-        <div className="space-y-1">
-          <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-matter-title">{matter.title}</h1>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {matter.stage && <Badge variant="outline" className="capitalize">{matter.stage}</Badge>}
-            <Badge variant="outline" className="capitalize">{matter.status}</Badge>
+        <div className="space-y-1 min-w-0">
+          <h1 className="font-serif text-2xl font-bold tracking-tight" data-testid="text-matter-title">{matter.title}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            {matter.fileRef && <span className="text-xs text-muted-foreground">#{matter.fileRef}</span>}
+            {matter.caseNo && <span className="text-xs text-muted-foreground">· {matter.caseNo}</span>}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={openEdit} data-testid="button-edit-matter"><Pencil className="h-4 w-4" /> Edit</Button>
-          <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(true)} data-testid="button-delete-matter"><Trash2 className="h-4 w-4" /></Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" className="gap-2" onClick={openEdit}><Pencil className="h-3.5 w-3.5" /> Edit</Button>
+          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
 
-      {infoRows.length > 0 && (
-        <Card className="mb-6 border-border/50 bg-card/50">
-          <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-            {infoRows.map((r) => {
-              const Icon = r.icon;
-              return (
-                <div key={r.label} className="flex items-center gap-2.5 text-sm">
-                  <Icon className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">{r.label}:</span>
-                  <span className="text-foreground font-medium truncate">{r.value}</span>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {matter.notes && (
-        <Card className="mb-6 border-border/50 bg-card/50">
-          <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Notes</p>
-            <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{matter.notes}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Practice workflow link */}
-      <Card className="mb-6 border-primary/25 bg-primary/5">
-        <CardContent className="p-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-3">
-            <Workflow className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="font-serif font-semibold text-foreground">
-                {linkedWorkflow ? `${linkedWorkflow.title} — workflow & checklist` : "Practice workflow"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {linkedWorkflow
-                  ? "Follow the step-by-step procedure for this stage of the case."
-                  : "Link this matter to a criminal-procedure workflow (remand, bail, trial, appeal) from Edit, or browse all workflows."}
-              </p>
-            </div>
-          </div>
-          <Link href={linkedWorkflow ? `/workspace/workflows/${linkedWorkflow.id}` : "/workspace/workflows"}>
-            <Button className="gap-2" data-testid="button-open-workflow">
-              {linkedWorkflow ? "Open workflow" : "Browse workflows"} <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-
-      {/* Documents filed in this matter */}
-      <div className="flex items-center gap-2 mb-4 mt-8">
-        <FileText className="h-5 w-5 text-primary" />
-        <h2 className="font-serif font-bold text-lg text-foreground">Documents</h2>
-        {(matterWork?.length ?? 0) > 0 && <Badge variant="outline">{matterWork!.length}</Badge>}
+      {/* Stage stepper */}
+      <div className="mb-6">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Case Stage</p>
+        <StageStepper currentStatus={matter.status} matterId={matter.id} />
       </div>
-      {(matterWork?.length ?? 0) === 0 ? (
-        <Card className="mb-8 border-border/50 bg-card/50">
-          <CardContent className="p-8 text-center">
-            <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No documents filed yet. Generate a draft in the Document Drafter and file it into this matter.
-            </p>
-            <Link href="/workspace/ai/document-drafter">
-              <Button variant="outline" className="mt-4 gap-2">Open Document Drafter <ArrowRight className="h-4 w-4" /></Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8" data-testid="list-matter-documents">
-          {matterWork!.map((w) => (
-            <Card key={w.id} className="hover:border-primary/40 transition-colors cursor-pointer border-border/50 bg-card/50" onClick={() => setViewDoc(w)} data-testid={`card-document-${w.id}`}>
-              <CardContent className="p-4 flex items-start gap-3">
-                <FileText className="h-4 w-4 text-primary mt-1 shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-medium text-sm text-foreground truncate">{w.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Updated {fmtDate(w.updatedAt)}</p>
-                </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Timeline</TabsTrigger>
+          <TabsTrigger value="hearings" className="gap-1.5"><Gavel className="h-3.5 w-3.5" /> Hearings</TabsTrigger>
+          <TabsTrigger value="documents" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Documents {(matterWork?.length ?? 0) > 0 && <Badge variant="outline" className="ml-1 text-[10px] py-0 h-4">{matterWork!.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="checklist" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
+          <TabsTrigger value="team" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Team</TabsTrigger>
+          <TabsTrigger value="time" className="gap-1.5"><Timer className="h-3.5 w-3.5" /> Time</TabsTrigger>
+        </TabsList>
+
+        {/* Overview tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* AI Insights */}
+          <AiInsightsPanel matterId={matter.id} />
+
+          {/* Matter info */}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">Matter Details</p>
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                {[
+                  { icon: Hash, label: "File ref", value: matter.fileRef },
+                  { icon: Building2, label: "Client", value: matter.clientName },
+                  { icon: Scale, label: "Accused", value: matter.accusedName },
+                  { icon: Scale, label: "Charge", value: matter.charge },
+                  { icon: Building2, label: "Court", value: matter.court },
+                  { icon: Hash, label: "Case no.", value: matter.caseNo },
+                ].filter((r) => r.value).map((r) => {
+                  const Icon = r.icon;
+                  return (
+                    <div key={r.label} className="flex items-center gap-2.5 text-sm">
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-muted-foreground">{r.label}:</span>
+                      <span className="text-foreground font-medium truncate">{r.value}</span>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* Deadline diary */}
-      <div className="flex items-center justify-between mb-4 mt-8 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="h-5 w-5 text-primary" />
-          <h2 className="font-serif font-bold text-lg text-foreground">Deadlines</h2>
-          {pending.length > 0 && <Badge variant="outline">{pending.length} pending</Badge>}
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setComputeOpen(true)} data-testid="button-compute-deadlines"><Wand2 className="h-4 w-4" /> Compute from CPC</Button>
-          <Button className="gap-2" onClick={() => setAddOpen(true)} data-testid="button-add-deadline"><Plus className="h-4 w-4" /> Add</Button>
-        </div>
-      </div>
+          {matter.notes && (
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Notes</p>
+                <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{matter.notes}</p>
+              </CardContent>
+            </Card>
+          )}
 
-      {deadlines.length === 0 ? (
-        <Card className="border-border/50 bg-card/50">
-          <CardContent className="p-10 text-center">
-            <CalendarClock className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <h3 className="font-serif font-semibold text-foreground mb-1">No deadlines yet</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
-              Add a date manually, or compute a set from a criminal-procedure trigger — e.g. a subordinate-court
-              conviction auto-generates the 14-day notice of appeal and stay dates.
+          {/* Linked workflow */}
+          <Card className="border-primary/25 bg-primary/5">
+            <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3">
+                <Workflow className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-foreground text-sm">
+                    {linkedWorkflow ? linkedWorkflow.title : "Practice workflow"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {linkedWorkflow ? "Step-by-step procedure for this stage." : "Link a criminal-procedure workflow from Edit."}
+                  </p>
+                </div>
+              </div>
+              <Link href={linkedWorkflow ? `/workspace/workflows/${linkedWorkflow.id}` : "/workspace/workflows"}>
+                <Button size="sm" className="gap-2 shrink-0">
+                  {linkedWorkflow ? "Open workflow" : "Browse workflows"} <ChevronRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* AI tool launch */}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">Launch AI Tools for This Matter</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {aiTools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <Link key={tool.name} href={tool.href}>
+                    <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-medium text-foreground truncate">{tool.name}</span>
+                    </button>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Timeline tab */}
+        <TabsContent value="timeline" className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-serif font-bold text-lg flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> Case Timeline</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadIcs(matter)}>
+                <Download className="h-3.5 w-3.5" /> Export .ics
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setComputeOpen(true)}><Wand2 className="h-3.5 w-3.5" /> Compute from CPC</Button>
+              <Button size="sm" className="gap-2" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" /> Add deadline</Button>
+            </div>
+          </div>
+
+          {timelineItems.length === 0 ? (
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-10 text-center">
+                <Calendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No timeline events yet. Add deadlines or file documents to build the case timeline.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="relative">
+              <div className="absolute left-4 top-0 bottom-0 w-px bg-border/50" />
+              <div className="space-y-4 pl-10">
+                {timelineItems.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="relative">
+                    <div className={`absolute -left-6 top-2 h-3 w-3 rounded-full border-2 ${item.type === "deadline" ? "bg-primary border-primary" : "bg-card border-primary/50"}`} />
+                    <Card className="border-border/50 bg-card/50">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        {item.type === "deadline" ? (
+                          <>
+                            <CalendarClock className="h-4 w-4 text-primary shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium">{item.label}</span>
+                                {item.extra && <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${categoryMeta(item.dl!.category).color}`}>{item.extra}</span>}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(item.date)}</p>
+                            </div>
+                            <CountdownBadge due={item.dl!.dueDate} status={item.dl!.status} />
+                            <button onClick={() => toggleDone(item.dl!)} className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${item.dl!.status === "done" ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"}`}>
+                              {item.dl!.status === "done" && <Check className="h-3 w-3" />}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium">{item.label}</span>
+                              <p className="text-xs text-muted-foreground mt-0.5">Filed {fmtDate(item.date)}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => setViewDoc(item.item!)}>View</Button>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800/80 leading-relaxed">
+              Computed dates apply ordinary CPC / Courts of Judicature Act periods and roll forward off weekends. <span className="text-amber-700 font-medium">Always verify against sealed orders before relying on a date.</span>
             </p>
-            <Button className="gap-2" onClick={() => setComputeOpen(true)}><Wand2 className="h-4 w-4" /> Compute from a trigger</Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2" data-testid="list-deadlines">
-          {[...pending, ...done].map((d) => {
-            const cat = categoryMeta(d.category);
-            const isDone = d.status === "done";
-            return (
-              <Card key={d.id} className={`border-border/50 bg-card/50 transition-all ${isDone ? "opacity-60" : ""}`}>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <button
-                    onClick={() => toggleDone(d)}
-                    title={isDone ? "Mark pending" : "Mark done"}
-                    className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                      isDone ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"
-                    }`}
-                  >
-                    {isDone && <Check className="h-3.5 w-3.5" />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>{d.title}</span>
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      <Clock className="h-3 w-3" /> {fmtDate(d.dueDate)}
-                      {d.basis && <span className="truncate">· {d.basis}</span>}
-                    </div>
-                    {d.notes && <p className="text-xs text-muted-foreground/80 mt-1 line-clamp-2">{d.notes}</p>}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <CountdownBadge due={d.dueDate} status={d.status} />
-                    <button onClick={() => openEditDeadline(d)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary" title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => removeDeadline(d)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+          </div>
+        </TabsContent>
 
-      <div className="mt-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-800/80 leading-relaxed">
-          Computed dates apply the ordinary CPC / Courts of Judicature Act periods and roll forward off weekends.
-          Some periods (e.g. the petition of appeal) run from service of the record, not the decision.
-          <span className="text-amber-700 font-medium"> Always verify against the sealed orders before relying on a date.</span>
-        </p>
-      </div>
+        {/* Hearings tab */}
+        <TabsContent value="hearings" className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-serif font-bold text-lg flex items-center gap-2"><Gavel className="h-5 w-5 text-primary" /> Hearings &amp; Key Dates</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadIcs(matter)}><Download className="h-3.5 w-3.5" /> Export .ics</Button>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setComputeOpen(true)}><Wand2 className="h-3.5 w-3.5" /> Compute from CPC</Button>
+              <Button size="sm" className="gap-2" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" /> Add</Button>
+            </div>
+          </div>
+
+          {hearingDeadlines.length === 0 ? (
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-10 text-center">
+                <Gavel className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No hearing dates yet. Add remand, charge or trial deadlines and they'll appear here.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {[...pending.filter((d) => hearingCategories.includes(d.category)), ...done.filter((d) => hearingCategories.includes(d.category))].map((d) => {
+                const cat = categoryMeta(d.category);
+                const isDone = d.status === "done";
+                return (
+                  <Card key={d.id} className={`border-border/50 bg-card/50 transition-all ${isDone ? "opacity-60" : ""}`}>
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <button onClick={() => toggleDone(d)} className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"}`}>
+                        {isDone && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-sm font-medium ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>{d.title}</span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          <Clock className="h-3 w-3" /> {fmtDate(d.dueDate)}
+                        </div>
+                      </div>
+                      <CountdownBadge due={d.dueDate} status={d.status} />
+                      <button onClick={() => openEditDeadline(d)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => removeDeadline(d)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Show all other deadlines too */}
+          {deadlines.filter((d) => !hearingCategories.includes(d.category)).length > 0 && (
+            <details className="mt-4">
+              <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">Show other deadlines ({deadlines.filter((d) => !hearingCategories.includes(d.category)).length})</summary>
+              <div className="space-y-2 mt-2">
+                {deadlines.filter((d) => !hearingCategories.includes(d.category)).map((d) => {
+                  const cat = categoryMeta(d.category);
+                  const isDone = d.status === "done";
+                  return (
+                    <Card key={d.id} className={`border-border/50 bg-card/50 ${isDone ? "opacity-60" : ""}`}>
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <button onClick={() => toggleDone(d)} className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-primary"}`}>
+                          {isDone && <Check className="h-3 w-3" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm ${isDone ? "line-through text-muted-foreground" : "text-foreground"}`}>{d.title}</span>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{fmtDate(d.dueDate)}</p>
+                        </div>
+                        <CountdownBadge due={d.dueDate} status={d.status} />
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </details>
+          )}
+        </TabsContent>
+
+        {/* Documents tab */}
+        <TabsContent value="documents" className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-serif font-bold text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" /> Filed Documents
+              {(matterWork?.length ?? 0) > 0 && <Badge variant="outline">{matterWork!.length}</Badge>}
+            </h2>
+          </div>
+
+          {(matterWork?.length ?? 0) === 0 ? (
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-8 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground mb-4">No documents filed yet. Generate a draft in any AI tool and file it into this matter.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="list-matter-documents">
+              {matterWork!.map((w) => (
+                <Card key={w.id} className="hover:border-primary/40 transition-colors cursor-pointer border-border/50 bg-card/50" onClick={() => setViewDoc(w)} data-testid={`card-document-${w.id}`}>
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <FileText className="h-4 w-4 text-primary mt-1 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-foreground truncate">{w.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Updated {fmtDate(w.updatedAt)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-2">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">Draft for This Matter</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {aiTools.map((tool) => {
+                const Icon = tool.icon;
+                return (
+                  <Link key={tool.name} href={tool.href}>
+                    <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
+                      <Icon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-medium text-foreground truncate">{tool.name}</span>
+                    </button>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Checklist tab */}
+        <TabsContent value="checklist">
+          <ChecklistTab matterId={matter.id} />
+        </TabsContent>
+
+        {/* Team tab */}
+        <TabsContent value="team">
+          <TeamTab matterId={matter.id} clientName={matter.clientName} />
+        </TabsContent>
+
+        {/* Time tab */}
+        <TabsContent value="time">
+          <TimeTab matterId={matter.id} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
 
       {/* Edit matter */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -482,36 +1258,28 @@ export function MatterDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Stage</Label>
-                <Select value={editForm.stage ?? ""} onValueChange={(v) => setEditForm((f) => ({ ...f, stage: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select stage…" /></SelectTrigger>
-                  <SelectContent>
-                    {STAGE_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
                 <Label>Status</Label>
                 <Select value={editForm.status ?? "open"} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {CRIM_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Linked workflow</Label>
-              <Select
-                value={editForm.workflowId ? String(editForm.workflowId) : "none"}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, workflowId: v === "none" ? null : parseInt(v, 10) }))}
-              >
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {(workflows ?? []).map((w) => <SelectItem key={w.id} value={String(w.id)}>{w.title}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Label>Linked workflow</Label>
+                <Select
+                  value={editForm.workflowId ? String(editForm.workflowId) : "none"}
+                  onValueChange={(v) => setEditForm((f) => ({ ...f, workflowId: v === "none" ? null : parseInt(v, 10) }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {(workflows ?? []).map((w) => <SelectItem key={w.id} value={String(w.id)}>{w.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Notes</Label>
@@ -532,9 +1300,7 @@ export function MatterDetailPage() {
         <DialogContent>
           <DialogHeader><DialogTitle className="font-serif">Delete this matter?</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This permanently deletes <span className="text-foreground font-medium">“{matter.title}”</span> and all its deadlines. This cannot be undone.
-            </p>
+            <p className="text-sm text-muted-foreground">This permanently deletes <span className="text-foreground font-medium">"{matter.title}"</span> and all its data. Cannot be undone.</p>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(false)}>Cancel</Button>
               <Button variant="destructive" className="flex-1" onClick={doDelete} disabled={deleteMatter.isPending}>Delete</Button>
@@ -603,42 +1369,35 @@ export function MatterDetailPage() {
                 <Input type="date" value={triggerDate} onChange={(e) => { setTriggerDate(e.target.value); setPreview([]); }} />
               </div>
             </div>
-
-            {selectedTrigger && (
-              <p className="text-xs text-muted-foreground bg-secondary/40 rounded-lg p-3">{selectedTrigger.description}</p>
-            )}
-
+            {selectedTrigger && <p className="text-xs text-muted-foreground bg-secondary/40 rounded-lg p-3">{selectedTrigger.description}</p>}
             <Button variant="outline" className="w-full gap-2" onClick={runCompute} disabled={compute.isPending}>
               <Wand2 className="h-4 w-4" /> {compute.isPending ? "Computing…" : "Compute deadlines"}
             </Button>
-
             {preview.length > 0 && (
-              <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-                <p className="text-xs text-muted-foreground">Select the deadlines to add:</p>
-                {preview.map((p, i) => {
-                  const cat = categoryMeta(p.category);
-                  return (
-                    <label key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 cursor-pointer transition-all">
-                      <input type="checkbox" checked={!!picked[i]} onChange={(e) => setPicked((pk) => ({ ...pk, [i]: e.target.checked }))} className="mt-1 accent-primary" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-foreground">{p.title}</span>
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
+              <>
+                <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+                  <p className="text-xs text-muted-foreground">Select the deadlines to add:</p>
+                  {preview.map((p, i) => {
+                    const cat = categoryMeta(p.category);
+                    return (
+                      <label key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-primary/40 cursor-pointer transition-all">
+                        <input type="checkbox" checked={!!picked[i]} onChange={(e) => setPicked((pk) => ({ ...pk, [i]: e.target.checked }))} className="mt-1 accent-primary" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-foreground">{p.title}</span>
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${cat.color}`}>{cat.label}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">{fmtDate(p.dueDate)} · {p.basis}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{fmtDate(p.dueDate)} · {p.basis}</div>
-                        {p.notes && <div className="text-xs text-muted-foreground/80 mt-0.5">{p.notes}</div>}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-
-            {preview.length > 0 && (
-              <div className="flex gap-3 pt-1">
-                <Button variant="outline" className="flex-1" onClick={() => { setComputeOpen(false); setPreview([]); }}>Cancel</Button>
-                <Button className="flex-1" onClick={saveComputed} disabled={addBulk.isPending}>Add selected</Button>
-              </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <Button variant="outline" className="flex-1" onClick={() => { setComputeOpen(false); setPreview([]); }}>Cancel</Button>
+                  <Button className="flex-1" onClick={saveComputed} disabled={addBulk.isPending}>Add selected</Button>
+                </div>
+              </>
             )}
           </div>
         </DialogContent>
@@ -649,15 +1408,9 @@ export function MatterDetailPage() {
         <DialogContent>
           <DialogHeader><DialogTitle className="font-serif">Edit Deadline</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Title *</Label>
-              <Input value={edForm.title} onChange={(e) => setEdForm((f) => ({ ...f, title: e.target.value }))} />
-            </div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={edForm.title} onChange={(e) => setEdForm((f) => ({ ...f, title: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Due date *</Label>
-                <Input type="date" value={edForm.dueDate} onChange={(e) => setEdForm((f) => ({ ...f, dueDate: e.target.value }))} />
-              </div>
+              <div className="space-y-1.5"><Label>Due date *</Label><Input type="date" value={edForm.dueDate} onChange={(e) => setEdForm((f) => ({ ...f, dueDate: e.target.value }))} /></div>
               <div className="space-y-1.5">
                 <Label>Category</Label>
                 <Select value={edForm.category} onValueChange={(v) => setEdForm((f) => ({ ...f, category: v }))}>
@@ -668,14 +1421,8 @@ export function MatterDetailPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Basis (provision / authority)</Label>
-              <Input value={edForm.basis} onChange={(e) => setEdForm((f) => ({ ...f, basis: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Notes</Label>
-              <Textarea value={edForm.notes} onChange={(e) => setEdForm((f) => ({ ...f, notes: e.target.value }))} rows={2} />
-            </div>
+            <div className="space-y-1.5"><Label>Basis</Label><Input value={edForm.basis} onChange={(e) => setEdForm((f) => ({ ...f, basis: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>Notes</Label><Textarea value={edForm.notes} onChange={(e) => setEdForm((f) => ({ ...f, notes: e.target.value }))} rows={2} /></div>
             <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1" onClick={() => setEditingDeadline(null)}>Cancel</Button>
               <Button className="flex-1" onClick={saveEditDeadline} disabled={updateDeadline.isPending}>Save changes</Button>

@@ -78,6 +78,80 @@ export interface SavedWorkItem {
   updatedAt: string;
 }
 
+// ── AI Intelligence types ─────────────────────────────────────────────────────
+
+export interface CaseNextStep {
+  action: string;
+  suggestedDeadline?: string;
+  priority: "high" | "medium" | "low";
+}
+
+export interface CaseInsights {
+  nextSteps: CaseNextStep[];
+  caseSummary: string;
+  riskAssessment: {
+    rating: "Low" | "Medium" | "High";
+    keyStrengths: string[];
+    keyWeaknesses: string[];
+  };
+  cachedAt: string;
+  expiresAt: string;
+}
+
+export interface StageHistoryItem {
+  id: number;
+  from_stage: string | null;
+  to_stage: string;
+  changed_at: string;
+}
+
+export interface ChecklistItem {
+  id: number;
+  item_text: string;
+  done: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  description: string;
+  minutes: number;
+  rate_usd: string | null;
+  entry_date: string;
+  created_at: string;
+}
+
+export interface TimeEntriesResult {
+  entries: TimeEntry[];
+  totalMinutes: number;
+}
+
+export interface ClientItem {
+  id: number;
+  name: string;
+  ic_number: string | null;
+  company_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Criminal CPC stages (matches PORTAL_STAGES.crim in backend) ───────────────
+export const CRIM_STAGES = [
+  "Investigation",
+  "Charge",
+  "Mention",
+  "Trial",
+  "Judgment",
+  "Appeal",
+  "Closed",
+];
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -104,9 +178,16 @@ async function request(base: string, path: string, init?: RequestInit) {
 
 const api = (path: string, init?: RequestInit) => request("/matters", path, init);
 const workApi = (path: string, init?: RequestInit) => request("/saved-work", path, init);
+const clientApi = (path: string, init?: RequestInit) => request("/clients", path, init);
 
 const KEY = ["crim-matters"];
 const upcomingKey = ["crim-matters", "upcoming"];
+
+function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: KEY });
+}
+
+// ── Matter CRUD ───────────────────────────────────────────────────────────────
 
 export function useMatters(status?: string) {
   return useQuery<Matter[]>({
@@ -144,10 +225,6 @@ export function useDeadlineTriggers() {
     queryFn: () => api("/deadline-triggers"),
     staleTime: Infinity,
   });
-}
-
-function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: KEY });
 }
 
 export function useCreateMatter() {
@@ -263,6 +340,171 @@ export function useSaveWork() {
   });
 }
 
+// ── AI Case Intelligence ──────────────────────────────────────────────────────
+
+export function useAiInsights(matterId: number | null) {
+  return useQuery<CaseInsights>({
+    queryKey: [...KEY, "ai-insights", matterId],
+    queryFn: () => api(`/${matterId}/ai-insights`),
+    enabled: matterId != null,
+    staleTime: 6 * 60 * 60 * 1000,
+  });
+}
+
+export function useRefreshAiInsights() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (matterId: number): Promise<CaseInsights> =>
+      api(`/${matterId}/ai-insights?refresh=1`),
+    onSuccess: (_data, matterId) => {
+      qc.invalidateQueries({ queryKey: [...KEY, "ai-insights", matterId] });
+    },
+  });
+}
+
+export function useStageHistory(matterId: number | null) {
+  return useQuery<StageHistoryItem[]>({
+    queryKey: [...KEY, "stage-history", matterId],
+    queryFn: () => api(`/${matterId}/stage-history`),
+    enabled: matterId != null,
+  });
+}
+
+export function useUpdateStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, stage }: { matterId: number; stage: string }): Promise<{ success: boolean; status: string }> =>
+      api(`/${matterId}/status`, { method: "PATCH", body: JSON.stringify({ stage }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Checklist ────────────────────────────────────────────────────────────────
+
+export function useChecklist(matterId: number | null) {
+  return useQuery<ChecklistItem[]>({
+    queryKey: [...KEY, "checklist", matterId],
+    queryFn: () => api(`/${matterId}/checklist`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, item_text }: { matterId: number; item_text: string }): Promise<ChecklistItem> =>
+      api(`/${matterId}/checklist`, { method: "POST", body: JSON.stringify({ item_text }) }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useUpdateChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      matterId,
+      itemId,
+      done,
+      item_text,
+    }: { matterId: number; itemId: number; done?: boolean; item_text?: string }): Promise<ChecklistItem> =>
+      api(`/${matterId}/checklist/${itemId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ done, item_text }),
+      }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, itemId }: { matterId: number; itemId: number }): Promise<{ success: boolean }> =>
+      api(`/${matterId}/checklist/${itemId}`, { method: "DELETE" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Time recording ────────────────────────────────────────────────────────────
+
+export function useTimeEntries(matterId: number | null) {
+  return useQuery<TimeEntriesResult>({
+    queryKey: [...KEY, "time-entries", matterId],
+    queryFn: () => api(`/${matterId}/time-entries`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddTimeEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      matterId,
+      description,
+      minutes,
+      rate_usd,
+      entry_date,
+    }: {
+      matterId: number;
+      description: string;
+      minutes: number;
+      rate_usd?: number | null;
+      entry_date?: string;
+    }): Promise<TimeEntry> =>
+      api(`/${matterId}/time-entries`, {
+        method: "POST",
+        body: JSON.stringify({ description, minutes, rate_usd, entry_date }),
+      }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useDeleteTimeEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, entryId }: { matterId: number; entryId: number }): Promise<{ success: boolean }> =>
+      api(`/${matterId}/time-entries/${entryId}`, { method: "DELETE" }),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Clients ──────────────────────────────────────────────────────────────────
+
+export function useClients() {
+  return useQuery<ClientItem[]>({
+    queryKey: [...KEY, "clients"],
+    queryFn: () => clientApi(""),
+  });
+}
+
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<ClientItem>): Promise<ClientItem> =>
+      clientApi("", { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, "clients"] }),
+  });
+}
+
+export function useUpdateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: number } & Partial<ClientItem>): Promise<ClientItem> =>
+      clientApi(`/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, "clients"] }),
+  });
+}
+
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number): Promise<{ success: boolean }> =>
+      clientApi(`/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, "clients"] }),
+  });
+}
+
+// ── Metadata / utilities ──────────────────────────────────────────────────────
+
 export const DEADLINE_CATEGORY_META: Record<string, { label: string; color: string }> = {
   remand: { label: "Remand", color: "text-red-400 bg-red-500/10 border-red-500/20" },
   charge: { label: "Charge", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
@@ -277,6 +519,7 @@ export function categoryMeta(cat: string) {
   return DEADLINE_CATEGORY_META[cat] ?? DEADLINE_CATEGORY_META.custom;
 }
 
+/** Legacy stage options kept for the edit form freeform field. */
 export const STAGE_OPTIONS = [
   { value: "remand", label: "Remand" },
   { value: "charge", label: "Charge / Mention" },

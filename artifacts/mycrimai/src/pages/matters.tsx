@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { FolderKanban, Plus, Loader2, CalendarClock, AlertTriangle, FileText, Hash } from "lucide-react";
+import { FolderKanban, Plus, Loader2, CalendarClock, AlertTriangle, FileText, Hash, ChevronRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
