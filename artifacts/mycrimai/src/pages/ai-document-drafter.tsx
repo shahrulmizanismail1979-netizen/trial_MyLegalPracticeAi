@@ -9,6 +9,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { DraftExportButtons } from "@workspace/draft-export/react";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 const DOCUMENT_TYPES = [
   { value: "Bail Application (Permohonan Jaminan)", label: "Bail Application" },
@@ -140,7 +141,13 @@ export function AiDocumentDrafterPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {!isStreaming && response && (
+                  <SaveToMatterPanel
+                    draftTitle={documentType || "Document"}
+                    draftContent={response}
+                  />
+                )}
                 <MarkdownRenderer content={response} />
               </CardContent>
             </Card>

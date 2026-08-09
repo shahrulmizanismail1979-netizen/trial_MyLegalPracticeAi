@@ -35,6 +35,8 @@ import { AiLegalOpinionPage } from "@/pages/ai-legal-opinion";
 import { AiCaseStrategyPage } from "@/pages/ai-case-strategy";
 import { AiAppealGroundsPage } from "@/pages/ai-appeal-grounds";
 import { HowToUsePage } from "@/pages/how-to-use";
+import { MattersPage } from "@/pages/matters";
+import { MatterDetailPage } from "@/pages/matter-detail";
 import { AdminLoginPage } from "@/pages/admin-login";
 import { AdminDashboardPage } from "@/pages/admin-dashboard";
 import { PricingPage } from "@/pages/pricing";
@@ -101,6 +103,12 @@ function Router() {
       </Route>
       <Route path="/workspace/workflows/:id">
         {() => <WorkspaceRoute component={WorkflowDetailPage} />}
+      </Route>
+      <Route path="/workspace/matters">
+        {() => <WorkspaceRoute component={MattersPage} />}
+      </Route>
+      <Route path="/workspace/matters/:id">
+        {() => <WorkspaceRoute component={MatterDetailPage} />}
       </Route>
       <Route path="/workspace/sample-documents">
         {() => <WorkspaceRoute component={SampleDocumentsPage} />}

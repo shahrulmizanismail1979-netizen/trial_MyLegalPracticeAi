@@ -474,10 +474,39 @@ afterAll(async () => {
         }
       }
     }
-    await db.delete(researchBoundarySignals)
-      .where(inArray(researchBoundarySignals.runId, segRunIds));
-    await db.delete(researchSegmentationRuns)
-      .where(inArray(researchSegmentationRuns.id, segRunIds));
+    // Parallel workers can process our queued segmentation jobs and insert
+    // fresh boundaries referencing these runs between our child-delete and the
+    // run delete — retry child-then-parent a few times (see memory:
+    // research-test-cleanup-race).
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await db.delete(researchCaseBoundaries)
+          .where(inArray(researchCaseBoundaries.runId, segRunIds));
+        await db.delete(researchBoundarySignals)
+          .where(inArray(researchBoundarySignals.runId, segRunIds));
+        await db.delete(researchSegmentationRuns)
+          .where(inArray(researchSegmentationRuns.id, segRunIds));
+        break;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Boundaries inserted by another worker may themselves have candidate
+        // links — clear those before the next attempt.
+        const lateBoundaryIds = await db
+          .select({ id: researchCaseBoundaries.id })
+          .from(researchCaseBoundaries)
+          .where(inArray(researchCaseBoundaries.runId, segRunIds))
+          .then((rows) => rows.map((r) => r.id));
+        if (lateBoundaryIds.length > 0) {
+          await db
+            .delete(researchCaseCandidateBoundaries)
+            .where(inArray(researchCaseCandidateBoundaries.startBoundaryId, lateBoundaryIds));
+          await db
+            .delete(researchCaseCandidateBoundaries)
+            .where(inArray(researchCaseCandidateBoundaries.endBoundaryId, lateBoundaryIds));
+        }
+      }
+    }
   }
 
   // ── Step 6: delete page data ──────────────────────────────────────────────

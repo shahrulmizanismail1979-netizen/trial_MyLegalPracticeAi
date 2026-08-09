@@ -723,7 +723,9 @@ describe("phase 04: layout analyzer", () => {
 });
 
 describe("phase 04: web layer (extraction routes + review UI)", () => {
-  it("serves pages, detail, image, corrections, and the review UI", async () => {
+  // Generous timeout: under parallel-worker load another worker may claim the
+  // extract job and take a while to finish before /pages serves output.
+  it("serves pages, detail, image, corrections, and the review UI", { timeout: 120_000 }, async () => {
     const app = await makeTestApp();
     const container = await makeExtractionContainer("scanned-judgment.pdf");
 
@@ -734,16 +736,29 @@ describe("phase 04: web layer (extraction routes + review UI)", () => {
     expect(kick.body.jobId).toBeTruthy();
     await drainJobs();
     // A parallel test worker may have claimed our extract job and still be
-    // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
-    for (let poll = 0; poll < 30; poll++) {
-      const c = await getContainer(container.id);
-      if (c!.processingState !== "EXTRACTION_PENDING") break;
+    // mid-run — poll until the pages endpoint actually serves the extraction
+    // output (the container can linger in intermediate states while the other
+    // worker finishes, during which /pages still 404s or returns no pages).
+    let pagesRes = await request(app).get(
+      `/api/research/containers/${container.id}/pages`,
+    );
+    for (
+      let poll = 0;
+      poll < 60 && !(pagesRes.status === 200 && pagesRes.body.pages?.length > 0);
+      poll++
+    ) {
+      if (poll > 0 && poll % 10 === 0) {
+        // If a parallel worker claimed the job and died without finishing it,
+        // no amount of waiting helps — re-kick extraction and drain again.
+        await request(app).post(`/api/research/containers/${container.id}/extract`);
+        await drainJobs();
+      }
       await new Promise((resolve) => setTimeout(resolve, 500));
+      pagesRes = await request(app).get(
+        `/api/research/containers/${container.id}/pages`,
+      );
     }
-
-    const pagesRes = await request(app)
-      .get(`/api/research/containers/${container.id}/pages`)
-      .expect(200);
+    expect(pagesRes.status).toBe(200);
     expect(pagesRes.body.pages).toHaveLength(1);
     const pageInfo = pagesRes.body.pages[0];
     expect(pageInfo.mode).toBe("OCR");

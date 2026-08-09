@@ -33,3 +33,4 @@
 - [Practice hub content mapping](practice-hub-content-mapping.md) — map cause papers by exact formNumber (never id or shared order numbers); keep workflow keywords narrow or matters cross-contaminate.
 - [Portal matter-file pattern](portal-matter-files.md) — per-user tables in portals with mixed code/email logins must scope by owner_type+owner_id (ids collide); boot-ensure tables via direct SQL.
 - [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.
+- [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.

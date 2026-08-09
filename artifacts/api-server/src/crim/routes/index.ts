@@ -14,8 +14,15 @@ import costsFeesRouter from "./costsFees";
 import dashboardRouter from "./dashboard";
 import aiRouter from "./ai";
 import voiceRouter from "./voice";
+import mattersRouter from "./matters";
+import savedWorkRouter from "./savedWork";
 import { requireAuth } from "../middleware/requireAuth";
 import { gateAiTools } from "../middleware/entitlements";
+import { ensureCrimMatterTables } from "../lib/ensureMatterTables";
+
+// Fire-and-forget at boot; requests to the matter routes also await it via
+// middleware so a slow boot can't race an early request into a missing table.
+void ensureCrimMatterTables().catch(() => {});
 
 const router: IRouter = Router();
 
@@ -31,6 +38,16 @@ router.use(workflowsRouter);
 router.use(sampleDocumentsRouter);
 router.use(glossaryRouter);
 router.use(costsFeesRouter);
+const awaitMatterTables: import("express").RequestHandler = (_req, res, next) => {
+  ensureCrimMatterTables().then(
+    () => next(),
+    () => res.status(503).json({ error: "matter storage unavailable" }),
+  );
+};
+router.use("/matters", awaitMatterTables);
+router.use("/saved-work", awaitMatterTables);
+router.use("/matters", mattersRouter);
+router.use("/saved-work", savedWorkRouter);
 router.use(gateAiTools);
 router.use(aiRouter);
 router.use(voiceRouter);
