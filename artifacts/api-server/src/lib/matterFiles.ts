@@ -9,6 +9,9 @@ import { sql } from "drizzle-orm";
 import { db, type MatterFileTables } from "@workspace/db";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { logger } from "./logger";
+import { type Portal } from "./caseStages";
+import { makeClientsRouter } from "./caseClients";
+import { attachCaseIntelligence, triggerChecklistGeneration } from "./attachCaseIntelligence";
 
 /**
  * Matter-file route factory for the corporate portals (Task #110), mirroring
@@ -77,9 +80,16 @@ function normaliseDeadlineBody(body: Record<string, unknown>) {
 export function createMatterFileRouters(
   tables: MatterFileTables,
   getOwnerId: GetOwnerId,
-): { mattersRouter: IRouter; savedWorkRouter: IRouter } {
+  portal?: Portal,
+): { mattersRouter: IRouter; savedWorkRouter: IRouter; clientsRouter: IRouter } {
   const { matters, deadlines, savedWork } = tables;
   const requireOwner = makeRequireOwner(getOwnerId);
+
+  // Convert numeric ownerId to string for shared intelligence tables.
+  const getOwnerKey = (req: Request, res: Response): string | null => {
+    const id = getOwnerId(req, res);
+    return typeof id === "number" ? String(id) : null;
+  };
 
   // Fetch a matter and assert it belongs to the caller. Foreign / missing
   // matters are indistinguishable: both 404.
@@ -168,6 +178,15 @@ export function createMatterFileRouters(
       .insert(matters)
       .values({ ...(data as { title: string }), ownerId, title: (data.title as string).trim() })
       .returning();
+    if (portal) {
+      triggerChecklistGeneration(
+        portal,
+        row.id,
+        String(ownerId),
+        row.title,
+        (row as unknown as Record<string, unknown>).matterType as string | null,
+      );
+    }
     res.status(201).json(row);
   });
 
@@ -434,7 +453,20 @@ export function createMatterFileRouters(
     res.json({ success: true });
   });
 
-  return { mattersRouter, savedWorkRouter };
+  // Attach AI case intelligence routes if a portal was provided.
+  if (portal) {
+    attachCaseIntelligence({
+      router: mattersRouter,
+      portal,
+      getOwnerKey,
+      getMatter: (req, res, id) => getOwnedMatter(req, res, id),
+    });
+  }
+
+  // Client management (shared case_clients table).
+  const clientsRouter = makeClientsRouter(portal ?? "corp", getOwnerKey);
+
+  return { mattersRouter, savedWorkRouter, clientsRouter };
 }
 
 /**

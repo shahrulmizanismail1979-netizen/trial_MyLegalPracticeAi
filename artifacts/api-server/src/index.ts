@@ -11,6 +11,7 @@ import { seedSyaContent } from "./sya/lib/seed";
 import { seedCrimContent } from "./crim/lib/seed";
 import { seedLitContent } from "./lit/lib/seed";
 import { ensureMatterFileTables } from "./lib/matterFiles";
+import { ensureCaseIntelligenceTables } from "./lib/ensureCaseIntelligenceTables";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -142,6 +143,10 @@ await initStripe();
 // listen — matter routes must never race table creation. A failure here is
 // fatal: better to crash and restart than serve a half-broken feature.
 await ensureMatterFileTables();
+
+// Shared AI case intelligence tables (checklists, insights cache, time entries,
+// clients, stage history) — used by all 6 portals.
+await ensureCaseIntelligenceTables();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

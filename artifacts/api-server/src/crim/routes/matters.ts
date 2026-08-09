@@ -3,6 +3,7 @@ import { db, crimMatters, crimMatterDeadlines, crimSavedWork } from "@workspace/
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireMatterTenant, tenantOf } from "./matterAuth";
 import { computeCrimDeadlines, CRIM_DEADLINE_TRIGGERS } from "../lib/crimDeadlines";
+import { attachCaseIntelligence, triggerChecklistGeneration } from "../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -135,6 +136,13 @@ router.post("/", async (req, res) => {
     .insert(crimMatters)
     .values({ ...(data as object), accessCodeId, title: (data.title as string).trim() })
     .returning();
+  triggerChecklistGeneration(
+    "crim",
+    row.id,
+    String(accessCodeId),
+    row.title,
+    row.charge ?? null,
+  );
   res.status(201).json(row);
 });
 
@@ -309,6 +317,23 @@ router.delete("/:id/deadlines/:did", async (req, res) => {
     return;
   }
   res.json({ success: true });
+});
+
+// ── AI Case Intelligence ─────────────────────────────────────────────────────
+// Adds: GET /:id/ai-insights, GET /:id/stage-history, PATCH /:id/status,
+// GET/POST/PATCH/DELETE /:id/checklist, GET/POST/DELETE /:id/time-entries
+
+attachCaseIntelligence({
+  router,
+  portal: "crim",
+  getOwnerKey: (req) => {
+    try {
+      return String(tenantOf(req));
+    } catch {
+      return null;
+    }
+  },
+  getMatter: (req, res, id) => getOwnedMatter(req, res, id),
 });
 
 export default router;

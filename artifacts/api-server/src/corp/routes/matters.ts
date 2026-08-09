@@ -7,14 +7,16 @@ import { createMatterFileRouters } from "../../lib/matterFiles";
  * MyCorpLegalAI matter files (Task #110): owned per corp access code, which
  * requireSession resolves into res.locals.accessCodeId on every request.
  */
-const { mattersRouter, savedWorkRouter } = createMatterFileRouters(
+const { mattersRouter, savedWorkRouter, clientsRouter } = createMatterFileRouters(
   corpMatterFiles,
   (_req, res: Response) =>
     typeof res.locals.accessCodeId === "number" ? res.locals.accessCodeId : undefined,
+  "corp",
 );
 
 const router: IRouter = Router();
 router.use("/matters", requireSession, mattersRouter);
 router.use("/saved-work", requireSession, savedWorkRouter);
+router.use("/clients", requireSession, clientsRouter);
 
 export default router;

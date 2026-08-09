@@ -17,6 +17,7 @@ import {
   computeDeadlines,
   DEADLINE_TRIGGERS,
 } from "../lib/litigationDeadlines";
+import { attachCaseIntelligence, triggerChecklistGeneration } from "../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -168,6 +169,13 @@ router.post("/", requireSubscription, async (req, res) => {
     .insert(litMatters)
     .values({ ...(data as object), accessCodeId, title: (data.title as string).trim() })
     .returning();
+  triggerChecklistGeneration(
+    "lit",
+    row.id,
+    String(accessCodeId),
+    row.title,
+    (row as unknown as Record<string, unknown>).matterType as string | null,
+  );
   res.status(201).json(row);
 });
 
@@ -343,6 +351,20 @@ router.delete("/:id/deadlines/:did", async (req, res) => {
     return;
   }
   res.json({ success: true });
+});
+
+// ── AI Case Intelligence ─────────────────────────────────────────────────────
+// Adds: GET /:id/ai-insights, GET /:id/stage-history, PATCH /:id/status,
+// GET/POST/PATCH/DELETE /:id/checklist, GET/POST/DELETE /:id/time-entries
+
+attachCaseIntelligence({
+  router,
+  portal: "lit",
+  getOwnerKey: (req) => {
+    const accessCodeId = (req as unknown as Request & { accessCodeId?: number }).accessCodeId;
+    return accessCodeId ? String(accessCodeId) : null;
+  },
+  getMatter: (req, res, id) => getOwnedMatter(req, res, id),
 });
 
 export default router;

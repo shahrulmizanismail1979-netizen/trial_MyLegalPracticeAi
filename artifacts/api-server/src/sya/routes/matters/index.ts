@@ -18,6 +18,7 @@ import {
   SYA_DEADLINE_TRIGGERS,
 } from "../../lib/syariahDeadlines";
 import { logger } from "../../../lib/logger";
+import { attachCaseIntelligence, triggerChecklistGeneration } from "../../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -254,6 +255,13 @@ router.post("/matters", async (req, res) => {
       title: (data.title as string).trim(),
     })
     .returning();
+  triggerChecklistGeneration(
+    "sya",
+    row.id,
+    `${owner.ownerType}:${owner.ownerId}`,
+    row.title,
+    (row as unknown as Record<string, unknown>).matterType as string | null,
+  );
   res.status(201).json(row);
 });
 
@@ -482,6 +490,23 @@ router.delete("/matters/:id/deadlines/:did", async (req, res) => {
     return;
   }
   res.json({ success: true });
+});
+
+// ── AI Case Intelligence ─────────────────────────────────────────────────────
+// Uses pathPrefix "/matters" because this router mounts its routes as
+// /matters/:id (unlike lit/crim which mount at the router root).
+
+attachCaseIntelligence({
+  router,
+  portal: "sya",
+  pathPrefix: "/matters",
+  getOwnerKey: (req) => {
+    const userId = req.session.userId;
+    const accountType = req.session.accountType ?? "code";
+    if (typeof userId !== "number") return null;
+    return `${accountType}:${userId}`;
+  },
+  getMatter: (req, res, id) => getOwnedMatter(req, res, id),
 });
 
 export default router;

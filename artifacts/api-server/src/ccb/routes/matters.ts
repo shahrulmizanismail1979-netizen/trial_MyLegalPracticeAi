@@ -8,12 +8,13 @@ import { createMatterFileRouters } from "../../lib/matterFiles";
  * res.locals.ccbAccessCodeId. Static/master codes resolve to null — they
  * cannot own rows, so matter routes are unavailable to them (403).
  */
-const { mattersRouter, savedWorkRouter } = createMatterFileRouters(
+const { mattersRouter, savedWorkRouter, clientsRouter } = createMatterFileRouters(
   ccbMatterFiles,
   (_req, res: Response) => {
     const id = res.locals["ccbAccessCodeId"];
     return typeof id === "number" ? id : undefined;
   },
+  "ccb",
 );
 
 const router: IRouter = Router();
@@ -28,5 +29,6 @@ router.use(["/matters", "/saved-work"], (_req, res, next) => {
 });
 router.use("/matters", mattersRouter);
 router.use("/saved-work", savedWorkRouter);
+router.use("/clients", clientsRouter);
 
 export default router;
