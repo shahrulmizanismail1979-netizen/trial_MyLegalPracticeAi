@@ -30,7 +30,7 @@ export function Hero() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button 
             size="lg" 
-            className="w-full sm:w-auto h-14 px-8 text-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium rounded-full shadow-[0_0_40px_rgba(212,175,55,0.3)] transition-all hover:shadow-[0_0_60px_rgba(212,175,55,0.5)] hover:scale-105"
+            className="w-full sm:w-auto h-14 px-8 text-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium rounded-full shadow-[0_0_40px_rgba(99,149,224,0.25)] transition-all hover:shadow-[0_0_60px_rgba(99,149,224,0.40)] hover:scale-105"
             onClick={scrollToPricing}
           >
             Secure Your Access

@@ -15,7 +15,8 @@ import { generateAccessCode, releaseCode, isSessionStale } from "../lib/accessCo
 import { requireAdmin } from "../middleware/requireAuth";
 import { expandSeed } from "../lib/expand-seed";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "MyCrimAi-Admin-2026!";
+// Fail closed: when ADMIN_PASSWORD is unset/blank, admin login is disabled.
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD ?? "").trim();
 
 const router: IRouter = Router();
 

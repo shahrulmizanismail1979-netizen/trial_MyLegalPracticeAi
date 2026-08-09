@@ -159,7 +159,7 @@ export function ReceptionChat() {
       id="reception"
       className="relative px-6 lg:px-8 max-w-3xl mx-auto -mt-6 md:-mt-10 pb-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200"
     >
-      <div className="rounded-2xl border border-primary/25 bg-card/80 backdrop-blur shadow-[0_0_50px_rgba(212,175,55,0.12)] overflow-hidden">
+      <div className="rounded-2xl border border-primary/25 bg-card/80 backdrop-blur shadow-[0_0_50px_rgba(99,149,224,0.10)] overflow-hidden">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60 bg-secondary/40">
           <div className="h-9 w-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
             <Sparkles className="h-4 w-4" />

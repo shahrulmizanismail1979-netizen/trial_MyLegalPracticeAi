@@ -1,5 +1,4 @@
 import { publishableKeyFromHost } from "@clerk/react/internal";
-import { dark } from "@clerk/themes";
 
 // REQUIRED — resolves the key from window.location.hostname so the same build
 // serves multiple Clerk custom domains. Do not inline the env var.
@@ -25,10 +24,9 @@ if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
 
-const gold = "#d4af37";
+const primaryBlue = "#6395e0";
 
 export const clerkAppearance = {
-  theme: dark,
   cssLayerName: "clerk",
   options: {
     logoPlacement: "inside" as const,
@@ -38,36 +36,36 @@ export const clerkAppearance = {
     socialButtonsVariant: "blockButton" as const,
   },
   variables: {
-    colorPrimary: gold,
-    colorForeground: "#fafafa",
-    colorMutedForeground: "#a6a6a6",
-    colorDanger: "#ef4444",
-    colorBackground: "#111111",
-    colorInput: "#2e2e2e",
-    colorInputForeground: "#fafafa",
-    colorNeutral: "#fafafa",
+    colorPrimary: primaryBlue,
+    colorForeground: "#1e2535",
+    colorMutedForeground: "#6b7280",
+    colorDanger: "#dc3545",
+    colorBackground: "#ffffff",
+    colorInput: "#f0f2f5",
+    colorInputForeground: "#1e2535",
+    colorNeutral: "#1e2535",
     fontFamily: '"Inter", sans-serif',
     borderRadius: "0.5rem",
   },
   elements: {
     rootBox: "w-full flex justify-center",
-    cardBox: "bg-[#111111] border border-[#262626] rounded-2xl w-[440px] max-w-full overflow-hidden shadow-2xl",
+    cardBox: "bg-white border border-[#dde1ea] rounded-2xl w-[440px] max-w-full overflow-hidden shadow-lg",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-[#fafafa] font-serif text-2xl",
-    headerSubtitle: "text-[#a6a6a6]",
-    socialButtonsBlockButton: "border border-[#262626] bg-[#1a1a1a] hover:bg-[#222222]",
-    socialButtonsBlockButtonText: "text-[#fafafa]",
-    dividerLine: "bg-[#262626]",
-    dividerText: "text-[#a6a6a6]",
-    formFieldLabel: "text-[#fafafa]",
-    formFieldInput: "bg-[#2e2e2e] text-[#fafafa] border border-[#3a3a3a]",
-    formButtonPrimary: "bg-[#d4af37] text-black hover:bg-[#c19f2f]",
-    footerActionText: "text-[#a6a6a6]",
-    footerActionLink: "text-[#d4af37] hover:text-[#e0bd4a]",
-    identityPreviewEditButton: "text-[#d4af37]",
-    formFieldSuccessText: "text-[#d4af37]",
-    otpCodeFieldInput: "bg-[#2e2e2e] text-[#fafafa] border border-[#3a3a3a]",
+    headerTitle: "text-[#1e2535] font-serif text-2xl",
+    headerSubtitle: "text-[#6b7280]",
+    socialButtonsBlockButton: "border border-[#dde1ea] bg-[#f8f9fb] hover:bg-[#f0f2f5]",
+    socialButtonsBlockButtonText: "text-[#1e2535]",
+    dividerLine: "bg-[#dde1ea]",
+    dividerText: "text-[#6b7280]",
+    formFieldLabel: "text-[#1e2535]",
+    formFieldInput: "bg-[#f0f2f5] text-[#1e2535] border border-[#dde1ea]",
+    formButtonPrimary: "bg-[#6395e0] text-white hover:bg-[#5080cc]",
+    footerActionText: "text-[#6b7280]",
+    footerActionLink: "text-[#6395e0] hover:text-[#5080cc]",
+    identityPreviewEditButton: "text-[#6395e0]",
+    formFieldSuccessText: "text-[#6395e0]",
+    otpCodeFieldInput: "bg-[#f0f2f5] text-[#1e2535] border border-[#dde1ea]",
     logoImage: "h-10 w-10",
   },
 };

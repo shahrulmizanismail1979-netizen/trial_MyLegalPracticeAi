@@ -219,7 +219,7 @@ export function Pricing() {
           </Card>
 
           {/* Complete Bundle */}
-          <Card className="relative overflow-hidden border-primary shadow-[0_0_30px_rgba(212,175,55,0.15)] bg-card">
+          <Card className="relative overflow-hidden border-primary shadow-[0_0_30px_rgba(99,149,224,0.12)] bg-card">
             <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-bold uppercase tracking-wider rounded-bl-lg">
               Best Value
             </div>

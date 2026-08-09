@@ -68,76 +68,76 @@
 }
 
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(0,0,0, .08);
+  --badge-outline: rgba(0,0,0, .04);
 
   --opaque-button-border-intensity: 9;
 
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .06);
 
-  /* Forced Dark Theme for the sleek premium feel */
-  --background: 0 0% 4%; /* #0a0a0a */
-  --foreground: 0 0% 98%; /* #fafafa */
+  /* Light — white, grey & pastel corporate palette */
+  --background: 220 20% 98%; /* near-white with a hint of cool grey */
+  --foreground: 222 26% 12%; /* deep charcoal */
 
-  --border: 0 0% 15%;
-  
-  --card: 0 0% 7%; /* #111 */
-  --card-foreground: 0 0% 98%;
-  --card-border: 0 0% 15%;
+  --border: 220 14% 88%;
 
-  --sidebar: 0 0% 7%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 15%;
-  --sidebar-primary: 43 74% 49%;
-  --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 0 0% 15%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 43 74% 49%;
+  --card: 0 0% 100%; /* pure white cards */
+  --card-foreground: 222 26% 12%;
+  --card-border: 220 14% 90%;
 
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 0 0% 15%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 222 26% 12%;
+  --sidebar-border: 220 14% 88%;
+  --sidebar-primary: 214 72% 58%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 16% 95%;
+  --sidebar-accent-foreground: 222 26% 12%;
+  --sidebar-ring: 214 72% 58%;
 
-  /* Warm Gold / Amber Accent */
-  --primary: 43 74% 49%; /* #d4af37 approximately */
-  --primary-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 26% 12%;
+  --popover-border: 220 14% 88%;
 
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 0 0% 98%;
+  /* Pastel corporate blue — professional & bright */
+  --primary: 214 72% 58%; /* soft cornflower blue */
+  --primary-foreground: 0 0% 100%;
 
-  --muted: 0 0% 15%;
-  --muted-foreground: 0 0% 65%;
+  --secondary: 220 16% 95%; /* light silver-grey */
+  --secondary-foreground: 222 26% 20%;
 
-  --accent: 0 0% 15%;
-  --accent-foreground: 0 0% 98%;
+  --muted: 220 14% 92%;
+  --muted-foreground: 220 10% 48%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
+  --accent: 250 58% 72%; /* soft lavender pastel */
+  --accent-foreground: 0 0% 100%;
 
-  --input: 0 0% 18%;
-  --ring: 43 74% 49%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
 
-  --chart-1: 43 74% 49%;
-  --chart-2: 0 0% 80%;
-  --chart-3: 0 0% 60%;
-  --chart-4: 0 0% 40%;
-  --chart-5: 0 0% 20%;
+  --input: 220 14% 91%;
+  --ring: 214 72% 58%;
+
+  --chart-1: 214 72% 58%; /* pastel blue */
+  --chart-2: 250 58% 72%; /* lavender */
+  --chart-3: 165 55% 52%; /* soft teal */
+  --chart-4: 330 55% 68%; /* rose pink */
+  --chart-5: 35 70% 62%;  /* warm amber */
 
   --app-font-sans: "Inter", sans-serif;
   --app-font-serif: "Playfair Display", serif;
   --app-font-mono: "Space Mono", monospace;
-  
+
   --radius: 0.5rem;
-  
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
-  --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.5);
-  --shadow-sm: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 1px 2px -1px rgba(0,0,0,0.5);
-  --shadow: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 1px 2px -1px rgba(0,0,0,0.5);
-  --shadow-md: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 2px 4px -1px rgba(0,0,0,0.5);
-  --shadow-lg: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 4px 6px -1px rgba(0,0,0,0.5);
-  --shadow-xl: 0px 2px 0px 0px rgba(0,0,0,0.5), 0px 8px 10px -1px rgba(0,0,0,0.5);
-  --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0,0.5);
+
+  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.06);
+  --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.07);
+  --shadow-sm: 0px 1px 3px 0px rgba(0,0,0,0.07), 0px 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow: 0px 2px 6px 0px rgba(0,0,0,0.07), 0px 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow-md: 0px 4px 10px 0px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.05);
+  --shadow-lg: 0px 8px 20px 0px rgba(0,0,0,0.08), 0px 4px 6px -1px rgba(0,0,0,0.05);
+  --shadow-xl: 0px 12px 30px 0px rgba(0,0,0,0.09), 0px 8px 10px -1px rgba(0,0,0,0.05);
+  --shadow-2xl: 0px 20px 40px 0px rgba(0,0,0,0.10);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -227,6 +227,6 @@
   
   /* Text gradient utility */
   .text-gradient-gold {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-yellow-200 to-primary;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-300 to-primary;
   }
 }

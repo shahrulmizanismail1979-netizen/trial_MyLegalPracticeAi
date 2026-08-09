@@ -293,7 +293,7 @@ export function AppsGrid() {
                     {app.description}
                   </CardDescription>
                 </CardContent>
-                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary to-yellow-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left rounded-b-lg" />
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary to-blue-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left rounded-b-lg" />
               </Card>
             </a>
           );

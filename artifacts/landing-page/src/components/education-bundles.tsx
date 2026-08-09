@@ -123,7 +123,7 @@ and lecturers.
               key={tier.name}
               className={`flex flex-col ${
                 tier.featured
-                  ? "border-primary shadow-[0_0_30px_rgba(212,175,55,0.15)] bg-card relative"
+                  ? "border-primary shadow-[0_0_30px_rgba(99,149,224,0.12)] bg-card relative"
                   : "bg-card/50 border-border/50"
               }`}
             >
