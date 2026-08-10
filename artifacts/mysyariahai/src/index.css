@@ -141,49 +141,49 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Dark Theme - Default vibe (Courtroom, chambers) */
-  --background: 164 45% 6%;
-  --foreground: 160 20% 90%;
-  --border: 164 30% 15%;
-  --card: 164 40% 8%;
-  --card-foreground: 160 20% 90%;
-  --card-border: 164 30% 15%;
-  --sidebar: 164 50% 4%;
-  --sidebar-foreground: 160 20% 85%;
-  --sidebar-border: 164 40% 10%;
-  --sidebar-primary: 43 60% 45%;
-  --sidebar-primary-foreground: 164 50% 5%;
-  --sidebar-accent: 164 40% 12%;
-  --sidebar-accent-foreground: 160 20% 95%;
-  --sidebar-ring: 43 60% 45%;
-  
-  --popover: 164 45% 6%;
-  --popover-foreground: 160 20% 90%;
-  --popover-border: 164 30% 15%;
-  
-  --primary: 164 40% 35%;
-  --primary-foreground: 0 0% 100%;
-  
-  --secondary: 43 60% 45%;
-  --secondary-foreground: 164 50% 5%;
-  
-  --muted: 164 30% 12%;
-  --muted-foreground: 160 15% 65%;
-  
-  --accent: 164 40% 15%;
-  --accent-foreground: 43 60% 55%;
-  
-  --destructive: 0 62% 30%;
-  --destructive-foreground: 0 0% 100%;
-  
-  --input: 164 30% 15%;
-  --ring: 43 60% 45%;
-  
-  --chart-1: 164 40% 35%;
-  --chart-2: 43 60% 45%;
-  --chart-3: 150 50% 35%;
-  --chart-4: 200 40% 40%;
-  --chart-5: 330 40% 40%;
+  /* Unified navy + gold palette */
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --border: 215 25% 27%;
+  --card: 217 33% 17%;
+  --card-foreground: 210 40% 98%;
+  --card-border: 215 25% 27%;
+  --sidebar: 222 47% 8%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-border: 215 25% 27%;
+  --sidebar-primary: 43 80% 46%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 215 25% 27%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-ring: 43 80% 46%;
+
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 215 25% 27%;
+
+  --primary: 43 80% 46%;
+  --primary-foreground: 222 47% 11%;
+
+  --secondary: 215 25% 27%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 215 25% 27%;
+  --muted-foreground: 215 20% 65%;
+
+  --accent: 43 80% 46%;
+  --accent-foreground: 222 47% 11%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+
+  --input: 215 25% 27%;
+  --ring: 43 80% 46%;
+
+  --chart-1: 43 80% 46%;
+  --chart-2: 215 25% 55%;
+  --chart-3: 150 50% 40%;
+  --chart-4: 200 40% 45%;
+  --chart-5: 330 40% 45%;
 }
 
 @layer base {

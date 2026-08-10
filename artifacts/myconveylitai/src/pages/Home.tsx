@@ -238,7 +238,7 @@ function ToolGroupCard({ group: g, index: gi }: { group: ToolGroupDetail; index:
             {g.tools.map((tool) => {
               const ToolIcon = tool.icon;
               return (
-                <div key={tool.name} className="flex gap-3 p-3 rounded-xl bg-gold-950/60 border border-gold-800/50" data-testid={`tool-detail-${tool.name.toLowerCase().replace(/[\s\/]/g, '-')}`}>
+                <div key={tool.name} className="flex gap-3 p-3 rounded-xl bg-background/60 border border-border/50" data-testid={`tool-detail-${tool.name.toLowerCase().replace(/[\s\/]/g, '-')}`}>
                   <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${g.bg} border ${g.border} flex items-center justify-center mt-0.5`}>
                     <ToolIcon className={`w-4.5 h-4.5 ${g.color}`} />
                   </div>
@@ -265,7 +265,7 @@ export function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gold-950 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
 
       {/* ═══════════════════ HERO SECTION ═══════════════════ */}
       <section className="min-h-screen flex flex-col items-center justify-center p-6 relative">
@@ -341,7 +341,7 @@ export function Home() {
             {pillars.map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-gold-800 bg-gold-900/60 text-slate-400 text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/60 text-slate-400 text-sm font-medium"
               >
                 <Icon className="w-4 h-4 text-amber-500/80" />
                 <span>{label}</span>
@@ -366,7 +366,7 @@ export function Home() {
             <button
               data-testid="button-enter-workspace"
               onClick={() => setLocation('/login')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-gold-700 bg-gold-900/50 hover:bg-gold-900 text-slate-300 hover:text-slate-100 font-semibold text-sm transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-border bg-card/50 hover:bg-card text-slate-300 hover:text-slate-100 font-semibold text-sm transition-all"
             >
               <LogIn className="w-4 h-4" />
               Log In
@@ -374,7 +374,7 @@ export function Home() {
             <button
               data-testid="button-view-pricing"
               onClick={() => setLocation('/pricing')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-gold-700 bg-gold-900/50 hover:bg-gold-900 text-slate-300 hover:text-slate-100 font-semibold text-sm transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-border bg-card/50 hover:bg-card text-slate-300 hover:text-slate-100 font-semibold text-sm transition-all"
             >
               View Plans
             </button>
@@ -393,7 +393,7 @@ export function Home() {
 
       {/* ═══════════════════ HOW TO USE SECTION ═══════════════════ */}
       <section ref={guideRef} className="relative py-24 px-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-gold-950 via-gold-950/95 to-gold-950 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
 
         <div className="relative z-10 max-w-5xl mx-auto">
@@ -495,7 +495,7 @@ export function Home() {
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-24"
           >
             {contentHighlights.map((item) => (
-              <div key={item.label} className="flex flex-col items-center p-4 rounded-2xl border border-gold-800 bg-gold-900/40" data-testid={`stat-${item.label.toLowerCase().replace(/\s/g, '-')}`}>
+              <div key={item.label} className="flex flex-col items-center p-4 rounded-2xl border border-border bg-card/40" data-testid={`stat-${item.label.toLowerCase().replace(/\s/g, '-')}`}>
                 <item.icon className={`w-6 h-6 ${item.color} mb-2`} />
                 <span className="text-2xl font-bold text-slate-100">{item.value}</span>
                 <span className="text-xs text-slate-500 font-medium mt-1">{item.label}</span>
@@ -531,7 +531,7 @@ export function Home() {
             variants={sectionFade}
             className="text-center"
           >
-            <div className="p-8 rounded-2xl border border-gold-800 bg-gold-900/30 backdrop-blur-sm">
+            <div className="p-8 rounded-2xl border border-border bg-card/30 backdrop-blur-sm">
               <h3 className="text-xl md:text-2xl font-serif font-bold text-slate-100 mb-3">Ready to Begin?</h3>
               <p className="text-slate-400 text-sm mb-6 max-w-md mx-auto">
                 Sign in with your credentials to access all features.

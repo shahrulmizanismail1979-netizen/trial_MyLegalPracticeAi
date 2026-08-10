@@ -183,10 +183,10 @@ export function Login() {
   };
 
   const inputClass =
-    'block w-full pl-14 pr-5 py-4 border border-gold-700 rounded-2xl leading-5 bg-gold-950/50 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all shadow-inner disabled:opacity-50';
+    'block w-full pl-14 pr-5 py-4 border border-border rounded-2xl leading-5 bg-secondary/50 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-inner disabled:opacity-50';
 
   return (
-    <div className="min-h-screen bg-gold-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-amber-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
 
@@ -194,7 +194,7 @@ export function Login() {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-xl w-full bg-gold-900/80 backdrop-blur-xl border border-gold-800 p-8 md:p-14 rounded-[2.5rem] shadow-2xl relative z-10"
+        className="max-w-xl w-full bg-card/90 backdrop-blur-xl border border-border p-8 md:p-14 rounded-[2.5rem] shadow-2xl relative z-10"
       >
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 mb-8 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.15)]">
@@ -258,7 +258,7 @@ export function Login() {
         ) : (
         <>
         {/* Mode switch */}
-        <div className="max-w-sm mx-auto mb-6 grid grid-cols-2 gap-2 p-1 bg-gold-950/50 border border-gold-800 rounded-2xl">
+        <div className="max-w-sm mx-auto mb-6 grid grid-cols-2 gap-2 p-1 bg-secondary/50 border border-border rounded-2xl">
           <button
             type="button"
             onClick={() => setMode('password')}
@@ -367,16 +367,16 @@ export function Login() {
 
         <div className="max-w-sm mx-auto">
           <div className="flex items-center gap-3 my-6">
-            <div className="h-px flex-1 bg-gold-800" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
-            <div className="h-px flex-1 bg-gold-800" />
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           <button
             type="button"
             onClick={handleMicrosoftLogin}
             disabled={msLoading}
-            className="w-full flex items-center justify-center gap-3 py-4 px-4 border border-gold-700 rounded-2xl text-base font-semibold text-slate-100 bg-gold-950/50 hover:bg-gold-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full flex items-center justify-center gap-3 py-4 px-4 border border-border rounded-2xl text-base font-semibold text-foreground bg-secondary/50 hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
             data-testid="button-microsoft-login"
           >
             {msLoading ? (
