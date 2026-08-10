@@ -34,23 +34,55 @@ app.post(
       res.status(400).json({ error: "Missing stripe-signature" });
       return;
     }
+
+    // Peek at event type so we can log context on errors. Safe to do before
+    // signature verification — we only use it for logging.
+    let eventType: string | undefined;
     try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
+      eventType = (JSON.parse((req.body as Buffer).toString("utf-8")) as { type?: string }).type;
+    } catch { /* ignore — processWebhook will reject malformed bodies */ }
+
+    const sig = Array.isArray(signature) ? signature[0] : signature;
+
+    // ── Step 1: stripe-replit-sync DB sync (signature-verified) ──────────────
+    // Swallow only the specific NOT NULL constraint error (pg error code 23502)
+    // that stripe-replit-sync produces for `invoice.upcoming` events.  Stripe
+    // sends these before every billing cycle; the "upcoming invoice" object has
+    // id=null (it is a preview, not a real invoice), which violates the NOT NULL
+    // constraint on stripe.invoices.  We cannot store it, but we must return 200
+    // so Stripe stops retrying and does not mark our endpoint as failing — which
+    // would block delivery of checkout.session.completed and other critical events.
+    try {
       await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-      // Signature verified by processWebhook above — safe to act on the payload.
-      // Auto-provision subscribers (access code + emails) on completed checkouts.
-      void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
-        logger.error({ err }, "Stripe provisioning hook failed");
-      });
-      // Mirror subscription state onto MyConveyLitAI user records.
-      void handleConveyStripeEvent(req.body as Buffer).catch((err) => {
-        logger.error({ err }, "Convey Stripe hook failed");
-      });
-      res.status(200).json({ received: true });
-    } catch (error) {
-      logger.error({ err: error }, "Stripe webhook processing error");
-      res.status(400).json({ error: "Webhook processing error" });
+    } catch (syncErr: unknown) {
+      const pgCode = (syncErr as { code?: string }).code;
+      if (pgCode === "23502") {
+        // NOT NULL violation — almost always the upcoming-invoice null-id issue.
+        // Log and fall through so provisioning still runs and we return 200.
+        logger.warn(
+          { eventType, pgCode },
+          "Stripe sync skipped: upcoming invoice has null id (not-null constraint); ignoring",
+        );
+      } else {
+        // Any other sync error (bad signature, unexpected schema issue, etc.)
+        // is real — return 400 so Stripe retries the event later.
+        logger.error({ err: syncErr, eventType }, "Stripe webhook sync error");
+        res.status(400).json({ error: "Webhook processing error" });
+        return;
+      }
     }
+
+    // ── Step 2: subscriber provisioning & Convey side-effects ─────────────────
+    // These run independently of the sync result so a non-fatal sync error can
+    // never block access-code generation for a paying customer.
+    void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
+      logger.error({ err }, "Stripe provisioning hook failed");
+    });
+    void handleConveyStripeEvent(req.body as Buffer).catch((err) => {
+      logger.error({ err }, "Convey Stripe hook failed");
+    });
+
+    res.status(200).json({ received: true });
   },
 );
 
