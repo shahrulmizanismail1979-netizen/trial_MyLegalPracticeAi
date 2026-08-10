@@ -33,4 +33,6 @@
 - [Practice hub content mapping](practice-hub-content-mapping.md) — map cause papers by exact formNumber (never id or shared order numbers); keep workflow keywords narrow or matters cross-contaminate.
 - [Portal matter files pattern](portal-matter-files.md) — per-portal matter stores: mixed code/email-login portals must scope by owner_type+owner_id; unprefixed routers must scope auth middleware per-path; boot-ensure tables via awaited direct SQL.
 - [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.
+- [Stripe invoice.upcoming webhook crash](webhook-invoice-upcoming-fix.md) — preview invoices have id=null; catch pg 23502 in the webhook sync, never let sync errors block provisioning.
+- [Stale project-reference declarations](monorepo-typecheck-stale-dist.md) — phantom "no exported member" errors from @workspace/db mean stale lib dist; run `npx tsc -b` first.
 - [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.

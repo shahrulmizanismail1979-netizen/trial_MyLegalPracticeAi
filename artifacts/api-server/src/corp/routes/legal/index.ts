@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { loginRateLimit } from "../../../lib/loginRateLimit";
 import crypto from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db, corpAccessCodes, corpSessions } from "@workspace/db";
@@ -103,7 +104,7 @@ async function verifyPasswordAndCreateSession(
   }
 }
 
-router.post("/legal/verify-password", async (req, res): Promise<void> => {
+router.post("/legal/verify-password", loginRateLimit, async (req, res): Promise<void> => {
   const { password } = req.body;
   if (!password || typeof password !== "string") {
     res.status(400).json({ error: "Password is required" });
@@ -119,7 +120,7 @@ router.post("/legal/verify-password", async (req, res): Promise<void> => {
 
 // Microsoft SSO exchange: log in with the access code linked to the Microsoft
 // email in the ticket, or link a newly provided code.
-router.post("/legal/sso", async (req, res): Promise<void> => {
+router.post("/legal/sso", loginRateLimit, async (req, res): Promise<void> => {
   const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
   if (!ticket || typeof ticket !== "string") {
     res.status(400).json({ error: "Ticket is required" });

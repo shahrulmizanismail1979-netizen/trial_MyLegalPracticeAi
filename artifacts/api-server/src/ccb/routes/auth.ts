@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Response } from "express";
+import { loginRateLimit } from "../../lib/loginRateLimit";
 import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -128,7 +129,7 @@ async function verifyCodeAndIssueToken(res: Response, rawCode: string): Promise<
   return true;
 }
 
-router.post("/auth/verify", async (req, res): Promise<void> => {
+router.post("/auth/verify", loginRateLimit, async (req, res): Promise<void> => {
   const parsed = VerifyAccessCodeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -144,7 +145,7 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
 
 // Microsoft SSO exchange: log in with the access code linked to the Microsoft
 // email in the ticket, or link a newly provided code.
-router.post("/auth/sso", async (req, res): Promise<void> => {
+router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
   const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
   if (!ticket || typeof ticket !== "string") {
     res.status(400).json({ error: "Ticket is required" });

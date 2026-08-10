@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { loginRateLimit } from "../../lib/loginRateLimit";
 import { db, crimAccessCodesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -28,7 +29,7 @@ const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
 
 const router: IRouter = Router();
 
-router.post("/auth/verify", async (req, res): Promise<void> => {
+router.post("/auth/verify", loginRateLimit, async (req, res): Promise<void> => {
   const accessCode = (req.body?.accessCode ?? "").toString().trim();
   if (!accessCode) {
     res.status(400).json({ authenticated: false, message: "Access code is required." });
@@ -44,7 +45,7 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
 
 // Microsoft SSO exchange: log in with the access code linked to the Microsoft
 // email in the ticket, or link a newly provided code.
-router.post("/auth/sso", async (req, res): Promise<void> => {
+router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
   const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
   if (!ticket || typeof ticket !== "string") {
     res.status(400).json({ authenticated: false, message: "Ticket is required." });

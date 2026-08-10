@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from "express";
+import { loginRateLimit } from "../../lib/loginRateLimit";
 import { randomUUID, createHash, timingSafeEqual } from "crypto";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/acad";
@@ -166,7 +167,7 @@ router.post("/auth/register", async (req: Request, res: Response): Promise<void>
   res.status(201).json({ user: toSafeUser(user), bootstrapped: isFirstUser });
 });
 
-router.post("/auth/login", async (req: Request, res: Response): Promise<void> => {
+router.post("/auth/login", loginRateLimit, async (req: Request, res: Response): Promise<void> => {
   const body = (req.body ?? {}) as { email?: unknown; password?: unknown };
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";

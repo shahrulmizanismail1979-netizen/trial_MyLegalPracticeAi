@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { loginRateLimit } from "../lib/loginRateLimit";
 import { logger } from "../lib/logger";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db } from "@workspace/db";
@@ -196,7 +197,7 @@ async function uniqueAccessCode(): Promise<string> {
   throw new Error("Could not generate a unique access code");
 }
 
-router.post("/convey/auth", async (req, res) => {
+router.post("/convey/auth", loginRateLimit, async (req, res) => {
   const body = (req.body ?? {}) as { accessCode?: string; username?: string; password?: string };
 
   try {
@@ -264,7 +265,7 @@ router.post("/convey/auth", async (req, res) => {
 
 // Microsoft SSO exchange: log in with the access code linked to the Microsoft
 // email in the ticket, or link a newly provided code.
-router.post("/convey/auth/sso", async (req, res) => {
+router.post("/convey/auth/sso", loginRateLimit, async (req, res) => {
   const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
   if (!ticket || typeof ticket !== "string") {
     res.status(400).json({ error: "Ticket is required" });
@@ -334,7 +335,7 @@ router.post("/convey/auth/sso", async (req, res) => {
 
 // Public self-service sign-up. Accounts created on/before the grandfather cutoff
 // get full (Firm) access for free, forever; later sign-ups start on the free tier.
-router.post("/convey/signup", async (req, res) => {
+router.post("/convey/signup", loginRateLimit, async (req, res) => {
   const { email, displayName } = (req.body ?? {}) as {
     email?: string;
     displayName?: string;

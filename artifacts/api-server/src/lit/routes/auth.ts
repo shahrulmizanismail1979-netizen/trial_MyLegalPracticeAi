@@ -1,3 +1,4 @@
+import { loginRateLimit } from "../../lib/loginRateLimit";
 import {
   Router,
   type IRouter,
@@ -104,7 +105,7 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
   return { ok: true, status: 200, body: { success: true, message: "Login successful" } };
 }
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginRateLimit, async (req, res) => {
   const { password } = req.body;
   if (!password || typeof password !== "string") {
     return res.status(400).json({ error: "Access code is required" });
@@ -127,7 +128,7 @@ router.post("/login", async (req, res) => {
 // If the Microsoft email is already linked to an access code, log straight in.
 // Otherwise the portal collects the access code once and posts it with the
 // ticket to create the link.
-router.post("/sso", async (req, res) => {
+router.post("/sso", loginRateLimit, async (req, res) => {
   const { ticket, code } = (req.body ?? {}) as { ticket?: string; code?: string };
   if (!ticket || typeof ticket !== "string") {
     return res.status(400).json({ error: "Ticket is required" });

@@ -108,7 +108,40 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+// CORS: never reflect arbitrary origins while credentials are enabled — that
+// lets any website make cookie-authenticated requests to this API. All portals
+// are served same-origin via path routing, so we only need to allow our own
+// dev/prod domains (plus any explicitly configured extras).
+const corsAllowedHosts = new Set(
+  [
+    ...(process.env.REPLIT_DOMAINS?.split(",") ?? []),
+    process.env.REPLIT_DEV_DOMAIN,
+    ...(process.env.CORS_EXTRA_ORIGINS?.split(",") ?? []),
+  ]
+    .map((d) => d?.trim())
+    .filter((d): d is string => !!d)
+    .map((d) => d.replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase()),
+);
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      // Same-origin requests and non-browser clients send no Origin header.
+      if (!origin) return callback(null, true);
+      try {
+        const { hostname } = new URL(origin);
+        const host = hostname.toLowerCase();
+        const allowed =
+          corsAllowedHosts.has(host) ||
+          host === "localhost" ||
+          host === "127.0.0.1";
+        return callback(null, allowed);
+      } catch {
+        return callback(null, false);
+      }
+    },
+  }),
+);
 // MyLawFirmAi posts base64-encoded meeting audio / screenshots as JSON; the
 // default ~100kb limit rejects realistic uploads, so raise it for that mount
 // only (this parser runs first and the global one below then no-ops).
