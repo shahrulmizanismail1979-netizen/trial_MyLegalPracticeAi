@@ -7,7 +7,7 @@
  * can jump to any stage.
  */
 
-export type Portal = "lit" | "crim" | "sya" | "corp" | "ccb" | "convey";
+export type Portal = "lit" | "crim" | "sya" | "corp" | "ccb" | "convey" | "acc";
 
 /** Ordered stage labels per portal. */
 export const PORTAL_STAGES: Record<Portal, string[]> = {
@@ -25,6 +25,16 @@ export const PORTAL_STAGES: Record<Portal, string[]> = {
     "Registration",
     "Closed",
   ],
+  acc: [
+    "Intake",
+    "Investigation",
+    "Pre-Action",
+    "Filing",
+    "Trial",
+    "Judgment",
+    "Settlement",
+    "Closed",
+  ],
 };
 
 /** Human-readable portal names used in AI prompts. */
@@ -35,6 +45,7 @@ export const PORTAL_NAMES: Record<Portal, string> = {
   corp: "Malaysian Corporate Legal (MyCorpLegalAI)",
   ccb: "Malaysian Corporate, Commercial & Banking Litigation (MyCCBLitAI)",
   convey: "Malaysian Conveyancing (MyConveyLitAI)",
+  acc: "Malaysian Accident & Personal Injury (MyAccidentAI)",
 };
 
 export function isValidPortal(p: string): p is Portal {

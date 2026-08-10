@@ -1,0 +1,1038 @@
+HARD COMPLETION DIRECTIVE
+FINISH EVERY INCOMPLETE APP WITHOUT DISRUPTING WORKING FEATURES
+
+This directive is mandatory and supersedes any earlier instruction that allows you to stop after auditing, planning, describing, prototyping or recommending.
+
+Your task is to FINISH BUILDING every incomplete, stunted, partially connected or superficially implemented application within MyLegalPracticeAI.life.
+
+You are not permitted to stop after:
+
+- producing an audit;
+- producing an implementation plan;
+- identifying incomplete features;
+- creating a mock-up;
+- adding placeholder pages;
+- adding buttons without backend logic;
+- writing TODO comments;
+- hiding unfinished features;
+- producing a list of recommendations;
+- fixing only easy defects;
+- completing only one portal;
+- saying that the remaining work can be done later.
+
+You must continue through:
+
+DISCOVER
+→ PROTECT
+→ IMPLEMENT
+→ CONNECT
+→ TEST
+→ FIX
+→ RETEST
+→ REGRESSION-TEST
+→ DEPLOY SAFELY
+→ VERIFY.
+
+==================================================
+1. PRIMARY COMMAND
+==================================================
+
+Complete every application while preserving the current smooth operation of all working applications.
+
+The existing working system is the protected baseline.
+
+Do not destabilise:
+
+- authentication;
+- user accounts;
+- client records;
+- matter records;
+- uploaded documents;
+- subscriptions;
+- payment integrations;
+- portal access;
+- existing AI functions;
+- existing URLs;
+- database records;
+- existing integrations;
+- working administrative functions;
+- current production users.
+
+Do not rewrite the entire platform merely because a cleaner architecture is possible.
+
+Use careful, incremental completion.
+
+==================================================
+2. CREATE A PROTECTED BASELINE
+==================================================
+
+Before changing anything:
+
+1. Create a new completion branch.
+2. Record the current commit.
+3. Create a restorable database backup.
+4. Record the current database schema.
+5. Record environment-variable names without exposing values.
+6. Run the current production build.
+7. Run all existing tests.
+8. Crawl every route.
+9. capture screenshots of every working page;
+10. record API responses for critical journeys;
+11. record current portal entitlements;
+12. record current payment behaviour;
+13. record current AI behaviour;
+14. record current performance;
+15. create baseline Playwright tests.
+
+Create:
+
+PROTECTED_BASELINE.md
+BASELINE_FEATURE_MATRIX.csv
+BASELINE_E2E_TESTS/
+BASELINE_SCREENSHOTS/
+ROLLBACK_PLAN.md.
+
+A previously working journey that fails after your changes is a regression and must be repaired before proceeding.
+
+==================================================
+3. DISCOVER EVERY INCOMPLETE COMPONENT
+==================================================
+
+Inspect the complete repository, database, routes, APIs, user interface, logs and deployed application.
+
+Search for:
+
+TODO
+FIXME
+PLACEHOLDER
+COMING SOON
+NOT IMPLEMENTED
+TEMPORARY
+DEMO
+MOCK
+FAKE
+STUB
+HARDCODED
+DISABLED
+HIDDEN
+INCOMPLETE
+SAMPLE DATA
+EMPTY HANDLER
+EMPTY FUNCTION
+BROKEN ROUTE
+UNUSED ROUTE
+UNCONNECTED BUTTON
+MISSING API
+MISSING TABLE
+MISSING MIGRATION
+MISSING AUTHORIZATION
+MISSING TEST
+CONSOLE.ERROR
+CONSOLE.LOG
+THROW NEW ERROR
+RETURN NULL
+RETURN TODO
+FEATURE FLAG OFF.
+
+Do not rely only on those words. Manually inspect every portal and every user journey.
+
+Create COMPLETE_COMPLETION_REGISTER.md containing:
+
+PORTAL
+FEATURE
+CURRENT CONDITION
+WHAT ALREADY WORKS
+WHAT IS MISSING
+FRONTEND STATUS
+BACKEND STATUS
+DATABASE STATUS
+AI STATUS
+AUTHORIZATION STATUS
+MOBILE STATUS
+ERROR-HANDLING STATUS
+TEST STATUS
+DEPENDENCIES
+RISK
+COMPLETION ORDER
+FINAL STATUS.
+
+Include every active, hidden, partially developed and coming-soon application.
+
+==================================================
+4. NO-DESTRUCTION RULE
+==================================================
+
+Do not:
+
+- reset the production database;
+- delete existing tables;
+- rename fields without compatibility handling;
+- overwrite user records;
+- remove existing routes;
+- change working URLs unnecessarily;
+- remove current features;
+- replace working components with unfinished alternatives;
+- alter subscription entitlements accidentally;
+- modify live prices without confirmation;
+- expose secret keys;
+- conduct real payment tests;
+- mix client data;
+- erase conversation history;
+- corrupt document links;
+- deploy untested migrations.
+
+Use expand-and-contract migrations:
+
+1. Add the new structure.
+2. Preserve the old structure.
+3. backfill safely;
+4. validate the backfill;
+5. support old and new reads temporarily;
+6. switch only after verification;
+7. remove obsolete fields only in a separately approved future migration.
+
+Every migration must have a tested rollback.
+
+==================================================
+5. BUILD ON STAGING FIRST
+==================================================
+
+All substantive work must be completed on a safe development or staging environment.
+
+Production must remain operational.
+
+Use:
+
+- completion branch;
+- staging database;
+- test accounts;
+- fictional clients;
+- fictional matters;
+- Stripe test mode;
+- ToyyibPay sandbox;
+- feature flags;
+- controlled test files;
+- staging deployment;
+- automated regression tests.
+
+Do not expose unfinished functions to current users.
+
+Place new or reconstructed functions behind feature flags until they pass their acceptance tests.
+
+==================================================
+6. ONE VERTICAL FEATURE AT A TIME
+==================================================
+
+Complete features as full vertical slices.
+
+For every feature, finish:
+
+USER INTERFACE
+→ INPUT VALIDATION
+→ AUTHORIZATION
+→ API
+→ BUSINESS LOGIC
+→ DATABASE
+→ FILE STORAGE
+→ AI OR EXTERNAL INTEGRATION
+→ AUDIT LOG
+→ NOTIFICATION
+→ ERROR HANDLING
+→ MOBILE VIEW
+→ ACCESSIBILITY
+→ AUTOMATED TESTS
+→ DOCUMENTATION.
+
+Do not build ten incomplete interfaces simultaneously.
+
+Complete one feature fully, test it and then proceed to the next.
+
+==================================================
+7. PRESERVE CLIENT-CASE-FILE CENTRICITY
+==================================================
+
+Every legal-practice portal must operate from the shared structure:
+
+LAW FIRM
+→ CLIENT
+→ MATTER OR CASE FILE
+→ DOCUMENTS
+→ FACTS
+→ ISSUES
+→ EVIDENCE
+→ AUTHORITIES
+→ TASKS
+→ DEADLINES
+→ COMMUNICATIONS
+→ DRAFTS
+→ BILLING
+→ CLOSURE.
+
+Every portal must require either:
+
+SELECT EXISTING MATTER
+
+or
+
+CREATE NEW CLIENT AND MATTER.
+
+A specialist portal must not create an isolated case that cannot be found from the main matter dashboard.
+
+Every AI output must be capable of being saved to the correct matter as:
+
+- chronology;
+- fact analysis;
+- disputed-fact analysis;
+- issue list;
+- evidence table;
+- authority matrix;
+- legal research;
+- risk assessment;
+- legal opinion;
+- pleading;
+- agreement;
+- letter;
+- submission;
+- client advice;
+- negotiation position;
+- internal note;
+- task;
+- deadline;
+- draft;
+- final approved document.
+
+Every saved output must record:
+
+- organisation;
+- client;
+- matter;
+- portal;
+- user;
+- source documents;
+- authorities;
+- prompt;
+- generated result;
+- edits;
+- version;
+- review status;
+- approving lawyer;
+- date and time;
+- audit history.
+
+==================================================
+8. COMPLETE THE SHARED CORE FIRST
+==================================================
+
+Before perfecting specialist portals, verify and complete:
+
+A. ORGANISATION AND FIRM
+
+- firm profile;
+- branches;
+- departments;
+- practice groups;
+- users;
+- roles;
+- permissions;
+- teams;
+- seat management;
+- subscription entitlements.
+
+B. CLIENT MANAGEMENT
+
+- prospective client;
+- client intake;
+- individual client;
+- organisational client;
+- related persons;
+- contact details;
+- conflict-check names;
+- client documents;
+- client status;
+- engagement status;
+- billing details;
+- confidentiality status.
+
+C. MATTER MANAGEMENT
+
+- unique matter number;
+- client;
+- practice area;
+- jurisdiction;
+- stage;
+- responsible lawyer;
+- assigned team;
+- parties;
+- adverse parties;
+- opposing solicitors;
+- court or authority;
+- matter objective;
+- matter status;
+- risk;
+- next action;
+- critical dates;
+- documents;
+- chronology;
+- tasks;
+- deadlines;
+- communications;
+- AI outputs;
+- billing;
+- closure.
+
+D. DOCUMENT MANAGEMENT
+
+- upload;
+- bulk upload;
+- OCR;
+- preview;
+- download;
+- tagging;
+- classification;
+- search;
+- versioning;
+- comparison;
+- duplicate detection;
+- matter linking;
+- privilege status;
+- access permissions;
+- soft deletion;
+- audit logs.
+
+E. TASKS AND DEADLINES
+
+- assignment;
+- priority;
+- due date;
+- reminders;
+- dependencies;
+- comments;
+- evidence of completion;
+- review;
+- recurring tasks;
+- calendar;
+- mobile notifications.
+
+F. GLOBAL SEARCH
+
+Search across:
+
+- clients;
+- matters;
+- parties;
+- documents;
+- authorities;
+- tasks;
+- invoices;
+- staff;
+- communications;
+- AI outputs.
+
+No specialist portal should duplicate these core services.
+
+==================================================
+9. COMPLETE EVERY SPECIALIST APPLICATION
+==================================================
+
+For each application, create a complete functional specification based on the existing code and intended purpose.
+
+Then implement every missing feature.
+
+A. MYLITAI AND MYLITAI IRAC
+
+Complete:
+
+- litigation intake;
+- client instructions;
+- chronology;
+- causes of action;
+- jurisdiction;
+- limitation;
+- procedural stage;
+- pleadings;
+- interlocutory applications;
+- affidavits;
+- discovery;
+- evidence;
+- witnesses;
+- authorities;
+- submissions;
+- hearing preparation;
+- settlement;
+- appeal;
+- enforcement;
+- file closure.
+
+B. MYSYALITAI
+
+Complete:
+
+- state selection;
+- applicable enactment;
+- correct Syariah court;
+- case category;
+- pleadings;
+- supporting documents;
+- procedure;
+- hearing;
+- evidence;
+- order;
+- enforcement;
+- appeal;
+- state-specific verification.
+
+C. MYCORPAI OR MYCORPLEGALAI
+
+Complete:
+
+- entities;
+- directors;
+- shareholders;
+- beneficial ownership;
+- group structure;
+- constitutions;
+- resolutions;
+- meetings;
+- approvals;
+- statutory registers;
+- compliance;
+- contracts;
+- investment;
+- due diligence;
+- M&A;
+- conditions precedent;
+- completion;
+- post-completion.
+
+D. MYCONVEYLITAI
+
+Complete:
+
+- purchaser/vendor file;
+- title;
+- tenure;
+- searches;
+- financing;
+- existing charge;
+- redemption;
+- consent;
+- restriction in interest;
+- SPA;
+- signing;
+- stamping;
+- completion;
+- vacant possession;
+- registration;
+- post-completion;
+- transaction checklist.
+
+E. MYCRIMAI
+
+Complete:
+
+- arrest;
+- remand;
+- bail;
+- charge;
+- disclosure;
+- prosecution case;
+- defence case;
+- witnesses;
+- evidence;
+- trial;
+- mitigation;
+- sentencing;
+- appeal;
+- revision;
+- client update.
+
+F. MYCCBLITAI OR MYCORPCOMMBANKLITAI
+
+Complete:
+
+- commercial contracts;
+- banking documents;
+- facility agreements;
+- guarantees;
+- securities;
+- defaults;
+- notices;
+- construction claims;
+- variations;
+- delay;
+- defects;
+- payment;
+- termination;
+- adjudication;
+- arbitration;
+- mediation;
+- litigation;
+- enforcement.
+
+G. MYACCIDENTAI
+
+Complete:
+
+- accident intake;
+- police report;
+- vehicles;
+- parties;
+- insurers;
+- liability;
+- contributory negligence;
+- injuries;
+- treatment;
+- medical reports;
+- expenses;
+- loss of income;
+- special damages;
+- quantum;
+- offers;
+- negotiation;
+- settlement;
+- litigation;
+- payment and closure.
+
+H. MYLAWFIRMAI
+
+Make this the central operating dashboard for:
+
+- clients;
+- matters;
+- staff;
+- tasks;
+- deadlines;
+- meetings;
+- documents;
+- communications;
+- workload;
+- time recording;
+- expenses;
+- invoices;
+- payments;
+- performance;
+- reports;
+- permissions;
+- audit logs.
+
+I. MYCLIENTAI
+
+Complete:
+
+- client intake;
+- secure login;
+- matter updates;
+- document requests;
+- document uploads;
+- approved communications;
+- appointments;
+- approved downloads;
+- instructions;
+- invoices;
+- payments.
+
+Clients must not see internal notes, legal strategy or unapproved AI drafts.
+
+J. MYLAWRESEARCH
+
+Complete:
+
+- independent research;
+- matter-specific research;
+- authority sets;
+- primary-source search;
+- source comparison;
+- statutory versioning;
+- case analysis;
+- citation verification;
+- contrary authorities;
+- research notes;
+- save to matter.
+
+K. MYJUDICIALAI
+
+Use a court or docket file rather than an advocate’s client file.
+
+L. MYLAWACAD
+
+Use a simulation case file or assessment file rather than genuine client data.
+
+==================================================
+10. COMPLETE THE LEGAL KNOWLEDGE ENGINE
+==================================================
+
+Integrate the previously instructed source-intelligence system.
+
+Finish all supported connectors for:
+
+- Malaysian official legal sources;
+- Malaysian Judiciary;
+- official judgments;
+- legislation;
+- regulatory sources;
+- OpenAlex;
+- CORE;
+- Crossref;
+- Unpaywall;
+- DOAJ;
+- Semantic Scholar;
+- authorised institutional repositories;
+- authorised user uploads;
+- licensed databases where formal access exists.
+
+Do not scrape Google Scholar or ResearchGate.
+
+Every legal answer must:
+
+- identify jurisdiction;
+- identify relevant date;
+- retrieve primary authority;
+- identify contrary authority;
+- trace propositions to sources;
+- verify citations;
+- expose uncertainty;
+- mark unsupported propositions;
+- connect selected sources to the matter file.
+
+==================================================
+11. COMPLETE THE LEGAL AI CONTROL ROOM
+==================================================
+
+Within every relevant matter, complete:
+
+1. File Room
+2. Client Interrogator
+3. Legal Battlefield
+4. Evidence Gap Radar
+5. Authority-Locked Chamber
+6. Authority DNA Map
+7. Three-Lawyer Machine
+8. Judicial Bench Questions
+9. Precedent Distinguisher
+10. Legal Argument X-Ray
+11. Hostile Reader
+12. Negotiation Simulator
+13. PROOF Verification
+
+Every engine must use the selected matter, authorised documents and approved source set.
+
+It must not use another client’s information.
+
+==================================================
+12. NO FAKE COMPLETION
+==================================================
+
+The following do not count as completed features:
+
+- a visible menu;
+- an attractive page;
+- a button with no operation;
+- a modal that does not save;
+- an AI response that is not connected to the matter;
+- a hard-coded demonstration;
+- sample data disguised as live data;
+- a frontend without backend logic;
+- an API without authorization;
+- a database table without usable workflow;
+- a feature without error handling;
+- a feature without testing;
+- a “coming soon” label;
+- a hidden unfinished route;
+- a placeholder report;
+- a generated document that cannot be saved;
+- a payment screen not connected to entitlement;
+- a client portal that exposes internal content.
+
+==================================================
+13. NON-DISRUPTIVE DATABASE CHANGES
+==================================================
+
+For each schema change:
+
+1. Back up.
+2. Add new fields or tables without removing old ones.
+3. Make new fields nullable or safely defaulted initially.
+4. Deploy migration to staging.
+5. Test against a copy of existing data.
+6. Backfill in controlled batches.
+7. Validate record counts.
+8. Validate relationships.
+9. Validate tenant ownership.
+10. Test rollback.
+11. Deploy during the safest window.
+12. Monitor errors.
+13. Remove obsolete structures only after separate approval.
+
+Never use a destructive migration merely for convenience.
+
+==================================================
+14. REGRESSION PROTECTION
+==================================================
+
+After each completed vertical feature, run:
+
+1. Targeted unit tests
+2. API integration tests
+3. Database tests
+4. Authorization tests
+5. Portal-access tests
+6. File-isolation tests
+7. Payment-entitlement tests
+8. AI source-grounding tests
+9. Playwright E2E tests
+10. Existing baseline tests
+
+Compare against the protected baseline.
+
+If any existing feature regresses:
+
+- stop that release;
+- identify the exact change;
+- repair it;
+- rerun all affected tests;
+- do not proceed until the baseline is restored.
+
+==================================================
+15. SAFE RELEASE PROCEDURE
+==================================================
+
+Release completed features through:
+
+DEVELOPMENT
+→ AUTOMATED TESTING
+→ STAGING
+→ USER ACCEPTANCE TESTING
+→ SECURITY REVIEW
+→ DATABASE BACKUP
+→ FEATURE FLAG
+→ LIMITED CANARY RELEASE
+→ MONITORING
+→ FULL RELEASE.
+
+For major features:
+
+1. Release to administrators first.
+2. Release to selected internal testers.
+3. Release to a small percentage of users.
+4. Monitor errors and performance.
+5. Expand only after stability is proven.
+
+Each release must have an immediate rollback route.
+
+==================================================
+16. HARD DEFINITION OF DONE
+==================================================
+
+A feature is complete only when it has:
+
+1. Working interface
+2. Responsive mobile interface
+3. Working validation
+4. Working backend
+5. Working database persistence
+6. Correct tenant isolation
+7. Correct role authorization
+8. Correct matter connection
+9. Correct document connection
+10. Correct AI or external integration
+11. Loading state
+12. Empty state
+13. Success state
+14. Error state
+15. Retry behaviour
+16. Audit log
+17. Notifications where relevant
+18. Accessibility
+19. Security review
+20. Performance review
+21. Unit tests
+22. Integration tests
+23. E2E tests
+24. Regression tests
+25. User documentation
+26. Administrator documentation
+27. Staging verification
+28. Production monitoring
+29. Rollback procedure
+30. No unresolved P0 or P1 defect
+
+==================================================
+17. BLOCKER RULE
+==================================================
+
+Do not stop the entire project because one integration is blocked.
+
+If a feature requires:
+
+- missing credentials;
+- a paid API;
+- external-provider approval;
+- business-rule clarification;
+- legal licence;
+- production access;
+- irreversible action,
+
+record it in BLOCKERS_REQUIRING_OWNER_ACTION.md.
+
+For each blocker state:
+
+- precise requirement;
+- why it is needed;
+- affected feature;
+- work already completed;
+- safe temporary state;
+- exact next action.
+
+Then continue completing every unaffected feature.
+
+==================================================
+18. CONTINUATION AND PERSISTENCE RULE
+==================================================
+
+Maintain:
+
+REPLIT_COMPLETION_STATE.md
+
+After every working session, record:
+
+- features completed;
+- tests passed;
+- regressions detected;
+- regressions repaired;
+- files changed;
+- migrations created;
+- pending work;
+- next exact implementation step;
+- blockers;
+- rollback point.
+
+If execution limits interrupt the work, resume from this state.
+
+Do not restart from the beginning.
+
+Do not declare the project complete while incomplete items remain.
+
+==================================================
+19. REQUIRED FINAL COMPLETION MATRIX
+==================================================
+
+Produce a matrix containing every application and feature:
+
+APP
+FEATURE
+BASELINE STATUS
+INCOMPLETE ELEMENT
+IMPLEMENTATION COMPLETED
+DATABASE CONNECTED
+MATTER CONNECTED
+AUTHORIZATION VERIFIED
+AI VERIFIED
+MOBILE VERIFIED
+SECURITY VERIFIED
+UNIT TEST
+INTEGRATION TEST
+E2E TEST
+REGRESSION TEST
+STAGING RESULT
+PRODUCTION RESULT
+FINAL STATUS
+EVIDENCE.
+
+No row may be marked COMPLETE without evidence.
+
+==================================================
+20. FINAL ACCEPTANCE TEST
+==================================================
+
+The platform is not finished until this complete journey passes:
+
+1. Firm registers.
+2. Subscription activates correctly.
+3. Administrator invites lawyer.
+4. Lawyer logs in.
+5. Lawyer creates prospective client.
+6. Conflict check runs.
+7. Lawyer approves the client.
+8. Lawyer opens a matter.
+9. Matter number is generated.
+10. Team is assigned.
+11. Documents are uploaded.
+12. OCR and classification run.
+13. File Room reconstructs the matter.
+14. Lawyer corrects extracted information.
+15. Client Interrogator identifies missing instructions.
+16. Client supplies additional documents.
+17. Chronology updates.
+18. Lawyer selects a specialist portal.
+19. Portal receives the correct matter context.
+20. Evidence Gap Radar operates.
+21. Lawyer searches reliable authorities.
+22. Authorities are saved to the matter.
+23. Authority-Locked Chamber analyses the issue.
+24. Opponent’s strongest case is generated.
+25. Draft is generated.
+26. Hostile Reader reviews it.
+27. PROOF verifies it.
+28. Lawyer edits it.
+29. Partner approves it.
+30. Approved client update is sent.
+31. Task and deadline are recorded.
+32. Time and expenses are recorded.
+33. Invoice is generated.
+34. Payment is processed correctly.
+35. Receipt is created.
+36. Matter outcome is recorded.
+37. Closure checklist is completed.
+38. Matter is archived.
+39. Audit history remains accessible.
+40. No other client or firm can access the matter.
+
+Run this journey for every relevant practice portal.
+
+==================================================
+21. FINAL COMMAND TO REPLIT
+==================================================
+
+BEGIN IMPLEMENTATION NOW.
+
+You are expressly instructed not to stop after the audit, inventory, plan or first repaired application.
+
+Protect all currently working functions.
+
+Then finish every incomplete application through safe, incremental, fully tested vertical development.
+
+Do not leave:
+
+- placeholders;
+- inactive buttons;
+- fake data;
+- disconnected portals;
+- incomplete APIs;
+- missing database logic;
+- missing permissions;
+- unsaved AI results;
+- unfinished mobile views;
+- untested payment flows;
+- unsupported legal citations;
+- unresolved critical defects.
+
+Continue until the completion register contains no unfinished item except a documented external blocker requiring credentials, licensing, payment-provider approval or an irreversible owner decision.
+
+The final platform must operate as:
+
+ONE STABLE LAW-FIRM OPERATING SYSTEM
+→ ONE SECURE CLIENT DATABASE
+→ ONE SHARED MATTER FILE
+→ MULTIPLE COMPLETE SPECIALIST LEGAL APPLICATIONS
+→ ONE VERIFIED SOURCE DATABASE
+→ ONE CONTROLLED PROFESSIONAL WORKFLOW.
+
+Do the work.
+
+Test the work.
+
+Repair every regression.
+
+Prove completion with evidence.
+
+Do not merely tell me what remains to be done.

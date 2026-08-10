@@ -19,6 +19,7 @@ import { CalculatorTab } from "@/components/workspace/calculator-tab";
 import { CausePaperGenerator } from "@/components/workspace/cause-paper-generator";
 import { ChecklistsTab } from "@/components/workspace/checklists-tab";
 import { templates } from "@/components/workspace/templates";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 function tokenize(query: string): string[] {
   return query.toLowerCase().split(/[^a-z0-9]+/i).filter(t => t.length > 0);
@@ -120,6 +121,11 @@ export default function Workspace() {
         </nav>
 
         <div className="p-4 border-t border-border space-y-2">
+          <Link href="/workspace/matters" data-testid="link-matters-from-workspace">
+            <Button variant="outline" size="sm" className="w-full gap-2">
+              <Folder className="h-4 w-4" /> Matter Files
+            </Button>
+          </Link>
           <Link href="/" data-testid="link-home-from-workspace">
             <Button variant="outline" size="sm" className="w-full gap-2">
               <Home className="h-4 w-4" /> Home
@@ -985,6 +991,16 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
             {!loading && !analysis && <span className="text-muted-foreground">Analysis will appear here.</span>}
             {analysis}
           </div>
+          {analysis && !loading && (
+            <div className="mt-4">
+              <SaveToMatterPanel
+                draftTitle="AI Case Analysis"
+                draftContent={analysis}
+                kind="analysis"
+                sourceLabel="AI Case Analyzer"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1102,6 +1118,16 @@ function AiDrafterTab() {
             {!loading && !output && <span className="text-muted-foreground">Generated document will appear here.</span>}
             {output}
           </div>
+          {output && !loading && (
+            <div className="mt-4">
+              <SaveToMatterPanel
+                draftTitle={mode === "demand-letter" ? "Letter of Demand" : "Written Submissions"}
+                draftContent={output}
+                kind={mode === "demand-letter" ? "demand-letter" : "submissions"}
+                sourceLabel="AI Document Drafter"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

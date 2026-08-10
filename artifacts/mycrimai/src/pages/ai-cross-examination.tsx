@@ -8,6 +8,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export function AiCrossExaminationPage() {
   const [witnessStatement, setWitnessStatement] = useState("");
@@ -106,7 +107,16 @@ export function AiCrossExaminationPage() {
                   <VoiceControls voice={voice} responseText={response} />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {!isStreaming && response && (
+                  <SaveToMatterPanel
+                    draftTitle={witnessRole ? `Cross-Examination Questions — ${witnessRole}` : "Cross-Examination Questions"}
+                    draftContent={response}
+                    kind="cross-examination"
+                    sourceLabel="Cross-Examination Helper"
+                    inputJson={{ witnessStatement, witnessRole, caseContext }}
+                  />
+                )}
                 <MarkdownRenderer content={response} />
               </CardContent>
             </Card>

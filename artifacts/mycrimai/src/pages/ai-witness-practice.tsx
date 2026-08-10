@@ -12,6 +12,7 @@ import { useVoice } from "@/lib/use-voice";
 import { useElevenVoice } from "@/lib/use-eleven-voice";
 import { useEntitlements } from "@/lib/entitlements";
 import { Sparkles } from "lucide-react";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 interface Message {
   role: "user" | "assistant";
@@ -112,6 +113,13 @@ export function AiWitnessPracticePage() {
 
   const selectedWitness = WITNESS_TYPES.find(w => w.value === witnessType);
   const selectedExam = EXAMINATION_TYPES.find(e => e.value === examinationType);
+
+  const hasWitnessReply = messages.slice(1).some((m) => m.role === "assistant");
+  const witnessTranscript = messages
+    .slice(1)
+    .map((m) => `${m.role === "user" ? "**Counsel:**" : "**Witness:**"}\n\n${m.content}`)
+    .join("\n\n---\n\n");
+  const witnessTranscriptTitle = `Witness Practice — ${selectedExam?.label ?? "Examination"} (${selectedWitness?.label ?? "Witness"})`;
 
   if (!sessionStarted) {
     return (
@@ -344,6 +352,17 @@ export function AiWitnessPracticePage() {
         )}
       </div>
 
+      {!isStreaming && hasWitnessReply && (
+        <div className="mt-4">
+          <SaveToMatterPanel
+            draftTitle={witnessTranscriptTitle}
+            draftContent={witnessTranscript}
+            kind="witness-practice"
+            sourceLabel="Witness Examination Practice"
+            inputJson={{ witnessType, examinationType, caseScenario, witnessBackground }}
+          />
+        </div>
+      )}
       {voice.isListening && (
         <div className="text-xs text-amber-500 mt-2 flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />

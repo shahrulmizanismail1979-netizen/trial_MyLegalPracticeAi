@@ -13,6 +13,7 @@ import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Ta
 import { isAuthenticated, getToken } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export default function StrategyPage() {
   const [, setLocation] = useLocation();
@@ -509,6 +510,16 @@ export default function StrategyPage() {
                     <div className="flex items-center space-x-2 mt-4 text-primary">
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span className="text-sm font-medium animate-pulse">Analyzing facts and synthesizing strategy...</span>
+                    </div>
+                  )}
+                  {output && !isGenerating && (
+                    <div className="mt-6">
+                      <SaveToMatterPanel
+                        draftTitle={inputs.partiesInvolved ? `Case Strategy — ${inputs.partiesInvolved}` : "AI Case Strategy"}
+                        draftContent={output}
+                        kind="strategy"
+                        refPrefix="CCB"
+                      />
                     </div>
                   )}
                   <div ref={endOfOutputRef} className="h-4" />

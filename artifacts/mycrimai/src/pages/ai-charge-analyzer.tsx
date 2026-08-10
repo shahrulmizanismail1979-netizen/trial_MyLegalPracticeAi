@@ -7,6 +7,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 const EXAMPLE_CHARGE = `PERTUDUHAN
 
@@ -95,7 +96,16 @@ export function AiChargeAnalyzerPage() {
                   <VoiceControls voice={voice} responseText={response} />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {!isStreaming && response && (
+                  <SaveToMatterPanel
+                    draftTitle="Charge Sheet Analysis"
+                    draftContent={response}
+                    kind="charge-analysis"
+                    sourceLabel="Charge Sheet Analyzer"
+                    inputJson={{ chargeSheet }}
+                  />
+                )}
                 <MarkdownRenderer content={response} />
               </CardContent>
             </Card>

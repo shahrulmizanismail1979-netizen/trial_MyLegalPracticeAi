@@ -12,6 +12,7 @@ import { useVoice } from "@/lib/use-voice";
 import { useElevenVoice } from "@/lib/use-eleven-voice";
 import { useEntitlements } from "@/lib/entitlements";
 import { Sparkles } from "lucide-react";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 interface Message {
   role: "user" | "assistant";
@@ -111,6 +112,13 @@ export function AiJudgePracticePage() {
 
   const selectedJudge = JUDGE_TYPES.find(j => j.value === judgeType);
   const selectedMode = PRACTICE_MODES.find(m => m.value === practiceMode);
+
+  const hasJudgeReply = messages.slice(1).some((m) => m.role === "assistant");
+  const judgeTranscript = messages
+    .slice(1)
+    .map((m) => `${m.role === "user" ? "**Counsel:**" : "**Court:**"}\n\n${m.content}`)
+    .join("\n\n---\n\n");
+  const judgeTranscriptTitle = `Judge Practice — ${selectedMode?.label ?? "Submission"} (${selectedJudge?.label ?? "Judge"})`;
 
   if (!sessionStarted) {
     return (
@@ -347,6 +355,17 @@ export function AiJudgePracticePage() {
         )}
       </div>
 
+      {!isStreaming && hasJudgeReply && (
+        <div className="mt-4">
+          <SaveToMatterPanel
+            draftTitle={judgeTranscriptTitle}
+            draftContent={judgeTranscript}
+            kind="judge-practice"
+            sourceLabel="Judge Response Practice"
+            inputJson={{ judgeType, practiceMode, scenario }}
+          />
+        </div>
+      )}
       {voice.isListening && (
         <div className="text-xs text-amber-500 mt-2 flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />

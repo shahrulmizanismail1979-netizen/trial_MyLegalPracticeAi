@@ -12,6 +12,7 @@ import { seedCrimContent } from "./crim/lib/seed";
 import { seedLitContent } from "./lit/lib/seed";
 import { ensureMatterFileTables } from "./lib/matterFiles";
 import { ensureCaseIntelligenceTables } from "./lib/ensureCaseIntelligenceTables";
+import { ensureAccMatterTables } from "./accident/matters";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -147,6 +148,11 @@ await ensureMatterFileTables();
 // Shared AI case intelligence tables (checklists, insights cache, time entries,
 // clients, stage history) — used by all 6 portals.
 await ensureCaseIntelligenceTables();
+
+// MyAccidentAI matter files (acc_matters / acc_matter_deadlines / acc_saved_work).
+// Direct SQL CREATE IF NOT EXISTS, awaited before listen so matter routes never
+// race table creation.
+await ensureAccMatterTables();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

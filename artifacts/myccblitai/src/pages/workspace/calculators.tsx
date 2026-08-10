@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calculator, CalendarClock, Scale, Coins, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 // --- Limitation Period Calculator Logic ---
 type CauseOfAction = {
@@ -209,6 +210,51 @@ export default function CalculatorsPage() {
     });
   };
 
+  // Markdown summaries of each calculator's result, suitable for filing into a matter.
+  const limitationSummary = limitationResult
+    ? [
+        `# Limitation Period Calculation`,
+        ``,
+        `**Cause of Action:** ${causesOfAction[limitationCause]?.name ?? limitationCause}`,
+        `**Date cause of action arose:** ${limitationStartDate}`,
+        limitationKnowledgeDate ? `**Date of knowledge/discovery:** ${limitationKnowledgeDate}` : ``,
+        `**Expiry Date:** ${limitationResult.expiryDate}`,
+        `**Time Remaining:** ${limitationResult.daysRemaining === "N/A" ? "N/A" : `${limitationResult.daysRemaining} days`}`,
+        `**Status:** ${limitationResult.isExpired ? "Expired / Time-barred" : limitationResult.status === "green" ? "Safe" : limitationResult.status === "yellow" ? "Caution" : "Critical"}`,
+        `**Relevant Authority:** ${limitationResult.statute}`,
+        limitationResult.note ? `` : ``,
+        limitationResult.note ? `> ${limitationResult.note}` : ``,
+      ].filter(Boolean).join("\n")
+    : "";
+
+  const feeSummary = feeResult
+    ? [
+        `# Court Filing Fee Estimate`,
+        ``,
+        `**Court Level:** ${feeCourt === "magistrate" ? "Magistrate's Court" : feeCourt === "sessions" ? "Sessions Court" : "High Court"}`,
+        `**Type of Filing:** ${feeType}`,
+        feeAmount ? `**Claim Amount (RM):** ${feeAmount}` : ``,
+        `**Estimated Filing Fee:** RM ${feeResult.total}`,
+        `**Calculation Basis:** ${feeResult.details}`,
+        `**Reference:** ${feeResult.rules}`,
+      ].filter(Boolean).join("\n")
+    : "";
+
+  const interestSummary = interestResult
+    ? [
+        `# Legal Interest Calculation`,
+        ``,
+        `**Principal Amount (RM):** ${interestPrincipal}`,
+        `**Interest Rate:** ${interestRate}% per annum`,
+        `**Period:** ${interestStart} to ${interestEnd}`,
+        `**Type:** ${interestCompound ? "Compound" : "Simple"} interest`,
+        `**Days Accrued:** ${interestResult.days}`,
+        `**Daily Rate:** RM ${interestResult.dailyRate}`,
+        `**Total Interest:** RM ${interestResult.totalInterest}`,
+        `**Total Amount Due:** RM ${interestResult.totalDue}`,
+      ].filter(Boolean).join("\n")
+    : "";
+
   return (
     <WorkspaceLayout>
       <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-8">
@@ -349,6 +395,17 @@ export default function CalculatorsPage() {
                   </div>
                 </CardContent>
               </Card>
+              {limitationResult && (
+                <div className="mt-6">
+                  <SaveToMatterPanel
+                    key={`limitation-${limitationSummary.length}`}
+                    draftTitle={`Limitation Period — ${causesOfAction[limitationCause]?.name ?? "Calculation"}`}
+                    draftContent={limitationSummary}
+                    kind="calculation"
+                    refPrefix="CCB"
+                  />
+                </div>
+              )}
             </TabsContent>
 
             {/* FILING FEE CALCULATOR */}
@@ -443,6 +500,17 @@ export default function CalculatorsPage() {
                   </div>
                 </CardContent>
               </Card>
+              {feeResult && (
+                <div className="mt-6">
+                  <SaveToMatterPanel
+                    key={`fee-${feeSummary.length}`}
+                    draftTitle="Court Filing Fee Estimate"
+                    draftContent={feeSummary}
+                    kind="calculation"
+                    refPrefix="CCB"
+                  />
+                </div>
+              )}
             </TabsContent>
 
             {/* INTEREST CALCULATOR */}
@@ -562,6 +630,17 @@ export default function CalculatorsPage() {
                   </div>
                 </CardContent>
               </Card>
+              {interestResult && (
+                <div className="mt-6">
+                  <SaveToMatterPanel
+                    key={`interest-${interestSummary.length}`}
+                    draftTitle="Legal Interest Calculation"
+                    draftContent={interestSummary}
+                    kind="calculation"
+                    refPrefix="CCB"
+                  />
+                </div>
+              )}
             </TabsContent>
           </div>
         </Tabs>

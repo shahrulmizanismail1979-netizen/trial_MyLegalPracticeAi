@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { consumeSse } from "@/lib/sse";
 
 const API_BASE = "/api/sya";
@@ -315,6 +316,15 @@ export default function CaseWorkspacePage() {
                 </div>
                 {analyzer.error && <p className="text-sm text-red-600">{analyzer.error}</p>}
                 <div data-testid="cw-output-analyzer">{renderJsonOrText(analyzer.output) || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
+                {analyzer.output && analyzer.status !== "running" && (
+                  <SaveToMatterPanel
+                    draftTitle={t("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}
+                    draftContent={analyzer.output}
+                    parties={parties || undefined}
+                    kind="analysis"
+                    matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="case-analysis" className="mt-4 space-y-3">
@@ -331,6 +341,15 @@ export default function CaseWorkspacePage() {
                 </div>
                 {caseAnalysis.error && <p className="text-sm text-red-600">{caseAnalysis.error}</p>}
                 <div data-testid="cw-output-case">{renderJsonOrText(caseAnalysis.output) || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
+                {caseAnalysis.output && caseAnalysis.status !== "running" && (
+                  <SaveToMatterPanel
+                    draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}
+                    draftContent={caseAnalysis.output}
+                    parties={parties || undefined}
+                    kind="analysis"
+                    matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="legal-opinion" className="mt-4 space-y-3">
@@ -349,6 +368,15 @@ export default function CaseWorkspacePage() {
                 <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" data-testid="cw-output-opinion">
                   {legalOpinion.output || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}
                 </div>
+                {legalOpinion.output && legalOpinion.status !== "running" && (
+                  <SaveToMatterPanel
+                    draftTitle={t("Legal Opinion", "Pendapat Undang-Undang")}
+                    draftContent={legalOpinion.output}
+                    parties={parties || undefined}
+                    kind="opinion"
+                    matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>

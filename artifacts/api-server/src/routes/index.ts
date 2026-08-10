@@ -17,6 +17,7 @@ import legacyCodesRouter from "./legacy-codes";
 import accidentRouter from "./accident";
 import accidentAiRouter from "./accident-ai";
 import accidentAdminRouter from "./accident-admin";
+import accidentMattersRouter from "../accident/matters";
 import crimRouter from "../crim/routes";
 import { crimSession } from "../crim/session";
 import corpRouter from "../corp/routes";
@@ -58,6 +59,10 @@ router.use(legacyCodesRouter);
 router.use("/accident", accidentRouter);
 router.use("/accident", accidentAiRouter);
 router.use("/accident", accidentAdminRouter);
+// MyAccidentAI matter files: /accident/matters, /accident/saved-work. Auth is
+// scoped inside the router (requireMatterTenant reads the session_id cookie),
+// so this never blocks the other /accident routes.
+router.use("/accident", accidentMattersRouter);
 // MyCrimAI (criminal law app): /crim/*. Uses express-session (Postgres-backed),
 // scoped to this mount so the rest of the API is unaffected.
 router.use("/crim", crimSession, crimRouter);

@@ -10,6 +10,7 @@ export * from "./conversations";
 export * from "./messages";
 export * from "./aiUsage";
 export * from "./accident-access-codes";
+export * from "./accident-matters";
 export * from "./crim-access-codes";
 export * from "./crim-topics";
 export * from "./crim-case-laws";

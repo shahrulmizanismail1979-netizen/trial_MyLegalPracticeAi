@@ -35,4 +35,5 @@
 - [Research background job worker](research-job-worker.md) — runNextJob() must be called in an explicit polling loop; without it jobs queue forever; loop lives in api-server/src/index.ts.
 - [Stripe invoice.upcoming webhook crash](webhook-invoice-upcoming-fix.md) — preview invoices have id=null; catch pg 23502 in the webhook sync, never let sync errors block provisioning.
 - [Stale project-reference declarations](monorepo-typecheck-stale-dist.md) — phantom "no exported member" errors from @workspace/db mean stale lib dist; run `npx tsc -b` first.
+- [Shared case-ownership owner columns](case-ownership-owner-columns.md) — verifyMatterOwnership maps portal→owner column; any new portal matter table with a non-access_code_id owner needs an explicit branch or checklist/time routes fail closed.
 - [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.

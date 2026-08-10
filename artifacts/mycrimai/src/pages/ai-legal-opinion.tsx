@@ -9,6 +9,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 const OPINION_TYPES = [
   { value: "advisory", label: "Client Advisory Opinion" },
@@ -145,6 +146,18 @@ ${specificQuestions ? `SPECIFIC QUESTIONS TO ADDRESS:\n${specificQuestions}` : "
             {response && (
               <div className="flex justify-end mb-2">
                 <VoiceControls voice={voice} responseText={response} />
+              </div>
+            )}
+            {response && !isStreaming && (
+              <div className="mb-4">
+                <SaveToMatterPanel
+                  draftTitle={`Legal Opinion — ${OPINION_TYPES.find((t) => t.value === opinionType)?.label || "General Legal Opinion"}`}
+                  draftContent={response}
+                  kind="legal-opinion"
+                  sourceLabel="Legal Opinion Writer"
+                  defaultMatterTitle={clientName || undefined}
+                  inputJson={{ clientName, opinionType, facts, specificQuestions }}
+                />
               </div>
             )}
             <div ref={scrollRef} className="max-h-[70vh] overflow-auto">

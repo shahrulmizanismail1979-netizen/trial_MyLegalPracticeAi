@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { FileText, Copy, Download, Sparkles, Folder, Check } from "lucide-react";
 import { templates, defaultCase, type CaseDetails, type TemplateDef } from "./templates";
 import { DraftExportButtons } from "@workspace/draft-export/react";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 type Props = { initialTemplateId?: string };
 
@@ -169,6 +170,15 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
             >
               {generated}
             </pre>
+          </div>
+          <div className="mt-4">
+            <SaveToMatterPanel
+              draftTitle={selected.name}
+              draftContent={generated}
+              defaultMatterTitle={details.plaintiffName && details.defendantName ? `${details.plaintiffName} v ${details.defendantName}` : selected.name}
+              kind="cause-paper"
+              sourceLabel="Cause Paper Generator"
+            />
           </div>
           <p className="text-[11px] text-muted-foreground mt-3 px-1">
             Generated drafts are starting points only. Always review and adapt to specific facts, current rules, and applicable practice directions before filing. Verify all citations against primary sources.

@@ -8,6 +8,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 const STRATEGY_ROLES = [
   { value: "defence", label: "Defence Counsel" },
@@ -140,6 +141,17 @@ ${concerns ? `SPECIFIC CONCERNS / OBJECTIVES:\n${concerns}` : ""}`;
             {response && (
               <div className="flex justify-end mb-2">
                 <VoiceControls voice={voice} responseText={response} />
+              </div>
+            )}
+            {response && !isStreaming && (
+              <div className="mb-4">
+                <SaveToMatterPanel
+                  draftTitle={`Case Strategy — ${role === "defence" ? "Defence" : "Prosecution"}`}
+                  draftContent={response}
+                  kind="case-strategy"
+                  sourceLabel="Case Strategy Planner"
+                  inputJson={{ role, caseDetails, evidence, concerns }}
+                />
               </div>
             )}
             <div ref={scrollRef} className="max-h-[70vh] overflow-auto">

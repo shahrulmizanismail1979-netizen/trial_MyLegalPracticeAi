@@ -7,6 +7,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export function AiAppealGroundsPage() {
   const [judgment, setJudgment] = useState("");
@@ -134,6 +135,17 @@ The investigating officer admitted under cross-examination that the chain of cus
             {response && (
               <div className="flex justify-end mb-2">
                 <VoiceControls voice={voice} responseText={response} />
+              </div>
+            )}
+            {response && !isStreaming && (
+              <div className="mb-4">
+                <SaveToMatterPanel
+                  draftTitle="Appeal Grounds Analysis"
+                  draftContent={response}
+                  kind="appeal-grounds"
+                  sourceLabel="Appeal Grounds Analyzer"
+                  inputJson={{ judgment, additionalContext }}
+                />
               </div>
             )}
             <div ref={scrollRef} className="max-h-[70vh] overflow-auto">

@@ -9,6 +9,7 @@
  * Owner-key format per portal:
  *   lit, crim, corp, ccb  →  String(access_code_id)    e.g. "42"
  *   convey                →  String(user_id)            e.g. "7"
+ *   acc                   →  String(owner_id)           e.g. "42"
  *   sya                   →  "{ownerType}:{ownerId}"    e.g. "code:42"
  */
 import { pool } from "@workspace/db";
@@ -38,7 +39,8 @@ export async function verifyMatterOwnership(
     }
 
     // All other portals: single integer FK column
-    const ownerCol = portal === "convey" ? "user_id" : "access_code_id";
+    const ownerCol =
+      portal === "convey" ? "user_id" : portal === "acc" ? "owner_id" : "access_code_id";
     const ownerId = parseInt(ownerKey, 10);
     if (Number.isNaN(ownerId)) return false;
     const { rows } = await pool.query(

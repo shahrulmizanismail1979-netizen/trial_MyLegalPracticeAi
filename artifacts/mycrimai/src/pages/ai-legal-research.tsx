@@ -8,6 +8,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { MicInputButton } from "@/components/ai/mic-input-button";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 interface Message {
   role: "user" | "assistant";
@@ -58,6 +59,15 @@ export function AiLegalResearchPage() {
     reset();
   };
 
+  const hasAssistantReply = messages.some((m) => m.role === "assistant");
+  const researchTranscript = messages
+    .map((m) => `${m.role === "user" ? "**Question:**" : "**Answer:**"}\n\n${m.content}`)
+    .join("\n\n---\n\n");
+  const firstQuestion = messages.find((m) => m.role === "user")?.content ?? "";
+  const researchTitle = firstQuestion
+    ? `Legal Research — ${firstQuestion.slice(0, 80)}${firstQuestion.length > 80 ? "…" : ""}`
+    : "Legal Research";
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
@@ -77,6 +87,18 @@ export function AiLegalResearchPage() {
           )}
         </div>
       </div>
+
+      {!isStreaming && hasAssistantReply && (
+        <div className="mb-4">
+          <SaveToMatterPanel
+            draftTitle={researchTitle}
+            draftContent={researchTranscript}
+            kind="legal-research"
+            sourceLabel="AI Legal Research"
+            inputJson={{ messages }}
+          />
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-auto rounded-lg border border-border bg-card/30 p-4 space-y-4">
         {messages.length === 0 && !isStreaming ? (

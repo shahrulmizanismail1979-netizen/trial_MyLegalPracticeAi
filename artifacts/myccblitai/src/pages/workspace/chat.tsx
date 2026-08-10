@@ -16,6 +16,7 @@ import {
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import { format } from "date-fns";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export default function ChatPage() {
   const [, setLocation] = useLocation();
@@ -238,6 +239,12 @@ export default function ChatPage() {
     }
   };
 
+  // The most recent completed assistant answer, offered for filing into a matter.
+  const lastAssistantMessage = activeConversation?.messages
+    ?.slice()
+    .reverse()
+    .find((m) => m.role !== "user");
+
   return (
     <WorkspaceLayout>
       <div className="h-full flex overflow-hidden max-w-7xl mx-auto border-x border-border/50">
@@ -409,6 +416,19 @@ export default function ChatPage() {
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Thinking...
                         </div>
+                      </div>
+                    )}
+
+                    {/* Save the latest AI answer into a matter file */}
+                    {!isGenerating && lastAssistantMessage && (
+                      <div className="ml-12">
+                        <SaveToMatterPanel
+                          key={lastAssistantMessage.id}
+                          draftTitle={activeConversation?.title || "Legal AI Chat"}
+                          draftContent={lastAssistantMessage.content}
+                          kind="chat"
+                          refPrefix="CCB"
+                        />
                       </div>
                     )}
                   </>

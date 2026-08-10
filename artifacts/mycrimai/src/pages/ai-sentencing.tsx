@@ -7,6 +7,7 @@ import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
+import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 
 export function AiSentencingPage() {
   const [input, setInput] = useState("");
@@ -119,6 +120,17 @@ Mitigating: First offender, provocation by deceased, intoxication, young age, so
             {response && (
               <div className="flex justify-end mb-2">
                 <VoiceControls voice={voice} responseText={response} />
+              </div>
+            )}
+            {response && !isStreaming && (
+              <div className="mb-4">
+                <SaveToMatterPanel
+                  draftTitle="Sentencing Prediction"
+                  draftContent={response}
+                  kind="sentencing"
+                  sourceLabel="Sentencing Predictor"
+                  inputJson={{ input }}
+                />
               </div>
             )}
             <div ref={scrollRef} className="max-h-[70vh] overflow-auto">
