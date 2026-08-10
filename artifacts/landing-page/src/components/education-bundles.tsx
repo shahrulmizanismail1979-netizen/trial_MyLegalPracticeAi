@@ -79,9 +79,10 @@ const EDUCATION_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURICompon
 
 export function EducationBundles() {
   const { format } = useCurrency();
-  const scrollToPayment = () => {
-    document.getElementById("payment")?.scrollIntoView({ behavior: "smooth" });
-  };
+  const bundleWhatsAppUrl = (tierName: string) =>
+    `https://wa.me/60139725475?text=${encodeURIComponent(
+      `Hi, I'd like to subscribe to the ${tierName} academic bundle. Please help me get set up.`,
+    )}`;
 
   return (
     <section id="education-bundles" className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
@@ -213,15 +214,21 @@ and lecturers.
                     </Button>
                   </a>
                 ) : (
-                  <Button
-                    variant={tier.featured ? "default" : "outline"}
-                    className={`w-full ${
-                      tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
-                    }`}
-                    onClick={scrollToPayment}
+                  <a
+                    href={bundleWhatsAppUrl(tier.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
                   >
-                    Get This Bundle
-                  </Button>
+                    <Button
+                      variant={tier.featured ? "default" : "outline"}
+                      className={`w-full ${
+                        tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
+                      }`}
+                    >
+                      Get This Bundle
+                    </Button>
+                  </a>
                 )}
               </CardFooter>
             </Card>
