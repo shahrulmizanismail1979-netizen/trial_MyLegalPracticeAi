@@ -1,11 +1,21 @@
 import rateLimit from "express-rate-limit";
 import type { Request, Response } from "express";
+import { deviceSeatKey } from "./seatLimits";
 
 const MAX = parseInt(process.env.AI_RATE_LIMIT_PER_MINUTE ?? "60", 10);
 
 /**
- * Extracts a stable per-subscriber key from the request/response pair,
- * trying every portal's auth convention in turn, falling back to IP.
+ * Extracts a stable per-seat key from the request/response pair.
+ *
+ * For portals where multiple lawyers share one access code (team bundles),
+ * the key is scoped down to the individual lawyer's session or device so
+ * that a single heavy user cannot exhaust the whole firm's quota.
+ *
+ * - Session-based portals (crim/lit/sya): key includes the Express session ID,
+ *   which is unique per login, giving each lawyer their own bucket.
+ * - Token/cookie portals (ccb/corp/accident): key includes a device fingerprint
+ *   (IP + user-agent hash via deviceSeatKey) for the same effect.
+ * - Per-user portals (acad/convey): already keyed per individual; no change.
  *
  * Convention summary (set by each portal's auth middleware):
  *   CCB    → res.locals.ccbAccessCodeId (number | null)
@@ -18,43 +28,57 @@ const MAX = parseInt(process.env.AI_RATE_LIMIT_PER_MINUTE ?? "60", 10);
  */
 function subscriberKey(req: Request, res: Response): string {
   const locals = res.locals as Record<string, unknown>;
+  const session = req.session as unknown as Record<string, unknown> | undefined;
 
-  // CCB: ccbAccessCodeId is a number for real subscribers, null for master/admin.
+  // Per-lawyer sub-key for session-based portals — each login gets a distinct
+  // Express session ID, so lawyers on the same team bundle don't share a bucket.
+  const sessionId = req.sessionID ?? null;
+
+  // CCB: keyed by access code; add device fingerprint so each team member
+  // gets their own quota rather than sharing the per-code bucket.
   if (typeof locals.ccbAccessCodeId === "number") {
-    return `ccb:${locals.ccbAccessCodeId}`;
+    return `ccb:${locals.ccbAccessCodeId}:${deviceSeatKey(req)}`;
   }
 
-  // Accident: accidentAccessCodeId set by requireAccidentSession after DB validation.
+  // Accident: same pattern as CCB.
   if (typeof locals.accidentAccessCodeId === "number") {
-    return `accident:${locals.accidentAccessCodeId}`;
+    return `accident:${locals.accidentAccessCodeId}:${deviceSeatKey(req)}`;
   }
 
-  // Corp: accessCodeId (number).
+  // Corp: same pattern — access code shared by the firm.
   if (typeof locals.accessCodeId === "number") {
-    return `corp:${locals.accessCodeId}`;
+    return `corp:${locals.accessCodeId}:${deviceSeatKey(req)}`;
   }
 
   // Crim: res.locals.accessCode is the full access-code row; master sessions
   // have { tier: "full", createdAt: null } with no numeric id.
+  // Append session ID so each lawyer on a team bundle has their own bucket.
   const crimCode = locals.accessCode as Record<string, unknown> | undefined;
   if (crimCode && typeof crimCode.id === "number") {
-    return `crim:${crimCode.id}`;
+    const seat = sessionId ?? deviceSeatKey(req);
+    return `crim:${crimCode.id}:${seat}`;
   }
 
-  // Acad: res.locals.user.id (string uid).
+  // Acad: res.locals.user.id is already a per-individual user ID — no change needed.
   const acadUser = locals.user as Record<string, unknown> | undefined;
   if (acadUser && acadUser.id != null) {
     return `acad:${acadUser.id}`;
   }
 
-  // Sya: req.session.userId (set by syaSessionGate / requireAuth).
-  const session = req.session as unknown as Record<string, unknown> | undefined;
-  if (session?.userId != null) return `sya:${session.userId}`;
+  // Sya: req.session.userId identifies the subscriber row, which may be shared
+  // by a team bundle. Append session ID for per-lawyer isolation.
+  if (session?.userId != null) {
+    const seat = sessionId ?? deviceSeatKey(req);
+    return `sya:${session.userId}:${seat}`;
+  }
 
-  // Lit: req.session.accessCodeId.
-  if (session?.accessCodeId != null) return `lit:${session.accessCodeId}`;
+  // Lit: req.session.accessCodeId is the shared team code. Append session ID.
+  if (session?.accessCodeId != null) {
+    const seat = sessionId ?? deviceSeatKey(req);
+    return `lit:${session.accessCodeId}:${seat}`;
+  }
 
-  // Convey: req.userId set by the global attachUser middleware.
+  // Convey: req.userId is a per-individual user ID — no change needed.
   const conveyUserId = (req as unknown as Record<string, unknown>).userId;
   if (typeof conveyUserId === "number") return `convey:${conveyUserId}`;
 
@@ -65,10 +89,14 @@ function subscriberKey(req: Request, res: Response): string {
 }
 
 /**
- * Per-subscriber rate limit for AI-generation endpoints (Gemini / OpenAI).
+ * Per-seat rate limit for AI-generation endpoints (Gemini / OpenAI).
  *
- * Default: 60 requests per minute per subscriber.
+ * Default: 60 requests per minute per lawyer/device.
  * Override via AI_RATE_LIMIT_PER_MINUTE environment variable.
+ *
+ * For team-bundle access codes the limit applies per seat (session or device),
+ * not per access code, so individual heavy users cannot exhaust the quota for
+ * the whole firm.
  *
  * Callers receive HTTP 429 with { error: "Too many AI requests. Please try again shortly." }
  * when the limit is exceeded.
