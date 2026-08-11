@@ -1,9 +1,48 @@
 import { useState } from "react";
-import { Scale, Building2, GraduationCap, ArrowRight, Loader2 } from "lucide-react";
+import { Scale, Building2, GraduationCap, BookOpen, Gavel, Users, ArrowRight, Loader2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePersona, Persona } from "@/lib/persona";
 import { FrontDoorAssistant } from "@/components/front-door-assistant";
+
+const PATHWAYS: { role: Exclude<Persona, null>; icon: LucideIcon; title: string; desc: string }[] = [
+  {
+    role: "practitioner",
+    icon: Scale,
+    title: "Legal Practitioner",
+    desc: "I practise law in a law firm or legal practice. Focus on litigation, conveyancing, and firm management.",
+  },
+  {
+    role: "inhouse",
+    icon: Building2,
+    title: "In-House Counsel",
+    desc: "I manage legal work inside a company or organisation. Focus on contracts, compliance, and advisory.",
+  },
+  {
+    role: "academic",
+    icon: GraduationCap,
+    title: "Law Lecturer",
+    desc: "I teach, research or work academically in law. Focus on teaching, research, and supervision.",
+  },
+  {
+    role: "student",
+    icon: BookOpen,
+    title: "Law Student",
+    desc: "I'm studying law or preparing for the profession. Focus on learning, IRAC drills, and exam preparation.",
+  },
+  {
+    role: "judicial",
+    icon: Gavel,
+    title: "Judicial Officer",
+    desc: "I work in the judiciary or court system. Focus on legal research, judgment analysis, and case law.",
+  },
+  {
+    role: "other",
+    icon: Users,
+    title: "Others",
+    desc: "I work with the law in another capacity — paralegal, researcher, journalist, or just exploring.",
+  },
+];
 
 export function PersonaFrontDoor() {
   const { persona, setPersona, skipFrontDoor } = usePersona();
@@ -105,71 +144,29 @@ export function PersonaFrontDoor() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <button
-            onClick={() => handleSelect("practitioner")}
-            disabled={!!selectingRole}
-            className="group relative flex flex-col items-center text-center p-8 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-500">
-              {selectingRole === "practitioner" ? (
-                <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              ) : (
-                <Scale className="h-10 w-10 text-primary" />
-              )}
-            </div>
-            <h3 className="text-2xl font-serif font-bold mb-4 group-hover:text-primary transition-colors">Legal Practitioner</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              I practise law in a law firm or legal practice. Focus on litigation, conveyancing, and firm management.
-            </p>
-            <div className="mt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center text-primary text-sm font-semibold tracking-wide uppercase">
-              Enter Portal <ArrowRight className="ml-2 h-4 w-4" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelect("inhouse")}
-            disabled={!!selectingRole}
-            className="group relative flex flex-col items-center text-center p-8 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 disabled:opacity-50 disabled:pointer-events-none"
-            style={{ animationDelay: "100ms" }}
-          >
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-500">
-              {selectingRole === "inhouse" ? (
-                <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              ) : (
-                <Building2 className="h-10 w-10 text-primary" />
-              )}
-            </div>
-            <h3 className="text-2xl font-serif font-bold mb-4 group-hover:text-primary transition-colors">In-House Counsel</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              I manage legal work inside a company or organisation. Focus on contracts, compliance, and advisory.
-            </p>
-            <div className="mt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center text-primary text-sm font-semibold tracking-wide uppercase">
-              Enter Portal <ArrowRight className="ml-2 h-4 w-4" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelect("academic")}
-            disabled={!!selectingRole}
-            className="group relative flex flex-col items-center text-center p-8 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 disabled:opacity-50 disabled:pointer-events-none"
-            style={{ animationDelay: "200ms" }}
-          >
-            <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-500">
-              {selectingRole === "academic" ? (
-                <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              ) : (
-                <GraduationCap className="h-10 w-10 text-primary" />
-              )}
-            </div>
-            <h3 className="text-2xl font-serif font-bold mb-4 group-hover:text-primary transition-colors">Law Lecturer</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              I teach, research or work academically in law. Focus on teaching, research, and supervision.
-            </p>
-            <div className="mt-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center text-primary text-sm font-semibold tracking-wide uppercase">
-              Enter Portal <ArrowRight className="ml-2 h-4 w-4" />
-            </div>
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+          {PATHWAYS.map(({ role, icon: Icon, title, desc }, i) => (
+            <button
+              key={role}
+              onClick={() => handleSelect(role)}
+              disabled={!!selectingRole}
+              className="group relative flex flex-col items-center text-center p-7 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 disabled:opacity-50 disabled:pointer-events-none"
+              style={i > 0 ? { animationDelay: `${i * 75}ms` } : undefined}
+            >
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-500">
+                {selectingRole === role ? (
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                ) : (
+                  <Icon className="h-8 w-8 text-primary" />
+                )}
+              </div>
+              <h3 className="text-xl font-serif font-bold mb-3 group-hover:text-primary transition-colors">{title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              <div className="mt-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center text-primary text-sm font-semibold tracking-wide uppercase">
+                Enter Portal <ArrowRight className="ml-2 h-4 w-4" />
+              </div>
+            </button>
+          ))}
         </div>
 
         <div className="max-w-md mx-auto pt-10 border-t border-border/50">

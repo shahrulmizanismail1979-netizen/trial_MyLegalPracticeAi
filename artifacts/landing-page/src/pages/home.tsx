@@ -65,7 +65,7 @@ export default function Home() {
           </>
         )}
         
-        {persona === "academic" && (
+        {(persona === "academic" || persona === "student") && (
           <>
             <EducationBundles />
             <FirmBundles />
@@ -73,8 +73,16 @@ export default function Home() {
           </>
         )}
 
-        {/* No persona yet (e.g. fresh checkout return): show everything in default order */}
-        {!persona && (
+        {persona === "judicial" && (
+          <>
+            <FirmBundles />
+            <EducationBundles />
+            <CorporateBundles />
+          </>
+        )}
+
+        {/* No persona (or "other"): show everything in default order */}
+        {(!persona || persona === "other") && (
           <>
             <FirmBundles />
             <CorporateBundles />

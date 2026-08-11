@@ -168,7 +168,27 @@ export function AppsGrid() {
         if (app.tag === "Firm Management") return 10;
         return 50;
       }
-      // practitioner
+      if (persona === "student") {
+        if (app.tag === "Lecturers") return 100; // IRAC / learning tools live here
+        if (app.tag === "Publications") return 90;
+        if (app.tag === "Litigation") return 85; // Learn on real drafting tools
+        if (app.tag === "Criminal") return 70;
+        if (app.tag === "Firm Management") return 5;
+        return 50;
+      }
+      if (persona === "judicial") {
+        if (app.tag === "Litigation") return 100; // Case-law research first
+        if (app.tag === "Criminal") return 95;
+        if (app.tag === "Syariah") return 90;
+        if (app.tag === "Corp/Comm/Banking") return 80;
+        if (app.tag === "Firm Management") return 5;
+        if (app.tag === "Conveyancing") return 40;
+        return 50;
+      }
+      if (persona === "other") {
+        return 50; // Balanced default order
+      }
+      // practitioner (and null)
       if (app.tag === "Litigation") return 100;
       if (app.tag === "Syariah") return 90;
       if (app.tag === "Conveyancing") return 80;

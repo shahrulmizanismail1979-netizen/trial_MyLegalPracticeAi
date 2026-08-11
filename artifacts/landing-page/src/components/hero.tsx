@@ -34,6 +34,30 @@ export function Hero() {
       title1: "Pedagogy",
       desc1: "Designed to enhance legal education and academic research.",
     },
+    student: {
+      tag: "For Law Students & Future Lawyers",
+      titleSuffix: "for Malaysian Law Students",
+      desc: "Your head start into the profession. AI-powered platforms that help law students master IRAC analysis, practise legal drafting on realistic scenarios, and prepare for exams and pupillage with real practice tools.",
+      icon1: <BookOpen className="h-6 w-6" />,
+      title1: "Learning Edge",
+      desc1: "Practise on the same AI tools used in real Malaysian legal practice.",
+    },
+    judicial: {
+      tag: "For Judicial Officers & Court Staff",
+      titleSuffix: "for the Malaysian Judiciary",
+      desc: "Research support for the bench. AI-powered platforms that help judicial officers analyse submissions, review case law across civil, criminal and syariah matters, and work through complex judgments faster.",
+      icon1: <Scale className="h-6 w-6" />,
+      title1: "Impartial Rigour",
+      desc1: "Structured case-law analysis across every practice area.",
+    },
+    other: {
+      tag: "For Everyone Working with Malaysian Law",
+      titleSuffix: "for the Malaysian Legal Ecosystem",
+      desc: "The future of Malaysian legal work is here. AI-powered platforms serving paralegals, researchers, journalists, and anyone who needs reliable, structured analysis of Malaysian law across every practice area.",
+      icon1: <Shield className="h-6 w-6" />,
+      title1: "Open Access",
+      desc1: "Reliable legal intelligence, whatever your role in the ecosystem.",
+    },
   };
 
   const activeContent = persona ? content[persona] : content.practitioner;

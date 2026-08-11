@@ -1,10 +1,13 @@
 /**
  * Shared professional-persona layer ("the intelligent front door").
  *
- * One platform, three professional experiences:
+ * One platform, multiple professional experiences:
  *   - practitioner  → law firm / legal practice (clients + matters + firm mgmt)
  *   - inhouse       → in-house counsel (contracts, compliance, business risk)
  *   - academic      → law lecturer / legal academic (teaching, research, supervision)
+ *   - student       → law student (learning, exam prep, IRAC drills)
+ *   - judicial      → judicial officer / court staff (research, judgment analysis)
+ *   - other         → everyone else (default balanced experience)
  *
  * The persona is keyed to the subscriber's access code (the one identity that
  * spans every portal). Any portal — and the landing page — can look up or set
@@ -21,7 +24,14 @@ import { pool } from "@workspace/db";
 import { logger } from "./logger";
 import { loginRateLimit } from "./loginRateLimit";
 
-export const PERSONA_ROLES = ["practitioner", "inhouse", "academic"] as const;
+export const PERSONA_ROLES = [
+  "practitioner",
+  "inhouse",
+  "academic",
+  "student",
+  "judicial",
+  "other",
+] as const;
 export type PersonaRole = (typeof PERSONA_ROLES)[number];
 
 const DDL = `

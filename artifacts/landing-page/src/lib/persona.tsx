@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type Persona = "practitioner" | "inhouse" | "academic" | null;
+export type Persona =
+  | "practitioner"
+  | "inhouse"
+  | "academic"
+  | "student"
+  | "judicial"
+  | "other"
+  | null;
 
 interface PersonaContextType {
   persona: Persona;

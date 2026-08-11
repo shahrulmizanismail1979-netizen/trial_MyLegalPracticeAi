@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, GraduationCap, Scale, Settings2 } from "lucide-react";
+import { BookOpen, Building2, Gavel, GraduationCap, Scale, Settings2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePersona } from "@/lib/persona";
 
@@ -20,12 +20,18 @@ export function PersonaSwitcher() {
     persona === "practitioner" ? "Practitioner Mode" :
     persona === "inhouse" ? "In-House Mode" :
     persona === "academic" ? "Academic Mode" :
+    persona === "student" ? "Student Mode" :
+    persona === "judicial" ? "Judicial Mode" :
+    persona === "other" ? "General Mode" :
     "Choose Your Mode";
 
   const Icon =
     persona === "practitioner" ? Scale :
     persona === "inhouse" ? Building2 :
     persona === "academic" ? GraduationCap :
+    persona === "student" ? BookOpen :
+    persona === "judicial" ? Gavel :
+    persona === "other" ? Users :
     Settings2;
 
   return (
