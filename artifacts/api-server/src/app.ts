@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
@@ -103,6 +104,28 @@ app.use(
         };
       },
     },
+  }),
+);
+
+// Security headers — applied to every response from the API server.
+// Clerk proxy and Stripe webhook responses also benefit.
+app.use(
+  helmet({
+    // Allow the portals (same-origin iframes) to embed content and use workers.
+    contentSecurityPolicy: false,
+    // HSTS: 1 year, include subdomains. Only meaningful in production (HTTPS).
+    strictTransportSecurity:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 31_536_000, includeSubDomains: true }
+        : false,
+    // Prevent browsers from MIME-sniffing responses.
+    noSniff: true,
+    // Block clickjacking.
+    frameguard: { action: "sameorigin" },
+    // Do not send a Referer header when navigating to external sites.
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    // Disable browser-side XSS auditor (deprecated in modern browsers, causes issues).
+    xssFilter: false,
   }),
 );
 

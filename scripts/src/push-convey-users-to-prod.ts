@@ -127,7 +127,7 @@ async function main() {
 
   const withPassword = users.filter((u) => (u.password_hash ?? "").trim() !== "").length;
   console.log(`Source: ${source}`);
-  console.log(`Prepared ${users.length} accounts (${withPassword} with password hashes).`);
+  console.log(`Prepared ${users.length} accounts (${withPassword} with hashed credentials).`);
   console.log(`Skipped: ${skippedAdmin} admin rows, ${skippedEmpty} empty rows.`);
 
   if (dryRun) {
@@ -154,7 +154,7 @@ async function main() {
   console.log("================ Live import result ================");
   console.log(`  Total sent          : ${result.total}`);
   console.log(`  Imported (new)      : ${result.imported}`);
-  console.log(`  Passwords filled    : ${result.updatedPasswords}`);
+  console.log(`  Credentials filled  : ${result.updatedPasswords}`);
   console.log(`  Skipped (existing)  : ${result.skippedExisting}`);
   console.log(`  Skipped (admin)     : ${result.skippedAdmin}`);
   console.log(`  Skipped (invalid)   : ${result.skippedInvalid}`);

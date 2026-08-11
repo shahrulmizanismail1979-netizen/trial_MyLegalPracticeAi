@@ -239,7 +239,7 @@ async function main() {
   console.log(`  ${dryRun ? "Would import" : "Imported"}       : ${imported}`);
   console.log(`  Skipped (existing) : ${skippedExisting}`);
   if (updatedPasswords > 0) {
-    console.log(`  ${dryRun ? "Would fill" : "Filled"} passwords    : ${updatedPasswords} existing accounts got their missing password hash`);
+    console.log(`  ${dryRun ? "Would fill" : "Filled"} credentials : ${updatedPasswords} existing accounts got their missing credential hash`);
   }
   console.log(`  Skipped (invalid)  : ${skippedInvalid}`);
   if (skippedAdmin > 0) {
