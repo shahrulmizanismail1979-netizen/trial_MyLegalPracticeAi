@@ -576,7 +576,12 @@ describe("Phase 12a: Audit Event Coverage", () => {
     expect(res.status).toBe(200);
 
     const event = await waitForAuditEvent(
-      (e) => e.event === AuditAction.SEARCH_EXECUTED && (e.detail as any)?.q === "valid test",
+      (e) =>
+        e.event === AuditAction.SEARCH_EXECUTED &&
+        (e.detail as any)?.q === "valid test" &&
+        // Audit rows from earlier runs survive in the shared DB — scope to
+        // this run's actor so a stale event never matches.
+        e.actor === OWNER_EMAIL,
     );
     expect(event).not.toBeNull();
     expect(event!.actor).toBe(OWNER_EMAIL);

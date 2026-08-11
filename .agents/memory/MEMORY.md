@@ -29,6 +29,7 @@
 - [Phase 06 test cleanup isolation](phase06-test-cleanup.md) — auto-triggered validation jobs can be run by runNextJob() outside trackedContainerIds; cleanup must query validation_runs by both containerId AND trackedJobIds.
 - [Chat isolation and upload submitter binding](chat-isolation-upload-binding.md) — CCB/Lit conversations now isolated per access_code_id; requireLitAuth gates lit gemini routes; research containers record uploaded_by from batch.
 - [Upload ownership registry](upload-ownership-registry.md) — presigned-upload ownership must live in a DB table (atomic owner-checked consume), never a process-local Map; ship migration + boot ensure.
+- [Research test job-queue races](research-test-job-races.md) — parallel workers steal/purge each other's jobs; poll+re-drain after drains, tolerate StateTransitionError, scope audit lookups to RUN_ID.
 - [Research test cleanup FK race](research-test-cleanup-race.md) — parallel workers process each other's queued jobs mid-cleanup; retry child-then-parent deletes in afterAll.
 - [Practice hub content mapping](practice-hub-content-mapping.md) — map cause papers by exact formNumber (never id or shared order numbers); keep workflow keywords narrow or matters cross-contaminate.
 - [Portal matter files pattern](portal-matter-files.md) — per-portal matter stores: mixed code/email-login portals must scope by owner_type+owner_id; unprefixed routers must scope auth middleware per-path; boot-ensure tables via awaited direct SQL.

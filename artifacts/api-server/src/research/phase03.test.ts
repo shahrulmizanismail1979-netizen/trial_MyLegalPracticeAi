@@ -315,7 +315,14 @@ describe("secure upload pipeline", () => {
     const ingested = await getBatchItem(first.items[0]!.id);
     const second = await upload([{ name: "copy.txt", bytes }]);
     await drainJobs("container.ingest");
-    const dup = await getBatchItem(second.items[0]!.id);
+    // A parallel test worker may have claimed our ingest job and still be
+    // mid-run — poll (re-draining) until the item settles.
+    let dup = await getBatchItem(second.items[0]!.id);
+    for (let poll = 0; poll < 30 && dup!.state === "PENDING"; poll++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await drainJobs("container.ingest");
+      dup = await getBatchItem(second.items[0]!.id);
+    }
     expect(dup!.state).toBe("DUPLICATE");
     expect(dup!.duplicateOfContainerId).toBe(ingested!.containerId);
     const transformations = await db
@@ -397,6 +404,7 @@ describe("secure upload pipeline", () => {
       poll++
     ) {
       await new Promise((resolve) => setTimeout(resolve, 500));
+      await drainJobs("container.ingest");
       after = await listBatchItems(batch.id);
     }
     expect(after.every((i) => i.state === "INGESTED")).toBe(true);

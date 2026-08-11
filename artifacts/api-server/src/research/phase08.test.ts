@@ -121,7 +121,13 @@ async function enqueueAndDrive(
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, key));
     if (row && TERMINAL.includes(row.state)) return row;
-    await runNextJob(kind);
+    try {
+      await runNextJob(kind);
+    } catch (err) {
+      // A parallel test worker may have purged/finished the job we claimed
+      // mid-flight; the resulting invalid state transition is harmless here.
+      if (!(err instanceof Error && err.name === "StateTransitionError")) throw err;
+    }
     await new Promise((r) => setTimeout(r, 50));
   }
   const [row] = await db
@@ -152,7 +158,13 @@ async function driveUntilComplete(
           SET state = 'FAILED', failure_reason = '"STALE"'::jsonb, last_error = 'cleaned by driveUntilComplete'
           WHERE kind = ${kind} AND state IN ('RUNNING','QUEUED') AND idempotency_key != ${idempotencyKey}`,
     );
-    await runNextJob(kind);
+    try {
+      await runNextJob(kind);
+    } catch (err) {
+      // A parallel test worker may have purged/finished the job we claimed
+      // mid-flight; the resulting invalid state transition is harmless here.
+      if (!(err instanceof Error && err.name === "StateTransitionError")) throw err;
+    }
     await new Promise((r) => setTimeout(r, 50));
   }
   const [row] = await db
