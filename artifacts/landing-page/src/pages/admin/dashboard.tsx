@@ -2,8 +2,14 @@ import { AdminLayout } from "@/components/admin/layout";
 import { 
   useGetDashboardStats, 
   useGetRecentActivity, 
-  useGetRevenueByApp 
+  useGetRevenueByApp,
+  useGetDeliveryFailures,
+  useResolveDeliveryFailure,
+  getGetDeliveryFailuresQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +20,11 @@ import {
   DollarSign, 
   TrendingUp, 
   Layers, 
-  Ticket 
+  Ticket,
+  AlertTriangle,
+  MailX,
+  MessageSquareX,
+  Check,
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -134,6 +144,9 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Delivery Failures */}
+        <DeliveryFailuresPanel />
+
         {/* Activity Feed */}
         <Card className="border-border bg-card shadow-sm">
           <CardHeader>
@@ -160,6 +173,10 @@ export default function AdminDashboard() {
                       {entry.type === "voucher_created" && <Ticket className="h-4 w-4 text-purple-400" />}
                       {entry.type === "kohort_updated" && <Layers className="h-4 w-4 text-orange-400" />}
                       {entry.type === "price_changed" && <DollarSign className="h-4 w-4 text-primary" />}
+                      {entry.type === "sms_failed" && <MessageSquareX className="h-4 w-4 text-red-400" />}
+                      {entry.type === "sms_skipped" && <MessageSquareX className="h-4 w-4 text-yellow-400" />}
+                      {entry.type === "email_failed" && <MailX className="h-4 w-4 text-red-400" />}
+                      {entry.type === "needs_portal_assignment" && <AlertTriangle className="h-4 w-4 text-red-400" />}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{entry.description}</p>
@@ -180,6 +197,112 @@ export default function AdminDashboard() {
         </Card>
       </div>
     </AdminLayout>
+  );
+}
+
+function DeliveryFailuresPanel() {
+  const [showResolved, setShowResolved] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: failures, isLoading } = useGetDeliveryFailures({ includeResolved: showResolved });
+  const resolveMutation = useResolveDeliveryFailure({
+    mutation: {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: getGetDeliveryFailuresQueryKey() });
+      },
+    },
+  });
+
+  const unresolvedCount = failures?.filter((f) => !f.resolved).length ?? 0;
+
+  return (
+    <Card className="border-border bg-card shadow-sm" data-testid="card-delivery-failures">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              Delivery Failures
+              {unresolvedCount > 0 && (
+                <Badge variant="destructive" data-testid="badge-failure-count">{unresolvedCount}</Badge>
+              )}
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Buyers whose access code SMS or email did not go through — follow up manually, then mark handled.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowResolved((v) => !v)}
+            data-testid="button-toggle-resolved"
+          >
+            {showResolved ? "Hide handled" : "Show handled"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : !failures || failures.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground text-sm" data-testid="text-no-failures">
+            No delivery failures — every access code reached its buyer.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {failures.map((f) => (
+              <div
+                key={f.id}
+                className="flex items-start gap-4 pb-4 border-b border-border/50 last:border-0 last:pb-0"
+                data-testid={`row-failure-${f.id}`}
+              >
+                <div className="mt-1">
+                  {f.type === "email_failed" ? (
+                    <MailX className="h-4 w-4 text-red-400" />
+                  ) : (
+                    <MessageSquareX className={`h-4 w-4 ${f.type === "sms_skipped" ? "text-yellow-400" : "text-red-400"}`} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={f.type === "sms_skipped" ? "secondary" : "destructive"}>
+                      {f.type === "sms_failed" ? "SMS failed" : f.type === "sms_skipped" ? "SMS skipped" : "Email failed"}
+                    </Badge>
+                    {f.accessCode && (
+                      <span className="font-mono text-sm font-medium" data-testid={`text-code-${f.id}`}>{f.accessCode}</span>
+                    )}
+                    {f.resolved && (
+                      <Badge variant="outline" className="text-green-600 border-green-600/40">Handled</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm mt-1 break-words">
+                    {f.email && <span className="mr-3">{f.email}</span>}
+                    {f.phone && <span className="font-mono">{f.phone}</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(f.createdAt).toLocaleString()}
+                    {f.resolved && f.resolvedAt && ` — handled ${new Date(f.resolvedAt).toLocaleString()}`}
+                  </p>
+                </div>
+                {!f.resolved && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={resolveMutation.isPending}
+                    onClick={() => resolveMutation.mutate({ id: f.id })}
+                    data-testid={`button-resolve-${f.id}`}
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Mark handled
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

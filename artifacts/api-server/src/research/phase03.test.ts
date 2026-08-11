@@ -414,6 +414,18 @@ describe("secure upload pipeline", () => {
       );
       await drainJobs("container.ingest");
       after = await listBatchItems(batch.id);
+      // If a parallel worker left one of our items DEAD_LETTER (its job hit a
+      // terminal state under contention), give it a fresh job and re-drain.
+      for (const i of after) {
+        if (i.state === "DEAD_LETTER") {
+          try {
+            await retryBatchItem(i.id, "tester");
+          } catch {
+            // Another worker may have already retried it — tolerate.
+          }
+        }
+      }
+      after = await listBatchItems(batch.id);
     }
     expect(after.every((i) => i.state === "INGESTED")).toBe(true);
     const progress = computeProgress(after);

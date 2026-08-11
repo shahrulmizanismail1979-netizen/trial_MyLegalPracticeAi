@@ -1007,12 +1007,14 @@ export async function provisionFromCheckoutSession(
         await db.insert(activityTable).values({
           type: "sms_failed",
           description: `FAILED to SMS access code ${accessCode} to ${phone} — code was emailed to ${email} instead`,
+          metadata: JSON.stringify({ accessCode, email, phone }),
         });
       } else if (smsResult === "not_configured") {
         // Never skip silently: record that SMS is off and email carried the code.
         await db.insert(activityTable).values({
           type: "sms_skipped",
           description: `SMS not configured (Twilio secrets missing) — access code ${accessCode} for ${phone} was emailed to ${email} instead`,
+          metadata: JSON.stringify({ accessCode, email, phone }),
         });
       }
     }
@@ -1027,6 +1029,7 @@ export async function provisionFromCheckoutSession(
       await db.insert(activityTable).values({
         type: "email_failed",
         description: `FAILED to email access code ${accessCode} to ${email} — send manually`,
+        metadata: JSON.stringify({ accessCode, email, phone: phone ?? null }),
       });
     }
     const ownerEmail = await getOwnerEmail();

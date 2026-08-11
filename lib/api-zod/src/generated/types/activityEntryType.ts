@@ -19,4 +19,8 @@ export const ActivityEntryType = {
   price_changed: "price_changed",
   contribution_added: "contribution_added",
   contribution_status_changed: "contribution_status_changed",
+  sms_failed: "sms_failed",
+  sms_skipped: "sms_skipped",
+  email_failed: "email_failed",
+  needs_portal_assignment: "needs_portal_assignment",
 } as const;

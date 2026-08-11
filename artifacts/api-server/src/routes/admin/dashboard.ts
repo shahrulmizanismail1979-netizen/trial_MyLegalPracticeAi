@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 import { db, subscribersTable, kohortsTable, vouchersTable, activityTable } from "@workspace/db";
 import {
   GetDashboardStatsResponse,
   GetRecentActivityQueryParams,
   GetRecentActivityResponse,
   GetRevenueByAppResponse,
+  GetDeliveryFailuresResponse,
+  ResolveDeliveryFailureResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -53,6 +55,101 @@ router.get("/recent-activity", async (req, res): Promise<void> => {
     .limit(limit);
 
   res.json(GetRecentActivityResponse.parse(activity));
+});
+
+const DELIVERY_FAILURE_TYPES = ["sms_failed", "sms_skipped", "email_failed"] as const;
+
+type FailureMeta = {
+  accessCode?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  resolved?: boolean;
+  resolvedAt?: string | null;
+};
+
+function parseFailureMeta(row: { description: string; metadata: string | null }): FailureMeta {
+  let meta: FailureMeta = {};
+  if (row.metadata) {
+    try {
+      meta = JSON.parse(row.metadata) as FailureMeta;
+    } catch {
+      meta = {};
+    }
+  }
+  // Older rows have no metadata — best-effort recovery from the description.
+  if (!meta.accessCode) {
+    const m = row.description.match(/access code ([A-Za-z0-9-]+)/i);
+    if (m) meta.accessCode = m[1];
+  }
+  if (!meta.email) {
+    const m = row.description.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    if (m) meta.email = m[0];
+  }
+  if (!meta.phone) {
+    const m = row.description.match(/(?:to|for) (\+?\d[\d\s-]{6,})/);
+    if (m) meta.phone = m[1].trim();
+  }
+  return meta;
+}
+
+function toDeliveryFailure(row: {
+  id: number;
+  type: string;
+  description: string;
+  metadata: string | null;
+  createdAt: Date;
+}) {
+  const meta = parseFailureMeta(row);
+  return {
+    id: row.id,
+    type: row.type,
+    description: row.description,
+    accessCode: meta.accessCode ?? null,
+    email: meta.email ?? null,
+    phone: meta.phone ?? null,
+    resolved: meta.resolved === true,
+    resolvedAt: meta.resolvedAt ?? null,
+    createdAt: row.createdAt,
+  };
+}
+
+router.get("/delivery-failures", async (req, res): Promise<void> => {
+  // NOTE: don't use zod coerce.boolean here — it treats the string "false"
+  // (which the generated client sends) as truthy. Parse the literal instead.
+  const includeResolved = req.query.includeResolved === "true";
+
+  const rows = await db
+    .select()
+    .from(activityTable)
+    .where(inArray(activityTable.type, [...DELIVERY_FAILURE_TYPES]))
+    .orderBy(desc(activityTable.createdAt));
+
+  const failures = rows.map(toDeliveryFailure).filter((f) => includeResolved || !f.resolved);
+  res.json(GetDeliveryFailuresResponse.parse(failures));
+});
+
+router.post("/delivery-failures/:id/resolve", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const [row] = await db
+    .select()
+    .from(activityTable)
+    .where(and(eq(activityTable.id, id), inArray(activityTable.type, [...DELIVERY_FAILURE_TYPES])));
+  if (!row) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const meta = parseFailureMeta(row);
+  const updatedMeta = { ...meta, resolved: true, resolvedAt: new Date().toISOString() };
+  const [updated] = await db
+    .update(activityTable)
+    .set({ metadata: JSON.stringify(updatedMeta) })
+    .where(eq(activityTable.id, id))
+    .returning();
+  res.json(ResolveDeliveryFailureResponse.parse(toDeliveryFailure(updated)));
 });
 
 router.get("/revenue-by-app", async (_req, res): Promise<void> => {

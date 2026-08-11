@@ -519,6 +519,48 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ActivityEntry"
+  /admin/delivery-failures:
+    get:
+      operationId: getDeliveryFailures
+      tags:
+        - dashboard
+      summary: List access-code delivery failures (SMS/email) for staff follow-up
+      parameters:
+        - name: includeResolved
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Delivery failure entries, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeliveryFailure"
+  /admin/delivery-failures/{id}/resolve:
+    post:
+      operationId: resolveDeliveryFailure
+      tags:
+        - dashboard
+      summary: Mark a delivery failure as handled by staff
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryFailure"
+        "404":
+          description: Entry not found
   /admin/revenue-by-app:
     get:
       operationId: getRevenueByApp
@@ -2951,6 +2993,10 @@ components:
             - price_changed
             - contribution_added
             - contribution_status_changed
+            - sms_failed
+            - sms_skipped
+            - email_failed
+            - needs_portal_assignment
         description:
           type: string
         metadata:
@@ -2964,6 +3010,47 @@ components:
         - id
         - type
         - description
+        - createdAt
+    DeliveryFailure:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum:
+            - sms_failed
+            - sms_skipped
+            - email_failed
+        description:
+          type: string
+        accessCode:
+          type:
+            - string
+            - "null"
+        email:
+          type:
+            - string
+            - "null"
+        phone:
+          type:
+            - string
+            - "null"
+        resolved:
+          type: boolean
+        resolvedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - description
+        - resolved
         - createdAt
     RevenueByApp:
       type: object

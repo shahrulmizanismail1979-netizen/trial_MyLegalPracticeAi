@@ -104,6 +104,7 @@ import type {
   CrimWorkflow,
   CurrencyRates,
   DashboardStats,
+  DeliveryFailure,
   DraftCorpResolutionBody,
   DraftCorpResolutionResponse,
   DraftGuaranteeBody,
@@ -139,6 +140,7 @@ import type {
   GenerateRequisitionResponse,
   GenerateTimelineBody,
   GenerateTimelineResponse,
+  GetDeliveryFailuresParams,
   GetRecentActivityParams,
   HealthStatus,
   InterpretLandTitleBody,
@@ -2277,6 +2279,190 @@ export function useGetRecentActivity<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List access-code delivery failures (SMS/email) for staff follow-up
+ */
+export const getGetDeliveryFailuresUrl = (
+  params?: GetDeliveryFailuresParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/delivery-failures?${stringifiedParams}`
+    : `/api/admin/delivery-failures`;
+};
+
+export const getDeliveryFailures = async (
+  params?: GetDeliveryFailuresParams,
+  options?: RequestInit,
+): Promise<DeliveryFailure[]> => {
+  return customFetch<DeliveryFailure[]>(getGetDeliveryFailuresUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDeliveryFailuresQueryKey = (
+  params?: GetDeliveryFailuresParams,
+) => {
+  return [`/api/admin/delivery-failures`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetDeliveryFailuresQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDeliveryFailures>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDeliveryFailuresParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDeliveryFailures>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDeliveryFailuresQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDeliveryFailures>>
+  > = ({ signal }) =>
+    getDeliveryFailures(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDeliveryFailures>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDeliveryFailuresQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDeliveryFailures>>
+>;
+export type GetDeliveryFailuresQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List access-code delivery failures (SMS/email) for staff follow-up
+ */
+
+export function useGetDeliveryFailures<
+  TData = Awaited<ReturnType<typeof getDeliveryFailures>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDeliveryFailuresParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDeliveryFailures>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDeliveryFailuresQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark a delivery failure as handled by staff
+ */
+export const getResolveDeliveryFailureUrl = (id: number) => {
+  return `/api/admin/delivery-failures/${id}/resolve`;
+};
+
+export const resolveDeliveryFailure = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeliveryFailure> => {
+  return customFetch<DeliveryFailure>(getResolveDeliveryFailureUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResolveDeliveryFailureMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveDeliveryFailure>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveDeliveryFailure>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["resolveDeliveryFailure"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveDeliveryFailure>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resolveDeliveryFailure(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveDeliveryFailureMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveDeliveryFailure>>
+>;
+
+export type ResolveDeliveryFailureMutationError = ErrorType<void>;
+
+/**
+ * @summary Mark a delivery failure as handled by staff
+ */
+export const useResolveDeliveryFailure = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveDeliveryFailure>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveDeliveryFailure>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getResolveDeliveryFailureMutationOptions(options));
+};
 
 /**
  * @summary Get revenue breakdown by app

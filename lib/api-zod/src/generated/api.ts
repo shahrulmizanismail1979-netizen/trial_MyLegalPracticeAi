@@ -536,6 +536,10 @@ export const GetRecentActivityResponseItem = zod.object({
     "price_changed",
     "contribution_added",
     "contribution_status_changed",
+    "sms_failed",
+    "sms_skipped",
+    "email_failed",
+    "needs_portal_assignment",
   ]),
   description: zod.string(),
   metadata: zod.string().nullish(),
@@ -544,6 +548,51 @@ export const GetRecentActivityResponseItem = zod.object({
 export const GetRecentActivityResponse = zod.array(
   GetRecentActivityResponseItem,
 );
+
+/**
+ * @summary List access-code delivery failures (SMS/email) for staff follow-up
+ */
+export const getDeliveryFailuresQueryIncludeResolvedDefault = false;
+
+export const GetDeliveryFailuresQueryParams = zod.object({
+  includeResolved: zod.coerce
+    .boolean()
+    .default(getDeliveryFailuresQueryIncludeResolvedDefault),
+});
+
+export const GetDeliveryFailuresResponseItem = zod.object({
+  id: zod.number(),
+  type: zod.enum(["sms_failed", "sms_skipped", "email_failed"]),
+  description: zod.string(),
+  accessCode: zod.string().nullish(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  resolved: zod.boolean(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const GetDeliveryFailuresResponse = zod.array(
+  GetDeliveryFailuresResponseItem,
+);
+
+/**
+ * @summary Mark a delivery failure as handled by staff
+ */
+export const ResolveDeliveryFailureParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResolveDeliveryFailureResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["sms_failed", "sms_skipped", "email_failed"]),
+  description: zod.string(),
+  accessCode: zod.string().nullish(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  resolved: zod.boolean(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
 
 /**
  * @summary Get revenue breakdown by app

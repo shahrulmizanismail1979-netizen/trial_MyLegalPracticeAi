@@ -320,6 +320,10 @@ export const ActivityEntryType = {
   price_changed: "price_changed",
   contribution_added: "contribution_added",
   contribution_status_changed: "contribution_status_changed",
+  sms_failed: "sms_failed",
+  sms_skipped: "sms_skipped",
+  email_failed: "email_failed",
+  needs_portal_assignment: "needs_portal_assignment",
 } as const;
 
 export interface ActivityEntry {
@@ -328,6 +332,31 @@ export interface ActivityEntry {
   description: string;
   /** @nullable */
   metadata?: string | null;
+  createdAt: string;
+}
+
+export type DeliveryFailureType =
+  (typeof DeliveryFailureType)[keyof typeof DeliveryFailureType];
+
+export const DeliveryFailureType = {
+  sms_failed: "sms_failed",
+  sms_skipped: "sms_skipped",
+  email_failed: "email_failed",
+} as const;
+
+export interface DeliveryFailure {
+  id: number;
+  type: DeliveryFailureType;
+  description: string;
+  /** @nullable */
+  accessCode?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  resolved: boolean;
+  /** @nullable */
+  resolvedAt?: string | null;
   createdAt: string;
 }
 
@@ -1313,6 +1342,10 @@ export type UnbindSubscriberMicrosoft200 = {
 
 export type GetRecentActivityParams = {
   limit?: number;
+};
+
+export type GetDeliveryFailuresParams = {
+  includeResolved?: boolean;
 };
 
 export type ListKnowledgeBaseParams = {

@@ -260,18 +260,26 @@ async function seedContainer(
  * Run the segmentation job queue until empty for a given container.
  */
 async function drainSegmentationQueue(containerId: number): Promise<void> {
+  const isDone = (state: string | undefined) =>
+    state !== undefined && state !== "SEGMENTATION_PENDING";
   for (let i = 0; i < 10; i++) {
     const job = await runNextJob("container.segment");
     if (!job) break;
     trackedJobIds.push(job.id);
     // Stop once this container's job is done
     const c = await getContainer(containerId);
-    if (
-      c?.processingState === "SEGMENTATION_PROPOSED" ||
-      c?.processingState === "SEGMENTATION_REVIEW_REQUIRED"
-    ) {
-      break;
-    }
+    if (isDone(c?.processingState)) break;
+  }
+  // A parallel test worker may have claimed this container's segment job and
+  // still be mid-run (runNextJob then returns null here). Poll until the
+  // container leaves SEGMENTATION_PENDING so assertions see the final state.
+  for (let i = 0; i < 60; i++) {
+    const c = await getContainer(containerId);
+    if (isDone(c?.processingState)) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Re-drain in case the job bounced back to QUEUED (retryable failure).
+    const job = await runNextJob("container.segment");
+    if (job) trackedJobIds.push(job.id);
   }
 }
 
