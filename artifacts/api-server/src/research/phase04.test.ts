@@ -472,6 +472,13 @@ describe("phase 04: OCR extraction", () => {
     const container = await makeExtractionContainer("scanned-judgment.pdf");
     await startExtraction(container.id, `tester-${RUN_ID}`);
     await drainJobs();
+    // A parallel test worker may have claimed our extract job and still be
+    // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
+    for (let poll = 0; poll < 60; poll++) {
+      const c = await getContainer(container.id);
+      if (c!.processingState !== "EXTRACTION_PENDING") break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     const run = await getLatestExtractionRun(container.id);
     expect(run).toBeDefined();
@@ -508,7 +515,7 @@ describe("phase 04: OCR extraction", () => {
     } else {
       expect(after!.processingState).toBe("OCR_REVIEW_REQUIRED");
     }
-  });
+  }, 120_000);
 
   it("never fakes text when OCR is unavailable — routes to review instead", async () => {
     const withDefaults = getAdapters();
@@ -604,7 +611,17 @@ describe("phase 04: OCR extraction", () => {
     expect(dup.jobId).toBeNull();
 
     await drainJobs();
-    const after = await getContainer(container!.id);
+    // A parallel test worker may have claimed the rerun job and still be
+    // mid-run when the local drain returns — poll until it settles.
+    let after = await getContainer(container!.id);
+    for (
+      let poll = 0;
+      poll < 60 && after!.processingState === "EXTRACTION_PENDING";
+      poll++
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      after = await getContainer(container!.id);
+    }
     // Whatever the outcome, the container is never stuck in
     // EXTRACTION_PENDING once the queue drains.
     expect(after!.processingState).not.toBe("EXTRACTION_PENDING");
@@ -626,7 +643,7 @@ describe("phase 04: OCR extraction", () => {
         secondExtractions.some((e) => (e.rawText ?? "").trim().length > 0),
       ).toBe(true);
     }
-  });
+  }, 120_000);
 
   it("routes pages with multiple uncertainty warnings to review even with high OCR confidence", async () => {
     const withDefaults = getAdapters();

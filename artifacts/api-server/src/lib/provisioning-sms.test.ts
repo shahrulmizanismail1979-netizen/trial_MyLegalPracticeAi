@@ -78,6 +78,8 @@ describe("provisioning sends the access code by SMS", () => {
     const result = await provisionFromCheckoutSession(SESSION_ID);
     expect(result).not.toBeNull();
     expect(result!.alreadyExisted).toBeFalsy();
+    const accessCode = result?.accessCode;
+    if (!accessCode) throw new Error("provisioning returned no access code");
 
     // Phone is persisted on the subscriber record.
     const [row] = await db
@@ -94,9 +96,9 @@ describe("provisioning sends the access code by SMS", () => {
     const [to, body] = vi.mocked(sendSms).mock.calls[0]!;
     expect(to).toBe(PHONE);
     expect(body).toBe(
-      accessCodeSmsBody({ accessCode: result!.accessCode, trial: true, licenses: undefined }),
+      accessCodeSmsBody({ accessCode, trial: true, licenses: undefined }),
     );
-    expect(body).toContain(result!.accessCode);
+    expect(body).toContain(accessCode);
     expect(body).toContain("7-day free trial");
   });
 
