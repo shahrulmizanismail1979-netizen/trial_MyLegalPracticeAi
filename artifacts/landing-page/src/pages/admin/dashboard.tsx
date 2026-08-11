@@ -6,6 +6,7 @@ import {
   useGetDeliveryFailures,
   useResolveDeliveryFailure,
   useResendDeliveryFailureEmail,
+  useResendDeliveryFailureSms,
   getGetDeliveryFailuresQueryKey,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
@@ -235,6 +236,25 @@ function DeliveryFailuresPanel() {
     },
   });
 
+  const resendSmsMutation = useResendDeliveryFailureSms({
+    mutation: {
+      onSuccess: (data) => {
+        toast({
+          title: "Access code SMS re-sent",
+          description: data.phone ? `Sent to ${data.phone} and marked handled.` : "Marked handled.",
+        });
+        void queryClient.invalidateQueries({ queryKey: getGetDeliveryFailuresQueryKey() });
+      },
+      onError: (error) => {
+        const data = (error as { data?: { error?: string } | null } | null)?.data;
+        const message =
+          data?.error ??
+          "Failed to re-send the access code SMS — try again or send manually";
+        toast({ title: "Resend failed", description: message, variant: "destructive" });
+      },
+    },
+  });
+
   const unresolvedCount = failures?.filter((f) => !f.resolved).length ?? 0;
 
   return (
@@ -315,17 +335,28 @@ function DeliveryFailuresPanel() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={resendMutation.isPending || resolveMutation.isPending}
+                        disabled={resendMutation.isPending || resendSmsMutation.isPending || resolveMutation.isPending}
                         onClick={() => resendMutation.mutate({ id: f.id })}
                         data-testid={`button-resend-${f.id}`}
                       >
                         <Send className="h-4 w-4 mr-1" /> Resend email
                       </Button>
                     )}
+                    {(f.type === "sms_failed" || f.type === "sms_skipped") && f.phone && f.accessCode && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={resendMutation.isPending || resendSmsMutation.isPending || resolveMutation.isPending}
+                        onClick={() => resendSmsMutation.mutate({ id: f.id })}
+                        data-testid={`button-resend-sms-${f.id}`}
+                      >
+                        <MessageSquareX className="h-4 w-4 mr-1" /> Resend SMS
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={resolveMutation.isPending || resendMutation.isPending}
+                      disabled={resolveMutation.isPending || resendMutation.isPending || resendSmsMutation.isPending}
                       onClick={() => resolveMutation.mutate({ id: f.id })}
                       data-testid={`button-resolve-${f.id}`}
                     >

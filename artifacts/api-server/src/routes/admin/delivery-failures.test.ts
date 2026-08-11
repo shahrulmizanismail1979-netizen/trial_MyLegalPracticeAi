@@ -8,6 +8,12 @@ vi.mock("../../lib/mailer", () => ({
   sendEmail: (options: { to: string; subject: string; html: string }) => sendEmailMock(options),
   getOwnerEmail: async () => null,
 }));
+// Resend-SMS tests must never hit Twilio — mock sendSms, keep the real body template.
+const sendSmsMock = vi.fn(async (_to: string, _body: string) => "sent" as const);
+vi.mock("../../lib/sms", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/sms")>();
+  return { ...actual, sendSms: (to: string, body: string) => sendSmsMock(to, body) };
+});
 import express from "express";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
@@ -155,6 +161,71 @@ describe("admin delivery-failures", () => {
       .returning();
     const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-email`);
     expect(res.status).toBe(422);
+  });
+
+  it("resends the access-code SMS and auto-marks the entry handled", async () => {
+    const email = `sms-resend-${RUN_ID}@example.test`;
+    const phone = "+60129998877";
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "sms_failed",
+        description: `FAILED to SMS access code MLPA-SMS1 to ${phone} — code was emailed to ${email} instead [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: "MLPA-SMS1", email, phone }),
+      })
+      .returning();
+
+    sendSmsMock.mockClear();
+    sendSmsMock.mockResolvedValueOnce("sent");
+    const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-sms`);
+    expect(res.status).toBe(200);
+    expect(res.body.resolved).toBe(true);
+    expect(res.body.resolvedAt).toBeTruthy();
+    expect(sendSmsMock).toHaveBeenCalledTimes(1);
+    const [to, body] = sendSmsMock.mock.calls[0]!;
+    expect(to).toBe(phone);
+    expect(body).toContain("MLPA-SMS1");
+  });
+
+  it("surfaces an SMS send failure as 502 and Twilio-not-configured as 422, without marking handled", async () => {
+    const phone = "+60127776655";
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "sms_failed",
+        description: `FAILED to SMS access code MLPA-SMS2 to ${phone} [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: "MLPA-SMS2", email: null, phone }),
+      })
+      .returning();
+
+    sendSmsMock.mockResolvedValueOnce("failed");
+    const failRes = await request(app).post(`/admin/delivery-failures/${row.id}/resend-sms`);
+    expect(failRes.status).toBe(502);
+    expect(failRes.body.error).toBeTruthy();
+
+    sendSmsMock.mockResolvedValueOnce("not_configured");
+    const notConfigured = await request(app).post(`/admin/delivery-failures/${row.id}/resend-sms`);
+    expect(notConfigured.status).toBe(422);
+    expect(notConfigured.body.error).toContain("not configured");
+
+    const list = await request(app).get("/admin/delivery-failures");
+    const mine = list.body.find((f: { id: number }) => f.id === row.id);
+    expect(mine?.resolved).toBe(false);
+  });
+
+  it("422s on resend-sms when the entry lacks a phone or access code", async () => {
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "sms_skipped",
+        description: `SMS not configured — access code MLPA-SMS3 [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: "MLPA-SMS3", email: `x-${RUN_ID}@example.test`, phone: null }),
+      })
+      .returning();
+    sendSmsMock.mockClear();
+    const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-sms`);
+    expect(res.status).toBe(422);
+    expect(sendSmsMock).not.toHaveBeenCalled();
   });
 
   it("404s when resolving a non-failure or missing row", async () => {

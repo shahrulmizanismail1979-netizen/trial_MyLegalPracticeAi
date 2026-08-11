@@ -20,7 +20,7 @@ import { firmAccessCodesTable } from "@workspace/db/firm";
 import { usersTable as acadUsersTable } from "@workspace/db/acad";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
-import { sendSms, accessCodeSmsBody } from "./sms";
+import { sendSms, accessCodeSmsBody, type SmsResult } from "./sms";
 import { logger } from "./logger";
 
 export const APP_NAME_BY_URL: Record<string, string> = {
@@ -857,6 +857,31 @@ export async function resendAccessCodeEmail(params: {
       : "Your MyLegalPracticeAI access code",
     html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
   });
+}
+
+/**
+ * Re-send the standard access-code SMS for a delivery-failure entry.
+ * Looks up the subscriber to preserve the trial/team-bundle wording.
+ */
+export async function resendAccessCodeSms(params: {
+  accessCode: string;
+  phone: string;
+}): Promise<SmsResult> {
+  const { accessCode, phone } = params;
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.accessCode, accessCode));
+  const trial = subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
+  const tier = subscriber?.tier ?? null;
+  return sendSms(
+    phone,
+    accessCodeSmsBody({
+      accessCode,
+      trial,
+      licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
+    }),
+  );
 }
 
 function ownerEmailHtml(params: {

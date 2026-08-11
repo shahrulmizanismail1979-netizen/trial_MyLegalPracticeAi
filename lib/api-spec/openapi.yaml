@@ -586,6 +586,31 @@ paths:
           description: Entry has no email or access code to resend
         "502":
           description: Email send failed
+  /admin/delivery-failures/{id}/resend-sms:
+    post:
+      operationId: resendDeliveryFailureSms
+      tags:
+        - dashboard
+      summary: Re-send the customer access-code SMS for a delivery failure and mark it handled
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SMS sent; entry marked handled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryFailure"
+        "404":
+          description: Entry not found
+        "422":
+          description: Entry has no phone or access code, or SMS is not configured
+        "502":
+          description: SMS send failed
   /admin/revenue-by-app:
     get:
       operationId: getRevenueByApp
