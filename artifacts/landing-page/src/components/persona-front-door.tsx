@@ -3,6 +3,7 @@ import { Scale, Building2, GraduationCap, ArrowRight, Loader2 } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePersona, Persona } from "@/lib/persona";
+import { FrontDoorAssistant } from "@/components/front-door-assistant";
 
 export function PersonaFrontDoor() {
   const { persona, setPersona, skipFrontDoor } = usePersona();
@@ -94,9 +95,14 @@ export function PersonaFrontDoor() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight mb-6" style={{ textWrap: "balance" }}>
             How do you primarily <span className="text-gradient-gold">work in law?</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Pick the option that best describes your work — we'll arrange the site around the tools most relevant to you. You can change this anytime, and it doesn't limit what you can access.
-          </p>
+          <div className="max-w-3xl mx-auto rounded-2xl border border-primary/30 bg-primary/5 px-6 py-5 md:px-8 md:py-6">
+            <p className="text-xl md:text-2xl font-medium text-foreground leading-relaxed" style={{ textWrap: "balance" }}>
+              Pick the option that best describes your work — we'll arrange the site around the tools most relevant to you.
+            </p>
+            <p className="text-base md:text-lg text-muted-foreground mt-3">
+              You can change this anytime, and it doesn't limit what you can access.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
@@ -202,6 +208,8 @@ export function PersonaFrontDoor() {
           </div>
         </div>
       </div>
+
+      <FrontDoorAssistant />
     </div>
   );
 }
