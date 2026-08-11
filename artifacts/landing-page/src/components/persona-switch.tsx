@@ -16,17 +16,17 @@ export function PersonaSwitcher() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isOpen]);
 
-  if (!persona) return null;
-
-  const currentLabel = 
+  const currentLabel =
     persona === "practitioner" ? "Practitioner Mode" :
     persona === "inhouse" ? "In-House Mode" :
-    "Academic Mode";
+    persona === "academic" ? "Academic Mode" :
+    "Choose Your Mode";
 
-  const Icon = 
+  const Icon =
     persona === "practitioner" ? Scale :
     persona === "inhouse" ? Building2 :
-    GraduationCap;
+    persona === "academic" ? GraduationCap :
+    Settings2;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

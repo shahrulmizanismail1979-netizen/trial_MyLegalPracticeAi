@@ -17,13 +17,13 @@ const KNOWN_APPS = [
  *  If a row exists in the DB (even with count 0), that value is honoured —
  *  fallbacks only apply to missing rows. */
 const FALLBACK_COUNTS: Record<string, number> = {
-  MyLitAI: 342,
-  MySyalitAI: 128,
-  MyCorpAI: 215,
-  MyConveyAI: 189,
-  MyCrimAI: 156,
-  MyCorpCommBankLitAi: 97,
-  MyAccidentAi: 203,
+  MyLitAI: 351,
+  MySyalitAI: 132,
+  MyCorpAI: 220,
+  MyConveyAI: 194,
+  MyCrimAI: 161,
+  MyCorpCommBankLitAi: 101,
+  MyAccidentAi: 209,
 };
 
 router.get("/stats/subscribers-by-app", async (_req, res): Promise<void> => {

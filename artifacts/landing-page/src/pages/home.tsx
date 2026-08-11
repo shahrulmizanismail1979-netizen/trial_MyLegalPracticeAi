@@ -18,7 +18,7 @@ import { PersonaSwitcher } from "@/components/persona-switch";
 import { usePersona } from "@/lib/persona";
 
 export default function Home() {
-  const { persona } = usePersona();
+  const { persona, skipped } = usePersona();
 
   // A fresh checkout return must always see its confirmation — never hide it
   // behind the persona front door (new subscribers have no persona yet).
@@ -26,7 +26,7 @@ export default function Home() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("session_id");
 
-  if (!persona && !isCheckoutReturn) {
+  if (!persona && !skipped && !isCheckoutReturn) {
     return <PersonaFrontDoor />;
   }
 
