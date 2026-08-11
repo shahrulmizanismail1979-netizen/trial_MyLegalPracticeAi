@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -18,6 +18,8 @@ export const crimAccessCodesTable = pgTable("crim_access_codes", {
   // True only for the owner seat of a subscription (the buyer). Owner seats may
   // open the Stripe billing portal; additional seats cannot manage billing.
   isOwner: boolean("is_owner").notNull().default(false),
+  // Licensed concurrent seats for this code (null = legacy/unlimited behavior).
+  maxSeats: integer("max_seats"),
   currentSessionId: text("current_session_id"),
   sessionStartedAt: timestamp("session_started_at", { withTimezone: true }),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),

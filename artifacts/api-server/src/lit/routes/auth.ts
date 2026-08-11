@@ -9,6 +9,7 @@ import {
 import { db } from "@workspace/db";
 import { litAccessCodes } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { claimSeat, releaseSeat, seatLimitMessage } from "../../lib/seatLimits";
 import {
   verifyMsTicket,
   getLinkedCode,
@@ -88,6 +89,19 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
       .set({ status: "expired" })
       .where(eq(litAccessCodes.id, record.id));
     return { ok: false, status: 401, body: { error: "Invalid or expired access code" } };
+  }
+
+  // Team-bundle seat limit: distinct concurrent sessions per code.
+  if (record.maxSeats != null) {
+    const claim = await claimSeat({
+      portal: "lit",
+      code: record.code,
+      maxSeats: record.maxSeats,
+      seatKey: req.sessionID,
+    });
+    if (!claim.ok) {
+      return { ok: false, status: 409, body: { error: seatLimitMessage(claim.maxSeats) } };
+    }
   }
 
   await db
@@ -204,6 +218,22 @@ router.get("/verify", async (req, res) => {
       return res.status(401).json({ error: "Access code expired" });
     }
 
+    // Refresh (or fail-closed re-check) this session's seat on every
+    // authenticated request so active devices never age out of the 24h
+    // inactivity TTL, and a session whose seat was lost stops working.
+    if (record.maxSeats != null) {
+      const claim = await claimSeat({
+        portal: "lit",
+        code: record.code,
+        maxSeats: record.maxSeats,
+        seatKey: req.sessionID,
+      });
+      if (!claim.ok) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+      }
+    }
+
     return res.json({ authenticated: true });
   } catch (err) {
     req.log.error({ err }, "Verify error");
@@ -212,6 +242,7 @@ router.get("/verify", async (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
+  void releaseSeat("lit", req.sessionID);
   req.session.destroy(() => {
     res.json({ message: "Logged out successfully" });
   });
@@ -239,6 +270,43 @@ export async function requireLitAuth(
     return;
   }
 
+  if (await validateLitSession(req, res, accessCodeId)) next();
+}
+
+/**
+ * Router-level gate for ALL lit routes: any request carrying an
+ * authenticated code session gets the same per-request revocation/expiry/
+ * seat checks as requireLitAuth, no matter which route it hits. Requests
+ * without an authenticated session pass through untouched (public routes
+ * and per-route auth keep working).
+ */
+export async function litSessionGate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const sess = req.session as unknown as Record<string, unknown>;
+  const authenticated = sess?.authenticated === true;
+  const accessCodeId = sess?.accessCodeId as number | undefined;
+  if (!authenticated || !accessCodeId) {
+    next();
+    return;
+  }
+  if (await validateLitSession(req, res, accessCodeId)) next();
+}
+
+/**
+ * Shared per-request session validation: code must exist, be active and
+ * unexpired, and (for capped team-bundle codes) this session must hold a
+ * seat — the claim doubles as an activity refresh so active sessions never
+ * age out of the inactivity TTL. Sends the error response and returns false
+ * on failure.
+ */
+async function validateLitSession(
+  req: Request,
+  res: Response,
+  accessCodeId: number,
+): Promise<boolean> {
   try {
     const [record] = await db
       .select()
@@ -249,7 +317,7 @@ export async function requireLitAuth(
     if (!record || record.status !== "active") {
       req.session.destroy(() => {});
       res.status(401).json({ error: "Access code revoked or expired" });
-      return;
+      return false;
     }
 
     if (record.expiresAt && record.expiresAt < new Date()) {
@@ -259,15 +327,33 @@ export async function requireLitAuth(
         .where(eq(litAccessCodes.id, record.id));
       req.session.destroy(() => {});
       res.status(401).json({ error: "Access code expired" });
-      return;
+      return false;
+    }
+
+    // Refresh (or fail-closed re-check) this session's seat on every
+    // authenticated request so active devices never age out of the 24h
+    // inactivity TTL, and a session whose seat was lost stops working.
+    if (record.maxSeats != null) {
+      const claim = await claimSeat({
+        portal: "lit",
+        code: record.code,
+        maxSeats: record.maxSeats,
+        seatKey: req.sessionID,
+      });
+      if (!claim.ok) {
+        req.session.destroy(() => {});
+        res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+        return false;
+      }
     }
 
     res.locals["litAccessCodeId"] = accessCodeId;
-    next();
+    return true;
   } catch (err) {
-    req.log.error({ err }, "requireLitAuth DB check failed");
+    req.log?.error({ err }, "lit session validation failed");
     res.status(500).json({ error: "Internal server error" });
   }
+  return false;
 }
 
 export default router;

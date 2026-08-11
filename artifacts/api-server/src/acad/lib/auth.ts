@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/acad";
 import { eq, sql } from "drizzle-orm";
+import { claimSeat } from "../../lib/seatLimits";
 import type { User } from "@workspace/db/acad";
 
 const BCRYPT_COST = 10;
@@ -67,6 +68,32 @@ export async function getSessionUser(req: Request): Promise<User | null> {
   if (user.status !== "active") {
     await destroySessionAsync(req);
     return null;
+  }
+  // Landing-page bundle accounts: re-check code expiry and (for capped
+  // team bundles) refresh this session's seat on every request. Fails
+  // CLOSED — a lost seat or a seat-registry error ends the session, so the
+  // licensed cap can never be exceeded or bypassed during an outage.
+  if (user.accessCode) {
+    if (user.accessCodeExpiresAt && user.accessCodeExpiresAt < new Date()) {
+      await destroySessionAsync(req);
+      return null;
+    }
+    if (user.maxSeats != null) {
+      try {
+        const claim = await claimSeat({
+          portal: "acad",
+          code: user.accessCode,
+          maxSeats: user.maxSeats,
+          seatKey: req.sessionID,
+        });
+        if (!claim.ok) {
+          await destroySessionAsync(req);
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
   }
   return user;
 }

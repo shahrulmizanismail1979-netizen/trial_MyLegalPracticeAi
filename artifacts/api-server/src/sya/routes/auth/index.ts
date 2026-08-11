@@ -1,9 +1,10 @@
+import { claimSeat, releaseSeat, seatLimitMessage } from "../../../lib/seatLimits";
 import { Router, type IRouter } from "express";
 import { createHash, timingSafeEqual } from "crypto";
 import { eq } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import { accessCodesTable, usersTable } from "@workspace/db/sya";
-import { syncSyaAccessCode } from "../../../lib/provisioning";
+import { syncSyaAccessCode, licensedSeatCap } from "../../../lib/provisioning";
 import { VerifyAccessCodeBody } from "../../lib/schemas";
 import { hashPassword, verifyPassword } from "../../lib/auth";
 import { effectiveTier, isWithinGrandfatherWindow } from "../../lib/grandfather";
@@ -83,7 +84,7 @@ function clearVerifyAttempts(ip: string): void {
  * sya_access_codes on the spot and return the fresh row. Fixes users who
  * paid but whose code was never propagated to this portal.
  */
-async function recoverCodeFromSubscribers(
+export async function recoverCodeFromSubscribers(
   code: string,
 ): Promise<typeof accessCodesTable.$inferSelect | null> {
   try {
@@ -103,6 +104,9 @@ async function recoverCodeFromSubscribers(
       accessCode: code,
       name: sub.name,
       expiresAt: sub.subscriptionExpiry ?? null,
+      // Team bundles must keep their licensed seat cap even when the portal
+      // row is re-created at login (recovery must never mint an uncapped row).
+      maxSeats: licensedSeatCap(sub),
     });
     logger.info(
       { accessCode: code },
@@ -261,6 +265,20 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
+  // Team-bundle seat limit: distinct concurrent sessions per code.
+  if (user.maxSeats != null) {
+    const claim = await claimSeat({
+      portal: "sya",
+      code: user.code,
+      maxSeats: user.maxSeats,
+      seatKey: req.sessionID,
+    });
+    if (!claim.ok) {
+      res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+      return;
+    }
+  }
+
   clearVerifyAttempts(ip);
 
   await db
@@ -307,6 +325,20 @@ async function loginWithAccessCode(
   if (user.expiresAt && new Date(user.expiresAt) < new Date()) {
     res.status(401).json({ error: "Access code expired" });
     return false;
+  }
+
+  // Team-bundle seat limit: distinct concurrent sessions per code.
+  if (user.maxSeats != null) {
+    const claim = await claimSeat({
+      portal: "sya",
+      code: user.code,
+      maxSeats: user.maxSeats,
+      seatKey: req.sessionID,
+    });
+    if (!claim.ok) {
+      res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+      return false;
+    }
   }
 
   await db
@@ -515,6 +547,7 @@ router.get("/auth/session", async (req, res): Promise<void> => {
 });
 
 router.post("/auth/logout", async (req, res): Promise<void> => {
+  void releaseSeat("sya", req.sessionID);
   req.session.destroy(() => {
     res.json({ success: true });
   });

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "@workspace/db";
-import { accessCodesTable, accessCodeUsageTable } from "@workspace/db/schema";
+import { accessCodesTable } from "@workspace/db/schema";
+import { validateAccidentSession } from "./sessionGate";
 import { eq } from "drizzle-orm";
 import { isMasterToken } from "../routes/accident";
 
@@ -73,11 +74,14 @@ export async function requireMatterTenant(
     if (isMasterToken(sessionId)) {
       ownerId = await resolveMasterRowId();
     } else {
-      const [usage] = await db
-        .select({ accessCodeId: accessCodeUsageTable.accessCodeId })
-        .from(accessCodeUsageTable)
-        .where(eq(accessCodeUsageTable.sessionId, sessionId));
-      ownerId = usage?.accessCodeId;
+      // Shared validator: TTL-bounded, refreshes activity, fails closed —
+      // an idle-expired or displaced session cannot resume via matter routes.
+      const check = await validateAccidentSession(sessionId, req);
+      if (!check.ok) {
+        res.status(401).json({ error: check.error });
+        return;
+      }
+      ownerId = check.accessCodeId;
     }
   } catch {
     res.status(500).json({ error: "Auth check failed" });

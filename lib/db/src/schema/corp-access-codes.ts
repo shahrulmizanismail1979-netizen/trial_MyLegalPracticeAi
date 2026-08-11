@@ -1,4 +1,4 @@
-import { boolean, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 // NOTE: tier logic (ranks, plans, tool access) lives in `@workspace/tiers`, which is the
 // source of truth. This local copy exists only to type the DB column without pulling a
@@ -18,6 +18,8 @@ export const corpAccessCodes = pgTable("corp_access_codes", {
   stripeSubscriptionId: varchar("stripe_subscription_id", { length: 64 }),
   subscriptionStatus: varchar("subscription_status", { length: 32 }),
   // When the subscription/access expires (null = no expiry, e.g. legacy/admin codes).
+  // Licensed concurrent seats for this code (null = legacy/unlimited behavior).
+  maxSeats: integer("max_seats"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

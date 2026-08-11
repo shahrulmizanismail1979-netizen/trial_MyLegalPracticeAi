@@ -5,6 +5,7 @@ import {
   staffSessionCodeId,
   hasManagerCookie,
 } from "./lib/managerSession";
+import { claimSeat, deviceSeatKey, seatLimitMessage } from "../lib/seatLimits";
 import firmRoutes from "./routes";
 
 /**
@@ -50,6 +51,21 @@ async function sessionGate(
       .from(firmAccessCodesTable)
       .where(eq(firmAccessCodesTable.id, codeId));
     if (row && row.isActive && !isFirmAccessCodeExpired(row.expiresAt)) {
+      // Refresh this device's seat on every request (keeps active devices
+      // inside the 24h TTL); fail closed if the seat is gone and the code's
+      // licensed seats are all held by other devices.
+      if (row.maxSeats != null) {
+        const claim = await claimSeat({
+          portal: "firm",
+          code: row.code,
+          maxSeats: row.maxSeats,
+          seatKey: deviceSeatKey(req),
+        });
+        if (!claim.ok) {
+          res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+          return;
+        }
+      }
       next();
       return;
     }

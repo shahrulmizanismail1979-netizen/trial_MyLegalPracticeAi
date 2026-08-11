@@ -10,6 +10,7 @@ import {
 } from "../lib/accessCodes";
 import { entitlementsFor, effectiveTier, isGrandfathered } from "@workspace/entitlements";
 import { isSubscriptionActive } from "../lib/subscriptionStatus";
+import { claimSeat, releaseSeat, seatLimitMessage } from "../../lib/seatLimits";
 import {
   verifyMsTicket,
   getLinkedCode,
@@ -153,18 +154,24 @@ async function verifyCodeAndLogin(
     return;
   }
 
-  // Single-session enforcement
-  if (
-    row.currentSessionId &&
-    row.currentSessionId !== req.sessionID &&
-    !isSessionStale(row.lastSeenAt)
-  ) {
-    res.status(409).json({
-      authenticated: false,
-      message:
-        "This access code is currently in use on another device. Please log out from the other device first, or contact your administrator.",
-    });
-    return;
+  // Seat enforcement. Team-bundle codes (maxSeats > 1) allow up to the
+  // licensed number of concurrent sessions via the shared seat registry;
+  // other codes keep the original single-session lock.
+  const multiSeat = row.maxSeats != null && row.maxSeats > 1;
+  if (!multiSeat) {
+    // Single-session enforcement
+    if (
+      row.currentSessionId &&
+      row.currentSessionId !== req.sessionID &&
+      !isSessionStale(row.lastSeenAt)
+    ) {
+      res.status(409).json({
+        authenticated: false,
+        message:
+          "This access code is currently in use on another device. Please log out from the other device first, or contact your administrator.",
+      });
+      return;
+    }
   }
 
   try {
@@ -175,7 +182,20 @@ async function verifyCodeAndLogin(
     return;
   }
 
-  await claimCode(row.id, req.sessionID);
+  if (multiSeat) {
+    const claim = await claimSeat({
+      portal: "crim",
+      code: row.code,
+      maxSeats: row.maxSeats,
+      seatKey: req.sessionID,
+    });
+    if (!claim.ok) {
+      res.status(409).json({ authenticated: false, message: seatLimitMessage(claim.maxSeats) });
+      return;
+    }
+  } else {
+    await claimCode(row.id, req.sessionID);
+  }
   (req.session as any).accessCodeId = row.id;
   (req.session as any).authenticated = true;
 
@@ -218,7 +238,9 @@ router.get("/auth/session", async (req, res): Promise<void> => {
   const valid =
     !!row &&
     row.isActive &&
-    row.currentSessionId === req.sessionID;
+    (row.maxSeats != null && row.maxSeats > 1
+      ? true // multi-seat codes are validated via the seat registry in requireAuth
+      : row.currentSessionId === req.sessionID);
 
   if (!valid) {
     res.json({ authenticated: false, isAdmin });
@@ -246,7 +268,15 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
   const codeId = (req.session as any)?.accessCodeId;
   if (codeId) {
     try {
-      await releaseCode(codeId);
+      const [row] = await db
+        .select()
+        .from(crimAccessCodesTable)
+        .where(eq(crimAccessCodesTable.id, codeId));
+      if (row && row.maxSeats != null && row.maxSeats > 1) {
+        await releaseSeat("crim", req.sessionID);
+      } else {
+        await releaseCode(codeId);
+      }
     } catch (err) {
       req.log.error({ err }, "Failed to release access code");
     }

@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { db, corpAccessCodes, corpSessions } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { effectiveTierForCode } from "./access";
+import { SEAT_TTL_MS } from "../../lib/seatLimits";
 
 export async function requireSession(
   req: Request,
@@ -32,6 +33,24 @@ export async function requireSession(
       res.status(401).json({ error: "Access code expired" });
       return;
     }
+    // Inactivity TTL: a session idle past the window has lost its seat —
+    // deactivate it and force a fresh login (which re-checks capacity).
+    if (row.session.lastSeenAt.getTime() < Date.now() - SEAT_TTL_MS) {
+      await db
+        .update(corpSessions)
+        .set({ isActive: false })
+        .where(eq(corpSessions.id, row.session.id));
+      res.status(401).json({ error: "Session expired or invalid" });
+      return;
+    }
+    // Refresh the session's seat on every protected request so actively
+    // used sessions are never the least-recently-seen ones evicted by a
+    // competing login (team-bundle seat enforcement).
+    await db
+      .update(corpSessions)
+      .set({ lastSeenAt: new Date() })
+      .where(eq(corpSessions.id, row.session.id));
+
     res.locals.accessTier = effectiveTierForCode(row.code);
     res.locals.accessCodeId = row.code.id;
     next();

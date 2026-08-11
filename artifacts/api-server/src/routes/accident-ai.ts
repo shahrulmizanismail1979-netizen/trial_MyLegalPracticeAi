@@ -1,7 +1,12 @@
 import { Router, type IRouter } from "express";
 import OpenAI from "openai";
+import { requireAccidentSession } from "../accident/sessionGate";
 
 const router: IRouter = Router();
+
+// Team-bundle seat enforcement: AI routes require a live (non-displaced,
+// non-idle) session; every request refreshes the session's activity.
+router.use((req, res, next) => void requireAccidentSession(req, res, next));
 
 const client = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,

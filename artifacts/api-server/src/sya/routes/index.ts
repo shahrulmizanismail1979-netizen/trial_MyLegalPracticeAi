@@ -29,9 +29,20 @@ import practiceDirectionsRouter from "./practice-directions";
 import mattersRouter from "./matters";
 import clientsRouter from "./clients";
 import { tierHasFeature, type FeatureKey } from "../lib/tiers";
-import { ensureCodeNotExpired } from "../lib/auth";
+import { ensureCodeNotExpired, syaSessionGate } from "../lib/auth";
 
 const router: IRouter = Router();
+
+// Team-bundle seat limits: every product route re-validates the session's
+// code expiry and seat on each request. Auth routes stay ungated so a
+// displaced session can still log out or re-login; health stays public.
+router.use((req, res, next) => {
+  if (req.path.startsWith("/auth") || req.path.startsWith("/health")) {
+    next();
+    return;
+  }
+  void syaSessionGate(req, res, next);
+});
 
 // Tier gating: premium features require a sufficient subscription. Access-code
 // holders are treated as "firm" so existing internal access is unchanged.

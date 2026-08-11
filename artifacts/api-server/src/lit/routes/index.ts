@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import authRouter, { requireLitAuth } from "./auth";
+import authRouter, { requireLitAuth, litSessionGate } from "./auth";
 import adminRouter from "./admin";
 import theoryRouter from "./theory";
 import workflowsRouter from "./workflows";
@@ -32,6 +32,10 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+// Every route below gets per-request revocation/expiry/seat enforcement for
+// authenticated code sessions (team-bundle seat limits must cover ALL
+// product paths, not just the Gemini routes).
+router.use((req, res, next) => void litSessionGate(req, res, next));
 router.use("/admin", adminRouter);
 router.use("/theory", theoryRouter);
 router.use("/workflows", workflowsRouter);

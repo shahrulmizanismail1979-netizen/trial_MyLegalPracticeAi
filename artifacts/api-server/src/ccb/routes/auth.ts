@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, ccbAccessCodes } from "@workspace/db";
+import { claimSeat, deviceSeatKey, seatLimitMessage } from "../../lib/seatLimits";
 import {
   verifyMsTicket,
   getLinkedCode,
@@ -71,9 +72,17 @@ export async function requirePractitioner(
   // (no per-subscriber restriction).
   let resolvedAccessCodeId: number | null = null;
   if (code && !STATIC_CODES.includes(code)) {
+    let row: typeof ccbAccessCodes.$inferSelect | undefined;
+    let lookupFailed = false;
     try {
       const rows = await db.select().from(ccbAccessCodes).where(eq(ccbAccessCodes.code, code));
-      const row = rows[0];
+      row = rows[0];
+    } catch {
+      // Best-effort on the plain code lookup only — a transient DB error
+      // here doesn't block the request (pre-existing behavior).
+      lookupFailed = true;
+    }
+    if (!lookupFailed) {
       if (!row || !row.active) {
         res.status(401).json({ error: "Access code no longer active" });
         return;
@@ -83,8 +92,29 @@ export async function requirePractitioner(
         return;
       }
       resolvedAccessCodeId = row.id;
-    } catch {
-      // Best-effort — don't block requests on a transient DB error.
+      // Refresh this device's seat on every request (keeps active devices
+      // inside the 24h TTL). Fails CLOSED for capped codes: both a lost seat
+      // and a seat-registry error deny the request, so the licensed cap can
+      // never be bypassed during an outage.
+      if (row.maxSeats != null) {
+        let claim: Awaited<ReturnType<typeof claimSeat>>;
+        try {
+          claim = await claimSeat({
+            portal: "ccb",
+            code,
+            maxSeats: row.maxSeats,
+            seatKey: deviceSeatKey(req),
+          });
+        } catch (err) {
+          req.log?.error({ err }, "ccb seat refresh failed — denying request");
+          res.status(401).json({ error: "Could not verify seat availability. Please try again." });
+          return;
+        }
+        if (!claim.ok) {
+          res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+          return;
+        }
+      }
     }
   }
   res.locals["ccbAccessCodeId"] = resolvedAccessCodeId;
@@ -92,7 +122,11 @@ export async function requirePractitioner(
 }
 
 // Shared by the normal access-code login and the Microsoft SSO exchange.
-async function verifyCodeAndIssueToken(res: Response, rawCode: string): Promise<boolean> {
+async function verifyCodeAndIssueToken(
+  req: import("express").Request,
+  res: Response,
+  rawCode: string,
+): Promise<boolean> {
   const code = rawCode.trim().toUpperCase();
 
   let valid = STATIC_CODES.includes(code);
@@ -106,6 +140,21 @@ async function verifyCodeAndIssueToken(res: Response, rawCode: string): Promise<
       if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
         res.status(401).json({ error: "Access code expired" });
         return false;
+      }
+      // Team-bundle seat limit: distinct concurrent devices per code. The
+      // JWT has no server-side session, so the seat is keyed by a device
+      // fingerprint and expires after inactivity.
+      if (row.maxSeats != null) {
+        const claim = await claimSeat({
+          portal: "ccb",
+          code: row.code,
+          maxSeats: row.maxSeats,
+          seatKey: deviceSeatKey(req),
+        });
+        if (!claim.ok) {
+          res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+          return false;
+        }
       }
       valid = true;
       dbCodeId = row.id;
@@ -140,7 +189,7 @@ router.post("/auth/verify", loginRateLimit, async (req, res): Promise<void> => {
     res.status(403).json({ error: bindErr });
     return;
   }
-  await verifyCodeAndIssueToken(res, parsed.data.code);
+  await verifyCodeAndIssueToken(req, res, parsed.data.code);
 });
 
 // Microsoft SSO exchange: log in with the access code linked to the Microsoft
@@ -176,7 +225,7 @@ router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
       return;
     }
   }
-  await verifyCodeAndIssueToken(res, codeToUse);
+  await verifyCodeAndIssueToken(req, res, codeToUse);
 });
 
 export default router;

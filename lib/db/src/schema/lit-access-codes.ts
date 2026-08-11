@@ -26,6 +26,8 @@ export const litAccessCodes = pgTable(
     usageCount: integer("usage_count").notNull().default(0),
     stripeCustomerId: text("stripe_customer_id"),
     compedAccess: boolean("comped_access").notNull().default(false),
+    // Licensed concurrent seats for this code (null = legacy/unlimited behavior).
+    maxSeats: integer("max_seats"),
   },
   (t) => ({
     stripeCustomerUniq: uniqueIndex("lit_access_codes_stripe_customer_id_uniq")

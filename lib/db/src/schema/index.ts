@@ -48,3 +48,4 @@ export * from "./ccb-conversations";
 export * from "./ccb-messages";
 export * from "./research";
 export * from "./matter-files";
+export * from "./portal-code-seats";

@@ -22,6 +22,7 @@ import {
   hasValidSession,
 } from "../lib/managerSession";
 import { isMasterCode } from "../lib/masterCode";
+import { claimSeat, deviceSeatKey, seatLimitMessage } from "../../lib/seatLimits";
 
 const router: IRouter = Router();
 
@@ -55,6 +56,22 @@ router.post("/auth/staff", async (req, res): Promise<void> => {
   if (!row || !row.isActive || isFirmAccessCodeExpired(row.expiresAt)) {
     res.status(401).json({ error: "Incorrect access code." });
     return;
+  }
+
+  // Team-bundle seat limit: distinct concurrent devices per code. The staff
+  // cookie has no server-side session, so the seat is keyed by a device
+  // fingerprint and expires after inactivity.
+  if (row.maxSeats != null) {
+    const claim = await claimSeat({
+      portal: "firm",
+      code: row.code,
+      maxSeats: row.maxSeats,
+      seatKey: deviceSeatKey(req),
+    });
+    if (!claim.ok) {
+      res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+      return;
+    }
   }
 
   setStaffCookie(res, row.id);

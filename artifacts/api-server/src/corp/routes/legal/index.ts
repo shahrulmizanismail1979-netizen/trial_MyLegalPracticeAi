@@ -3,7 +3,7 @@ import { loginRateLimit } from "../../../lib/loginRateLimit";
 import crypto from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db, corpAccessCodes, corpSessions } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { canAccessTool, canUseVoice, type AccessTier } from "@workspace/tiers";
 import {
   effectiveTierForCode,
@@ -13,6 +13,7 @@ import {
 } from "../../lib/access";
 import { synthesizeSpeech, DEFAULT_VOICE_ID } from "../../lib/elevenlabsClient";
 import { requireSession } from "../../lib/requireSession";
+import { SEAT_TTL_MS } from "../../../lib/seatLimits";
 import {
   verifyMsTicket,
   getLinkedCode,
@@ -21,6 +22,67 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../../../microsoft";
+
+/**
+ * Seat enforcement (team bundles): atomically allocate a corp session,
+ * keeping at most maxSeats concurrent active sessions per code by evicting
+ * the least-recently-seen ones. Codes without a seat cap keep the original
+ * single-active-session behavior (deactivate everything). The whole
+ * check-evict-insert runs in one transaction under a per-code advisory lock
+ * so parallel logins cannot oversubscribe the licensed seat count.
+ */
+export async function allocateCorpSession(params: {
+  accessCodeId: number;
+  maxSeats: number | null;
+  deviceInfo: string;
+}): Promise<string> {
+  const seatCap = params.maxSeats != null && params.maxSeats > 1 ? params.maxSeats : 1;
+  const sessionToken = crypto.randomBytes(32).toString("hex");
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtext(${`seats:corp:${params.accessCodeId}`}))`,
+    );
+    // Inactivity TTL: sessions idle past the window are deactivated first so
+    // abandoned devices free their seat before capacity is decided.
+    const ttlCutoff = new Date(Date.now() - SEAT_TTL_MS);
+    await tx
+      .update(corpSessions)
+      .set({ isActive: false })
+      .where(
+        and(
+          eq(corpSessions.accessCodeId, params.accessCodeId),
+          eq(corpSessions.isActive, true),
+          lt(corpSessions.lastSeenAt, ttlCutoff),
+        ),
+      );
+    if (seatCap <= 1) {
+      await tx
+        .update(corpSessions)
+        .set({ isActive: false })
+        .where(and(eq(corpSessions.accessCodeId, params.accessCodeId), eq(corpSessions.isActive, true)));
+    } else {
+      const active = await tx
+        .select({ id: corpSessions.id })
+        .from(corpSessions)
+        .where(and(eq(corpSessions.accessCodeId, params.accessCodeId), eq(corpSessions.isActive, true)))
+        .orderBy(desc(corpSessions.lastSeenAt));
+      const evict = active.slice(seatCap - 1).map((s) => s.id);
+      if (evict.length > 0) {
+        await tx
+          .update(corpSessions)
+          .set({ isActive: false })
+          .where(inArray(corpSessions.id, evict));
+      }
+    }
+    await tx.insert(corpSessions).values({
+      accessCodeId: params.accessCodeId,
+      sessionToken,
+      deviceInfo: params.deviceInfo,
+      isActive: true,
+    });
+  });
+  return sessionToken;
+}
 
 const router: IRouter = Router();
 
@@ -76,19 +138,10 @@ async function verifyPasswordAndCreateSession(
       }
     }
 
-    await db
-      .update(corpSessions)
-      .set({ isActive: false })
-      .where(and(eq(corpSessions.accessCodeId, codeRecord.id), eq(corpSessions.isActive, true)));
-
-    const sessionToken = crypto.randomBytes(32).toString("hex");
-    const deviceInfo = req.headers["user-agent"] || "Unknown";
-
-    await db.insert(corpSessions).values({
+    const sessionToken = await allocateCorpSession({
       accessCodeId: codeRecord.id,
-      sessionToken,
-      deviceInfo,
-      isActive: true,
+      maxSeats: codeRecord.maxSeats,
+      deviceInfo: String(req.headers["user-agent"] || "Unknown"),
     });
 
     res.json({

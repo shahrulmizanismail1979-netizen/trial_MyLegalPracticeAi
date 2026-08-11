@@ -1,6 +1,7 @@
 import {
   pgTable,
   text,
+  integer,
   timestamp,
   uniqueIndex,
   index,
@@ -44,6 +45,13 @@ export const usersTable = pgTable(
      * issued. One credential per successful checkout. Drives the
      * "show the freshly-issued password ONCE" UX on /billing?status=success.
      */
+    // Landing-page team-bundle integration: bundle purchasers log in to
+    // MyLawAcad with their cross-portal access code. NULL for normal
+    // email/OAuth accounts. maxSeats caps concurrent sessions per code
+    // (NULL = no cap); accessCodeExpiresAt mirrors the subscription expiry.
+    accessCode: text("access_code"),
+    maxSeats: integer("max_seats"),
+    accessCodeExpiresAt: timestamp("access_code_expires_at", { withTimezone: true }),
     licenseClaimedSessionIds: json("license_claimed_session_ids")
       .$type<string[]>()
       .notNull()

@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { loginRateLimit } from "../../lib/loginRateLimit";
+import { claimSeat, releaseSeat, seatLimitMessage } from "../../lib/seatLimits";
 import { randomUUID, createHash, timingSafeEqual } from "crypto";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/acad";
@@ -227,7 +228,63 @@ router.post("/auth/login", loginRateLimit, async (req: Request, res: Response): 
   res.json({ user: toSafeUser({ ...user, lastLoginAt: new Date() }) });
 });
 
+// Landing-page bundle login: the cross-portal access code logs in to the
+// MyLawAcad account that provisioning created for it. Capped codes claim a
+// concurrent seat (per session) before the session is issued.
+router.post("/auth/code-login", loginRateLimit, async (req: Request, res: Response): Promise<void> => {
+  const body = (req.body ?? {}) as { code?: unknown };
+  const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
+  if (!code) {
+    res.status(400).json({ error: "Access code is required." });
+    return;
+  }
+  const rows = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.accessCode, code))
+    .limit(1);
+  const user = rows[0];
+  if (!user) {
+    res.status(401).json({ error: "Invalid access code." });
+    return;
+  }
+  if (user.status !== "active") {
+    res.status(403).json({ error: "This access code has been deactivated." });
+    return;
+  }
+  if (user.accessCodeExpiresAt && user.accessCodeExpiresAt < new Date()) {
+    res.status(401).json({ error: "This access code has expired." });
+    return;
+  }
+  await regenerateSession(req);
+  if (user.maxSeats != null) {
+    try {
+      const claim = await claimSeat({
+        portal: "acad",
+        code,
+        maxSeats: user.maxSeats,
+        seatKey: req.sessionID,
+      });
+      if (!claim.ok) {
+        res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+        return;
+      }
+    } catch {
+      res.status(401).json({ error: "Could not verify seat availability. Please try again." });
+      return;
+    }
+  }
+  await db
+    .update(usersTable)
+    .set({ lastLoginAt: sql`now()` })
+    .where(eq(usersTable.id, user.id));
+  req.session.acadUserId = user.id;
+  res.json({ user: toSafeUser({ ...user, lastLoginAt: new Date() }) });
+});
+
 router.post("/auth/logout", async (req: Request, res: Response): Promise<void> => {
+  // Free this session's team-bundle seat (no-op for normal accounts).
+  await releaseSeat("acad", req.sessionID).catch(() => {});
   await destroySession(req);
   res.clearCookie("acad.sid");
   res.json({ ok: true });

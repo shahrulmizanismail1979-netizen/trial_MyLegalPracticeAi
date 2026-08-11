@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -7,6 +7,8 @@ export const ccbAccessCodes = pgTable("ccb_access_codes", {
   code: text("code").notNull().unique(),
   label: text("label"),
   active: boolean("active").default(true).notNull(),
+  // Licensed concurrent seats for this code (null = legacy/unlimited behavior).
+  maxSeats: integer("max_seats"),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),

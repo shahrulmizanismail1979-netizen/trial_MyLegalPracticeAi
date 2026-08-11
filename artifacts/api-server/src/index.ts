@@ -13,6 +13,7 @@ import { seedLitContent } from "./lit/lib/seed";
 import { ensureMatterFileTables } from "./lib/matterFiles";
 import { ensureCaseIntelligenceTables } from "./lib/ensureCaseIntelligenceTables";
 import { ensureAccMatterTables } from "./accident/matters";
+import { ensureSeatLimitSchema } from "./lib/seatLimits";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -153,6 +154,9 @@ await ensureCaseIntelligenceTables();
 // Direct SQL CREATE IF NOT EXISTS, awaited before listen so matter routes never
 // race table creation.
 await ensureAccMatterTables();
+
+// Team-bundle seat limits: shared seat registry + per-portal max_seats columns.
+await ensureSeatLimitSchema();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { db, crimAccessCodesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { touchCode } from "../lib/accessCodes";
+import { hasActiveSeat } from "../../lib/seatLimits";
 import { isSubscriptionActive } from "../lib/subscriptionStatus";
 import { isGrandfathered } from "@workspace/entitlements";
 
@@ -27,7 +28,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       .select()
       .from(crimAccessCodesTable)
       .where(eq(crimAccessCodesTable.id, codeId));
-    if (!row || !row.isActive || row.currentSessionId !== req.sessionID) {
+    const multiSeat = !!row && row.maxSeats != null && row.maxSeats > 1;
+    const sessionValid = multiSeat
+      ? await hasActiveSeat("crim", row!.code, req.sessionID)
+      : !!row && row.currentSessionId === req.sessionID;
+    if (!row || !row.isActive || !sessionValid) {
       res.status(401).json({
         error: "Session ended. Your access code may have been used elsewhere or revoked.",
       });

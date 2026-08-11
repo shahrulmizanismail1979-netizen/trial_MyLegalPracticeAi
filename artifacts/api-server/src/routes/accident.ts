@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
+import { allocateAccidentSession, touchAccidentUsage } from "../accident/seats";
 import {
   verifyMsTicket,
   getLinkedCode,
@@ -121,22 +122,17 @@ async function verifyCodeAndStartSession(res: Response, rawCode: string): Promis
     return false;
   }
 
-  if (accessCode.currentUsers >= accessCode.maxUsers) {
+  // Atomic seat allocation (stale cleanup → capacity check → insert under a
+  // per-code advisory lock), so concurrent logins can never exceed maxUsers.
+  const seat = await allocateAccidentSession({
+    accessCodeId: accessCode.id,
+    maxUsers: accessCode.maxUsers,
+  });
+  if (!seat.ok) {
     res.status(401).json({ error: "This access code has reached its maximum number of users" });
     return false;
   }
-
-  const sessionId = crypto.randomUUID();
-
-  await db.insert(accessCodeUsageTable).values({
-    accessCodeId: accessCode.id,
-    sessionId,
-  });
-
-  await db
-    .update(accessCodesTable)
-    .set({ currentUsers: sql`${accessCodesTable.currentUsers} + 1` })
-    .where(eq(accessCodesTable.id, accessCode.id));
+  const sessionId = seat.sessionId;
 
   setSessionCookies(res, sessionId, accessCode.label);
 
@@ -222,6 +218,9 @@ router.get("/auth/check-session", async (req, res): Promise<void> => {
     res.json(AccidentCheckSessionResponse.parse({ authenticated: false, codeLabel: null }));
     return;
   }
+
+  // Keep actively used sessions inside the inactivity TTL.
+  void touchAccidentUsage(sessionId);
 
   const [code] = await db
     .select()

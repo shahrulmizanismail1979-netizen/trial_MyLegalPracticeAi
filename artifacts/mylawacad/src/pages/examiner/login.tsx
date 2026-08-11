@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { KeySquare, Loader2 } from "lucide-react";
 import { useLogin } from "@/lib/api-client";
+import { customFetch } from "@/lib/api-client/custom-fetch";
 import {
   AuroraBackground,
   CinematicShell,
@@ -19,6 +20,37 @@ export default function ExaminerLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Team-bundle purchasers sign in with the cross-portal access code from
+  // their purchase instead of an email/password account.
+  const [useAccessCode, setUseAccessCode] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
+  const [codePending, setCodePending] = useState(false);
+
+  const submitCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!accessCode.trim()) {
+      setError("Access code is required.");
+      return;
+    }
+    setCodePending(true);
+    try {
+      const res = await customFetch<{ user: { role: string } }>("/api/auth/code-login", {
+        method: "POST",
+        body: JSON.stringify({ code: accessCode.trim() }),
+      });
+      await refresh();
+      navigate(res.user.role === "admin" ? "/admin" : "/examiner/dashboard");
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message.replace(/^HTTP \d+\s+\w+:\s*/, "")
+          : "Login failed",
+      );
+    } finally {
+      setCodePending(false);
+    }
+  };
 
   // If already signed in, send them to the right place.
   useEffect(() => {
@@ -56,7 +88,7 @@ export default function ExaminerLogin() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          onSubmit={submit}
+          onSubmit={useAccessCode ? submitCode : submit}
           className="relative z-10 glass-strong rounded-3xl px-10 py-12 w-full max-w-lg space-y-8"
         >
           <div className="flex items-center gap-3 text-fuchsia-300/80 text-[0.65rem] uppercase tracking-[0.4em]">
@@ -72,6 +104,23 @@ export default function ExaminerLogin() {
             </p>
           </div>
 
+          {useAccessCode ? (
+            <label className="block space-y-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.3em] text-muted-foreground">
+                Access code
+              </span>
+              <input
+                type="text"
+                data-testid="input-access-code"
+                autoFocus
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="e.g. MLPA-XXXX-XXXX"
+                className="w-full bg-black/40 border border-white/15 rounded-xl px-5 py-4 text-base uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-fuchsia-500/60 focus:border-fuchsia-500/60"
+              />
+            </label>
+          ) : (
+          <>
           <label className="block space-y-2">
             <span className="text-[0.65rem] uppercase tracking-[0.3em] text-muted-foreground">
               Email
@@ -101,6 +150,22 @@ export default function ExaminerLogin() {
               className="w-full bg-black/40 border border-white/15 rounded-xl px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-fuchsia-500/60 focus:border-fuchsia-500/60"
             />
           </label>
+          </>
+          )}
+
+          <button
+            type="button"
+            data-testid="button-toggle-access-code"
+            onClick={() => {
+              setUseAccessCode((v) => !v);
+              setError(null);
+            }}
+            className="text-xs text-fuchsia-300/80 hover:text-fuchsia-200 underline underline-offset-4"
+          >
+            {useAccessCode
+              ? "Sign in with email and password instead"
+              : "Have a team-bundle access code? Sign in with it"}
+          </button>
 
           {error ? (
             <div
@@ -114,10 +179,10 @@ export default function ExaminerLogin() {
           <div className="flex flex-wrap gap-3 items-center">
             <VioletButton
               type="submit"
-              disabled={login.isPending}
+              disabled={login.isPending || codePending}
               data-testid="button-login"
             >
-              {login.isPending ? (
+              {login.isPending || codePending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" /> Signing in…
                 </>

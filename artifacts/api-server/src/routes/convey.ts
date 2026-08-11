@@ -1,3 +1,4 @@
+import { claimSeat, deviceSeatKey, seatLimitMessage } from "../lib/seatLimits";
 import { Router, type IRouter } from "express";
 import { loginRateLimit } from "../lib/loginRateLimit";
 import { logger } from "../lib/logger";
@@ -244,6 +245,20 @@ router.post("/convey/auth", loginRateLimit, async (req, res) => {
       return;
     }
 
+    // Team-bundle seat limit: distinct concurrent devices per access code.
+    if (user.accessCode && user.maxSeats != null) {
+      const claim = await claimSeat({
+        portal: "convey",
+        code: user.accessCode,
+        maxSeats: user.maxSeats,
+        seatKey: deviceSeatKey(req),
+      });
+      if (!claim.ok) {
+        res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+        return;
+      }
+    }
+
     await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
     res.json({
@@ -306,14 +321,29 @@ router.post("/convey/auth/sso", loginRateLimit, async (req, res) => {
     }
 
     if (providedCode) {
-      const claim = await saveLink(email, "convey", providedCode);
-      if (!claim.ok) {
+      const linkClaim = await saveLink(email, "convey", providedCode);
+      if (!linkClaim.ok) {
         res.status(403).json({
-          error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+          error: `This access code is linked to a different Microsoft account (${maskEmail(linkClaim.ownerEmail)}).`,
         });
         return;
       }
     }
+
+    // Team-bundle seat limit: distinct concurrent devices per access code.
+    if (user.accessCode && user.maxSeats != null) {
+      const claim = await claimSeat({
+        portal: "convey",
+        code: user.accessCode,
+        maxSeats: user.maxSeats,
+        seatKey: deviceSeatKey(req),
+      });
+      if (!claim.ok) {
+        res.status(409).json({ error: seatLimitMessage(claim.maxSeats) });
+        return;
+      }
+    }
+
     await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
     res.json({

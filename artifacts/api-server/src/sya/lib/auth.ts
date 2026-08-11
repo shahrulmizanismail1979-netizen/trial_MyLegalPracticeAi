@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { accessCodesTable } from "@workspace/db/sya";
 import { tierHasFeature, type FeatureKey } from "./tiers";
+import { claimSeat, seatLimitMessage } from "../../lib/seatLimits";
 
 const scryptAsync = promisify(scrypt);
 
@@ -34,21 +35,67 @@ export async function verifyPassword(
  */
 export async function ensureCodeNotExpired(req: Request, res: Response): Promise<boolean> {
   if (req.session.accountType !== "code" || !req.session.accessCode) return true;
+  let row: { expiresAt: Date | null; maxSeats: number | null } | undefined;
   try {
-    const [row] = await db
-      .select({ expiresAt: accessCodesTable.expiresAt })
+    [row] = await db
+      .select({ expiresAt: accessCodesTable.expiresAt, maxSeats: accessCodesTable.maxSeats })
       .from(accessCodesTable)
       .where(eq(accessCodesTable.code, req.session.accessCode))
       .limit(1);
-    if (row?.expiresAt && new Date(row.expiresAt) < new Date()) {
-      req.session.destroy(() => {});
-      res.status(401).json({ error: "Access code expired" });
+  } catch {
+    // Best-effort on the plain expiry lookup only — a transient DB error
+    // here doesn't block the request (pre-existing behavior).
+    return true;
+  }
+  if (row?.expiresAt && new Date(row.expiresAt) < new Date()) {
+    req.session.destroy(() => {});
+    res.status(401).json({ error: "Access code expired" });
+    return false;
+  }
+  // Refresh this session's seat on every request so active devices never age
+  // out of the 24h inactivity TTL. Fails CLOSED for capped codes: a lost
+  // seat and a seat-registry error both deny the request, so the licensed
+  // cap can never be bypassed during an outage.
+  if (row?.maxSeats != null) {
+    let claim: Awaited<ReturnType<typeof claimSeat>>;
+    try {
+      claim = await claimSeat({
+        portal: "sya",
+        code: req.session.accessCode,
+        maxSeats: row.maxSeats,
+        seatKey: req.sessionID,
+      });
+    } catch (err) {
+      req.log?.error({ err }, "sya seat refresh failed — denying request");
+      res.status(401).json({ error: "Could not verify seat availability. Please try again." });
       return false;
     }
-  } catch {
-    // Best-effort — don't block requests on a transient DB error.
+    if (!claim.ok) {
+      req.session.destroy(() => {});
+      res.status(401).json({ error: seatLimitMessage(claim.maxSeats) });
+      return false;
+    }
   }
   return true;
+}
+
+/**
+ * Router-level gate: any request from an authenticated session gets the
+ * per-request expiry + seat validation (which fails closed for capped
+ * codes), regardless of which product route it hits. Unauthenticated
+ * requests pass through so public routes and per-route auth keep working.
+ */
+export async function syaSessionGate(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  if (!req.session.userId) {
+    next();
+    return;
+  }
+  if (!(await ensureCodeNotExpired(req, res))) return;
+  next();
 }
 
 export async function requireAuth(

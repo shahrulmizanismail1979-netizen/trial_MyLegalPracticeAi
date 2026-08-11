@@ -1,7 +1,7 @@
 // Automatic subscriber provisioning after Stripe checkout.
 // Generates an access code, records the subscriber, and emails the
 // access code to the customer plus a notification to the site owner (Gmail integration).
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@workspace/db";
 import { accessCodesTable as syaAccessCodesTable } from "@workspace/db/sya";
 import { firmAccessCodesTable } from "@workspace/db/firm";
+import { usersTable as acadUsersTable } from "@workspace/db/acad";
 import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody } from "./sms";
@@ -111,6 +112,7 @@ async function syncConveyUser(params: {
   accessCode: string;
   name: string;
   email: string | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -123,6 +125,7 @@ async function syncConveyUser(params: {
         isActive: true,
         subscriptionTier: "firm",
         subscriptionStatus: "active",
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: usersTable.accessCode,
@@ -130,6 +133,7 @@ async function syncConveyUser(params: {
           isActive: true,
           subscriptionTier: "firm",
           subscriptionStatus: "active",
+          maxSeats: params.maxSeats,
         },
       });
     logger.info(
@@ -161,7 +165,7 @@ async function syncAccidentAccessCode(params: {
   name: string;
   expiresAt?: Date | null;
   /** Licensed seat count for team bundles; defaults to the individual cap. */
-  maxUsers?: number;
+  maxUsers?: number | null;
 }): Promise<void> {
   const maxUsers = Math.max(2, params.maxUsers ?? 2);
   try {
@@ -204,6 +208,7 @@ async function syncCrimAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -214,10 +219,16 @@ async function syncCrimAccessCode(params: {
         tier: "full",
         isActive: true,
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: crimAccessCodesTable.code,
-        set: { isActive: true, tier: "full", expiresAt: params.expiresAt ?? null },
+        set: {
+          isActive: true,
+          tier: "full",
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -245,6 +256,7 @@ async function syncCorpAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -255,10 +267,16 @@ async function syncCorpAccessCode(params: {
         tier: "firm",
         isActive: true,
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: corpAccessCodesTable.code,
-        set: { isActive: true, tier: "firm", expiresAt: params.expiresAt ?? null },
+        set: {
+          isActive: true,
+          tier: "firm",
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -289,6 +307,7 @@ async function syncLitAccessCode(params: {
   name: string;
   email: string | null;
   expiresAt?: Date | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -299,10 +318,11 @@ async function syncLitAccessCode(params: {
         recipientEmail: params.email ?? "",
         status: "active",
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: litAccessCodesTable.code,
-        set: { status: "active", expiresAt: params.expiresAt ?? null },
+        set: { status: "active", expiresAt: params.expiresAt ?? null, maxSeats: params.maxSeats },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -327,6 +347,7 @@ export async function syncSyaAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;
+  maxSeats?: number | null;
 }): Promise<void> {
   try {
     await db
@@ -337,10 +358,15 @@ export async function syncSyaAccessCode(params: {
         role: "practitioner",
         isActive: true,
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats ?? null,
       })
       .onConflictDoUpdate({
         target: syaAccessCodesTable.code,
-        set: { isActive: true, expiresAt: params.expiresAt ?? null },
+        set: {
+          isActive: true,
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats ?? null,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -369,6 +395,7 @@ async function syncCcbAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -378,10 +405,11 @@ async function syncCcbAccessCode(params: {
         label: params.name,
         active: true,
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: ccbAccessCodesTable.code,
-        set: { active: true, expiresAt: params.expiresAt ?? null },
+        set: { active: true, expiresAt: params.expiresAt ?? null, maxSeats: params.maxSeats },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -409,6 +437,7 @@ async function syncFirmAccessCode(params: {
   name: string;
   email: string | null;
   expiresAt?: Date | null;
+  maxSeats: number | null;
 }): Promise<void> {
   try {
     await db
@@ -419,10 +448,15 @@ async function syncFirmAccessCode(params: {
         customerEmail: params.email,
         isActive: true,
         expiresAt: params.expiresAt ?? null,
+        maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
         target: firmAccessCodesTable.code,
-        set: { isActive: true, expiresAt: params.expiresAt ?? null },
+        set: {
+          isActive: true,
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -445,24 +479,34 @@ export async function syncPortalAccessCodes(subscriber: {
   apps: string[];
   subscriptionExpiry?: Date | null;
   tier?: string | null;
+  licenses?: number | null;
 }): Promise<void> {
   const { accessCode, name, email, apps } = subscriber;
   if (!accessCode) return;
   // Propagate the subscriber's expiry date into every portal table that
   // supports one, so the code stops working when the subscription ends.
   const expiresAt = subscriber.subscriptionExpiry ?? null;
-  // Team bundles carry a licensed seat count; portals with per-code user
-  // caps get at least that many seats.
-  const licenses = subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined;
-  if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email });
+  // Team bundles carry a licensed seat count; every portal's access-code
+  // record gets that seat cap so concurrent use is limited to the licensed
+  // count. Individual (non-bundle) plans have no licensed seat count, so
+  // their cap stays NULL and legacy behavior is preserved.
+  const maxSeats = licensedSeatCap(subscriber);
+  const licenses =
+    subscriber.licenses ??
+    (subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined) ??
+    null;
+  if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email, maxSeats });
   if (includesAccidentApp(apps))
     await syncAccidentAccessCode({ accessCode, name, expiresAt, maxUsers: licenses });
-  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name, expiresAt });
-  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name, expiresAt });
-  if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email, expiresAt });
-  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name, expiresAt });
-  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name, expiresAt });
-  if (includesFirmApp(apps)) await syncFirmAccessCode({ accessCode, name, email, expiresAt });
+  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesLitApp(apps))
+    await syncLitAccessCode({ accessCode, name, email, expiresAt, maxSeats });
+  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesFirmApp(apps))
+    await syncFirmAccessCode({ accessCode, name, email, expiresAt, maxSeats });
+  if (includesAcadApp(apps)) await syncAcadUser({ accessCode, name, expiresAt, maxSeats });
 }
 
 /**
@@ -557,6 +601,16 @@ export async function deactivatePortalAccessCodes(subscriber: {
           .where(eq(firmAccessCodesTable.code, accessCode)),
     ]);
   }
+  if (includesAcadApp(apps)) {
+    attempts.push([
+      "MyLawAcad",
+      () =>
+        db
+          .update(acadUsersTable)
+          .set({ status: "suspended", subscriptionStatus: "canceled" })
+          .where(eq(acadUsersTable.accessCode, accessCode)),
+    ]);
+  }
   for (const [app, run] of attempts) {
     try {
       await run();
@@ -630,6 +684,72 @@ export async function backfillPortalAccessCodes(): Promise<number> {
  * with a stated number of user licenses, billed as one monthly subscription.
  * The key is the checkout `tier` and also the Stripe product `metadata.tier`.
  */
+/**
+ * Licensed seat cap for a subscriber: team bundles carry a real licensed
+ * seat count (explicit licenses or from the bundle-tier catalog); individual
+ * plans have none, so their cap is NULL (legacy/unlimited-seat behavior).
+ * Every path that (re)creates a portal access-code row must use this so a
+ * recovered or re-synced bundle code can never lose its cap.
+ */
+// The Academic Bundle also covers MyLawAcad; its bundle codes log in via a
+// dedicated access-code path on acad_users.
+function includesAcadApp(apps: string[]): boolean {
+  return apps.includes("MyLawAcad");
+}
+
+/**
+ * Upsert a MyLawAcad account bound to the landing-page access code so the
+ * bundle code also logs in to the Academic portal. Synthetic unique email
+ * avoids collisions with real teacher accounts. Best-effort: never fails
+ * provisioning.
+ */
+async function syncAcadUser(params: {
+  accessCode: string;
+  name: string;
+  expiresAt?: Date | null;
+  maxSeats: number | null;
+}): Promise<void> {
+  try {
+    await db
+      .insert(acadUsersTable)
+      .values({
+        id: randomUUID(),
+        email: `${params.accessCode.toLowerCase()}@access-code.mylawacad.local`,
+        name: params.name,
+        role: "teacher",
+        status: "active",
+        accessCode: params.accessCode,
+        maxSeats: params.maxSeats,
+        accessCodeExpiresAt: params.expiresAt ?? null,
+      })
+      .onConflictDoUpdate({
+        target: acadUsersTable.accessCode,
+        set: {
+          status: "active",
+          maxSeats: params.maxSeats,
+          accessCodeExpiresAt: params.expiresAt ?? null,
+        },
+      });
+    logger.info(
+      { accessCode: params.accessCode },
+      "Synced MyLawAcad account for landing purchase",
+    );
+  } catch (err) {
+    logger.error({ err }, "Failed to sync MyLawAcad account for landing purchase");
+  }
+}
+
+export function licensedSeatCap(subscriber: {
+  tier?: string | null;
+  licenses?: number | null;
+}): number | null {
+  const licenses =
+    subscriber.licenses ??
+    (subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined) ??
+    null;
+  return licenses != null ? Math.max(1, licenses) : null;
+}
+
 export const BUNDLE_TIER_CATALOG: Record<
   string,
   { name: string; monthlyUsdCents: number; licenses: number }
@@ -810,6 +930,7 @@ export async function provisionFromCheckoutSession(
       phone,
       apps,
       tier,
+      licenses: (tier && BUNDLE_TIER_CATALOG[tier]?.licenses) || null,
       paymentStatus: "confirmed",
       paymentAmount,
       paymentDate: new Date(),
@@ -844,7 +965,7 @@ export async function provisionFromCheckoutSession(
     };
   }
 
-  await syncPortalAccessCodes({ accessCode, name, email, apps, tier });
+  await syncPortalAccessCodes({ accessCode, name, email, apps, tier, licenses: subscriber.licenses });
 
   // Safety net: if the checkout metadata didn't identify a portal, the code
   // above synced nowhere and the customer can't log in. Flag it loudly so the

@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { verifyToken } from "../lib/auth";
 import { logger } from "../lib/logger";
 import { hasTier, effectiveTier, type Tier } from "../lib/access";
+import { claimSeat, deviceSeatKey } from "../lib/seatLimits";
 
 /**
  * Convey users have no expiry column of their own — their access lifetime is
@@ -45,8 +46,23 @@ export async function attachUser(req: Request, _res: Response, next: NextFunctio
         const rows = await db.select().from(usersTable).where(eq(usersTable.id, uid));
         const user = rows[0];
         if (user && user.isActive && !(await isConveyCodeExpired(user.accessCode))) {
-          req.userId = user.id;
-          req.currentUser = user;
+          // Refresh this device's seat on every request; a device whose seat
+          // is gone (and cannot re-claim within the licensed count) is
+          // treated as unauthenticated (fail closed).
+          let seatOk = true;
+          if (user.accessCode && user.maxSeats != null) {
+            const claim = await claimSeat({
+              portal: "convey",
+              code: user.accessCode,
+              maxSeats: user.maxSeats,
+              seatKey: deviceSeatKey(req),
+            });
+            seatOk = claim.ok;
+          }
+          if (seatOk) {
+            req.userId = user.id;
+            req.currentUser = user;
+          }
         }
       } catch (e) {
         req.log?.error({ err: e }, "attachUser lookup failed");

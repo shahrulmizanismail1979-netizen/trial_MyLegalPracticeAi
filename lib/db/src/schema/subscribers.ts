@@ -10,6 +10,8 @@ export const subscribersTable = pgTable("subscribers", {
   apps: text("apps").array().notNull(),
   kohortId: integer("kohort_id"),
   tier: text("tier"),
+  // Licensed seat count for team bundles (null = individual plan).
+  licenses: integer("licenses"),
   paymentStatus: text("payment_status").notNull().default("pending"),
   paymentAmount: text("payment_amount").notNull(),
   paymentDate: timestamp("payment_date", { withTimezone: true }),
