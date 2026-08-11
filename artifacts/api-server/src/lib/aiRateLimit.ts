@@ -26,7 +26,7 @@ const MAX = parseInt(process.env.AI_RATE_LIMIT_PER_MINUTE ?? "60", 10);
  *   Lit    → req.session.accessCodeId
  *   Convey → req.userId (number, set by attachUser global middleware)
  */
-function subscriberKey(req: Request, res: Response): string {
+export function subscriberKey(req: Request, res: Response): string {
   const locals = res.locals as Record<string, unknown>;
   const session = req.session as unknown as Record<string, unknown> | undefined;
 
