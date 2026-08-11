@@ -5,8 +5,10 @@ import {
   useGetRevenueByApp,
   useGetDeliveryFailures,
   useResolveDeliveryFailure,
+  useResendDeliveryFailureEmail,
   getGetDeliveryFailuresQueryKey,
 } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ import {
   MailX,
   MessageSquareX,
   Check,
+  Send,
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -212,6 +215,26 @@ function DeliveryFailuresPanel() {
     },
   });
 
+  const { toast } = useToast();
+  const resendMutation = useResendDeliveryFailureEmail({
+    mutation: {
+      onSuccess: (data) => {
+        toast({
+          title: "Access code email re-sent",
+          description: data.email ? `Sent to ${data.email} and marked handled.` : "Marked handled.",
+        });
+        void queryClient.invalidateQueries({ queryKey: getGetDeliveryFailuresQueryKey() });
+      },
+      onError: (error) => {
+        const data = (error as { data?: { error?: string } | null } | null)?.data;
+        const message =
+          data?.error ??
+          "Failed to re-send the access code email — try again or send manually";
+        toast({ title: "Resend failed", description: message, variant: "destructive" });
+      },
+    },
+  });
+
   const unresolvedCount = failures?.filter((f) => !f.resolved).length ?? 0;
 
   return (
@@ -287,15 +310,28 @@ function DeliveryFailuresPanel() {
                   </p>
                 </div>
                 {!f.resolved && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={resolveMutation.isPending}
-                    onClick={() => resolveMutation.mutate({ id: f.id })}
-                    data-testid={`button-resolve-${f.id}`}
-                  >
-                    <Check className="h-4 w-4 mr-1" /> Mark handled
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {f.email && f.accessCode && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={resendMutation.isPending || resolveMutation.isPending}
+                        onClick={() => resendMutation.mutate({ id: f.id })}
+                        data-testid={`button-resend-${f.id}`}
+                      >
+                        <Send className="h-4 w-4 mr-1" /> Resend email
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={resolveMutation.isPending || resendMutation.isPending}
+                      onClick={() => resolveMutation.mutate({ id: f.id })}
+                      data-testid={`button-resolve-${f.id}`}
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Mark handled
+                    </Button>
+                  </div>
                 )}
               </div>
             ))}

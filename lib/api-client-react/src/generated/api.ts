@@ -2465,6 +2465,90 @@ export const useResolveDeliveryFailure = <
 };
 
 /**
+ * @summary Re-send the customer access-code email for a delivery failure and mark it handled
+ */
+export const getResendDeliveryFailureEmailUrl = (id: number) => {
+  return `/api/admin/delivery-failures/${id}/resend-email`;
+};
+
+export const resendDeliveryFailureEmail = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeliveryFailure> => {
+  return customFetch<DeliveryFailure>(getResendDeliveryFailureEmailUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getResendDeliveryFailureEmailMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendDeliveryFailureEmail>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resendDeliveryFailureEmail>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["resendDeliveryFailureEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resendDeliveryFailureEmail>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resendDeliveryFailureEmail(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResendDeliveryFailureEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resendDeliveryFailureEmail>>
+>;
+
+export type ResendDeliveryFailureEmailMutationError = ErrorType<void>;
+
+/**
+ * @summary Re-send the customer access-code email for a delivery failure and mark it handled
+ */
+export const useResendDeliveryFailureEmail = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resendDeliveryFailureEmail>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resendDeliveryFailureEmail>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getResendDeliveryFailureEmailMutationOptions(options));
+};
+
+/**
  * @summary Get revenue breakdown by app
  */
 export const getGetRevenueByAppUrl = () => {

@@ -832,6 +832,33 @@ function customerEmailHtml(params: {
   </div>`;
 }
 
+/**
+ * Re-send the standard customer access-code email (same template used during
+ * provisioning). Subscriber details are looked up by access code when
+ * available so the email content matches the original.
+ */
+export async function resendAccessCodeEmail(params: {
+  accessCode: string;
+  email: string;
+}): Promise<boolean> {
+  const { accessCode, email } = params;
+  const [subscriber] = await db
+    .select()
+    .from(subscribersTable)
+    .where(eq(subscribersTable.accessCode, accessCode));
+  const name = subscriber?.name ?? "Subscriber";
+  const apps = subscriber?.apps ?? [];
+  const tier = subscriber?.tier ?? null;
+  const trial = subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
+  return sendEmail({
+    to: email,
+    subject: trial
+      ? "Your MyLegalPracticeAI access code (7-day free trial)"
+      : "Your MyLegalPracticeAI access code",
+    html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
+  });
+}
+
 function ownerEmailHtml(params: {
   name: string;
   email: string;

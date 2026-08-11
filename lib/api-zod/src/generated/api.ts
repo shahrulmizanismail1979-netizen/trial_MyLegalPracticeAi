@@ -595,6 +595,25 @@ export const ResolveDeliveryFailureResponse = zod.object({
 });
 
 /**
+ * @summary Re-send the customer access-code email for a delivery failure and mark it handled
+ */
+export const ResendDeliveryFailureEmailParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResendDeliveryFailureEmailResponse = zod.object({
+  id: zod.number(),
+  type: zod.enum(["sms_failed", "sms_skipped", "email_failed"]),
+  description: zod.string(),
+  accessCode: zod.string().nullish(),
+  email: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  resolved: zod.boolean(),
+  resolvedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get revenue breakdown by app
  */
 export const GetRevenueByAppResponseItem = zod.object({

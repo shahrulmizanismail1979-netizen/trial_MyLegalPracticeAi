@@ -8,7 +8,9 @@ import {
   GetRevenueByAppResponse,
   GetDeliveryFailuresResponse,
   ResolveDeliveryFailureResponse,
+  ResendDeliveryFailureEmailResponse,
 } from "@workspace/api-zod";
+import { resendAccessCodeEmail } from "../../lib/provisioning";
 
 const router: IRouter = Router();
 
@@ -150,6 +152,41 @@ router.post("/delivery-failures/:id/resolve", async (req, res): Promise<void> =>
     .where(eq(activityTable.id, id))
     .returning();
   res.json(ResolveDeliveryFailureResponse.parse(toDeliveryFailure(updated)));
+});
+
+router.post("/delivery-failures/:id/resend-email", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const [row] = await db
+    .select()
+    .from(activityTable)
+    .where(and(eq(activityTable.id, id), inArray(activityTable.type, [...DELIVERY_FAILURE_TYPES])));
+  if (!row) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const meta = parseFailureMeta(row);
+  if (!meta.email || !meta.accessCode) {
+    res.status(422).json({
+      error: "This entry is missing the buyer's email or access code — send manually instead",
+    });
+    return;
+  }
+  const sent = await resendAccessCodeEmail({ accessCode: meta.accessCode, email: meta.email });
+  if (!sent) {
+    res.status(502).json({ error: `Email to ${meta.email} failed to send — try again or send manually` });
+    return;
+  }
+  const updatedMeta = { ...meta, resolved: true, resolvedAt: new Date().toISOString() };
+  const [updated] = await db
+    .update(activityTable)
+    .set({ metadata: JSON.stringify(updatedMeta) })
+    .where(eq(activityTable.id, id))
+    .returning();
+  res.json(ResendDeliveryFailureEmailResponse.parse(toDeliveryFailure(updated)));
 });
 
 router.get("/revenue-by-app", async (_req, res): Promise<void> => {

@@ -561,6 +561,31 @@ paths:
                 $ref: "#/components/schemas/DeliveryFailure"
         "404":
           description: Entry not found
+  /admin/delivery-failures/{id}/resend-email:
+    post:
+      operationId: resendDeliveryFailureEmail
+      tags:
+        - dashboard
+      summary: Re-send the customer access-code email for a delivery failure and mark it handled
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Email sent; entry marked handled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryFailure"
+        "404":
+          description: Entry not found
+        "422":
+          description: Entry has no email or access code to resend
+        "502":
+          description: Email send failed
   /admin/revenue-by-app:
     get:
       operationId: getRevenueByApp

@@ -1,4 +1,13 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, vi } from "vitest";
+
+// Resend tests must never send real email — mock the Gmail mailer.
+const sendEmailMock = vi.fn(
+  async (_options: { to: string; subject: string; html: string }) => true,
+);
+vi.mock("../../lib/mailer", () => ({
+  sendEmail: (options: { to: string; subject: string; html: string }) => sendEmailMock(options),
+  getOwnerEmail: async () => null,
+}));
 import express from "express";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
@@ -84,6 +93,68 @@ describe("admin delivery-failures", () => {
     const all = await request(app).get("/admin/delivery-failures?includeResolved=true");
     const allMine = all.body.filter((f: { description: string }) => f.description.includes(RUN_ID));
     expect(allMine).toHaveLength(2);
+  });
+
+  it("resends the access-code email and auto-marks the entry handled", async () => {
+    const email = `resend-${RUN_ID}@example.test`;
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "email_failed",
+        description: `FAILED to email access code MLPA-RESEND1 to ${email} — send manually [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: "MLPA-RESEND1", email, phone: null }),
+      })
+      .returning();
+
+    sendEmailMock.mockClear();
+    sendEmailMock.mockResolvedValueOnce(true);
+    const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-email`);
+    expect(res.status).toBe(200);
+    expect(res.body.resolved).toBe(true);
+    expect(res.body.resolvedAt).toBeTruthy();
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    const call = sendEmailMock.mock.calls[0]![0] as unknown as {
+      to: string;
+      subject: string;
+      html: string;
+    };
+    expect(call.to).toBe(email);
+    expect(call.subject).toContain("access code");
+    expect(call.html).toContain("MLPA-RESEND1");
+  });
+
+  it("surfaces a send failure as 502 and does not mark the entry handled", async () => {
+    const email = `resend-fail-${RUN_ID}@example.test`;
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "email_failed",
+        description: `FAILED to email access code MLPA-RESEND2 to ${email} — send manually [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: "MLPA-RESEND2", email, phone: null }),
+      })
+      .returning();
+
+    sendEmailMock.mockResolvedValueOnce(false);
+    const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-email`);
+    expect(res.status).toBe(502);
+    expect(res.body.error).toBeTruthy();
+
+    const list = await request(app).get("/admin/delivery-failures");
+    const mine = list.body.find((f: { id: number }) => f.id === row.id);
+    expect(mine?.resolved).toBe(false);
+  });
+
+  it("422s when the entry lacks an email or access code", async () => {
+    const [row] = await db
+      .insert(activityTable)
+      .values({
+        type: "sms_failed",
+        description: `FAILED to SMS access code (unknown) [${RUN_ID}]`,
+        metadata: JSON.stringify({ accessCode: null, email: null, phone: "+60111111111" }),
+      })
+      .returning();
+    const res = await request(app).post(`/admin/delivery-failures/${row.id}/resend-email`);
+    expect(res.status).toBe(422);
   });
 
   it("404s when resolving a non-failure or missing row", async () => {
