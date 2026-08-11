@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { useListForms } from '@/hooks/use-forms';
 import { PageHeader, Card, CardContent, CardHeader, CardTitle, Badge, Button, Modal, Input, Textarea, Label } from '@/components/ui';
@@ -119,9 +120,16 @@ function useStreamingDraft() {
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        if (response.status === 429) emitRateLimit(0);
+        throw new Error(
+          response.status === 429
+            ? 'Too many AI requests. Please try again shortly.'
+            : `Server error: ${response.status}`
+        );
       }
 
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';

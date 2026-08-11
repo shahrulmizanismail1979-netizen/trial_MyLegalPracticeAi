@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -56,7 +57,7 @@ function TafsirPageInner() {
   const { data: surahs } = useQuery<Surah[]>({
     queryKey: ["tafsir-surahs"],
     queryFn: async () => {
-      const r = await fetch(`${API_BASE}/tafsir/surahs`, { credentials: "include" });
+      const r = await aiStreamFetch(`${API_BASE}/tafsir/surahs`, { credentials: "include" });
       return r.json();
     },
   });
@@ -84,7 +85,7 @@ function TafsirPageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/tafsir/generate`, {
+      const res = await aiStreamFetch(`${API_BASE}/tafsir/generate`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

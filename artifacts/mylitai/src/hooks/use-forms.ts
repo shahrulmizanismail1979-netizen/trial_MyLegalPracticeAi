@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 
 export function useListForms() {
   return useQuery({
@@ -32,7 +33,16 @@ export function useDraftForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to draft form");
+      if (!res.ok) {
+        if (res.status === 429) emitRateLimit(0);
+        throw new Error(
+          res.status === 429
+            ? "Too many AI requests. Please try again shortly."
+            : "Failed to draft form"
+        );
+      }
+      const rl = readRateLimitRemaining(res);
+      if (rl !== null) emitRateLimit(rl);
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/lit/forms"] }),

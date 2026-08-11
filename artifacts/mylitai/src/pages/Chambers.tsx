@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 import {
   FileSearch,
   Scale,
@@ -97,7 +98,17 @@ async function streamFromEndpoint(
     body: JSON.stringify(body),
   });
 
-  if (!response.ok) throw new Error('Server error');
+  if (!response.ok) {
+    if (response.status === 429) emitRateLimit(0);
+    throw new Error(
+      response.status === 429
+        ? 'Too many AI requests. Please try again shortly.'
+        : 'Server error'
+    );
+  }
+
+  const rl = readRateLimitRemaining(response);
+  if (rl !== null) emitRateLimit(rl);
 
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();

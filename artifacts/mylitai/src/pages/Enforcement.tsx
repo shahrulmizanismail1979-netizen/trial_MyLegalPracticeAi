@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 import {
   Gavel,
   Loader2,
@@ -51,9 +52,12 @@ async function streamFromEndpoint(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
+    if (response.status === 429) { emitRateLimit(0); onError('Too many AI requests. Please try again shortly.'); return; }
     onError(response.status === 402 ? 'A subscription is required for this tool.' : 'Server error');
     return;
   }
+  const rl = readRateLimitRemaining(response);
+  if (rl !== null) emitRateLimit(rl);
   const reader = response.body?.getReader();
   const decoder = new TextDecoder();
   if (!reader) { onError('No stream'); return; }

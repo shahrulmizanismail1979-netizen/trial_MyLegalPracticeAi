@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 
 interface UseAiStreamOptions {
   onComplete?: (fullText: string) => void;
@@ -31,8 +32,12 @@ export function useAiStream(options?: UseAiStreamOptions) {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
+          if (res.status === 429) emitRateLimit(0);
           throw new Error(errData.error || `HTTP ${res.status}`);
         }
+
+        const rl = readRateLimitRemaining(res);
+        if (rl !== null) emitRateLimit(rl);
 
         const reader = res.body?.getReader();
         if (!reader) throw new Error("No response stream");

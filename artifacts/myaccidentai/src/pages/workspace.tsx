@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccidentCheckSession, useAccidentLogout, getAccidentCheckSessionQueryKey } from "@workspace/api-client-react";
@@ -744,8 +745,11 @@ function AssistantTab() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
+        if (res.status === 429) emitRateLimit(0);
         throw new Error(j.error || `Request failed (${res.status})`);
       }
+      const rl = readRateLimitRemaining(res);
+      if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
       setMessages([...next, { role: "assistant", content: j.reply || "(no response)" }]);
     } catch (e) {
@@ -924,8 +928,11 @@ function CaseAnalyzerTab() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
+        if (res.status === 429) emitRateLimit(0);
         throw new Error(j.error || `Request failed (${res.status})`);
       }
+      const rl = readRateLimitRemaining(res);
+      if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
       setAnalysis(j.analysis || "(no response)");
     } catch (e) {
@@ -1034,8 +1041,11 @@ function AiDrafterTab() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
+        if (res.status === 429) emitRateLimit(0);
         throw new Error(j.error || `Request failed (${res.status})`);
       }
+      const rl = readRateLimitRemaining(res);
+      if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
       setOutput(j.letter || j.submissions || "(no response)");
     } catch (e) {

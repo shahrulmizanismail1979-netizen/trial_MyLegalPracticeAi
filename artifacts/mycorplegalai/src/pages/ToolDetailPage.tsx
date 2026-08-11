@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { useLocation, useParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PRACTITIONER_TOOLS } from "@/data/ai-tools-data";
@@ -116,7 +117,13 @@ export default function ToolDetailPage() {
         body: JSON.stringify({ tool: backendTool, message: prompt }),
       });
 
-      if (!response.ok) throw new Error("Failed to connect to AI");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 429) emitRateLimit(0);
+        throw new Error(errData.error || "Failed to connect to AI");
+      }
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
       if (!response.body) throw new Error("No response body");
 
       const reader = response.body.getReader();

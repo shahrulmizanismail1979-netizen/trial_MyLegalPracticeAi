@@ -2,6 +2,7 @@ import React from "react";
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { LandingPage } from "@/pages/landing";
@@ -179,6 +180,7 @@ function App() {
           <Router />
         </WouterRouter>
         <Toaster />
+        <RateLimitWarning />
       </TooltipProvider>
     </QueryClientProvider>
   );

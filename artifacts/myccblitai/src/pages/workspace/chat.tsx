@@ -14,6 +14,7 @@ import {
   User, Bot, Clock, AlertCircle, Loader2
 } from "lucide-react";
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { apiUrl } from "@/lib/api";
 import { format } from "date-fns";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
@@ -164,8 +165,12 @@ export default function ChatPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 429) emitRateLimit(0);
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
+
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
 
       if (!response.body) {
         throw new Error("No response body");

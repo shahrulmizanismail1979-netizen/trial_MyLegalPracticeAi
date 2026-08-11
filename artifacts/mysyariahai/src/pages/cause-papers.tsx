@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -283,7 +284,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
     setDraftResult("");
 
     try {
-      const response = await fetch(`${API_BASE}/cause-papers/draft`, {
+      const response = await aiStreamFetch(`${API_BASE}/cause-papers/draft`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

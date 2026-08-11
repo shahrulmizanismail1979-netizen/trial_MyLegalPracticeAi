@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 import {
   Mic,
   MicOff,
@@ -102,10 +103,17 @@ async function streamRespond(
     onError('A subscription is required.');
     return;
   }
+  if (res.status === 429) {
+    emitRateLimit(0);
+    onError('Too many AI requests. Please try again shortly.');
+    return;
+  }
   if (!res.ok) {
     onError('Server error.');
     return;
   }
+  const rl = readRateLimitRemaining(res);
+  if (rl !== null) emitRateLimit(rl);
   const reader = res.body?.getReader();
   const decoder = new TextDecoder();
   if (!reader) {

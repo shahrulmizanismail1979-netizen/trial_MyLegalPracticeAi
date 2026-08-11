@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Target, ChevronRight, Check } from "lucide-react";
 import { isAuthenticated, getToken } from "@/lib/auth";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { apiUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
@@ -111,8 +112,12 @@ export default function StrategyPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 429) emitRateLimit(0);
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
+
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
 
       if (!response.body) {
         throw new Error("No response body");

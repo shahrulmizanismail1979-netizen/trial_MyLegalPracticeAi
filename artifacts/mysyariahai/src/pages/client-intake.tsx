@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -43,7 +44,7 @@ function ClientIntakePageInner() {
   const { data: templates } = useQuery({
     queryKey: ["intake-templates"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/client-intake/templates`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/client-intake/templates`, { credentials: "include" });
       return res.json();
     },
   });
@@ -51,7 +52,7 @@ function ClientIntakePageInner() {
   const { data: template } = useQuery({
     queryKey: ["intake-template", selectedType],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/client-intake/template/${selectedType}`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/client-intake/template/${selectedType}`, { credentials: "include" });
       return res.json();
     },
     enabled: !!selectedType,
@@ -74,7 +75,7 @@ function ClientIntakePageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/client-intake/generate-brief`, {
+      const res = await aiStreamFetch(`${API_BASE}/client-intake/generate-brief`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 // Layout & UI
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/toaster";
+import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Pages
@@ -129,6 +130,7 @@ function App() {
             <Router />
           </WouterRouter>
           <Toaster />
+          <RateLimitWarning />
         </TooltipProvider>
       </LanguageProvider>
     </QueryClientProvider>

@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -72,7 +73,7 @@ function KitabPageInner() {
   const { data: kitabList } = useQuery({
     queryKey: ["kitab-list"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/kitab/list`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/kitab/list`, { credentials: "include" });
       return res.json();
     },
   });
@@ -80,7 +81,7 @@ function KitabPageInner() {
   const { data: kitabDetail } = useQuery({
     queryKey: ["kitab-detail", expandedKitab],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/kitab/${expandedKitab}`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/kitab/${expandedKitab}`, { credentials: "include" });
       return res.json();
     },
     enabled: !!expandedKitab,
@@ -117,7 +118,7 @@ function KitabPageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/kitab/analyze`, {
+      const res = await aiStreamFetch(`${API_BASE}/kitab/analyze`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

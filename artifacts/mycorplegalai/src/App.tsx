@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AiContextProvider } from "@/contexts/AiContext";
 
@@ -45,6 +46,7 @@ function App() {
             <Router />
           </WouterRouter>
           <Toaster />
+          <RateLimitWarning />
         </AiContextProvider>
       </TooltipProvider>
     </QueryClientProvider>

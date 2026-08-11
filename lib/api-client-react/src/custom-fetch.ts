@@ -18,6 +18,28 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
 
+// ---------------------------------------------------------------------------
+// Optional response interceptor — portals can register a callback to inspect
+// every successful Response (e.g. to read RateLimit-Remaining headers).
+// ---------------------------------------------------------------------------
+type ResponseInterceptor = (res: Response) => void;
+let _responseInterceptor: ResponseInterceptor | null = null;
+
+/**
+ * Register a callback that is invoked with each successful HTTP Response
+ * before its body is consumed.  Pass `null` to clear the interceptor.
+ *
+ * Usage (e.g. in App.tsx of portals that use this client):
+ *   import { setResponseInterceptor } from "@workspace/api-client-react";
+ *   setResponseInterceptor((res) => {
+ *     const rl = res.headers.get("RateLimit-Remaining");
+ *     if (rl !== null) emitRateLimit(parseInt(rl, 10));
+ *   });
+ */
+export function setResponseInterceptor(fn: ResponseInterceptor | null): void {
+  _responseInterceptor = fn;
+}
+
 /**
  * Set a base URL that is prepended to every relative request URL
  * (i.e. paths that start with `/`).
@@ -366,6 +388,9 @@ export async function customFetch<T = unknown>(
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
+
+  // Notify registered interceptors (e.g. to read RateLimit-Remaining header).
+  if (_responseInterceptor) _responseInterceptor(response);
 
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
 }

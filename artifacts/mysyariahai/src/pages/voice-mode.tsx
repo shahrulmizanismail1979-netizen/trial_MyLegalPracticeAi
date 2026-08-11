@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -82,7 +83,7 @@ export default function VoiceModePage() {
   const { data: modes } = useQuery<ModeMeta[]>({
     queryKey: ["voice-modes"],
     queryFn: async () => {
-      const r = await fetch(`${API_BASE}/voice-mode/modes`, { credentials: "include" });
+      const r = await aiStreamFetch(`${API_BASE}/voice-mode/modes`, { credentials: "include" });
       return r.json();
     },
   });
@@ -157,7 +158,7 @@ export default function VoiceModePage() {
     const controller = new AbortController();
     aiAbortRef.current = controller;
     try {
-      const res = await fetch(`${API_BASE}/voice-mode/respond`, {
+      const res = await aiStreamFetch(`${API_BASE}/voice-mode/respond`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -486,7 +487,7 @@ export default function VoiceModePage() {
     feedbackAbortRef.current = controller;
     let full = "";
     try {
-      const res = await fetch(`${API_BASE}/voice-mode/feedback`, {
+      const res = await aiStreamFetch(`${API_BASE}/voice-mode/feedback`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

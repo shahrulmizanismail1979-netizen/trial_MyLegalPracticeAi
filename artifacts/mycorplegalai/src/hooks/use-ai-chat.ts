@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 
 type AiTool = "tutor" | "drafter" | "risk-scanner" | "checklist" | "deadline-calculator" | "document-analyzer" | "case-finder" | "minutes-drafter" | "contract-review" | "compliance-advisor";
 
@@ -33,8 +34,13 @@ export function useAiChat() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to connect to AI tools");
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 429) emitRateLimit(0);
+        throw new Error(errData.error || "Failed to connect to AI tools");
       }
+
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
 
       if (!response.body) {
         throw new Error("No response body");

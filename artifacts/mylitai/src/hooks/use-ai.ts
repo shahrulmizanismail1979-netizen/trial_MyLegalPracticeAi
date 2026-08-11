@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 
 export interface ChatMessage {
   role: 'user' | 'model';
@@ -28,8 +29,15 @@ export function useStreamingChat() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to connect to AI Tutor');
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          emitRateLimit(0);
+        }
+        throw new Error(errData.error || 'Failed to connect to AI Tutor');
       }
+
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();

@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -165,7 +166,7 @@ function DocumentGeneratorPageInner() {
   const { data: docTypes } = useQuery({
     queryKey: ["doc-types"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/document-generator/types`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/document-generator/types`, { credentials: "include" });
       return res.json();
     },
   });
@@ -196,7 +197,7 @@ function DocumentGeneratorPageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/document-generator/generate`, {
+      const res = await aiStreamFetch(`${API_BASE}/document-generator/generate`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

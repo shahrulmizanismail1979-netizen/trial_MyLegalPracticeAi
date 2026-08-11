@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useLanguage } from "@/lib/language-context";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -87,7 +88,7 @@ export default function CaseAnalysisPage() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/case-analysis/predict`, {
+      const res = await aiStreamFetch(`${API_BASE}/case-analysis/predict`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

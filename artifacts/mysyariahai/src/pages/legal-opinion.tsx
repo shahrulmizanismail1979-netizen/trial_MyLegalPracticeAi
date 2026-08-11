@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -51,7 +52,7 @@ function LegalOpinionPageInner() {
   const { data: areas } = useQuery({
     queryKey: ["opinion-areas"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/legal-opinion/areas`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/legal-opinion/areas`, { credentials: "include" });
       return res.json();
     },
   });
@@ -67,7 +68,7 @@ function LegalOpinionPageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/legal-opinion/generate`, {
+      const res = await aiStreamFetch(`${API_BASE}/legal-opinion/generate`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

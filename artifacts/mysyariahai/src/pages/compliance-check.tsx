@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/lib/language-context";
@@ -103,7 +104,7 @@ function ComplianceCheckPageInner() {
   const { data: txTypes } = useQuery({
     queryKey: ["compliance-types"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE}/compliance-check/types`, { credentials: "include" });
+      const res = await aiStreamFetch(`${API_BASE}/compliance-check/types`, { credentials: "include" });
       return res.json();
     },
   });
@@ -119,7 +120,7 @@ function ComplianceCheckPageInner() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/compliance-check/analyze`, {
+      const res = await aiStreamFetch(`${API_BASE}/compliance-check/analyze`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Wand2 } from "lucide-react";
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { apiUrl } from "@/lib/api";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
@@ -116,8 +117,12 @@ export default function ToolPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 429) emitRateLimit(0);
         throw new Error(`Error: ${response.status} ${response.statusText}`);
       }
+
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
 
       if (!response.body) {
         throw new Error("No response body");

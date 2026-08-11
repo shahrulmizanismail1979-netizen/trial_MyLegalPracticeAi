@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
 import { Modal, Input, Textarea, Label, Button } from '@/components/ui';
 import { FileText, Wand2, CheckCircle, AlertTriangle, Loader2, BookmarkPlus, Check } from 'lucide-react';
 import { FileUploadDropzone, buildContextFromFiles, type ExtractedFile } from '@/components/FileUploadDropzone';
@@ -30,7 +31,13 @@ function useStreamingDraft() {
         body: JSON.stringify(body),
         signal: abortRef.current.signal,
       });
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 429) emitRateLimit(0);
+        throw new Error(errData.error || `Server error: ${response.status}`);
+      }
+      const rl = readRateLimitRemaining(response);
+      if (rl !== null) emitRateLimit(rl);
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';

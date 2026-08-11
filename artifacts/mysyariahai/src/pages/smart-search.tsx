@@ -1,3 +1,4 @@
+import { aiStreamFetch } from "@/lib/ai-stream-fetch";
 import { useState, useRef } from "react";
 import { useLanguage } from "@/lib/language-context";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +58,7 @@ export default function SmartSearchPage() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/smart-search`, {
+      const res = await aiStreamFetch(`${API_BASE}/smart-search`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
