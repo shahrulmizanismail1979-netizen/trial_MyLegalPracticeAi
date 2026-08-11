@@ -2,6 +2,7 @@ import { Check, Building2, Building, Briefcase, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
+import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
 
 const INDIVIDUAL_BUNDLE_PRICE = 79;
@@ -73,8 +74,16 @@ const tiers = [
 
 const ENTERPRISE_WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent("Hi, I'd like to discuss enterprise licensing for the AI Portals for my organisation.")}`;
 
+/** Checkout tier ids understood by /api/stripe/checkout. */
+const CHECKOUT_TIER_BY_NAME: Record<string, string> = {
+  Boutique: "firm-boutique",
+  Practice: "firm-practice",
+  Firm: "firm-firm",
+};
+
 export function FirmBundles() {
   const { format } = useCurrency();
+  const { startCheckout, loadingTier, error } = useBundleCheckout();
   const bundleWhatsAppUrl = (tierName: string) =>
     `https://wa.me/60139725475?text=${encodeURIComponent(
       `Hi, I'd like to subscribe to the ${tierName} firm bundle. Please help me get set up.`,
@@ -193,21 +202,28 @@ the larger your firm, the lower the equivalent per-user cost.
                     </Button>
                   </a>
                 ) : (
-                  <a
-                    href={bundleWhatsAppUrl(tier.name)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full"
-                  >
+                  <div className="w-full space-y-2">
                     <Button
                       variant={tier.featured ? "default" : "outline"}
                       className={`w-full ${
                         tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
                       }`}
+                      disabled={loadingTier !== null}
+                      onClick={() => startCheckout(CHECKOUT_TIER_BY_NAME[tier.name]!)}
                     >
-                      Get This Bundle
+                      {loadingTier === CHECKOUT_TIER_BY_NAME[tier.name]
+                        ? "Redirecting to checkout..."
+                        : "Get This Bundle"}
                     </Button>
-                  </a>
+                    <a
+                      href={bundleWhatsAppUrl(tier.name)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
+                    >
+                      Questions? Chat with us on WhatsApp
+                    </a>
+                  </div>
                 )}
               </CardFooter>
             </Card>

@@ -2,12 +2,16 @@ import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { getUncachableStripeClient } from "../stripeClient";
-import { provisionFromCheckoutSession } from "../lib/provisioning";
+import {
+  provisionFromCheckoutSession,
+  BUNDLE_TIER_CATALOG,
+  isAllPortalsTier,
+} from "../lib/provisioning";
 
 const router: IRouter = Router();
 
-const CHECKOUT_TIERS = ["bundle", "single", "standard"] as const;
-type CheckoutTier = (typeof CHECKOUT_TIERS)[number];
+const CHECKOUT_TIERS = ["bundle", "single", "standard", ...Object.keys(BUNDLE_TIER_CATALOG)];
+type CheckoutTier = string;
 
 /**
  * Allowlist of app URLs that can be used as post-checkout redirect targets.
@@ -51,6 +55,57 @@ async function getActivePriceIdForTier(tier: CheckoutTier): Promise<string | nul
   `);
   const row = result.rows[0] as { price_id?: string } | undefined;
   return row?.price_id ?? null;
+}
+
+/**
+ * Team-bundle tiers are auto-provisioned in Stripe on first checkout:
+ * if the synced catalog has no product tagged with the tier, create the
+ * product + monthly USD price directly (idempotency keys make retries and
+ * concurrent requests safe — dev and prod share one Stripe account).
+ */
+async function ensureBundleTierPrice(tier: string): Promise<string | null> {
+  const def = BUNDLE_TIER_CATALOG[tier];
+  if (!def) return null;
+
+  const stripe = await getUncachableStripeClient();
+
+  // Prefer an existing live product tagged with this tier.
+  const found = await stripe.products.search({
+    query: `active:'true' AND metadata['tier']:'${tier}'`,
+    limit: 1,
+  });
+  let productId = found.data[0]?.id;
+
+  if (!productId) {
+    const product = await stripe.products.create(
+      {
+        name: def.name,
+        metadata: { tier, licenses: String(def.licenses) },
+      },
+      { idempotencyKey: `mlpa-bundle-product-${tier}-v1` },
+    );
+    productId = product.id;
+  }
+
+  const prices = await stripe.prices.list({ product: productId, active: true, limit: 10 });
+  const existing = prices.data.find(
+    (p) =>
+      p.currency === "usd" &&
+      p.recurring?.interval === "month" &&
+      p.unit_amount === def.monthlyUsdCents,
+  );
+  if (existing) return existing.id;
+
+  const price = await stripe.prices.create(
+    {
+      product: productId,
+      currency: "usd",
+      unit_amount: def.monthlyUsdCents,
+      recurring: { interval: "month" },
+    },
+    { idempotencyKey: `mlpa-bundle-price-${tier}-${def.monthlyUsdCents}-v1` },
+  );
+  return price.id;
 }
 
 // Public: list active products with their prices (for the pricing page)
@@ -122,12 +177,19 @@ router.post("/checkout", async (req, res) => {
   // Non-bundle plans cover exactly one portal. Without an appUrl the
   // provisioning step cannot tell which portal was purchased, leaving the
   // subscriber with an access code that works nowhere — so require it.
-  if (tier !== "bundle" && !appUrl) {
+  if (!isAllPortalsTier(tier) && !appUrl) {
     res.status(400).json({ error: "Please choose an AI portal before subscribing." });
     return;
   }
 
-  const priceId = await getActivePriceIdForTier(tier as CheckoutTier);
+  let priceId = await getActivePriceIdForTier(tier as CheckoutTier);
+  if (!priceId && tier in BUNDLE_TIER_CATALOG) {
+    try {
+      priceId = await ensureBundleTierPrice(tier);
+    } catch (err) {
+      req.log.error({ err, tier }, "Failed to auto-provision Stripe bundle tier");
+    }
+  }
   if (!priceId) {
     req.log.error({ tier }, "No active Stripe price found for tier");
     res.status(503).json({

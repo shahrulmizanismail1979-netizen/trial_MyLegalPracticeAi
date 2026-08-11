@@ -160,20 +160,23 @@ async function syncAccidentAccessCode(params: {
   accessCode: string;
   name: string;
   expiresAt?: Date | null;
+  /** Licensed seat count for team bundles; defaults to the individual cap. */
+  maxUsers?: number;
 }): Promise<void> {
+  const maxUsers = Math.max(2, params.maxUsers ?? 2);
   try {
     await db
       .insert(accessCodesTable)
       .values({
         code: params.accessCode,
         label: params.name,
-        maxUsers: 2,
+        maxUsers,
         isActive: true,
         expiresAt: params.expiresAt ?? null,
       })
       .onConflictDoUpdate({
         target: accessCodesTable.code,
-        set: { isActive: true, expiresAt: params.expiresAt ?? null },
+        set: { isActive: true, expiresAt: params.expiresAt ?? null, maxUsers },
       });
     logger.info(
       { accessCode: params.accessCode },
@@ -441,14 +444,19 @@ export async function syncPortalAccessCodes(subscriber: {
   email: string | null;
   apps: string[];
   subscriptionExpiry?: Date | null;
+  tier?: string | null;
 }): Promise<void> {
   const { accessCode, name, email, apps } = subscriber;
   if (!accessCode) return;
   // Propagate the subscriber's expiry date into every portal table that
   // supports one, so the code stops working when the subscription ends.
   const expiresAt = subscriber.subscriptionExpiry ?? null;
+  // Team bundles carry a licensed seat count; portals with per-code user
+  // caps get at least that many seats.
+  const licenses = subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined;
   if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email });
-  if (includesAccidentApp(apps)) await syncAccidentAccessCode({ accessCode, name, expiresAt });
+  if (includesAccidentApp(apps))
+    await syncAccidentAccessCode({ accessCode, name, expiresAt, maxUsers: licenses });
   if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name, expiresAt });
   if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name, expiresAt });
   if (includesLitApp(apps)) await syncLitAccessCode({ accessCode, name, email, expiresAt });
@@ -616,8 +624,34 @@ export async function backfillPortalAccessCodes(): Promise<number> {
   return synced;
 }
 
+/**
+ * Firm / corporate / education team bundles sold on the landing page.
+ * Each grants access to ALL portals (like the individual Complete Bundle)
+ * with a stated number of user licenses, billed as one monthly subscription.
+ * The key is the checkout `tier` and also the Stripe product `metadata.tier`.
+ */
+export const BUNDLE_TIER_CATALOG: Record<
+  string,
+  { name: string; monthlyUsdCents: number; licenses: number }
+> = {
+  "firm-boutique": { name: "Firm Bundle — Boutique (5 licenses)", monthlyUsdCents: 35500, licenses: 5 },
+  "firm-practice": { name: "Firm Bundle — Practice (15 licenses)", monthlyUsdCents: 100500, licenses: 15 },
+  "firm-firm": { name: "Firm Bundle — Firm (30 licenses)", monthlyUsdCents: 189000, licenses: 30 },
+  "corp-startup": { name: "Corporate Bundle — Startup Legal (3 licenses)", monthlyUsdCents: 21300, licenses: 3 },
+  "corp-growth": { name: "Corporate Bundle — Growth (8 licenses)", monthlyUsdCents: 55200, licenses: 8 },
+  "corp-corporate": { name: "Corporate Bundle — Corporate (20 licenses)", monthlyUsdCents: 130000, licenses: 20 },
+  "edu-faculty-starter": { name: "Academic Bundle — Faculty Starter (20 licenses)", monthlyUsdCents: 134000, licenses: 20 },
+  "edu-faculty-plus": { name: "Academic Bundle — Faculty Plus (50 licenses)", monthlyUsdCents: 325000, licenses: 50 },
+  "edu-campus": { name: "Academic Bundle — Campus (150 licenses)", monthlyUsdCents: 945000, licenses: 150 },
+};
+
+/** True when the tier unlocks every portal (individual bundle or any team bundle). */
+export function isAllPortalsTier(tier: string | null | undefined): boolean {
+  return tier === "bundle" || (tier != null && tier in BUNDLE_TIER_CATALOG);
+}
+
 function appsForCheckout(tier: string | null, appUrl: string | null): string[] {
-  if (tier === "bundle") return [...ALL_APP_NAMES];
+  if (isAllPortalsTier(tier)) return [...ALL_APP_NAMES];
   if (appUrl && APP_NAME_BY_URL[appUrl]) return [APP_NAME_BY_URL[appUrl]!];
   return [];
 }
@@ -785,7 +819,7 @@ export async function provisionFromCheckoutSession(
     };
   }
 
-  await syncPortalAccessCodes({ accessCode, name, email, apps });
+  await syncPortalAccessCodes({ accessCode, name, email, apps, tier });
 
   // Safety net: if the checkout metadata didn't identify a portal, the code
   // above synced nowhere and the customer can't log in. Flag it loudly so the
