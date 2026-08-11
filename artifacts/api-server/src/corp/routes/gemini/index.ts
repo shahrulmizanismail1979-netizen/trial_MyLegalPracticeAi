@@ -10,6 +10,7 @@ import {
   CorpListGeminiConversationsResponseItem,
 } from "@workspace/api-zod";
 import { requireSession } from "../../lib/requireSession";
+import { aiRateLimit } from "../../../lib/aiRateLimit";
 
 const router: IRouter = Router();
 
@@ -17,6 +18,7 @@ const router: IRouter = Router();
 // are scoped to the session's access code so subscribers cannot see each
 // other's data.
 router.use("/gemini", requireSession);
+router.use("/gemini", aiRateLimit);
 
 function accessCodeId(res: { locals: Record<string, unknown> }): number {
   return res.locals.accessCodeId as number;

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { firmAiRateLimit } from "../lib/firmAiRateLimit";
 import { eq, desc, and, or, lt, gte, isNull, inArray } from "drizzle-orm";
 import { db, tasksTable, usersTable, taskActivityTable } from "../db";
 import {
@@ -366,7 +367,7 @@ router.get("/activity", async (req, res): Promise<void> => {
 });
 
 // AI manager briefing (manager only)
-router.post("/ai-briefing", async (req, res): Promise<void> => {
+router.post("/ai-briefing", firmAiRateLimit, async (req, res): Promise<void> => {
   const parsed = GenerateAiBriefingBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

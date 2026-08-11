@@ -30,6 +30,7 @@ import mattersRouter from "./matters";
 import clientsRouter from "./clients";
 import { tierHasFeature, type FeatureKey } from "../lib/tiers";
 import { ensureCodeNotExpired, syaSessionGate } from "../lib/auth";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 
 const router: IRouter = Router();
 
@@ -80,6 +81,22 @@ router.use(async (req, res, next) => {
       currentTier: tier,
     });
     return;
+  }
+  next();
+});
+
+// AI rate limit: per-subscriber guard on all routes that invoke Gemini / OpenAI.
+// syaSessionGate already runs above, so req.session.userId is available for keying.
+const SYA_AI_PREFIXES = new Set([
+  "/gemini", "/smart-search", "/analyzer", "/case-analysis",
+  "/document-generator", "/legal-opinion", "/compliance-check",
+  "/client-intake", "/kitab", "/tafsir", "/voice-mode", "/voice",
+  "/cause-papers",
+]);
+router.use((req, res, next) => {
+  const segment = `/${req.path.split("/")[1] ?? ""}`;
+  if (SYA_AI_PREFIXES.has(segment)) {
+    return void aiRateLimit(req, res, next);
   }
   next();
 });

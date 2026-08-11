@@ -24,6 +24,7 @@ import { ai } from "@workspace/integrations-gemini-ai";
 import { logger } from "./logger";
 import { PORTAL_NAMES, PORTAL_STAGES, type Portal } from "./caseStages";
 import { verifyMatterOwnership } from "./caseOwnership";
+import { aiRateLimit } from "./aiRateLimit";
 
 /** A single saved-work entry as surfaced to the review context. */
 export interface SavedWorkItem {
@@ -290,7 +291,7 @@ export function buildCaseReviewRouter(
   });
 
   // POST /matters/:id/review ─────────────────────────────────────────────────
-  router.post("/:id/review", async (req: Request, res: Response) => {
+  router.post("/:id/review", aiRateLimit, async (req: Request, res: Response) => {
     const ownerKey = getOwnerKey(req, res);
     if (!ownerKey) {
       res.status(401).json({ error: "Not authenticated" });
@@ -328,7 +329,7 @@ export function buildCaseReviewRouter(
   // Proactive preparation briefing for the matter's NEXT STEP. Optional body
   // { step: string } names the step (as shown on the dashboard); when absent
   // the AI infers the most imminent step from the matter data.
-  router.post("/:id/prepare", async (req: Request, res: Response) => {
+  router.post("/:id/prepare", aiRateLimit, async (req: Request, res: Response) => {
     const ownerKey = getOwnerKey(req, res);
     if (!ownerKey) {
       res.status(401).json({ error: "Not authenticated" });

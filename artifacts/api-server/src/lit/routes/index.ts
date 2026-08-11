@@ -27,6 +27,7 @@ import affidavitsRouter from "./affidavits";
 import practiceDirectionsRouter from "./practice-directions";
 import barCouncilRouter from "./bar-council";
 import clientsRouter from "./clients";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 
 const router: IRouter = Router();
 
@@ -44,16 +45,16 @@ router.use("/jurisprudence", jurisprudenceRouter);
 router.use("/costs", costsRouter);
 router.use("/compendium", compendiumRouter);
 router.use("/terminology", terminologyRouter);
-router.use("/ai", aiRouter);
-router.use("/gemini", geminiRouter);
+router.use("/ai", aiRateLimit, aiRouter);
+router.use("/gemini", aiRateLimit, geminiRouter);
+router.use("/irac", aiRateLimit, iracRouter);
+router.use("/banking-recovery", aiRateLimit, bankingRecoveryRouter);
 router.use("/uploads", uploadsRouter);
 router.use("/exports", exportsRouter);
 router.use("/saved-work", savedWorkRouter);
 router.use("/billing", billingRouter);
 router.use("/oral", oralRouter);
-router.use("/irac", iracRouter);
 router.use("/matters", mattersRouter);
-router.use("/banking-recovery", bankingRecoveryRouter);
 router.use("/enforcement", enforcementRouter);
 router.use("/bundles", bundlesRouter);
 router.use("/intake", intakeRouter);

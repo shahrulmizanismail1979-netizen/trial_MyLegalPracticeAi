@@ -1,12 +1,16 @@
 import { Router, type IRouter } from "express";
 import OpenAI from "openai";
 import { requireAccidentSession } from "../accident/sessionGate";
+import { aiRateLimit } from "../lib/aiRateLimit";
 
 const router: IRouter = Router();
 
 // Team-bundle seat enforcement: AI routes require a live (non-displaced,
 // non-idle) session; every request refreshes the session's activity.
 router.use((req, res, next) => void requireAccidentSession(req, res, next));
+// Per-subscriber AI rate limit (runs after requireAccidentSession so
+// res.locals.accidentAccessCodeId is populated for the key generator).
+router.use(aiRateLimit);
 
 const client = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,

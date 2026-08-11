@@ -16,7 +16,7 @@ import { createTaskFromDraft } from "../lib/meetingService";
 import { fetchRecentEmails } from "../lib/gmail";
 import { requireManagerSession } from "../lib/managerSession";
 import { syncToDrive } from "../lib/googleDrive";
-import { aiRateLimit } from "../lib/aiRateLimit";
+import { firmAiRateLimit as aiRateLimit } from "../lib/firmAiRateLimit";
 
 const router: IRouter = Router();
 

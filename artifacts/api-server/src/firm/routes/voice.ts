@@ -7,7 +7,7 @@ import {
   ensureCompatibleFormat,
 } from "@workspace/integrations-openai-ai-server";
 import { syncToDrive } from "../lib/googleDrive";
-import { aiRateLimit } from "../lib/aiRateLimit";
+import { firmAiRateLimit as aiRateLimit } from "../lib/firmAiRateLimit";
 
 const router: IRouter = Router();
 

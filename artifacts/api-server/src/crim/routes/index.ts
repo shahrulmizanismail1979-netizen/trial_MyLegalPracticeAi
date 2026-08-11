@@ -20,6 +20,7 @@ import clientsRouter from "./clients";
 import { requireAuth } from "../middleware/requireAuth";
 import { gateAiTools } from "../middleware/entitlements";
 import { ensureCrimMatterTables } from "../lib/ensureMatterTables";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 
 // Fire-and-forget at boot; requests to the matter routes also await it via
 // middleware so a slow boot can't race an early request into a missing table.
@@ -51,6 +52,7 @@ router.use("/matters", mattersRouter);
 router.use("/saved-work", savedWorkRouter);
 router.use("/clients", awaitMatterTables, clientsRouter);
 router.use(gateAiTools);
+router.use(aiRateLimit);
 router.use(aiRouter);
 router.use(voiceRouter);
 

@@ -31,6 +31,7 @@ import { buildCaseEventsRouter } from "./caseEvents";
 import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { buildCaseBriefingRouter } from "./caseBriefing";
+import { aiRateLimit } from "./aiRateLimit";
 import { logger } from "./logger";
 
 type MatterRow = Record<string, unknown>;
@@ -49,7 +50,7 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
   const P = opts.pathPrefix ?? "";
 
   // ── AI Insights ─────────────────────────────────────────────────────────────
-  router.get(`${P}/:id/ai-insights`, async (req: Request, res: Response) => {
+  router.get(`${P}/:id/ai-insights`, aiRateLimit, async (req: Request, res: Response) => {
     const ownerKey = getOwnerKey(req, res);
     if (!ownerKey) {
       res.status(401).json({ error: "Not authenticated" });

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { firmAiRateLimit } from "../lib/firmAiRateLimit";
 import { and, or, eq, inArray, ilike, desc } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
@@ -234,7 +235,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
 });
 
 // AI smart triage: suggest category, reason, and best owner for a new task
-router.post("/tasks/ai-triage", async (req, res): Promise<void> => {
+router.post("/tasks/ai-triage", firmAiRateLimit, async (req, res): Promise<void> => {
   const parsed = AiTriageTaskBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

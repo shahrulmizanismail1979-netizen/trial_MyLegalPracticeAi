@@ -31,6 +31,13 @@ export async function requireAccidentSession(
     res.status(401).json({ error: check.error });
     return;
   }
+  // Expose the resolved access-code id so the AI rate-limit key generator
+  // can key per-subscriber rather than falling back to __noauth__.
+  // Master sessions have no DB row; leave the field absent so the limiter
+  // uses its __noauth__ bucket (master sessions are admin-only, not subscriber).
+  if (check.accessCodeId != null) {
+    res.locals["accidentAccessCodeId"] = check.accessCodeId;
+  }
   next();
 }
 

@@ -25,7 +25,7 @@ import { buildMinutesDocx } from "../lib/meetingDocx";
 import { syncToDrive } from "../lib/googleDrive";
 import { transcribeWithDiarization } from "../lib/transcription";
 import { exportMinutesToGoogleDoc } from "../lib/googleDocs";
-import { aiRateLimit } from "../lib/aiRateLimit";
+import { firmAiRateLimit as aiRateLimit } from "../lib/firmAiRateLimit";
 
 const router: IRouter = Router();
 

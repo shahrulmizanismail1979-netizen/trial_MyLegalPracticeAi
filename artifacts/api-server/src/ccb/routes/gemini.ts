@@ -3,6 +3,7 @@ import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { db, ccbConversations, ccbMessages } from "@workspace/db";
 import { ai } from "@workspace/integrations-gemini-ai";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 
 const router: IRouter = Router();
 
@@ -139,7 +140,7 @@ router.get("/gemini/conversations/:id/messages", async (req, res): Promise<void>
   res.json(messages);
 });
 
-router.post("/gemini/conversations/:id/messages", async (req, res): Promise<void> => {
+router.post("/gemini/conversations/:id/messages", aiRateLimit, async (req, res): Promise<void> => {
   const params = ConversationIdParam.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { firmAiRateLimit } from "../lib/firmAiRateLimit";
 import { and, eq, asc } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { db, goalsTable, kpisTable, tasksTable } from "../db";
@@ -76,7 +77,7 @@ router.post("/goals", async (req, res): Promise<void> => {
 });
 
 // Draft a goal and KPIs from a free-text prompt (manager only).
-router.post("/goals/ai-build", async (req, res): Promise<void> => {
+router.post("/goals/ai-build", firmAiRateLimit, async (req, res): Promise<void> => {
   const parsed = AiBuildGoalBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });

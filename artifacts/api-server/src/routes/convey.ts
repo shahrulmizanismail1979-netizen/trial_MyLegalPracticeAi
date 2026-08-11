@@ -1,6 +1,7 @@
 import { claimSeat, deviceSeatKey, seatLimitMessage } from "../lib/seatLimits";
 import { Router, type IRouter } from "express";
 import { loginRateLimit } from "../lib/loginRateLimit";
+import { aiRateLimit } from "../lib/aiRateLimit";
 import { logger } from "../lib/logger";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db } from "@workspace/db";
@@ -58,6 +59,20 @@ const router: IRouter = Router();
 
 // Server-side paywall: enforce tier access on all POST /convey/* endpoints.
 router.use(conveyGate);
+
+// Per-subscriber AI rate limit — applied only on AI-generation POST routes.
+// Auth/signup, plans, TTS, and export-docx are excluded because they are either
+// public, non-AI, or use a separate billing/generation system.
+const CONVEY_NON_AI_POSTS = new Set([
+  "/convey/auth", "/convey/auth/sso", "/convey/signup",
+  "/convey/tts", "/convey/export-docx",
+]);
+router.use((req, res, next) => {
+  if (req.method !== "POST" || CONVEY_NON_AI_POSTS.has(req.path)) {
+    return next();
+  }
+  return void aiRateLimit(req, res, next);
+});
 
 async function trackUsage(tool: string, inputLength: number, outputLength: number, durationMs: number, userId?: number | null) {
   try {

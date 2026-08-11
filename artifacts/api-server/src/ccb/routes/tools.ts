@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { z } from "zod";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { logger } from "../../lib/logger";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 import { TOOL_EXAMPLES } from "../data/tool-examples";
 
 const router: IRouter = Router();
@@ -1150,7 +1151,7 @@ router.get("/tools/list", async (_req, res): Promise<void> => {
   res.json(enriched);
 });
 
-router.post("/tools/generate", async (req, res): Promise<void> => {
+router.post("/tools/generate", aiRateLimit, async (req, res): Promise<void> => {
   const GenerateWithToolBody = z.object({ toolId: z.string(), inputs: z.record(z.string(), z.string()) });
   const parsed = GenerateWithToolBody.safeParse(req.body);
   if (!parsed.success) {

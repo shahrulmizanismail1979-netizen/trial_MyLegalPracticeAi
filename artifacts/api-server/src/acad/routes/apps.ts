@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { ipAiRateLimit } from "../../lib/aiRateLimit";
 import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { appsTable } from "@workspace/db/acad";
@@ -55,7 +56,7 @@ router.get("/apps/:slug", async (req, res): Promise<void> => {
   res.json(GetAppResponse.parse(app));
 });
 
-router.post("/apps/:slug/study-guide", async (req, res): Promise<void> => {
+router.post("/apps/:slug/study-guide", ipAiRateLimit, async (req, res): Promise<void> => {
   const params = GenerateStudyGuideParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -84,7 +85,7 @@ router.post("/apps/:slug/study-guide", async (req, res): Promise<void> => {
   );
 });
 
-router.post("/apps/:slug/flashcards", async (req, res): Promise<void> => {
+router.post("/apps/:slug/flashcards", ipAiRateLimit, async (req, res): Promise<void> => {
   const params = GenerateFlashcardsParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

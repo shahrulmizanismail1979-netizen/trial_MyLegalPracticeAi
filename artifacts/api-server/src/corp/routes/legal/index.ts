@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { loginRateLimit } from "../../../lib/loginRateLimit";
+import { aiRateLimit } from "../../../lib/aiRateLimit";
 import crypto from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db, corpAccessCodes, corpSessions } from "@workspace/db";
@@ -2309,7 +2310,7 @@ Cover: policy drafting, board approval, training, system implementation, third-p
 This must enable the GC / Compliance Officer / Board to take immediate, specific action.`
 };
 
-router.post("/legal/ai-tools/chat", requireSession, async (req, res): Promise<void> => {
+router.post("/legal/ai-tools/chat", requireSession, aiRateLimit, async (req, res): Promise<void> => {
   const { tool, message, context } = req.body;
 
   if (!tool || !message) {

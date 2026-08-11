@@ -23,6 +23,7 @@ import {
   type User,
 } from "@workspace/db/acad";
 import { requireUser, getRouteUser, getSessionUser } from "../lib/auth";
+import { aiRateLimit, attemptAiRateLimit } from "../../lib/aiRateLimit";
 import { generateAttemptToken, verifyAttemptToken } from "../lib/attempt-token";
 import {
   awardEducatorXp,
@@ -694,7 +695,7 @@ router.delete("/studio/materials/:id", auth, async (req, res) => {
 
 // ─────────────── research agent ───────────────
 
-router.post("/studio/assessments/:id/research", auth, async (req, res) => {
+router.post("/studio/assessments/:id/research", auth, aiRateLimit, async (req, res) => {
   const a = await loadAssessmentForUser(String(req.params["id"]), res);
   if (!a) return;
   const b = req.body ?? {};
@@ -731,6 +732,7 @@ router.post("/studio/assessments/:id/research", auth, async (req, res) => {
 router.post(
   "/studio/assessments/:id/generate-questions",
   auth,
+  aiRateLimit,
   async (req, res) => {
     const a = await loadAssessmentForUser(String(req.params["id"]), res);
     if (!a) return;
@@ -913,7 +915,7 @@ router.get("/studio/assessments/:id/attempts", auth, async (req, res) => {
   res.json(rows.map(serializeAttempt));
 });
 
-router.get("/studio/assessments/:id/insights", auth, async (req, res) => {
+router.get("/studio/assessments/:id/insights", auth, aiRateLimit, async (req, res) => {
   const a = await loadAssessmentForUser(String(req.params["id"]), res);
   if (!a) return;
 
@@ -1139,7 +1141,7 @@ router.get("/studio/attempts/:id", async (req, res) => {
   });
 });
 
-router.post("/studio/attempts/:id/answers", async (req, res) => {
+router.post("/studio/attempts/:id/answers", attemptAiRateLimit, async (req, res) => {
   const attempt = await attemptOpen(String(req.params["id"]));
   if (!attempt) {
     res.status(404).json({ error: "Attempt not found" });
@@ -1266,7 +1268,7 @@ router.post("/studio/attempts/:id/answers", async (req, res) => {
   res.status(201).json(serializeAnswer(row!));
 });
 
-router.post("/studio/attempts/:id/transcribe", async (req, res) => {
+router.post("/studio/attempts/:id/transcribe", attemptAiRateLimit, async (req, res) => {
   const attempt = await attemptOpen(String(req.params["id"]));
   if (!attempt) {
     res.status(404).json({ error: "Attempt not found" });
@@ -1287,7 +1289,7 @@ router.post("/studio/attempts/:id/transcribe", async (req, res) => {
   }
 });
 
-router.post("/studio/attempts/:id/read-handwriting", async (req, res) => {
+router.post("/studio/attempts/:id/read-handwriting", attemptAiRateLimit, async (req, res) => {
   const attempt = await attemptOpen(String(req.params["id"]));
   if (!attempt) {
     res.status(404).json({ error: "Attempt not found" });
@@ -1308,7 +1310,7 @@ router.post("/studio/attempts/:id/read-handwriting", async (req, res) => {
   }
 });
 
-router.post("/studio/attempts/:id/finish", async (req, res) => {
+router.post("/studio/attempts/:id/finish", attemptAiRateLimit, async (req, res) => {
   const attempt = await attemptOpen(String(req.params["id"]));
   if (!attempt) {
     res.status(404).json({ error: "Attempt not found" });
@@ -1457,7 +1459,7 @@ router.post("/studio/attempts/:id/proctor-event", async (req, res) => {
   });
 });
 
-router.post("/studio/attempts/:id/proctor-snapshot", async (req, res) => {
+router.post("/studio/attempts/:id/proctor-snapshot", attemptAiRateLimit, async (req, res) => {
   const attempt = await attemptOpen(String(req.params["id"]));
   if (!attempt) {
     res.status(404).json({ error: "Attempt not found" });

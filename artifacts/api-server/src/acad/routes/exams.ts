@@ -1,5 +1,6 @@
 import { db } from "@workspace/db";
 import { Router, type IRouter } from "express";
+import { attemptAiRateLimit, aiRateLimit } from "../../lib/aiRateLimit";
 import { eq, desc, and, asc, inArray, sql, notInArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
@@ -216,7 +217,7 @@ router.get("/exams/:id/questions", async (req, res): Promise<void> => {
   res.json(ListExamQuestionsResponse.parse(questions.map(serializeQuestion)));
 });
 
-router.post("/exams/:id/next-question", async (req, res): Promise<void> => {
+router.post("/exams/:id/next-question", attemptAiRateLimit, async (req, res): Promise<void> => {
   const params = GenerateNextQuestionParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -405,6 +406,7 @@ router.post("/exams/:id/next-question", async (req, res): Promise<void> => {
 
 router.post(
   "/exams/:id/questions/:questionId/answer",
+  attemptAiRateLimit,
   async (req, res): Promise<void> => {
     const params = SubmitAnswerParams.safeParse(req.params);
     if (!params.success) {
@@ -496,6 +498,7 @@ router.post(
 
 router.post(
   "/exams/:id/questions/:questionId/hint",
+  attemptAiRateLimit,
   async (req, res): Promise<void> => {
     const params = RequestHintParams.safeParse(req.params);
     if (!params.success) {
@@ -539,6 +542,7 @@ router.post(
 
 router.post(
   "/exams/:id/questions/:questionId/explain",
+  attemptAiRateLimit,
   async (req, res): Promise<void> => {
     const params = ExplainQuestionParams.safeParse(req.params);
     if (!params.success) {
@@ -630,7 +634,7 @@ export async function buildSummary(sessionId: string) {
   return { session, questions, breakdown, template };
 }
 
-router.post("/exams/:id/finish", async (req, res): Promise<void> => {
+router.post("/exams/:id/finish", attemptAiRateLimit, async (req, res): Promise<void> => {
   const params = FinishExamParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -760,6 +764,7 @@ router.get("/exams/:id/summary", async (req, res): Promise<void> => {
 
 router.post(
   "/exams/:id/proctor-report",
+  attemptAiRateLimit,
   async (req, res): Promise<void> => {
     const params = SubmitProctorEventParams.safeParse(req.params);
     if (!params.success) {
@@ -900,7 +905,7 @@ router.get("/admin/question-bank/stats", async (req, res): Promise<void> => {
   res.json({ total, breakdown: rows });
 });
 
-router.post("/admin/question-bank/seed", async (req, res): Promise<void> => {
+router.post("/admin/question-bank/seed", aiRateLimit, async (req, res): Promise<void> => {
   if (!requireAdmin(req, res)) return;
   const rawPerApp = req.body?.perApp;
   const rawExtras = req.body?.extras;

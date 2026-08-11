@@ -1,5 +1,6 @@
 import { db } from "@workspace/db";
 import { Router, type IRouter, type Response } from "express";
+import { aiRateLimit } from "../../lib/aiRateLimit";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
@@ -247,7 +248,7 @@ router.get("/exam-templates/ai-blueprint", (_req, res) => {
   res.status(405).json({ error: "POST only" });
 });
 
-router.post("/exam-templates/ai-blueprint", auth, async (req, res): Promise<void> => {
+router.post("/exam-templates/ai-blueprint", auth, aiRateLimit, async (req, res): Promise<void> => {
   const body = AiBlueprintExamBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -285,7 +286,7 @@ router.post("/exam-templates/ai-blueprint", auth, async (req, res): Promise<void
   res.json(AiBlueprintExamResponse.parse(blueprint));
 });
 
-router.post("/exam-templates/ai-rules", auth, async (req, res): Promise<void> => {
+router.post("/exam-templates/ai-rules", auth, aiRateLimit, async (req, res): Promise<void> => {
   const body = AiSuggestRulesBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
