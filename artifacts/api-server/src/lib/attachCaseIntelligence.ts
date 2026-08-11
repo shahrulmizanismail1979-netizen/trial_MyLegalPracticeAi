@@ -27,6 +27,9 @@ import { type Portal, PORTAL_STAGES, isValidStage } from "./caseStages";
 import { getMatterInsights, invalidateMatterInsights } from "./caseInsights";
 import { generateAndSaveChecklist, makeChecklistRouter } from "./caseChecklist";
 import { makeTimeRecordingRouter } from "./caseTimeRecording";
+import { buildCaseEventsRouter } from "./caseEvents";
+import { makeMatterClientsRouter } from "./caseClients";
+import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { logger } from "./logger";
 
 type MatterRow = Record<string, unknown>;
@@ -176,6 +179,73 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
   // ── Time recording (sub-router with mergeParams) ─────────────────────────────
   const timeRouter = makeTimeRecordingRouter(portal, getOwnerKey);
   router.use(`${P}/:matterId/time-entries`, timeRouter);
+
+  // ── Chronology / activity stream (sub-router with mergeParams) ───────────────
+  const eventsRouter = buildCaseEventsRouter(portal, getOwnerKey);
+  router.use(`${P}/:matterId/events`, eventsRouter);
+
+  // ── Linked client records for a matter ───────────────────────────────────────
+  router.use(`${P}/:matterId/clients`, makeMatterClientsRouter(portal, getOwnerKey));
+
+  // ── Matter-aware AI review (context assembly + "what next") ──────────────────
+  // Owner predicate matching each portal's own owner column (see caseOwnership.ts)
+  // so supporting rows are tenant-scoped in addition to the up-front ownership gate.
+  const ownerPredicate = (
+    ownerKey: string,
+    firstParamIndex: number,
+  ): { clause: string; params: Array<string | number> } | null => {
+    if (portal === "sya") {
+      const colon = ownerKey.indexOf(":");
+      if (colon < 0) return null;
+      const ownerId = parseInt(ownerKey.slice(colon + 1), 10);
+      if (Number.isNaN(ownerId)) return null;
+      return {
+        clause: `owner_type = $${firstParamIndex} AND owner_id = $${firstParamIndex + 1}`,
+        params: [ownerKey.slice(0, colon), ownerId],
+      };
+    }
+    const ownerCol =
+      portal === "convey" ? "user_id" : portal === "acc" ? "owner_id" : "access_code_id";
+    const ownerId = parseInt(ownerKey, 10);
+    if (Number.isNaN(ownerId)) return null;
+    return { clause: `${ownerCol} = $${firstParamIndex}`, params: [ownerId] };
+  };
+  const fetchSavedWork = async (
+    matterId: number,
+    ownerKey: string,
+  ): Promise<Array<Omit<SavedWorkItem, "content"> & { content: string }>> => {
+    const pred = ownerPredicate(ownerKey, 2);
+    if (!pred) return [];
+    const { rows } = await pool
+      .query(
+        `SELECT title, kind, content, created_at FROM ${portal}_saved_work
+         WHERE matter_id = $1 AND ${pred.clause} ORDER BY created_at DESC LIMIT 12`,
+        [matterId, ...pred.params],
+      )
+      .catch(() => ({ rows: [] }));
+    return rows as Array<Omit<SavedWorkItem, "content"> & { content: string }>;
+  };
+  const fetchDeadlines = async (matterId: number, ownerKey: string): Promise<DeadlineItem[]> => {
+    const pred = ownerPredicate(ownerKey, 2);
+    if (!pred) return [];
+    const { rows } = await pool
+      .query(
+        `SELECT title, due_date, status FROM ${portal}_matter_deadlines
+         WHERE matter_id = $1 AND ${pred.clause} ORDER BY due_date LIMIT 20`,
+        [matterId, ...pred.params],
+      )
+      .catch(() => ({ rows: [] }));
+    return rows.map((d: { title: string; due_date: string; status: string }) => ({
+      title: d.title,
+      due_date: d.due_date ? new Date(d.due_date).toISOString().slice(0, 10) : "",
+      status: d.status ?? "",
+    })) as DeadlineItem[];
+  };
+  const reviewRouter = buildCaseReviewRouter(portal, getOwnerKey, {
+    fetchSavedWork,
+    fetchDeadlines,
+  });
+  router.use(P === "" ? "/" : P, reviewRouter);
 }
 
 /**

@@ -1,5 +1,19 @@
 # Completion State
-Updated: 2026-08-10 — session complete
+Updated: 2026-08-11 — case-centric OS session (SUPREME MASTER PROMPT phase 1)
+
+## Completed 2026-08-11 — Case-centric capabilities (all 6 matter portals)
+1. **Matter chronology / activity stream**: shared `case_events` table + CRUD routes at `{matters}/:id/events` on lit/crim/sya/ccb/acc/corp (lib/caseEvents.ts, mounted via attachCaseIntelligence). Chronology tab added to all six matter-detail pages.
+2. **Matter-aware AI**: `GET {matters}/:id/context` (full matter context: row, stage history, deadlines, checklist, time summary, saved work) + `POST {matters}/:id/review` — AI case review + prioritised next actions grounded ONLY in matter data (lib/caseReview.ts). "AI Case Review" button on all six matter-detail pages. Supporting fetchers are owner-scoped per portal (code-review fix).
+3. **Client ↔ matter linking**: `case_client_matters` link table on the existing `case_clients` directory; link/unlink routes on makeClientsRouter; `GET {matters}/:id/clients`; accident portal now mounts the clients directory too. Link/create/unlink UI in crim/sya/ccb/acc/corp matter pages (lit keeps its own lit_clients linking).
+4. Boot-ensures added in api-server index.ts; all tables direct SQL.
+
+## Evidence (2026-08-11)
+- api-tests: 577/577 passing (full suite, post-merge baseline + 12 new lib tests).
+- Whole-workspace `npx tsc -b`: clean.
+- Live curl verification on accident (cookie), corp (Bearer), sya (session), ccb (JWT): events CRUD, context, AI review (real markdown), client link/unlink — all 200/201; cross-tenant sweeps 404.
+- Code review round run; serious finding (tenant-unscoped saved-work/deadline fetchers in review context) FIXED with per-portal owner predicates. Known minor: stale client-matter links survive matter deletion (harmless — matter-clients route 404s for deleted matters).
+
+## Previous session (2026-08-10)
 
 ## Completed this session
 1. Full discovery pass (4 parallel code audits) → COMPLETE_COMPLETION_REGISTER.md; blockers → BLOCKERS_REQUIRING_OWNER_ACTION.md.

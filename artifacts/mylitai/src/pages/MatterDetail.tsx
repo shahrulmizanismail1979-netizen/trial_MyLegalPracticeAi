@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useRoute } from 'wouter';
 import {
   useMatter,
@@ -33,6 +33,13 @@ import {
   useCreateClient,
   useUpdateClient,
   type MatterClient,
+  useCaseEvents,
+  useAddCaseEvent,
+  useUpdateCaseEvent,
+  useDeleteCaseEvent,
+  useCaseReview,
+  CASE_EVENT_KINDS,
+  type CaseEvent,
 } from '@/hooks/use-matters';
 import { findMatter } from '@/data/practice-hub';
 import { ExportButtons } from '@/components/ExportButtons';
@@ -61,7 +68,7 @@ import {
   Banknote, Clock, FileText, ArrowRight, GitBranch,
   Sparkles, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   Users, Timer, Loader2, ChevronRight, CheckSquare,
-  Phone, Mail, CreditCard,
+  Phone, Mail, CreditCard, History,
 } from 'lucide-react';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -309,6 +316,309 @@ function AIInsightsPanel({ matterId }: { matterId: number }) {
   );
 }
 
+// ── Chronology (case events) ───────────────────────────────────────────────────
+
+const EVENT_KIND_META: Record<string, { label: string; color: string }> = {
+  filing: { label: 'Filing', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  hearing: { label: 'Hearing', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+  correspondence: { label: 'Correspondence', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+  instruction: { label: 'Instruction', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+  deadline: { label: 'Deadline', color: 'text-red-400 bg-red-500/10 border-red-500/20' },
+  stage: { label: 'Stage', color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+  'saved-work': { label: 'Saved work', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+  note: { label: 'Note', color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' },
+  payment: { label: 'Payment', color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+  meeting: { label: 'Meeting', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+};
+
+function eventKindMeta(kind: string) {
+  return EVENT_KIND_META[kind] ?? EVENT_KIND_META.note;
+}
+
+function ChronologyPanel({ matterId }: { matterId: number }) {
+  const { data: events, isLoading } = useCaseEvents(matterId);
+  const addEvent = useAddCaseEvent();
+  const updateEvent = useUpdateCaseEvent();
+  const deleteEvent = useDeleteCaseEvent();
+  const { toast } = useToast();
+
+  const blank = { title: '', event_date: '', kind: 'note', description: '' };
+  const [form, setForm] = useState(blank);
+  const [editing, setEditing] = useState<CaseEvent | null>(null);
+  const [editForm, setEditForm] = useState(blank);
+
+  const sorted = [...(events ?? [])].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+  );
+
+  const submitAdd = async () => {
+    if (!form.title.trim() || !form.event_date) {
+      toast({ title: 'Title and date required', variant: 'destructive' });
+      return;
+    }
+    try {
+      await addEvent.mutateAsync({
+        matterId,
+        title: form.title.trim(),
+        event_date: form.event_date,
+        kind: form.kind,
+        description: form.description.trim() || undefined,
+      });
+      toast({ title: 'Event added to chronology' });
+      setForm(blank);
+    } catch (e) {
+      toast({ title: 'Could not add event', description: e instanceof Error ? e.message : '', variant: 'destructive' });
+    }
+  };
+
+  const openEdit = (ev: CaseEvent) => {
+    setEditing(ev);
+    setEditForm({
+      title: ev.title,
+      event_date: ev.event_date.slice(0, 10),
+      kind: ev.kind,
+      description: ev.description ?? '',
+    });
+  };
+
+  const submitEdit = async () => {
+    if (!editing || !editForm.title.trim() || !editForm.event_date) {
+      toast({ title: 'Title and date required', variant: 'destructive' });
+      return;
+    }
+    try {
+      await updateEvent.mutateAsync({
+        matterId,
+        eventId: editing.id,
+        title: editForm.title.trim(),
+        event_date: editForm.event_date,
+        kind: editForm.kind,
+        description: editForm.description.trim() || undefined,
+      });
+      toast({ title: 'Event updated' });
+      setEditing(null);
+    } catch (e) {
+      toast({ title: 'Could not update event', description: e instanceof Error ? e.message : '', variant: 'destructive' });
+    }
+  };
+
+  const removeEvent = async (ev: CaseEvent) => {
+    try {
+      await deleteEvent.mutateAsync({ matterId, eventId: ev.id });
+    } catch (e) {
+      toast({ title: 'Could not delete event', description: e instanceof Error ? e.message : '', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Add-event form */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Add to chronology</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Date</Label>
+              <Input type="date" value={form.event_date} onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Kind</Label>
+              <Select value={form.kind} onChange={e => setForm(f => ({ ...f, kind: e.target.value }))} className="mt-1">
+                {CASE_EVENT_KINDS.map(k => <option key={k} value={k}>{eventKindMeta(k).label}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Title</Label>
+            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Statement of Claim filed" className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Description (optional)</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="mt-1" />
+          </div>
+          <Button size="sm" className="gap-2" onClick={submitAdd} disabled={addEvent.isPending}>
+            {addEvent.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add event
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Timeline */}
+      {isLoading ? (
+        <div className="p-6 text-center text-sm text-muted-foreground animate-pulse">Loading chronology…</div>
+      ) : sorted.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <History className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No chronology events yet. Add the first event above.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="relative">
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-border/50" />
+          <div className="space-y-3 pl-10">
+            {sorted.map(ev => {
+              const meta = eventKindMeta(ev.kind);
+              return (
+                <div key={ev.id} className="relative">
+                  <div className="absolute -left-6 top-3 h-3 w-3 rounded-full border-2 bg-primary border-primary" />
+                  <Card>
+                    <CardContent className="p-3 flex items-start gap-3">
+                      <CalendarClock className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">{ev.title}</span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${meta.color}`}>{meta.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(ev.event_date)}</p>
+                        {ev.description && <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap leading-relaxed">{ev.description}</p>}
+                        {ev.source && <p className="text-[10px] text-muted-foreground/60 mt-1">Source: {ev.source}</p>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => openEdit(ev)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => removeEvent(ev)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Edit event modal */}
+      <Modal isOpen={!!editing} onClose={() => setEditing(null)} title="Edit event">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Date</Label>
+              <Input type="date" value={editForm.event_date} onChange={e => setEditForm(f => ({ ...f, event_date: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Kind</Label>
+              <Select value={editForm.kind} onChange={e => setEditForm(f => ({ ...f, kind: e.target.value }))} className="mt-1">
+                {CASE_EVENT_KINDS.map(k => <option key={k} value={k}>{eventKindMeta(k).label}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Title</Label>
+            <Input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Description</Label>
+            <Textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2} className="mt-1" />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button className="flex-1" onClick={submitEdit} disabled={updateEvent.isPending}>Save</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ── AI Case Review (on-demand markdown briefing) ────────────────────────────────
+
+function renderMarkdownLite(md: string) {
+  // Lightweight markdown → JSX renderer (no new deps). Handles headings,
+  // bold, bullets and paragraphs; falls back to whitespace-pre for anything else.
+  const lines = md.split('\n');
+  const out: ReactNode[] = [];
+  let list: string[] = [];
+  const flushList = (key: number) => {
+    if (list.length) {
+      out.push(
+        <ul key={`ul-${key}`} className="list-disc pl-5 space-y-1 my-2">
+          {list.map((li, i) => <li key={i} className="text-sm text-foreground/90">{renderInline(li)}</li>)}
+        </ul>,
+      );
+      list = [];
+    }
+  };
+  const renderInline = (text: string) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((p, i) =>
+      p.startsWith('**') && p.endsWith('**')
+        ? <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
+        : <span key={i}>{p}</span>,
+    );
+  };
+  lines.forEach((raw, idx) => {
+    const line = raw.trimEnd();
+    if (/^#{1,6}\s+/.test(line)) {
+      flushList(idx);
+      const level = line.match(/^#+/)![0].length;
+      const text = line.replace(/^#+\s+/, '');
+      out.push(
+        <p key={idx} className={`font-serif font-bold text-foreground ${level <= 2 ? 'text-base mt-4 mb-1.5' : 'text-sm mt-3 mb-1'}`}>
+          {renderInline(text)}
+        </p>,
+      );
+    } else if (/^[-*•]\s+/.test(line)) {
+      list.push(line.replace(/^[-*•]\s+/, ''));
+    } else if (line.trim() === '') {
+      flushList(idx);
+    } else {
+      flushList(idx);
+      out.push(<p key={idx} className="text-sm text-foreground/90 leading-relaxed my-1.5">{renderInline(line)}</p>);
+    }
+  });
+  flushList(lines.length);
+  return out;
+}
+
+function AICaseReviewPanel({ matterId }: { matterId: number }) {
+  const review = useCaseReview();
+  const { toast } = useToast();
+  const [result, setResult] = useState<string | null>(null);
+
+  const run = async () => {
+    setResult(null);
+    try {
+      const res = await review.mutateAsync(matterId);
+      setResult(res.review);
+    } catch (e) {
+      toast({ title: 'Case review failed', description: e instanceof Error ? e.message : '', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Card className="mb-6 border-primary/20">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">AI Case Review</span>
+          </div>
+          <Button size="sm" variant="outline" className="gap-2" onClick={run} disabled={review.isPending}>
+            {review.isPending
+              ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reviewing…</>
+              : <><Wand2 className="h-3.5 w-3.5" /> {result ? 'Re-run review' : 'Run case review'}</>}
+          </Button>
+        </div>
+        {!result && !review.isPending && (
+          <p className="text-sm text-muted-foreground">
+            Generate a grounded review of this matter — key position, risks, and prioritised next actions. Takes up to a minute.
+          </p>
+        )}
+        {review.isPending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+            <Loader2 className="h-4 w-4 animate-spin" /> Assembling context and generating review…
+          </div>
+        )}
+        {result && (
+          <div className="pt-1 border-t border-border/50">
+            <div className="mt-3">{renderMarkdownLite(result)}</div>
+            <p className="text-[10px] text-muted-foreground/60 mt-3">AI-generated · verify against the file before relying on it.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MatterDetail() {
@@ -344,6 +654,9 @@ export default function MatterDetail() {
 
   // Matter work
   const { data: matterWork } = useMatterWork(id);
+
+  // Chronology
+  const { data: events } = useCaseEvents(id);
 
   // ── State ──
   const [editOpen, setEditOpen] = useState(false);
@@ -614,6 +927,10 @@ export default function MatterDetail() {
             <CalendarClock className="h-3.5 w-3.5" /> Diary
             {pending.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{pending.length}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="chronology" className="gap-1.5">
+            <History className="h-3.5 w-3.5" /> Chronology
+            {(events?.length ?? 0) > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{events!.length}</Badge>}
+          </TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -672,6 +989,9 @@ export default function MatterDetail() {
 
           {/* AI Insights */}
           <AIInsightsPanel matterId={matter.id} />
+
+          {/* AI Case Review (on-demand) */}
+          <AICaseReviewPanel matterId={matter.id} />
 
           {/* Practice hub / draft link */}
           {hubEntry && (
@@ -1052,6 +1372,11 @@ export default function MatterDetail() {
               Computed dates apply ROC 2012 default periods. They are an aid, not a substitute for checking the Rules, practice directions and any court orders. <span className="text-amber-300 font-medium">Always verify before relying on a date.</span>
             </p>
           </div>
+        </TabsContent>
+
+        {/* ── CHRONOLOGY ── */}
+        <TabsContent value="chronology">
+          <ChronologyPanel matterId={matter.id} />
         </TabsContent>
       </Tabs>
 

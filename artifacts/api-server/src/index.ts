@@ -14,6 +14,8 @@ import { ensureMatterFileTables } from "./lib/matterFiles";
 import { ensureCaseIntelligenceTables } from "./lib/ensureCaseIntelligenceTables";
 import { ensureAccMatterTables } from "./accident/matters";
 import { ensureSeatLimitSchema } from "./lib/seatLimits";
+import { ensureCaseEventsTable } from "./lib/caseEvents";
+import { ensureCaseClientMatterTable } from "./lib/caseClients";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -157,6 +159,8 @@ await ensureAccMatterTables();
 
 // Team-bundle seat limits: shared seat registry + per-portal max_seats columns.
 await ensureSeatLimitSchema();
+await ensureCaseEventsTable();
+await ensureCaseClientMatterTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

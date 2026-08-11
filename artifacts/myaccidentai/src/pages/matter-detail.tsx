@@ -14,6 +14,13 @@ import {
   Home,
   Sparkles,
   Trash,
+  History,
+  Pencil,
+  Users,
+  UserPlus,
+  Phone,
+  Mail,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,10 +57,23 @@ import {
   useAddTimeEntry,
   useDeleteTimeEntry,
   useUpdateStage,
+  useCaseEvents,
+  useAddCaseEvent,
+  useUpdateCaseEvent,
+  useDeleteCaseEvent,
+  useMatterReview,
+  useMatterClients,
+  useClients,
+  useCreateClient,
+  useLinkClient,
+  useUnlinkClient,
   daysUntil,
   categoryMeta,
   ACC_STAGES,
+  CASE_EVENT_KINDS,
+  ApiError,
   type ComputedDeadline,
+  type CaseEvent,
 } from "@/hooks/use-matters";
 
 function fmtDate(iso: string) {
@@ -64,7 +84,24 @@ function fmtDate(iso: string) {
   });
 }
 
-type Tab = "overview" | "deadlines" | "checklist" | "documents" | "time";
+type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "time";
+
+const KIND_META: Record<string, { label: string; color: string }> = {
+  filing: { label: "Filing", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+  hearing: { label: "Hearing", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+  correspondence: { label: "Correspondence", color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+  instruction: { label: "Instruction", color: "text-violet-400 bg-violet-500/10 border-violet-500/20" },
+  deadline: { label: "Deadline", color: "text-red-400 bg-red-500/10 border-red-500/20" },
+  stage: { label: "Stage", color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20" },
+  "saved-work": { label: "Saved work", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  note: { label: "Note", color: "text-slate-400 bg-slate-500/10 border-slate-500/20" },
+  payment: { label: "Payment", color: "text-green-400 bg-green-500/10 border-green-500/20" },
+  meeting: { label: "Meeting", color: "text-pink-400 bg-pink-500/10 border-pink-500/20" },
+};
+
+function kindMeta(kind: string) {
+  return KIND_META[kind] ?? { label: kind, color: "text-slate-400 bg-slate-500/10 border-slate-500/20" };
+}
 
 export default function MatterDetailPage() {
   const [, params] = useRoute("/workspace/matters/:id");
@@ -105,6 +142,7 @@ export default function MatterDetailPage() {
 
   const tabs: { id: Tab; label: string; icon: typeof FileText }[] = [
     { id: "overview", label: "Overview", icon: FileText },
+    { id: "chronology", label: "Chronology", icon: History },
     { id: "deadlines", label: "Deadlines", icon: CalendarClock },
     { id: "checklist", label: "Checklist", icon: CheckSquare },
     { id: "documents", label: "Documents", icon: FileText },
@@ -158,6 +196,7 @@ export default function MatterDetailPage() {
 
       <main className="max-w-4xl mx-auto p-6">
         {tab === "overview" && <OverviewTab matterId={matterId!} matter={matter} />}
+        {tab === "chronology" && <ChronologyTab matterId={matterId!} />}
         {tab === "deadlines" && <DeadlinesTab matterId={matterId!} deadlines={matter.deadlines} />}
         {tab === "checklist" && <ChecklistTab matterId={matterId!} />}
         {tab === "documents" && <DocumentsTab matterId={matterId!} />}
@@ -251,6 +290,397 @@ function OverviewTab({ matterId, matter }: { matterId: number; matter: NonNullab
           </div>
         </CardContent>
       </Card>
+
+      <ClientSection matterId={matterId} />
+
+      <AiCaseReview matterId={matterId} />
+    </div>
+  );
+}
+
+// ── Client section ─────────────────────────────────────────────────────────────
+
+function ClientSection({ matterId }: { matterId: number }) {
+  const { data: linked, isLoading } = useMatterClients(matterId);
+  const { data: directory } = useClients();
+  const create = useCreateClient();
+  const link = useLinkClient();
+  const unlink = useUnlinkClient();
+  const { toast } = useToast();
+
+  const [showLink, setShowLink] = useState(false);
+  const [selectId, setSelectId] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [nf, setNf] = useState({ name: "", phone: "", email: "" });
+
+  const linkedIds = new Set((linked ?? []).map((c) => c.id));
+  const available = (directory ?? []).filter((c) => !linkedIds.has(c.id));
+
+  const doLink = async () => {
+    const id = parseInt(selectId, 10);
+    if (Number.isNaN(id)) return;
+    try {
+      await link.mutateAsync({ clientId: id, matterId });
+      setSelectId("");
+      setShowLink(false);
+      toast({ title: "Client linked" });
+    } catch (e) {
+      toast({ title: e instanceof ApiError ? e.message : "Could not link client", variant: "destructive" });
+    }
+  };
+
+  const doCreateAndLink = async () => {
+    if (!nf.name.trim()) {
+      toast({ title: "Client name is required", variant: "destructive" });
+      return;
+    }
+    try {
+      const client = await create.mutateAsync({
+        name: nf.name.trim(),
+        phone: nf.phone.trim() || undefined,
+        email: nf.email.trim() || undefined,
+      });
+      await link.mutateAsync({ clientId: client.id, matterId });
+      setNf({ name: "", phone: "", email: "" });
+      setShowNew(false);
+      toast({ title: "Client created and linked" });
+    } catch (e) {
+      toast({ title: e instanceof ApiError ? e.message : "Could not create client", variant: "destructive" });
+    }
+  };
+
+  const doUnlink = async (clientId: number) => {
+    try {
+      await unlink.mutateAsync({ clientId, matterId });
+    } catch (e) {
+      toast({ title: e instanceof ApiError ? e.message : "Could not unlink", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" /> Client
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setShowLink((v) => !v); setShowNew(false); }} data-testid="button-link-client">
+              <UserPlus className="h-3.5 w-3.5" /> Link client
+            </Button>
+          </div>
+        </div>
+
+        {showLink && (
+          <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+            {available.length > 0 && (
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <Label className="text-xs">Existing client</Label>
+                  <Select value={selectId} onValueChange={setSelectId}>
+                    <SelectTrigger data-testid="select-existing-client">
+                      <SelectValue placeholder="Choose a client…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {available.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button size="sm" onClick={doLink} disabled={!selectId || link.isPending} className="gap-1.5" data-testid="button-confirm-link">
+                  {link.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Link
+                </Button>
+              </div>
+            )}
+            {!showNew ? (
+              <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setShowNew(true)} data-testid="button-new-client">
+                <Plus className="h-3.5 w-3.5" /> Create new client
+              </Button>
+            ) : (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs">Name</Label>
+                    <Input value={nf.name} onChange={(e) => setNf({ ...nf, name: e.target.value })} data-testid="input-new-client-name" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Phone</Label>
+                    <Input value={nf.phone} onChange={(e) => setNf({ ...nf, phone: e.target.value })} data-testid="input-new-client-phone" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input value={nf.email} onChange={(e) => setNf({ ...nf, email: e.target.value })} data-testid="input-new-client-email" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setShowNew(false)}>Cancel</Button>
+                  <Button size="sm" onClick={doCreateAndLink} disabled={create.isPending || link.isPending} className="gap-1.5" data-testid="button-create-link">
+                    {(create.isPending || link.isPending) && <Loader2 className="h-4 w-4 animate-spin" />} Create &amp; link
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : (linked?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">No client linked to this matter yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {(linked ?? []).map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2.5" data-testid={`client-${c.id}`}>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{c.name}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap mt-0.5">
+                    {c.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" /> {c.phone}</span>}
+                    {c.email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" /> {c.email}</span>}
+                    {c.company_name && <span>{c.company_name}</span>}
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => doUnlink(c.id)} disabled={unlink.isPending} data-testid={`button-unlink-${c.id}`}>
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── AI Case Review ─────────────────────────────────────────────────────────────
+
+function AiCaseReview({ matterId }: { matterId: number }) {
+  const review = useMatterReview();
+  const { toast } = useToast();
+  const [markdown, setMarkdown] = useState<string | null>(null);
+
+  const run = async () => {
+    setMarkdown(null);
+    try {
+      const res = await review.mutateAsync(matterId);
+      setMarkdown(res.review);
+    } catch (e) {
+      toast({
+        title: "AI review failed",
+        description: e instanceof ApiError ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> AI Case Review
+          </h3>
+          <Button size="sm" onClick={run} disabled={review.isPending} className="gap-2" data-testid="button-ai-review">
+            {review.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {review.isPending ? "Reviewing…" : markdown ? "Re-run review" : "Run AI review"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Generates an AI assessment of the matter and a prioritised list of next actions from the assembled
+          case context. Always verify against the file before relying on it.
+        </p>
+        {review.isPending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" /> Analysing the matter — this can take up to a minute…
+          </div>
+        )}
+        {markdown && !review.isPending && (
+          <div
+            className="text-sm leading-relaxed whitespace-pre-wrap p-4 bg-background border border-border rounded max-h-[500px] overflow-auto"
+            data-testid="ai-review-output"
+          >
+            {markdown}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Chronology ─────────────────────────────────────────────────────────────────
+
+function ChronologyTab({ matterId }: { matterId: number }) {
+  const { data: events, isLoading } = useCaseEvents(matterId);
+  const add = useAddCaseEvent();
+  const upd = useUpdateCaseEvent();
+  const del = useDeleteCaseEvent();
+  const { toast } = useToast();
+
+  const [form, setForm] = useState({ title: "", event_date: "", kind: "note", description: "" });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", event_date: "", kind: "note", description: "" });
+
+  const sorted = [...(events ?? [])].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+  );
+
+  const submit = async () => {
+    if (!form.title.trim() || !form.event_date) {
+      toast({ title: "Title and date are required", variant: "destructive" });
+      return;
+    }
+    try {
+      await add.mutateAsync({
+        matterId,
+        title: form.title.trim(),
+        event_date: form.event_date,
+        kind: form.kind,
+        description: form.description.trim() || undefined,
+      });
+      setForm({ title: "", event_date: "", kind: "note", description: "" });
+    } catch (e) {
+      toast({ title: e instanceof ApiError ? e.message : "Could not add event", variant: "destructive" });
+    }
+  };
+
+  const startEdit = (ev: CaseEvent) => {
+    setEditId(ev.id);
+    setEditForm({
+      title: ev.title,
+      event_date: ev.event_date.slice(0, 10),
+      kind: ev.kind,
+      description: ev.description ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (editId == null) return;
+    if (!editForm.title.trim() || !editForm.event_date) {
+      toast({ title: "Title and date are required", variant: "destructive" });
+      return;
+    }
+    try {
+      await upd.mutateAsync({
+        matterId,
+        eventId: editId,
+        title: editForm.title.trim(),
+        event_date: editForm.event_date,
+        kind: editForm.kind,
+        description: editForm.description.trim() || undefined,
+      });
+      setEditId(null);
+    } catch (e) {
+      toast({ title: e instanceof ApiError ? e.message : "Could not save event", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Plus className="h-4 w-4 text-primary" /> Add chronology event
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Date</Label>
+              <Input type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} data-testid="input-event-date" />
+            </div>
+            <div>
+              <Label className="text-xs">Kind</Label>
+              <Select value={form.kind} onValueChange={(v) => setForm({ ...form, kind: v })}>
+                <SelectTrigger data-testid="select-event-kind">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CASE_EVENT_KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>{kindMeta(k).label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Title</Label>
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="input-event-title" />
+          </div>
+          <div>
+            <Label className="text-xs">Description (optional)</Label>
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} data-testid="input-event-description" />
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={submit} disabled={add.isPending} className="gap-2" data-testid="button-add-event">
+              {add.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Add event
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : sorted.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No chronology events yet.</p>
+      ) : (
+        <div className="relative pl-6 space-y-3">
+          <div className="absolute left-2 top-1 bottom-1 w-px bg-border" />
+          {sorted.map((ev) => {
+            const meta = kindMeta(ev.kind);
+            const editing = editId === ev.id;
+            return (
+              <div key={ev.id} className="relative" data-testid={`event-${ev.id}`}>
+                <div className="absolute -left-[18px] top-3 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                <Card>
+                  <CardContent className="p-4">
+                    {editing ? (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <Input type="date" value={editForm.event_date} onChange={(e) => setEditForm({ ...editForm, event_date: e.target.value })} data-testid={`edit-date-${ev.id}`} />
+                          <Select value={editForm.kind} onValueChange={(v) => setEditForm({ ...editForm, kind: v })}>
+                            <SelectTrigger data-testid={`edit-kind-${ev.id}`}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {CASE_EVENT_KINDS.map((k) => (
+                                <SelectItem key={k} value={k}>{kindMeta(k).label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} data-testid={`edit-title-${ev.id}`} />
+                        <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={2} data-testid={`edit-desc-${ev.id}`} />
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditId(null)}>Cancel</Button>
+                          <Button size="sm" onClick={saveEdit} disabled={upd.isPending} className="gap-1.5" data-testid={`button-save-event-${ev.id}`}>
+                            {upd.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Save
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className={meta.color}>{meta.label}</Badge>
+                            <span className="text-xs text-muted-foreground">{fmtDate(ev.event_date)}</span>
+                          </div>
+                          <div className="text-sm font-medium mt-1">{ev.title}</div>
+                          {ev.description && <div className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{ev.description}</div>}
+                          {ev.source && <div className="text-[11px] text-muted-foreground mt-0.5">Source: {ev.source}</div>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button variant="ghost" size="icon" onClick={() => startEdit(ev)} data-testid={`button-edit-event-${ev.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => del.mutate({ matterId, eventId: ev.id })} data-testid={`button-delete-event-${ev.id}`}>
+                            <Trash className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

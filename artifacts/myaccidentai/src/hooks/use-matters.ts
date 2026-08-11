@@ -134,6 +134,54 @@ export interface TimeEntriesResult {
   totalMinutes: number;
 }
 
+// ── Chronology / case events ───────────────────────────────────────────────────
+export const CASE_EVENT_KINDS = [
+  "filing",
+  "hearing",
+  "correspondence",
+  "instruction",
+  "deadline",
+  "stage",
+  "saved-work",
+  "note",
+  "payment",
+  "meeting",
+] as const;
+export type CaseEventKind = (typeof CASE_EVENT_KINDS)[number];
+
+export interface CaseEvent {
+  id: number;
+  event_date: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CaseEventInput {
+  title: string;
+  event_date: string;
+  kind: string;
+  description?: string;
+  source?: string;
+}
+
+// ── Client directory ───────────────────────────────────────────────────────────
+export interface CaseClient {
+  id: number;
+  name: string;
+  ic_number: string | null;
+  company_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Accident matter stages (matches PORTAL_STAGES.acc in backend) ──────────────
 export const ACC_STAGES = [
   "Intake",
@@ -172,6 +220,7 @@ async function request(base: string, path: string, init?: RequestInit) {
 
 const api = (path: string, init?: RequestInit) => request("/matters", path, init);
 const workApi = (path: string, init?: RequestInit) => request("/saved-work", path, init);
+const clientsApi = (path: string, init?: RequestInit) => request("/clients", path, init);
 
 const KEY = ["acc-matters"];
 const upcomingKey = ["acc-matters", "upcoming"];
@@ -449,6 +498,106 @@ export function useDeleteTimeEntry() {
     mutationFn: ({ matterId, entryId }: { matterId: number; entryId: number }): Promise<{ success: boolean }> =>
       api(`/${matterId}/time-entries/${entryId}`, { method: "DELETE" }),
     onSuccess: () => invalidateAll(qc),
+  });
+}
+
+// ── Chronology / case events ───────────────────────────────────────────────────
+
+export function useCaseEvents(matterId: number | null) {
+  return useQuery<CaseEvent[]>({
+    queryKey: [...KEY, "events", matterId],
+    queryFn: () => api(`/${matterId}/events`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, ...input }: { matterId: number } & CaseEventInput): Promise<CaseEvent> =>
+      api(`/${matterId}/events`, { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: [...KEY, "events", v.matterId] }),
+  });
+}
+
+export function useUpdateCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      matterId,
+      eventId,
+      ...patch
+    }: { matterId: number; eventId: number } & Partial<CaseEventInput>): Promise<CaseEvent> =>
+      api(`/${matterId}/events/${eventId}`, { method: "PATCH", body: JSON.stringify(patch) }),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: [...KEY, "events", v.matterId] }),
+  });
+}
+
+export function useDeleteCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, eventId }: { matterId: number; eventId: number }): Promise<{ success: boolean }> =>
+      api(`/${matterId}/events/${eventId}`, { method: "DELETE" }),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: [...KEY, "events", v.matterId] }),
+  });
+}
+
+// ── AI matter review (markdown) ────────────────────────────────────────────────
+
+export function useMatterReview() {
+  return useMutation({
+    mutationFn: (matterId: number): Promise<{ review: string }> =>
+      api(`/${matterId}/review`, { method: "POST" }),
+  });
+}
+
+// ── Clients linked to a matter + directory ──────────────────────────────────────
+
+export function useMatterClients(matterId: number | null) {
+  return useQuery<CaseClient[]>({
+    queryKey: [...KEY, "matter-clients", matterId],
+    queryFn: () => api(`/${matterId}/clients`),
+    enabled: matterId != null,
+  });
+}
+
+export function useClients() {
+  return useQuery<CaseClient[]>({
+    queryKey: [...KEY, "clients"],
+    queryFn: () => clientsApi(""),
+  });
+}
+
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; phone?: string; email?: string }): Promise<CaseClient> =>
+      clientsApi("", { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...KEY, "clients"] }),
+  });
+}
+
+export function useLinkClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, matterId }: { clientId: number; matterId: number }) =>
+      clientsApi(`/${clientId}/link-matter`, { method: "POST", body: JSON.stringify({ matterId }) }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: [...KEY, "matter-clients", v.matterId] });
+      qc.invalidateQueries({ queryKey: [...KEY, "clients"] });
+    },
+  });
+}
+
+export function useUnlinkClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, matterId }: { clientId: number; matterId: number }) =>
+      clientsApi(`/${clientId}/link-matter/${matterId}`, { method: "DELETE" }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: [...KEY, "matter-clients", v.matterId] });
+      qc.invalidateQueries({ queryKey: [...KEY, "clients"] });
+    },
   });
 }
 

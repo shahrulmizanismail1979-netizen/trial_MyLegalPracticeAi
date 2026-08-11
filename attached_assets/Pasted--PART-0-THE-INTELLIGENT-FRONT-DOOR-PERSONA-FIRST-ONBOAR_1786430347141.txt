@@ -1,0 +1,1833 @@
+# PART 0
+
+# THE INTELLIGENT FRONT DOOR
+
+# PERSONA-FIRST ONBOARDING, ROLE-BASED UI, WORKFLOW & AI CUSTOMISATION
+
+BEFORE THE USER SEES THE MAIN APPLICATION DASHBOARD, THE APPLICATION MUST FIRST UNDERSTAND:
+
+# “WHAT KIND OF LEGAL PROFESSIONAL ARE YOU?”
+
+This must become the FIRST meaningful interaction on the application landing page.
+
+Do NOT immediately throw every user into the same generic dashboard.
+
+Do NOT expose every module to everyone.
+
+Do NOT assume that all legal professionals work in the same way.
+
+The system must first identify the user's professional context and then configure the entire experience accordingly.
+
+---
+
+# THE LANDING PAGE MUST BEGIN WITH A PROFESSIONAL ROLE SELECTION
+
+The first page should be elegant, professional, very simple and immediately understandable.
+
+Display a short introduction such as:
+
+# Welcome.
+
+## Let us set up your legal workspace around the way you actually work.
+
+Then ask:
+
+# HOW DO YOU PRIMARILY WORK IN LAW?
+
+Present THREE clear pathways:
+
+---
+
+# OPTION 1
+
+# LEGAL PRACTITIONER
+
+### I practise law in a law firm or legal practice.
+
+Examples:
+
+* Advocate & Solicitor
+* Partner
+* Managing Partner
+* Sole Practitioner
+* Associate
+* Legal Assistant
+* Syariah Practitioner
+* Legal Practice Staff
+
+Primary environment:
+
+# CLIENTS + MATTERS + CASE FILES + LAW FIRM MANAGEMENT
+
+---
+
+# OPTION 2
+
+# IN-HOUSE COUNSEL
+
+### I manage legal work inside a company, organisation, institution or group.
+
+Examples:
+
+* General Counsel
+* Head of Legal
+* Legal Counsel
+* Corporate Counsel
+* Compliance Counsel
+* Legal Manager
+* Company Legal Department
+
+Primary environment:
+
+# INTERNAL LEGAL MATTERS + CONTRACTS + ADVISORY + COMPLIANCE + BUSINESS RISK + EXTERNAL COUNSEL MANAGEMENT
+
+---
+
+# OPTION 3
+
+# LAW LECTURER / LEGAL ACADEMIC
+
+### I teach, research or work academically in law.
+
+Examples:
+
+* Law Lecturer
+* Professor
+* Legal Researcher
+* Postgraduate Supervisor
+* Academic Administrator
+* Research Centre Member
+
+Primary environment:
+
+# TEACHING + RESEARCH + WRITING + SUPERVISION + LEGAL KNOWLEDGE + ACADEMIC MANAGEMENT
+
+---
+
+# CRITICAL UX REQUIREMENT
+
+These must NOT merely be three decorative cards that lead to the same application.
+
+The user's selection must genuinely configure:
+
+* dashboard;
+* navigation;
+* terminology;
+* default modules;
+* AI tools;
+* AI prompt context;
+* recommendations;
+* onboarding questions;
+* home-screen priorities;
+* workflows;
+* shortcuts;
+* analytics;
+* templates;
+* notifications;
+* search behaviour;
+* document organisation;
+* reporting;
+* default data structures;
+* suggested actions.
+
+The application must FEEL PURPOSE-BUILT for that professional role.
+
+---
+
+# THE APPLICATION SHOULD HAVE ONE CORE ENGINE BUT THREE PROFESSIONAL EXPERIENCES
+
+Do NOT build three completely unrelated applications.
+
+Use:
+
+# ONE SHARED LEGAL INTELLIGENCE PLATFORM
+
+with:
+
+# THREE ROLE-SPECIFIC WORKSPACES.
+
+Architect shared capabilities intelligently.
+
+Examples of shared capabilities:
+
+* authentication;
+* AI engine;
+* document intelligence;
+* legal research;
+* case law;
+* legislation;
+* search;
+* file management;
+* drafting engine;
+* knowledge base;
+* calendar;
+* tasks;
+* notifications;
+* user settings;
+* secure storage.
+
+Then configure different workflows around them.
+
+---
+
+# ROLE SELECTION MUST BE SAVED
+
+Once the user chooses a professional role:
+
+save it to the user profile.
+
+On future logins:
+
+load the appropriate workspace automatically.
+
+Do NOT repeatedly ask the same question.
+
+However, provide:
+
+# SWITCH PROFESSIONAL MODE
+
+inside Settings or Profile.
+
+This is important because some users may simultaneously be:
+
+* practitioner + lecturer;
+* in-house counsel + lecturer;
+* consultant + academic;
+* practitioner + corporate adviser.
+
+Allow additional professional modes to be enabled later without requiring a second account.
+
+---
+
+# PRIMARY ROLE AND SECONDARY ROLES
+
+Support:
+
+PRIMARY PROFESSIONAL ROLE
+
+and optionally:
+
+SECONDARY PROFESSIONAL ROLE(S).
+
+The PRIMARY role controls:
+
+* default dashboard;
+* home screen;
+* navigation priority;
+* default terminology.
+
+Secondary roles can unlock relevant additional modules.
+
+Do NOT clutter the initial onboarding with excessive questions.
+
+Ask the primary role first.
+
+Then progressively personalise.
+
+---
+
+# PERSONA A
+
+# LEGAL PRACTITIONER MODE
+
+For a practising lawyer, the application must immediately communicate:
+
+# THIS SYSTEM HELPS ME RUN MY CASES AND RUN MY FIRM.
+
+The cardinal architecture must be:
+
+LAW FIRM
+
+↓
+
+CLIENT
+
+↓
+
+MATTER / CASE FILE
+
+↓
+
+LEGAL WORK
+
+↓
+
+AI INTELLIGENCE.
+
+---
+
+# LEGAL PRACTITIONER HOME DASHBOARD
+
+Prioritise:
+
+### MY MATTERS
+
+* urgent;
+* active;
+* recently updated;
+* inactive;
+* approaching deadlines;
+* awaiting action.
+
+### TODAY
+
+* court appearances;
+* mentions;
+* hearings;
+* client meetings;
+* filing deadlines;
+* tasks.
+
+### MY CLIENTS
+
+* recent clients;
+* new clients;
+* clients requiring updates.
+
+### NEEDS ATTENTION
+
+AI-assisted detection of:
+
+* overdue tasks;
+* silent files;
+* missing documents;
+* upcoming deadlines;
+* unanswered client requests;
+* incomplete research;
+* outstanding drafts;
+* unbilled work.
+
+### QUICK ACTIONS
+
+Examples:
+
+* New Client
+
+* New Matter
+
+* Upload to Matter
+
+* Ask AI About Matter
+
+* Research Legal Issue
+
+* Draft Document
+
+* Create Task
+
+* Add Court Date
+
+* Record Time.
+
+---
+
+# LEGAL PRACTITIONER PRIMARY NAVIGATION
+
+Prioritise approximately:
+
+HOME
+
+CLIENTS
+
+MATTERS
+
+DOCUMENTS
+
+CALENDAR
+
+TASKS
+
+LEGAL RESEARCH
+
+AI WORKSPACE
+
+BILLING
+
+FIRM
+
+REPORTS.
+
+AI should increasingly operate WITHIN these workflows rather than as a disconnected menu of toys.
+
+---
+
+# LEGAL PRACTITIONER MATTER COMMAND CENTRE
+
+This remains the most important operational screen for practitioners.
+
+When a lawyer opens a matter, they should see:
+
+* client;
+* parties;
+* case status;
+* team;
+* court;
+* case number;
+* matter stage;
+* next action;
+* deadlines;
+* chronology;
+* documents;
+* research;
+* evidence;
+* drafts;
+* communications;
+* tasks;
+* billing;
+* activity;
+* AI intelligence.
+
+And prominently:
+
+# ASK AI ABOUT THIS MATTER
+
+---
+
+# LEGAL PRACTITIONER AI
+
+AI must be deeply CASE-AWARE.
+
+Examples:
+
+“Summarise this file.”
+
+“What are the main legal issues?”
+
+“What evidence supports our position?”
+
+“What evidence is missing?”
+
+“What has the opposing party argued?”
+
+“Find inconsistencies in these affidavits.”
+
+“Build a chronology.”
+
+“Research this issue.”
+
+“Find relevant Malaysian authorities.”
+
+“Draft submissions.”
+
+“Draft a letter to the client.”
+
+“Prepare questions for this witness.”
+
+“What needs to be done next?”
+
+“Which deadlines are approaching?”
+
+“Review this file for gaps.”
+
+---
+
+# LEGAL PRACTITIONER FIRM MANAGEMENT MODE
+
+For Partners / Managing Partners / Administrators, emphasise:
+
+* firm-wide matters;
+* lawyer workloads;
+* practice groups;
+* revenue;
+* billing;
+* collections;
+* overdue matters;
+* high-risk matters;
+* deadlines;
+* team productivity;
+* capacity;
+* client portfolio;
+* AI usage;
+* operational alerts.
+
+Provide an AI management function such as:
+
+# ASK MY FIRM
+
+Examples:
+
+“What needs my attention today?”
+
+“Which files have not moved for 30 days?”
+
+“Which lawyers appear overloaded?”
+
+“Which matters have approaching deadlines?”
+
+“Which clients have not received recent updates?”
+
+“Which matters have substantial unbilled work?”
+
+---
+
+# PERSONA B
+
+# IN-HOUSE COUNSEL MODE
+
+DO NOT merely rename “Law Firm” to “Company”.
+
+The workflow is fundamentally different.
+
+For in-house lawyers, the central concept should become:
+
+# ORGANISATION
+
+↓
+
+# BUSINESS UNIT / INTERNAL CLIENT
+
+↓
+
+# LEGAL MATTER
+
+↓
+
+# CONTRACT / ADVICE / DISPUTE / COMPLIANCE / GOVERNANCE
+
+↓
+
+# AI LEGAL INTELLIGENCE.
+
+---
+
+# IN-HOUSE COUNSEL LANDING EXPERIENCE
+
+The system should feel like:
+
+# AN AI-POWERED LEGAL DEPARTMENT OPERATING SYSTEM.
+
+The user should NOT be forced into irrelevant private-practice concepts such as:
+
+* fee earners;
+* client billing;
+* law-firm revenue;
+* partner allocation
+
+unless specifically enabled.
+
+Instead prioritise:
+
+* legal matters;
+* internal requests;
+* contracts;
+* compliance;
+* advisory;
+* disputes;
+* regulatory issues;
+* corporate governance;
+* outside counsel;
+* legal spend;
+* risk;
+* obligations;
+* approvals.
+
+---
+
+# IN-HOUSE DASHBOARD
+
+Prioritise:
+
+### LEGAL MATTERS
+
+* active;
+* urgent;
+* high-risk;
+* overdue;
+* awaiting business input.
+
+### CONTRACTS
+
+* draft;
+* review;
+* negotiation;
+* approval;
+* signature;
+* expiry;
+* renewal.
+
+### INTERNAL REQUESTS
+
+Requests from:
+
+* HR;
+* Finance;
+* Procurement;
+* Operations;
+* Management;
+* Board;
+* Sales;
+* IT;
+* Compliance.
+
+### RISK & COMPLIANCE
+
+* regulatory deadlines;
+* compliance actions;
+* outstanding obligations;
+* policy reviews;
+* investigations;
+* potential disputes.
+
+### EXTERNAL COUNSEL
+
+* firms engaged;
+* matters assigned;
+* fees;
+* budgets;
+* status;
+* documents.
+
+### AI LEGAL BRIEFING
+
+“What needs Legal's attention today?”
+
+---
+
+# IN-HOUSE PRIMARY NAVIGATION
+
+Consider prioritising:
+
+HOME
+
+LEGAL MATTERS
+
+CONTRACTS
+
+LEGAL REQUESTS
+
+COMPLIANCE
+
+DOCUMENTS
+
+LEGAL RESEARCH
+
+CALENDAR
+
+TASKS
+
+OUTSIDE COUNSEL
+
+LEGAL SPEND
+
+REPORTS
+
+AI WORKSPACE.
+
+---
+
+# IN-HOUSE LEGAL MATTER
+
+A legal matter may concern:
+
+* litigation;
+* threatened litigation;
+* regulatory issue;
+* employment matter;
+* investigation;
+* commercial agreement;
+* data protection;
+* IP;
+* governance;
+* compliance;
+* advisory request.
+
+The matter should therefore support configurable matter types.
+
+---
+
+# INTERNAL CLIENT
+
+For in-house users, “Client” should usually be understood as:
+
+# INTERNAL STAKEHOLDER
+
+or
+
+# BUSINESS UNIT
+
+where appropriate.
+
+Examples:
+
+HR Department
+
+Procurement
+
+Finance
+
+Operations
+
+CEO's Office
+
+Board
+
+Subsidiary A.
+
+Avoid private-practice language where it does not fit.
+
+---
+
+# IN-HOUSE AI FUNCTIONS
+
+Examples:
+
+“Summarise this legal request.”
+
+“What legal risks does this contract create?”
+
+“Compare this draft against our standard terms.”
+
+“Identify non-standard clauses.”
+
+“What obligations arise under this agreement?”
+
+“What deadlines arise from this contract?”
+
+“Draft advice to HR.”
+
+“Prepare a Board legal briefing.”
+
+“Summarise outside counsel's advice.”
+
+“Compare external counsel advice with our internal position.”
+
+“Identify regulatory exposure.”
+
+“What matters require escalation?”
+
+“Which contracts expire in the next 90 days?”
+
+“What legal requests have remained unanswered?”
+
+---
+
+# AI CONTRACT INTELLIGENCE
+
+For in-house mode, contract intelligence should become particularly prominent.
+
+Support:
+
+UPLOAD CONTRACT
+
+↓
+
+CLASSIFY
+
+↓
+
+IDENTIFY PARTIES
+
+↓
+
+EXTRACT DATES
+
+↓
+
+EXTRACT OBLIGATIONS
+
+↓
+
+EXTRACT PAYMENT TERMS
+
+↓
+
+EXTRACT TERMINATION RIGHTS
+
+↓
+
+EXTRACT LIABILITY
+
+↓
+
+EXTRACT INDEMNITIES
+
+↓
+
+EXTRACT GOVERNING LAW
+
+↓
+
+EXTRACT DISPUTE MECHANISM
+
+↓
+
+IDENTIFY NON-STANDARD CLAUSES
+
+↓
+
+IDENTIFY RISKS
+
+↓
+
+ASSIGN REVIEW
+
+↓
+
+SAVE TO LEGAL MATTER / CONTRACT RECORD
+
+↓
+
+TRACK RENEWAL / EXPIRY.
+
+---
+
+# OUTSIDE COUNSEL MANAGEMENT
+
+The system should allow in-house teams to manage external law firms.
+
+Potential information:
+
+* law firm;
+* partner;
+* assigned matter;
+* budget;
+* fee arrangement;
+* invoices;
+* advice;
+* deliverables;
+* deadlines;
+* matter status.
+
+AI may assist with:
+
+* summarising external advice;
+* comparing invoices against work;
+* identifying repeated spend categories;
+* preparing management summaries.
+
+---
+
+# PERSONA C
+
+# LAW LECTURER / LEGAL ACADEMIC MODE
+
+This user should NOT land on:
+
+“Clients”
+
+“Active Cases”
+
+“Firm Revenue”
+
+“Billable Hours”.
+
+That would immediately make the application feel irrelevant.
+
+For legal academics, create:
+
+# AN AI-POWERED LEGAL ACADEMIC WORKSPACE.
+
+The core architecture becomes:
+
+ACADEMIC
+
+↓
+
+TEACHING + RESEARCH + SUPERVISION
+
+↓
+
+COURSES / PROJECTS / MANUSCRIPTS / STUDENTS
+
+↓
+
+LEGAL KNOWLEDGE
+
+↓
+
+AI INTELLIGENCE.
+
+---
+
+# LAW LECTURER HOME DASHBOARD
+
+Prioritise:
+
+### MY TEACHING
+
+* courses;
+* classes;
+* materials;
+* assessments;
+* upcoming teaching tasks.
+
+### MY RESEARCH
+
+* active projects;
+* manuscripts;
+* literature;
+* legal authorities;
+* research notes;
+* deadlines.
+
+### MY SUPERVISION
+
+* postgraduate students;
+* research progress;
+* meetings;
+* drafts;
+* milestones.
+
+### MY WRITING
+
+* journal articles;
+* chapters;
+* conference papers;
+* research proposals;
+* reports.
+
+### LEGAL RESEARCH
+
+* saved cases;
+* statutes;
+* authorities;
+* research collections.
+
+### AI ACADEMIC WORKSPACE
+
+* literature analysis;
+* case analysis;
+* conceptual mapping;
+* legal comparison;
+* teaching material development;
+* research planning.
+
+---
+
+# LAW LECTURER PRIMARY NAVIGATION
+
+Consider:
+
+HOME
+
+TEACHING
+
+RESEARCH PROJECTS
+
+LEGAL RESEARCH
+
+MANUSCRIPTS
+
+SUPERVISION
+
+DOCUMENTS
+
+CALENDAR
+
+TASKS
+
+AI WORKSPACE
+
+KNOWLEDGE LIBRARY.
+
+---
+
+# AI FOR LEGAL ACADEMICS
+
+Examples:
+
+“Summarise the development of this doctrine.”
+
+“Compare these cases.”
+
+“Identify jurisprudential tensions.”
+
+“Create a case matrix.”
+
+“Find research gaps.”
+
+“Map the literature.”
+
+“Compare Malaysian law with another jurisdiction.”
+
+“Create seminar questions.”
+
+“Create a hypothetical legal problem.”
+
+“Prepare teaching notes.”
+
+“Convert these cases into a class exercise.”
+
+“Analyse this student's argument structure.”
+
+“Suggest questions for my supervision meeting.”
+
+“Organise my research notes.”
+
+“Turn these sources into a research map.”
+
+---
+
+# RESEARCH PROJECT COMMAND CENTRE
+
+For academics, the functional equivalent of the lawyer's Matter Command Centre should be:
+
+# RESEARCH PROJECT COMMAND CENTRE.
+
+It may contain:
+
+* research title;
+* research questions;
+* objectives;
+* methodology;
+* literature;
+* authorities;
+* notes;
+* datasets;
+* documents;
+* drafts;
+* tasks;
+* deadlines;
+* collaborators;
+* AI analyses;
+* references;
+* manuscript outputs.
+
+---
+
+# TEACHING COMMAND CENTRE
+
+For each course:
+
+* course information;
+* topics;
+* syllabus;
+* readings;
+* cases;
+* legislation;
+* teaching materials;
+* assessments;
+* lesson plans;
+* class activities;
+* student materials;
+* AI-generated learning activities.
+
+---
+
+# SUPERVISION WORKSPACE
+
+For postgraduate supervision, support:
+
+* student;
+* programme;
+* thesis title;
+* milestones;
+* chapters;
+* meetings;
+* feedback;
+* tasks;
+* deadlines;
+* research issues;
+* literature;
+* progress notes.
+
+AI should assist the supervisor, not impersonate the student.
+
+---
+
+# ROLE-SPECIFIC TERMINOLOGY ENGINE
+
+The UI should intelligently use different terminology.
+
+Example:
+
+### PRIVATE PRACTICE
+
+Client
+
+Matter
+
+Law Firm
+
+Responsible Lawyer
+
+Fee
+
+Invoice
+
+Matter Team
+
+### IN-HOUSE
+
+Business Unit
+
+Legal Matter
+
+Organisation
+
+Responsible Counsel
+
+Legal Spend
+
+Outside Counsel
+
+Legal Team
+
+### ACADEMIC
+
+Research Project
+
+Course
+
+Faculty / Institution
+
+Researcher / Lecturer
+
+Research Output
+
+Supervision
+
+Academic Team.
+
+Do NOT perform crude find-and-replace substitutions.
+
+Terminology must reflect actual workflow differences.
+
+---
+
+# ROLE-SPECIFIC DASHBOARD ENGINE
+
+The dashboard system should load widgets based on persona.
+
+Do not make every widget visible to everyone.
+
+Use:
+
+ROLE
+
+*
+
+PERMISSIONS
+
+*
+
+USER PREFERENCES
+
+*
+
+AVAILABLE DATA
+
+to determine dashboard content.
+
+---
+
+# ROLE-SPECIFIC AI STARTER PROMPTS
+
+The AI interface should display useful suggestions based on role.
+
+For practitioner:
+
+“Review this matter.”
+
+“Analyse these pleadings.”
+
+“Find relevant authorities.”
+
+“Draft client update.”
+
+For in-house:
+
+“Review this contract.”
+
+“Assess legal risk.”
+
+“Prepare management briefing.”
+
+“Check upcoming contractual obligations.”
+
+For lecturer:
+
+“Compare these cases.”
+
+“Map this literature.”
+
+“Prepare seminar questions.”
+
+“Analyse this research argument.”
+
+---
+
+# ROLE-SPECIFIC AI SYSTEM CONTEXT
+
+The AI backend should also know the user's professional mode.
+
+The model context should include, where appropriate:
+
+ROLE = LEGAL PRACTITIONER
+
+or
+
+ROLE = IN-HOUSE COUNSEL
+
+or
+
+ROLE = LEGAL ACADEMIC.
+
+This allows the AI to tailor:
+
+* vocabulary;
+* output structure;
+* practical recommendations;
+* assumptions;
+* workflow suggestions.
+
+Do NOT expose confidential information merely because role context exists.
+
+---
+
+# SECOND-STAGE ONBOARDING
+
+After the professional role is selected, ask only a few useful configuration questions.
+
+Do NOT create a 20-screen registration process.
+
+---
+
+# FOR LEGAL PRACTITIONERS
+
+Ask progressively:
+
+What best describes your practice?
+
+* Sole Practitioner
+* Small Firm
+* Medium Firm
+* Large Firm
+* Other
+
+Then perhaps:
+
+What areas do you practise?
+
+Allow multiple selection.
+
+Examples:
+
+* Litigation
+* Corporate
+* Conveyancing
+* Criminal
+* Employment
+* Family
+* Syariah
+* IP
+* Probate
+* Arbitration
+* General Practice.
+
+Use this to configure:
+
+* matter templates;
+* AI shortcuts;
+* document types;
+* dashboard suggestions.
+
+---
+
+# FOR IN-HOUSE COUNSEL
+
+Ask:
+
+What type of organisation do you support?
+
+Then:
+
+Which legal work do you handle?
+
+Examples:
+
+* Contracts
+* Employment
+* Compliance
+* Corporate
+* Litigation
+* Regulatory
+* Data Protection
+* IP
+* Procurement
+* Governance.
+
+---
+
+# FOR LAW LECTURERS
+
+Ask:
+
+What do you mainly use the platform for?
+
+Allow:
+
+* Teaching
+* Research
+* Writing
+* Supervision
+
+and combinations.
+
+Then configure the workspace.
+
+---
+
+# DO NOT OVER-PERSONALISE TOO EARLY
+
+The onboarding objective is:
+
+# GET THE USER TO VALUE QUICKLY.
+
+Not:
+
+collect every conceivable detail before allowing entry.
+
+Use progressive profiling.
+
+Ask more only when relevant.
+
+---
+
+# ROLE-BASED FEATURE VISIBILITY
+
+Do NOT delete features merely because they are irrelevant to the current persona.
+
+Instead:
+
+hide or deprioritise them.
+
+Example:
+
+A lecturer who later activates Practitioner Mode may gain access to Clients and Matters.
+
+An in-house lawyer may enable Academic Mode.
+
+This preserves flexibility.
+
+---
+
+# UNIVERSAL LEGAL RESEARCH
+
+Legal research can remain common across all three modes.
+
+But its use should differ.
+
+Practitioner:
+
+# SAVE TO MATTER
+
+In-house:
+
+# SAVE TO LEGAL MATTER / CONTRACT / ADVICE FILE
+
+Academic:
+
+# SAVE TO RESEARCH PROJECT / COURSE / MANUSCRIPT.
+
+---
+
+# UNIVERSAL DOCUMENT INTELLIGENCE
+
+Document AI should also adapt.
+
+Practitioner:
+
+“Analyse for this case.”
+
+In-house:
+
+“Analyse for this contract/matter.”
+
+Academic:
+
+“Analyse for this research project/course.”
+
+Same AI infrastructure.
+
+Different professional workflow.
+
+---
+
+# UNIVERSAL DRAFTING ENGINE
+
+Drafting templates should also adapt.
+
+Practitioner examples:
+
+* submissions;
+* legal letters;
+* affidavits;
+* pleadings.
+
+In-house examples:
+
+* legal advice;
+* contract clauses;
+* Board papers;
+* internal memoranda;
+* compliance notices.
+
+Academic examples:
+
+* research outlines;
+* lecture notes;
+* case studies;
+* scholarly writing assistance;
+* research summaries.
+
+---
+
+# ROLE-AWARE GLOBAL SEARCH
+
+Search should prioritise objects meaningful to the persona.
+
+Practitioner:
+
+Clients
+
+Matters
+
+Documents
+
+Cases
+
+Tasks.
+
+In-house:
+
+Legal Matters
+
+Contracts
+
+Business Units
+
+Policies
+
+Advice
+
+Tasks.
+
+Academic:
+
+Research Projects
+
+Cases
+
+Literature
+
+Courses
+
+Manuscripts
+
+Supervision Records.
+
+---
+
+# ROLE-AWARE QUICK CREATE
+
+The “+” or Create button should also change.
+
+### Practitioner
+
+New Client
+
+New Matter
+
+New Task
+
+Upload Document
+
+New Time Entry.
+
+### In-House
+
+New Legal Matter
+
+New Contract Review
+
+New Legal Request
+
+New Task
+
+New Outside Counsel Matter.
+
+### Lecturer
+
+New Research Project
+
+New Course
+
+New Manuscript
+
+New Supervision Record
+
+New Research Note.
+
+---
+
+# ROLE-AWARE NOTIFICATIONS
+
+Notifications must also reflect professional priorities.
+
+Practitioner:
+
+“Filing deadline tomorrow.”
+
+In-house:
+
+“Contract expires in 30 days.”
+
+Academic:
+
+“Manuscript deadline approaching.”
+
+---
+
+# MULTI-PERSONA USERS
+
+This is important.
+
+Some users genuinely occupy more than one professional world.
+
+Therefore create a clear workspace switcher such as:
+
+# CURRENT WORKSPACE
+
+Legal Practice
+
+In-House Legal
+
+Academic.
+
+Changing workspace should:
+
+* change the dashboard;
+* reorder navigation;
+* change quick actions;
+* change AI starter prompts;
+* change recommended tools.
+
+It should NOT require logging out.
+
+---
+
+# NEVER MIX DATA CARELESSLY ACROSS PROFESSIONAL WORKSPACES
+
+Professional mode switching must NOT create security leakage.
+
+For example:
+
+Private-client documents must not accidentally appear in an Academic research workspace merely because the same user owns both.
+
+Require intentional linking where appropriate.
+
+---
+
+# PERSONALISATION MUST EXTEND THROUGH THE ENTIRE USER JOURNEY
+
+Do not stop personalisation after the landing page.
+
+Audit every screen and ask:
+
+# “IS THIS SCREEN APPROPRIATE FOR THIS USER'S PROFESSIONAL ROLE?”
+
+Check:
+
+* terminology;
+* empty states;
+* buttons;
+* recommendations;
+* navigation;
+* examples;
+* default filters;
+* forms;
+* reports;
+* AI suggestions;
+* document categories;
+* dashboards.
+
+---
+
+# EMPTY-STATE EXAMPLES MUST BE PERSONA-SPECIFIC
+
+Bad:
+
+“No items found.”
+
+Better for practitioner:
+
+“You do not have any active matters yet. Open your first client matter.”
+
+Better for in-house:
+
+“No active legal matters. Create a matter or record a new internal legal request.”
+
+Better for lecturer:
+
+“No active research projects. Create a research project to begin organising your sources and AI analyses.”
+
+---
+
+# PERSONALISED FIRST-RUN EXPERIENCE
+
+After onboarding, the first dashboard should help the user accomplish something immediately.
+
+Practitioner:
+
+# OPEN YOUR FIRST MATTER
+
+In-house:
+
+# CREATE YOUR FIRST LEGAL MATTER OR CONTRACT REVIEW
+
+Academic:
+
+# CREATE YOUR FIRST RESEARCH PROJECT OR COURSE WORKSPACE.
+
+---
+
+# PERSONA-SPECIFIC SUCCESS TEST
+
+During QA, create three separate test users.
+
+---
+
+# USER A
+
+LEGAL PRACTITIONER
+
+Complete:
+
+registration
+
+→ select Legal Practitioner
+
+→ configure firm
+
+→ create client
+
+→ create matter
+
+→ upload documents
+
+→ use AI
+
+→ research
+
+→ draft
+
+→ task
+
+→ deadline
+
+→ billing
+
+→ firm management.
+
+The experience must feel designed for practising lawyers.
+
+---
+
+# USER B
+
+IN-HOUSE COUNSEL
+
+Complete:
+
+registration
+
+→ select In-House Counsel
+
+→ configure organisation
+
+→ create business unit
+
+→ create legal request
+
+→ open legal matter
+
+→ upload contract
+
+→ AI contract analysis
+
+→ assign task
+
+→ record legal risk
+
+→ manage external counsel
+
+→ track legal spend
+
+→ management briefing.
+
+The experience must feel designed for an internal legal department.
+
+---
+
+# USER C
+
+LAW LECTURER
+
+Complete:
+
+registration
+
+→ select Law Lecturer
+
+→ configure academic workspace
+
+→ create research project
+
+→ save legal authorities
+
+→ upload papers
+
+→ analyse literature
+
+→ create manuscript workspace
+
+→ create teaching workspace
+
+→ use AI for course preparation
+
+→ create supervision record.
+
+The experience must feel designed for a legal academic.
+
+---
+
+# CRITICAL FAILURE TEST
+
+If all three users eventually see essentially the same:
+
+dashboard,
+
+navigation,
+
+modules,
+
+AI prompts,
+
+labels,
+
+workflows,
+
+then:
+
+# PERSONA CUSTOMISATION HAS FAILED.
+
+Fix it.
+
+---
+
+# THE ULTIMATE PRODUCT ARCHITECTURE
+
+The application should now be understood as:
+
+# ONE AI-POWERED LEGAL PROFESSIONAL OPERATING SYSTEM
+
+with THREE major professional environments:
+
+## LEGAL PRACTICE OS
+
+Client-Centric
+
+Matter-Centric
+
+Firm-Centric.
+
+## IN-HOUSE LEGAL OS
+
+Organisation-Centric
+
+Legal-Matter-Centric
+
+Contract-Centric
+
+Risk-Centric.
+
+## LEGAL ACADEMIC OS
+
+Research-Centric
+
+Teaching-Centric
+
+Supervision-Centric
+
+Knowledge-Centric.
+
+All powered by:
+
+# ONE SHARED LEGAL AI INTELLIGENCE LAYER.
+
+---
+
+# ABSOLUTE FINAL DESIGN PRINCIPLE
+
+DO NOT FORCE USERS TO ADAPT THEMSELVES TO THE APPLICATION.
+
+# THE APPLICATION MUST ADAPT ITSELF TO THE USER.
+
+A practising lawyer should immediately think:
+
+“This understands how I run my files and my firm.”
+
+An in-house counsel should immediately think:
+
+“This understands how a legal department works.”
+
+A law lecturer should immediately think:
+
+“This understands how I teach and conduct legal research.”
+
+If any of those users feel that they are merely using a generic legal AI application with irrelevant modules hidden around the edges:
+
+THE DESIGN IS NOT FINISHED.
+
+---
+
+# FINAL IMPLEMENTATION COMMAND
+
+BUILD THIS PERSONA ROUTING INTO THE CORE ARCHITECTURE.
+
+Do not treat it as a cosmetic landing-page feature.
+
+The selected professional identity must influence:
+
+LANDING PAGE
+
+→ ONBOARDING
+
+→ DATA MODEL
+
+→ DASHBOARD
+
+→ NAVIGATION
+
+→ TERMINOLOGY
+
+→ WORKFLOWS
+
+→ MODULE PRIORITY
+
+→ QUICK ACTIONS
+
+→ AI CONTEXT
+
+→ AI RECOMMENDATIONS
+
+→ SEARCH
+
+→ DOCUMENT ORGANISATION
+
+→ REPORTS
+
+→ NOTIFICATIONS
+
+→ USER EXPERIENCE.
+
+The professional role selection is therefore not merely:
+
+“Which homepage should I show?”
+
+It is:
+
+# “WHICH VERSION OF THE LEGAL PROFESSIONAL OPERATING SYSTEM SHOULD THIS USER ENTER?”
+
+Implement, test and validate it accordingly.

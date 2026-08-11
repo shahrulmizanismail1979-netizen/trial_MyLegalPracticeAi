@@ -32,6 +32,15 @@ import {
   useClients,
   useCreateClient,
   useDeleteClient,
+  useMatterClients,
+  useLinkClient,
+  useUnlinkClient,
+  useCaseEvents,
+  useAddCaseEvent,
+  useUpdateCaseEvent,
+  useDeleteCaseEvent,
+  useCaseReview,
+  CASE_EVENT_KINDS,
   daysUntil,
   fmtDate,
   ApiError,
@@ -39,28 +48,302 @@ import {
   type MatterWorkItem,
   type MatterInput,
   type ChecklistItem,
+  type CaseEvent,
+  type CaseClient,
 } from "@/hooks/use-matters";
 import {
   ArrowLeft, CalendarClock, Plus, Pencil, Trash2, Check,
   AlertTriangle, CircleCheck, User, Hash, Clock, FileText, Copy,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   Phone, Mail, Timer, Building2, Users, ChevronDown, Download,
+  History, Link2, X, Loader2,
 } from "lucide-react";
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 const STATUS_OPTIONS = [...CCB_STAGES];
 const selectCls = "flex h-10 w-full items-center rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
-type Tab = "overview" | "timeline" | "documents" | "checklist" | "team" | "time";
+type Tab = "overview" | "timeline" | "chronology" | "documents" | "checklist" | "team" | "time";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
   { id: "timeline", label: "Timeline", icon: CalendarClock },
+  { id: "chronology", label: "Chronology", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
 ];
+
+const EVENT_KIND_COLORS: Record<string, string> = {
+  filing: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  hearing: "bg-violet-500/10 text-violet-500 border-violet-500/20",
+  correspondence: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
+  instruction: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  deadline: "bg-red-500/10 text-red-500 border-red-500/20",
+  stage: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
+  "saved-work": "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  note: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  payment: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  meeting: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+};
+
+function ChronologyTab({ matterId }: { matterId: number }) {
+  const { data: events, isLoading } = useCaseEvents(matterId);
+  const addEvent = useAddCaseEvent();
+  const updateEvent = useUpdateCaseEvent();
+  const deleteEvent = useDeleteCaseEvent();
+  const { toast } = useToast();
+
+  const blank = { title: "", event_date: new Date().toISOString().slice(0, 10), kind: "filing", description: "" };
+  const [form, setForm] = useState(blank);
+  const [editing, setEditing] = useState<CaseEvent | null>(null);
+  const [editForm, setEditForm] = useState(blank);
+
+  const sorted = [...(events ?? [])].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+  );
+
+  const submit = async () => {
+    if (!form.title.trim() || !form.event_date) { toast({ title: "Title and date required", variant: "destructive" }); return; }
+    try {
+      await addEvent.mutateAsync({ matterId, title: form.title.trim(), event_date: form.event_date, kind: form.kind, description: form.description.trim() || undefined });
+      setForm(blank);
+      toast({ title: "Event added" });
+    } catch (e) {
+      toast({ title: "Could not add event", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!editForm.title.trim() || !editForm.event_date) { toast({ title: "Title and date required", variant: "destructive" }); return; }
+    try {
+      await updateEvent.mutateAsync({ matterId, eventId: editing.id, title: editForm.title.trim(), event_date: editForm.event_date, kind: editForm.kind, description: editForm.description.trim() || undefined });
+      setEditing(null);
+      toast({ title: "Event updated" });
+    } catch (e) {
+      toast({ title: "Could not update", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <History className="h-5 w-5 text-primary" />
+        <h2 className="font-serif font-bold text-lg text-foreground">Chronology</h2>
+      </div>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <p className="text-sm font-semibold text-foreground">Add event</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5"><Label>Date *</Label><Input type="date" value={form.event_date} onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))} /></div>
+            <div className="space-y-1.5">
+              <Label>Kind *</Label>
+              <select value={form.kind} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))} className={selectCls}>
+                {CASE_EVENT_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Writ of summons filed" /></div>
+          </div>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
+          <Button onClick={submit} disabled={addEvent.isPending} className="gap-1.5">{addEvent.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add event</Button>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-primary animate-pulse">Loading chronology…</div>
+      ) : sorted.length === 0 ? (
+        <Card><CardContent className="p-10 text-center"><History className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" /><p className="text-sm text-muted-foreground">No chronology events yet. Add key filings, hearings and correspondence above.</p></CardContent></Card>
+      ) : (
+        <div className="relative pl-6">
+          <div className="absolute left-2.5 top-0 bottom-0 w-px bg-border" />
+          <div className="space-y-3">
+            {sorted.map((ev) => (
+              <div key={ev.id} className="relative flex items-start gap-3">
+                <div className="absolute -left-2.5 mt-2 h-5 w-5 rounded-full border-2 border-primary bg-background flex items-center justify-center shrink-0"><div className="h-2 w-2 rounded-full bg-primary" /></div>
+                <Card className="flex-1 ml-4">
+                  <CardContent className="p-3 flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${EVENT_KIND_COLORS[ev.kind] ?? EVENT_KIND_COLORS.note}`}>{ev.kind}</span>
+                        <span className="text-xs text-muted-foreground">{fmtDate(ev.event_date)}</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground mt-1">{ev.title}</p>
+                      {ev.description && <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{ev.description}</p>}
+                      {ev.source && <p className="text-[10px] text-muted-foreground/70 mt-1">Source: {ev.source}</p>}
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => { setEditing(ev); setEditForm({ title: ev.title, event_date: ev.event_date.slice(0, 10), kind: ev.kind, description: ev.description ?? "" }); }} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => deleteEvent.mutateAsync({ matterId, eventId: ev.id })} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit event</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5"><Label>Date *</Label><Input type="date" value={editForm.event_date} onChange={(e) => setEditForm((f) => ({ ...f, event_date: e.target.value }))} /></div>
+            <div className="space-y-1.5">
+              <Label>Kind *</Label>
+              <select value={editForm.kind} onChange={(e) => setEditForm((f) => ({ ...f, kind: e.target.value }))} className={selectCls}>
+                {CASE_EVENT_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5"><Label>Title *</Label><Input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={updateEvent.isPending}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AiReviewCard({ matterId }: { matterId: number }) {
+  const review = useCaseReview();
+  const { toast } = useToast();
+  const [result, setResult] = useState<string | null>(null);
+
+  const run = async () => {
+    setResult(null);
+    try {
+      const res = await review.mutateAsync(matterId);
+      setResult(res.review ?? "");
+    } catch (e) {
+      toast({ title: "AI review failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card className="border-primary/20">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-foreground">AI Case Review</span>
+          </div>
+          <Button size="sm" className="gap-1.5" onClick={run} disabled={review.isPending}>
+            {review.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {review.isPending ? "Reviewing…" : "Run AI review"}
+          </Button>
+        </div>
+        {review.isPending && <p className="text-sm text-muted-foreground animate-pulse">Generating case review and prioritised next actions… this can take up to a minute.</p>}
+        {result != null && !review.isPending && (
+          <div className="border-t border-border pt-3">
+            <MarkdownRenderer content={result} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MatterClientsCard({ matterId }: { matterId: number }) {
+  const { data: linked, isLoading } = useMatterClients(matterId);
+  const { data: allClients } = useClients();
+  const createClient = useCreateClient();
+  const linkClient = useLinkClient();
+  const unlinkClient = useUnlinkClient();
+  const { toast } = useToast();
+
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [newForm, setNewForm] = useState({ name: "", phone: "", email: "" });
+
+  const linkedIds = new Set((linked ?? []).map((c) => c.id));
+  const available = (allClients ?? []).filter((c) => !linkedIds.has(c.id));
+
+  const doLinkExisting = async () => {
+    if (!selectedId) return;
+    try {
+      await linkClient.mutateAsync({ clientId: parseInt(selectedId, 10), matterId });
+      toast({ title: "Client linked" });
+      setSelectedId(""); setLinkOpen(false);
+    } catch (e) { toast({ title: "Could not link", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+  };
+
+  const doCreateAndLink = async () => {
+    if (!newForm.name.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
+    try {
+      const created: CaseClient = await createClient.mutateAsync({ name: newForm.name.trim(), phone: newForm.phone.trim() || undefined, email: newForm.email.trim() || undefined });
+      await linkClient.mutateAsync({ clientId: created.id, matterId });
+      toast({ title: "Client created & linked" });
+      setNewForm({ name: "", phone: "", email: "" }); setLinkOpen(false);
+    } catch (e) { toast({ title: "Could not create client", description: e instanceof Error ? e.message : "", variant: "destructive" }); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5"><User className="h-4 w-4 text-primary" /> Linked Clients</h3>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setLinkOpen(true)}><Link2 className="h-3.5 w-3.5" /> Link client</Button>
+      </div>
+      {isLoading ? null : (linked ?? []).length === 0 ? (
+        <Card><CardContent className="p-6 text-center"><p className="text-sm text-muted-foreground">No client linked to this matter yet.</p></CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {linked!.map((c) => (
+            <Card key={c.id}>
+              <CardContent className="p-4 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground">{c.name}</p>
+                  {c.company_name && <p className="text-xs text-muted-foreground">{c.company_name}</p>}
+                  {c.email && <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Mail className="h-3 w-3" /> {c.email}</p>}
+                  {c.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> {c.phone}</p>}
+                </div>
+                <button onClick={async () => { try { await unlinkClient.mutateAsync({ clientId: c.id, matterId }); toast({ title: "Client unlinked" }); } catch { toast({ title: "Could not unlink", variant: "destructive" }); } }} className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive shrink-0" title="Unlink"><X className="h-3.5 w-3.5" /></button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Link a client</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Existing client</Label>
+              {available.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No other clients available.</p>
+              ) : (
+                <div className="flex gap-2">
+                  <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={selectCls}>
+                    <option value="">Choose a client…</option>
+                    {available.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <Button onClick={doLinkExisting} disabled={!selectedId || linkClient.isPending}>Link</Button>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Or create a new client</p>
+              <div className="space-y-1.5"><Label>Name *</Label><Input value={newForm.name} onChange={(e) => setNewForm((f) => ({ ...f, name: e.target.value }))} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label>Phone</Label><Input value={newForm.phone} onChange={(e) => setNewForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>Email</Label><Input value={newForm.email} onChange={(e) => setNewForm((f) => ({ ...f, email: e.target.value }))} /></div>
+              </div>
+              <Button className="w-full gap-1.5" onClick={doCreateAndLink} disabled={createClient.isPending || linkClient.isPending || !newForm.name.trim()}>
+                {(createClient.isPending || linkClient.isPending) && <Loader2 className="h-4 w-4 animate-spin" />} Create & link
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 function CountdownBadge({ due, status }: { due: string; status: string }) {
   if (status === "done") return <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500"><CircleCheck className="h-3.5 w-3.5" /> Done</span>;
@@ -285,6 +568,23 @@ function ChecklistTab({ matterId }: { matterId: number }) {
 }
 
 function TeamTab({ matter }: { matter: { id: number; clientName: string | null; counterparty: string | null } }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {matter.clientName && (
+          <Card className="border-primary/20"><CardContent className="p-4"><p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Client</p><p className="font-semibold text-foreground">{matter.clientName}</p></CardContent></Card>
+        )}
+        {matter.counterparty && (
+          <Card><CardContent className="p-4"><p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Counterparty</p><p className="font-semibold text-foreground">{matter.counterparty}</p></CardContent></Card>
+        )}
+      </div>
+      <MatterClientsCard matterId={matter.id} />
+      <ContactDirectory />
+    </div>
+  );
+}
+
+function ContactDirectory() {
   const { data: clients, isLoading } = useClients();
   const createClient = useCreateClient();
   const deleteClient = useDeleteClient();
@@ -304,15 +604,6 @@ function TeamTab({ matter }: { matter: { id: number; clientName: string | null; 
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {matter.clientName && (
-          <Card className="border-primary/20"><CardContent className="p-4"><p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Client</p><p className="font-semibold text-foreground">{matter.clientName}</p></CardContent></Card>
-        )}
-        {matter.counterparty && (
-          <Card><CardContent className="p-4"><p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Counterparty</p><p className="font-semibold text-foreground">{matter.counterparty}</p></CardContent></Card>
-        )}
-      </div>
-
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Contact Directory</h3>
@@ -605,8 +896,11 @@ export default function MatterDetailPage() {
               </CardContent>
             </Card>
             <AiInsightsCard matterId={matter.id} />
+            <AiReviewCard matterId={matter.id} />
           </div>
         )}
+
+        {activeTab === "chronology" && <ChronologyTab matterId={matter.id} />}
 
         {activeTab === "timeline" && (
           <div className="space-y-4">

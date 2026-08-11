@@ -522,3 +522,93 @@ export function useDeleteClient() {
     onSuccess: () => qc.invalidateQueries({ queryKey: clientsKey }),
   });
 }
+
+// ── Chronology (case events) hooks ────────────────────────────────────────────
+
+export const CASE_EVENT_KINDS = [
+  'filing',
+  'hearing',
+  'correspondence',
+  'instruction',
+  'deadline',
+  'stage',
+  'saved-work',
+  'note',
+  'payment',
+  'meeting',
+] as const;
+
+export type CaseEventKind = (typeof CASE_EVENT_KINDS)[number];
+
+export interface CaseEvent {
+  id: number;
+  event_date: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CaseEventInput {
+  title: string;
+  event_date: string;
+  kind: string;
+  description?: string;
+  source?: string;
+}
+
+export function useCaseEvents(matterId: number | null) {
+  return useQuery<CaseEvent[]>({
+    queryKey: [...KEY, 'events', matterId],
+    queryFn: () => api(`/${matterId}/events`),
+    enabled: matterId != null,
+  });
+}
+
+export function useAddCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, ...input }: { matterId: number } & CaseEventInput): Promise<CaseEvent> =>
+      api(`/${matterId}/events`, { method: 'POST', body: JSON.stringify(input) }),
+    onSuccess: (_data, { matterId }) => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'events', matterId] });
+    },
+  });
+}
+
+export function useUpdateCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, eventId, ...patch }: { matterId: number; eventId: number } & Partial<CaseEventInput>): Promise<CaseEvent> =>
+      api(`/${matterId}/events/${eventId}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+    onSuccess: (_data, { matterId }) => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'events', matterId] });
+    },
+  });
+}
+
+export function useDeleteCaseEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, eventId }: { matterId: number; eventId: number }): Promise<{ success: boolean }> =>
+      api(`/${matterId}/events/${eventId}`, { method: 'DELETE' }),
+    onSuccess: (_data, { matterId }) => {
+      qc.invalidateQueries({ queryKey: [...KEY, 'events', matterId] });
+    },
+  });
+}
+
+// ── AI Case Review (context assembly + prioritised next actions) ──────────────
+
+export interface CaseReviewResult {
+  review: string;
+}
+
+export function useCaseReview() {
+  return useMutation({
+    mutationFn: (matterId: number): Promise<CaseReviewResult> =>
+      api(`/${matterId}/review`, { method: 'POST', body: JSON.stringify({}) }),
+  });
+}

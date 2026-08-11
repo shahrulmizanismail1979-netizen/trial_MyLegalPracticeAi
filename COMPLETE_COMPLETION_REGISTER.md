@@ -28,3 +28,12 @@ The genuine gaps are listed below, ordered by completion priority.
 - Client/matter data is portal-scoped (shared table structure, per-portal silos with owner_key isolation). A single cross-portal firm database is a product decision, not an incompleteness — parked for owner.
 - MyClientAI, MyLawResearch, MyJudicialAI do not exist as artifacts; building brand-new apps is an owner decision (scope/pricing), recorded in BLOCKERS_REQUIRING_OWNER_ACTION.md.
 - MyLawAcad intentionally uses assessment files, no client data (directive §9L satisfied).
+
+## 2026-08-11 — SUPREME MASTER PROMPT phase 1 (case-centric OS)
+| # | Scope | Capability | Before | After | Status |
+|---|-------|-----------|--------|-------|--------|
+| 9 | All 6 matter portals | Matter chronology/timeline | None (only deadlines/stage history) | case_events table + CRUD + Chronology tab on every matter-detail page | COMPLETE |
+| 10 | All 6 matter portals | Matter-aware AI ("review this file / what next") | AI insights card only | /context assembly + /review AI endpoint (owner-scoped) + AI Case Review UI | COMPLETE |
+| 11 | crim/sya/ccb/acc/corp | Client record linked to a matter | Client directory existed, no matter link (lit had own) | case_client_matters + link routes + matter-page client link UI; accident gains client directory | COMPLETE |
+
+Remaining directive pillars for later sessions: firm command centre in MyLawFirmAi (clients/matters/billing/dashboard — currently a task manager), documents-in-matter library, AI form pre-fill from matter context, matter time-log billing PDF export. These map to proposed tasks #114/#135/#137/#138 etc.

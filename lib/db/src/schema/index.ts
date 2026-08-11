@@ -49,3 +49,5 @@ export * from "./ccb-messages";
 export * from "./research";
 export * from "./matter-files";
 export * from "./portal-code-seats";
+export * from "./portal-clients";
+export * from "./case-events";

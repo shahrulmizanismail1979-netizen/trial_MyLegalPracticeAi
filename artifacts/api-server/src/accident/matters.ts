@@ -11,6 +11,7 @@ import { accMatters, accMatterDeadlines, accSavedWork } from "@workspace/db/sche
 import { requireMatterTenant, ownerOf } from "./matterAuth";
 import { computeAccDeadlines, ACC_DEADLINE_TRIGGERS } from "./lib/accidentDeadlines";
 import { logger } from "../lib/logger";
+import { makeClientsRouter } from "../lib/caseClients";
 import {
   attachCaseIntelligence,
   triggerChecklistGeneration,
@@ -622,5 +623,17 @@ attachCaseIntelligence({
   },
   getMatter: (req, res, id) => getOwnedMatter(req, res, id),
 });
+
+// ── Client directory (shared case_clients + matter linking) ──────────────────
+router.use(
+  "/clients",
+  makeClientsRouter("acc", (req) => {
+    try {
+      return String(ownerOf(req));
+    } catch {
+      return null;
+    }
+  }),
+);
 
 export default router;

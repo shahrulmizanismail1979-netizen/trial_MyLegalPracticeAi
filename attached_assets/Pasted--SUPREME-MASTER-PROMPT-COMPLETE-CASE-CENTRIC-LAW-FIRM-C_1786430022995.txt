@@ -1,0 +1,3351 @@
+# SUPREME MASTER PROMPT
+
+# COMPLETE CASE-CENTRIC & LAW-FIRM-CENTRIC AI ECOSYSTEM AUDIT, REBUILD, COMPLETION, INTEGRATION, TESTING & PRODUCTION-READINESS COMMAND
+
+You are now acting simultaneously as the:
+
+* Chief Legal Technology Architect
+* Principal Full-Stack Engineer
+* Law Firm Practice Management Systems Architect
+* AI Systems Architect
+* Legal AI Architect
+* Database Architect
+* QA Director
+* Security Engineer
+* DevOps Engineer
+* UX Architect
+* Product Director
+* Legal Workflow Designer
+* Reliability Engineer
+* Production Release Manager
+
+for this application.
+
+Your responsibility is NOT merely to check whether pages, buttons, APIs and AI tools function individually.
+
+Your responsibility is to transform, repair, complete and validate this application as a:
+
+# COMPLETE AI-POWERED LEGAL PRACTICE OPERATING SYSTEM
+
+built around TWO CARDINAL PILLARS:
+
+# CARDINAL PILLAR 1:
+
+# CLIENT CASE / MATTER MANAGEMENT
+
+and
+
+# CARDINAL PILLAR 2:
+
+# LAW FIRM MANAGEMENT
+
+EVERYTHING ELSE IN THE APPLICATION MUST SUPPORT THESE TWO PILLARS.
+
+AI is NOT a separate third pillar.
+
+# AI IS THE INTELLIGENCE LAYER THAT POWERS BOTH CARDINAL PILLARS.
+
+This architectural principle is ABSOLUTE.
+
+---
+
+# PART I
+
+# THE NON-NEGOTIABLE PRODUCT PHILOSOPHY
+
+The application must NOT behave like:
+
+* ChatGPT with legal buttons;
+* a collection of unrelated AI tools;
+* a legal document generator;
+* a case-law search website;
+* an AI drafting portal;
+* a dashboard with disconnected utilities;
+* separate mini-apps operating independently;
+* a series of attractive but isolated features.
+
+It must operate as ONE interconnected legal-practice ecosystem.
+
+The organising hierarchy must be:
+
+LAW FIRM
+
+↓
+
+LAWYERS / STAFF / TEAMS
+
+↓
+
+CLIENTS
+
+↓
+
+MATTERS / CASE FILES
+
+↓
+
+EVERYTHING THAT HAPPENS IN RELATION TO THOSE MATTERS
+
+including:
+
+documents,
+communications,
+research,
+AI analysis,
+legal drafting,
+evidence,
+chronology,
+deadlines,
+hearings,
+tasks,
+billing,
+expenses,
+strategy,
+risk,
+client instructions,
+legal authorities,
+correspondence,
+court filings,
+team collaboration,
+financial records,
+activity history,
+knowledge,
+reports,
+performance,
+and closure.
+
+---
+
+# THE CENTRAL DESIGN TEST
+
+For EVERY feature currently existing in this application, ask:
+
+## “HOW DOES THIS HELP A LAWYER MANAGE A CLIENT'S MATTER OR HELP THE LAW FIRM MANAGE ITS PRACTICE?”
+
+If there is no clear answer:
+
+1. determine whether the feature should be integrated into those workflows;
+2. redesign its relationship to clients, matters, lawyers or the firm;
+3. connect it properly;
+4. remove unnecessary isolation;
+5. preserve genuinely useful standalone functionality only where justified.
+
+The application must increasingly behave as ONE OPERATING SYSTEM rather than dozens of disconnected applications.
+
+---
+
+# THE GOLDEN RULE
+
+# NO IMPORTANT AI OUTPUT SHOULD BECOME AN ORPHAN.
+
+Wherever logically relevant, every AI-generated:
+
+* analysis;
+* summary;
+* draft;
+* research result;
+* chronology;
+* recommendation;
+* document;
+* checklist;
+* argument;
+* case summary;
+* legal opinion;
+* task;
+* deadline;
+* communication;
+* client advice;
+* evidence analysis;
+* strategy;
+* authority;
+* note
+
+must be capable of being:
+
+## SAVED TO THE CORRECT CLIENT
+
+and/or
+
+## SAVED TO THE CORRECT MATTER / CASE FILE
+
+and where appropriate:
+
+## ASSIGNED TO THE CORRECT LAWYER / TEAM
+
+and made available in:
+
+## THE FIRM'S MANAGEMENT AND REPORTING SYSTEM.
+
+---
+
+# PART II
+
+# THE APPLICATION MUST BE RECONCEIVED AS A LEGAL PRACTICE OPERATING SYSTEM
+
+The application should conceptually function through the following architecture:
+
+# LEVEL 1
+
+# LAW FIRM
+
+The firm owns the operational environment.
+
+It includes:
+
+* firm profile;
+* branches;
+* departments;
+* practice groups;
+* users;
+* lawyers;
+* partners;
+* staff;
+* teams;
+* clients;
+* matters;
+* financial information;
+* workload;
+* deadlines;
+* firm knowledge;
+* performance;
+* AI usage;
+* reports;
+* operational settings.
+
+---
+
+# LEVEL 2
+
+# CLIENT
+
+Every client should function as a master relationship record.
+
+The client profile should aggregate:
+
+* basic information;
+* contacts;
+* related entities;
+* conflict information;
+* all matters;
+* documents;
+* communications;
+* invoices;
+* payments;
+* appointments;
+* relationship history;
+* notes;
+* assigned lawyers;
+* AI-derived client intelligence where appropriate.
+
+---
+
+# LEVEL 3
+
+# MATTER / CASE FILE
+
+THIS MUST BECOME THE MAIN OPERATIONAL UNIT OF THE APPLICATION.
+
+A lawyer should be able to open ONE matter and manage almost everything relating to that file without repeatedly leaving the case context.
+
+The matter should become the:
+
+# DIGITAL MASTER FILE
+
+and
+
+# AI-POWERED COMMAND CENTRE
+
+for the client's legal problem.
+
+---
+
+# LEVEL 4
+
+# AI INTELLIGENCE LAYER
+
+AI must be embedded INTO the matter workflow.
+
+AI should assist in:
+
+* intake;
+* issue spotting;
+* document analysis;
+* chronology;
+* evidence;
+* research;
+* legal authorities;
+* drafting;
+* strategy;
+* risk analysis;
+* task creation;
+* deadline identification;
+* communication;
+* case progress;
+* billing narrative;
+* file review;
+* next-action recommendations;
+* case closure;
+* firm management.
+
+The AI layer should know the correct matter context and use authorised matter information intelligently.
+
+---
+
+# PART III
+
+# CREATE OR PERFECT THE “MATTER COMMAND CENTRE”
+
+Every client matter should have a comprehensive central screen.
+
+This should become one of the most powerful areas of the application.
+
+It should answer immediately:
+
+## WHAT IS THIS CASE?
+
+## WHO IS INVOLVED?
+
+## WHAT HAS HAPPENED?
+
+## WHAT NEEDS TO HAPPEN NEXT?
+
+## WHAT DOCUMENTS DO WE HAVE?
+
+## WHAT DOES THE LAW SAY?
+
+## WHAT HAS AI DISCOVERED?
+
+## WHAT IS THE CURRENT STRATEGY?
+
+## WHAT ARE THE RISKS?
+
+## WHAT ARE THE DEADLINES?
+
+## WHAT IS THE FINANCIAL POSITION?
+
+## WHO IS RESPONSIBLE?
+
+---
+
+# MATTER COMMAND CENTRE SHOULD CONTAIN OR CONNECT TO:
+
+### Matter Identity
+
+* matter name;
+* internal matter number;
+* client;
+* opposing party;
+* opposing solicitors;
+* case number;
+* court;
+* jurisdiction;
+* practice area;
+* responsible partner;
+* lead lawyer;
+* team;
+* matter status;
+* matter stage;
+* date opened;
+* priority;
+* risk level.
+
+---
+
+### Matter Snapshot
+
+AI-generated, dynamically updated summary showing:
+
+* nature of dispute;
+* current stage;
+* main legal issues;
+* important facts;
+* important documents;
+* important authorities;
+* upcoming deadlines;
+* outstanding tasks;
+* next recommended actions.
+
+This summary must be based on actual matter information.
+
+Do not hallucinate missing facts.
+
+---
+
+### Matter Timeline / Chronology
+
+Show:
+
+* factual events;
+* correspondence;
+* court events;
+* filings;
+* client instructions;
+* meetings;
+* deadlines;
+* document dates;
+* hearings;
+* payments;
+* important internal actions.
+
+Allow AI to generate and update chronology from matter materials.
+
+---
+
+### Matter Documents
+
+All documents connected to the matter.
+
+Allow:
+
+* upload;
+* categorisation;
+* tagging;
+* preview;
+* search;
+* AI analysis;
+* summarisation;
+* extraction;
+* comparison;
+* drafting from documents;
+* evidence identification.
+
+---
+
+### Matter Research
+
+All legal research relevant to the file.
+
+Include:
+
+* research questions;
+* cases;
+* legislation;
+* legal principles;
+* AI research outputs;
+* saved authorities;
+* research memoranda;
+* source links;
+* judge/court/year metadata.
+
+Research should never become detached from the matter.
+
+---
+
+### Matter Drafting
+
+Drafts must be stored within or linked to the matter.
+
+Examples:
+
+* letters;
+* opinions;
+* pleadings;
+* affidavits;
+* submissions;
+* contracts;
+* memoranda;
+* notices;
+* witness questions;
+* case summaries;
+* correspondence.
+
+---
+
+### Matter Tasks
+
+Every task relating to the file.
+
+Show:
+
+* assigned person;
+* deadline;
+* priority;
+* status;
+* dependencies;
+* completion;
+* overdue state.
+
+AI may suggest tasks but should not silently create important obligations without clear user control.
+
+---
+
+### Matter Deadlines
+
+Include:
+
+* court deadlines;
+* filing deadlines;
+* hearings;
+* mentions;
+* meetings;
+* limitation-related dates where responsibly supported;
+* internal deadlines.
+
+---
+
+### Matter Communications
+
+Link:
+
+* emails;
+* letters;
+* client communications;
+* telephone notes;
+* meeting notes;
+* correspondence.
+
+---
+
+### Matter Billing
+
+Where billing exists:
+
+* time;
+* fees;
+* disbursements;
+* invoices;
+* payments;
+* outstanding balance;
+* billing status.
+
+---
+
+### Matter Activity
+
+Create an activity stream showing material changes:
+
+* documents added;
+* tasks completed;
+* deadlines added;
+* drafts created;
+* AI analyses performed;
+* research saved;
+* notes added;
+* user assignments changed.
+
+---
+
+# PART IV
+
+# EVERY AI TOOL MUST BECOME CASE-AWARE
+
+Audit EVERY AI application or AI feature currently in the system.
+
+For EACH ONE answer:
+
+1. Can it identify the currently selected client?
+
+2. Can it identify the currently selected matter?
+
+3. Can it access only authorised matter information?
+
+4. Can the user choose which documents to include?
+
+5. Can its output be saved to that matter?
+
+6. Can another authorised team member retrieve the output?
+
+7. Is there a clear record of where the AI output came from?
+
+8. Can the user convert the output into a practical case-management action?
+
+If not, improve it.
+
+---
+
+# EXAMPLES OF REQUIRED AI INTEGRATION
+
+## AI LEGAL RESEARCH
+
+DO NOT merely return research.
+
+Allow:
+
+SEARCH
+
+→ review result
+
+→ verify source
+
+→ save authority
+
+→ attach to matter
+
+→ tag issue
+
+→ include in research memo
+
+→ use in drafting
+
+→ reference later.
+
+---
+
+## AI DOCUMENT ANALYSIS
+
+DO NOT merely analyse uploaded documents.
+
+Workflow should support:
+
+MATTER
+
+→ select document
+
+→ analyse
+
+→ extract facts
+
+→ extract dates
+
+→ extract parties
+
+→ extract legal issues
+
+→ identify evidence
+
+→ identify obligations
+
+→ identify risks
+
+→ generate summary
+
+→ save findings into matter
+
+→ add dates to chronology
+
+→ suggest tasks
+
+→ use findings in drafting/research.
+
+---
+
+# AI CHRONOLOGY
+
+AI should be capable of analysing matter documents and creating a chronology.
+
+The chronology should:
+
+* cite the underlying documents where possible;
+* allow human correction;
+* save to matter;
+* update when documents are added;
+* distinguish confirmed dates from inferred dates.
+
+---
+
+# AI EVIDENCE ANALYSIS
+
+Where appropriate:
+
+AI should help identify:
+
+* evidence;
+* conflicting evidence;
+* missing evidence;
+* supporting documents;
+* weaknesses;
+* evidential gaps;
+* witnesses;
+* facts needing verification.
+
+Outputs must remain linked to the case file.
+
+---
+
+# AI LEGAL ISSUE IDENTIFICATION
+
+Allow AI to analyse:
+
+* intake;
+* documents;
+* pleadings;
+* facts;
+* client instructions
+
+and identify possible legal issues.
+
+The output should feed:
+
+* research questions;
+* task lists;
+* strategy;
+* drafting;
+* matter overview.
+
+---
+
+# AI CASE STRATEGY
+
+AI may assist the lawyer by generating:
+
+* strengths;
+* weaknesses;
+* risks;
+* unresolved questions;
+* potential arguments;
+* opponent arguments;
+* evidence gaps;
+* research gaps;
+* procedural considerations;
+* next-action options.
+
+It must NOT falsely present itself as having certainty where the underlying materials do not support it.
+
+---
+
+# AI DRAFTING
+
+Drafting must pull information intelligently from the matter.
+
+For example:
+
+MATTER
+
+→ select drafting type
+
+→ AI retrieves relevant client details
+
+→ parties
+
+→ facts
+
+→ chronology
+
+→ documents
+
+→ legal research
+
+→ applicable authorities
+
+→ instructions
+
+→ draft
+
+→ lawyer reviews
+
+→ save to matter
+
+→ export/download.
+
+Avoid forcing the user to repeatedly type information already available in the file.
+
+---
+
+# AI CLIENT COMMUNICATION
+
+AI should assist with:
+
+* update letters;
+* advice emails;
+* explanations;
+* appointment summaries;
+* requests for documents;
+* status reports.
+
+But correspondence must use the correct client and matter context.
+
+---
+
+# AI TASK CREATION
+
+After analysing a file, AI may suggest:
+
+* research tasks;
+* filing tasks;
+* document requests;
+* follow-up actions;
+* review tasks;
+* client communications.
+
+Users should be able to convert suggestions into actual matter tasks.
+
+---
+
+# AI DEADLINE DETECTION
+
+Where a document contains a clearly stated relevant date, AI may suggest adding it to the matter calendar.
+
+The system must:
+
+* show the source;
+* allow verification;
+* avoid presenting uncertain legal deadlines as certain;
+* require appropriate human review.
+
+---
+
+# AI MATTER REVIEW
+
+Create or improve a function such as:
+
+# “REVIEW THIS MATTER”
+
+AI should examine authorised matter information and provide:
+
+* matter summary;
+* current stage;
+* unresolved issues;
+* outstanding tasks;
+* upcoming deadlines;
+* missing documents;
+* research gaps;
+* evidential gaps;
+* recent activity;
+* possible next actions.
+
+This could become one of the most useful AI functions in the entire application.
+
+---
+
+# AI “WHAT SHOULD I DO NEXT?”
+
+Within a matter, allow authorised users to ask:
+
+“What should I do next on this file?”
+
+AI should analyse:
+
+* matter status;
+* tasks;
+* deadlines;
+* documents;
+* chronology;
+* research;
+* outstanding issues
+
+and generate a prioritised suggested next-action list.
+
+---
+
+# PART V
+
+# CREATE A COMPLETE CASE LIFECYCLE
+
+The application must support the entire life of a legal matter.
+
+Test and strengthen this lifecycle:
+
+# STAGE 1
+
+PROSPECT
+
+↓
+
+# STAGE 2
+
+CLIENT INTAKE
+
+↓
+
+# STAGE 3
+
+CONFLICT CHECK
+
+↓
+
+# STAGE 4
+
+CLIENT CREATION
+
+↓
+
+# STAGE 5
+
+MATTER OPENING
+
+↓
+
+# STAGE 6
+
+TEAM ASSIGNMENT
+
+↓
+
+# STAGE 7
+
+DOCUMENT COLLECTION
+
+↓
+
+# STAGE 8
+
+FACT ANALYSIS
+
+↓
+
+# STAGE 9
+
+LEGAL ISSUE IDENTIFICATION
+
+↓
+
+# STAGE 10
+
+LEGAL RESEARCH
+
+↓
+
+# STAGE 11
+
+STRATEGY
+
+↓
+
+# STAGE 12
+
+DRAFTING
+
+↓
+
+# STAGE 13
+
+COURT / TRANSACTION / NEGOTIATION PROCESS
+
+↓
+
+# STAGE 14
+
+TASKS & DEADLINES
+
+↓
+
+# STAGE 15
+
+CLIENT COMMUNICATION
+
+↓
+
+# STAGE 16
+
+BILLING
+
+↓
+
+# STAGE 17
+
+OUTCOME
+
+↓
+
+# STAGE 18
+
+MATTER CLOSURE
+
+↓
+
+# STAGE 19
+
+ARCHIVE
+
+↓
+
+# STAGE 20
+
+KNOWLEDGE CAPTURE.
+
+Every major module should contribute to one or more of these stages.
+
+---
+
+# PART VI
+
+# CARDINAL PILLAR 2: LAW FIRM MANAGEMENT
+
+The second cardinal pillar is managing the law firm itself.
+
+The system must help owners, partners and administrators understand and control the practice.
+
+Do not treat Firm Management as merely:
+
+staff list + revenue dashboard.
+
+It should become an operational command centre.
+
+---
+
+# LAW FIRM COMMAND CENTRE
+
+Create or perfect a firm-level dashboard showing, as appropriate:
+
+* active clients;
+* active matters;
+* new matters;
+* matters by practice area;
+* matters by lawyer;
+* workload;
+* upcoming court dates;
+* overdue tasks;
+* matter ageing;
+* inactive matters;
+* high-risk matters;
+* outstanding bills;
+* revenue;
+* expenses;
+* collections;
+* utilisation;
+* lawyer workload;
+* deadlines;
+* staff capacity;
+* client activity;
+* AI usage;
+* document volume;
+* recent firm activity.
+
+All figures must come from real system data.
+
+---
+
+# PART VII
+
+# AI FOR LAW FIRM MANAGEMENT
+
+AI must also operate at firm level.
+
+This is extremely important.
+
+Do NOT confine AI only to legal research and drafting.
+
+Use AI to help partners and administrators run the firm.
+
+Examples:
+
+---
+
+# AI FIRM DAILY BRIEFING
+
+Generate a daily or on-demand operational briefing such as:
+
+“WHAT NEEDS MANAGEMENT ATTENTION TODAY?”
+
+Based on actual authorised firm data:
+
+* court dates today;
+* overdue tasks;
+* matters with no recent activity;
+* high-priority cases;
+* deadlines approaching;
+* unbilled work;
+* overdue invoices;
+* workload imbalances;
+* matters requiring partner review.
+
+---
+
+# AI WORKLOAD ANALYSIS
+
+Allow authorised management to ask:
+
+* Which lawyer is overloaded?
+* Which lawyer has capacity?
+* Which matters are consuming unusual time?
+* Which team has the highest overdue-task rate?
+* Which matters have had no recent activity?
+
+Use actual system data.
+
+---
+
+# AI MATTER RISK MONITOR
+
+AI may identify operational warning signs such as:
+
+* no activity for long period;
+* approaching deadline;
+* overdue task;
+* missing responsible lawyer;
+* missing key document;
+* unpaid invoice;
+* excessive unbilled time;
+* unresolved client request.
+
+Clearly distinguish operational signals from legal conclusions.
+
+---
+
+# AI BILLING ASSISTANCE
+
+Where billing exists, AI can assist with:
+
+* transforming time notes into professional billing narratives;
+* identifying missing time entries;
+* summarising work performed;
+* preparing invoice descriptions;
+* identifying unusual billing patterns.
+
+Do not invent time worked.
+
+---
+
+# AI CLIENT RELATIONSHIP MANAGEMENT
+
+AI may assist management with:
+
+* identifying clients needing updates;
+* identifying matters with prolonged inactivity;
+* preparing matter status summaries;
+* preparing client review reports.
+
+---
+
+# AI FIRM KNOWLEDGE
+
+Closed matters may contribute, subject to confidentiality and access controls, to internal firm knowledge.
+
+Examples:
+
+* precedents;
+* drafting patterns;
+* internal checklists;
+* reusable legal research;
+* lessons learned.
+
+Never allow confidential information to become globally available without proper access controls.
+
+---
+
+# PART VIII
+
+# CREATE RELATIONSHIPS BETWEEN MODULES
+
+Audit the database and navigation for unnecessary silos.
+
+The following should be meaningfully relational:
+
+CLIENT
+
+↔ MATTER
+
+MATTER
+
+↔ DOCUMENT
+
+MATTER
+
+↔ TASK
+
+MATTER
+
+↔ DEADLINE
+
+MATTER
+
+↔ RESEARCH
+
+MATTER
+
+↔ AUTHORITY
+
+MATTER
+
+↔ DRAFT
+
+MATTER
+
+↔ NOTE
+
+MATTER
+
+↔ COMMUNICATION
+
+MATTER
+
+↔ BILLING
+
+MATTER
+
+↔ LAWYER
+
+MATTER
+
+↔ TEAM
+
+MATTER
+
+↔ AI OUTPUT
+
+MATTER
+
+↔ CHRONOLOGY
+
+MATTER
+
+↔ EVIDENCE
+
+MATTER
+
+↔ STRATEGY
+
+MATTER
+
+↔ COURT EVENT
+
+CLIENT
+
+↔ INVOICE
+
+LAWYER
+
+↔ MATTERS
+
+LAWYER
+
+↔ TASKS
+
+LAWYER
+
+↔ DEADLINES
+
+FIRM
+
+↔ EVERYTHING AUTHORISED WITHIN THAT TENANT.
+
+---
+
+# PART IX
+
+# CREATE “SAVE TO MATTER” AS A UNIVERSAL ACTION
+
+Where logically appropriate, introduce or standardise a universal action:
+
+# SAVE TO MATTER
+
+Examples:
+
+AI research result:
+
+SAVE TO MATTER
+
+AI document analysis:
+
+SAVE TO MATTER
+
+AI-generated chronology:
+
+SAVE TO MATTER
+
+draft:
+
+SAVE TO MATTER
+
+legal authority:
+
+SAVE TO MATTER
+
+note:
+
+SAVE TO MATTER
+
+AI strategy:
+
+SAVE TO MATTER
+
+AI checklist:
+
+SAVE TO MATTER
+
+This function should intelligently ask for or inherit:
+
+* client;
+* matter;
+* category;
+* title;
+* tags;
+* source;
+* creator;
+* timestamp.
+
+If the user is already inside a matter, do not unnecessarily ask them to select the matter again.
+
+---
+
+# PART X
+
+# CREATE “USE IN THIS MATTER” ACTIONS
+
+Allow material elsewhere in the application to be brought into a live case.
+
+Examples:
+
+SEARCH RESULT
+
+→ USE IN THIS MATTER
+
+PRECEDENT
+
+→ USE IN THIS MATTER
+
+LEGAL AUTHORITY
+
+→ SAVE TO THIS MATTER
+
+TEMPLATE
+
+→ DRAFT FOR THIS MATTER
+
+AI TOOL
+
+→ RUN FOR THIS MATTER.
+
+This dramatically reduces workflow fragmentation.
+
+---
+
+# PART XI
+
+# CREATE A MATTER-AWARE AI WORKSPACE
+
+Where architecture permits, create or improve a persistent AI workspace inside each matter.
+
+The lawyer should be able to ask questions about the current case such as:
+
+* Summarise this file.
+* What are the key facts?
+* What are the main legal issues?
+* Which facts remain unclear?
+* What documents support Issue A?
+* What does the opposing party argue?
+* What evidence contradicts their position?
+* What research is still missing?
+* What are the upcoming deadlines?
+* What tasks remain outstanding?
+* Draft a client update.
+* Draft questions for the witness.
+* Prepare a chronology.
+* Compare these two documents.
+* Identify inconsistencies.
+* What should we do next?
+
+The AI must use only the matter content and other authorised sources appropriate to the query.
+
+---
+
+# PART XII
+
+# CONTEXT CONTROL
+
+Matter-aware AI MUST visibly show or make reasonably clear:
+
+CURRENT CLIENT:
+
+CURRENT MATTER:
+
+DOCUMENTS BEING USED:
+
+OTHER SOURCES BEING USED:
+
+This greatly reduces the risk of accidental cross-file contamination.
+
+---
+
+# PART XIII
+
+# PREVENT AI CONTEXT LEAKAGE
+
+Create tests using:
+
+CLIENT A / MATTER A
+
+and
+
+CLIENT B / MATTER B.
+
+Run AI operations repeatedly between them.
+
+Verify absolutely that:
+
+* client names do not leak;
+* facts do not leak;
+* documents do not leak;
+* drafts do not leak;
+* research notes do not leak;
+* strategy does not leak;
+* saved AI responses do not leak.
+
+This is a P0 confidentiality requirement.
+
+---
+
+# PART XIV
+
+# FIRM-WIDE SEARCH
+
+Create or perfect universal search capable of finding authorised:
+
+* clients;
+* matters;
+* documents;
+* contacts;
+* notes;
+* drafts;
+* research;
+* authorities;
+* tasks;
+* invoices;
+* communications.
+
+Results should clearly state what object they belong to.
+
+Example:
+
+AHMAD BIN ALI
+
+Client
+
+3 Active Matters
+
+rather than showing ambiguous disconnected results.
+
+---
+
+# PART XV
+
+# MATTER-LEVEL UNIVERSAL SEARCH
+
+Inside a matter, provide the ability to search that specific file.
+
+Potentially across:
+
+* documents;
+* extracted text;
+* notes;
+* chronology;
+* AI outputs;
+* authorities;
+* correspondence;
+* tasks.
+
+---
+
+# PART XVI
+
+# SMART MATTER OPENING
+
+When opening a new matter, streamline setup.
+
+Capture relevant information such as:
+
+* client;
+* matter title;
+* practice area;
+* responsible lawyer;
+* team;
+* opposing party;
+* court;
+* case number;
+* matter description;
+* status;
+* priority.
+
+AI may assist in generating:
+
+* initial issue list;
+* initial checklist;
+* document request list;
+* research questions;
+* preliminary task plan.
+
+The lawyer must remain in control.
+
+---
+
+# PART XVII
+
+# AI-ASSISTED CLIENT INTAKE
+
+Where suitable, AI may analyse intake information and identify:
+
+* parties;
+* key facts;
+* dates;
+* potential conflicts;
+* possible legal issues;
+* missing information;
+* documents to request.
+
+Allow conversion of intake into a matter without retyping information.
+
+---
+
+# PART XVIII
+
+# AI-ASSISTED CASE FILE HEALTH CHECK
+
+Create a function such as:
+
+# FILE HEALTH CHECK
+
+It should review a matter and identify operational gaps such as:
+
+* missing assigned lawyer;
+* no next action;
+* overdue tasks;
+* deadline approaching;
+* no recent activity;
+* missing client communication;
+* documents awaiting review;
+* unsaved AI findings;
+* incomplete chronology;
+* unresolved research questions;
+* unbilled work.
+
+Use clear statuses:
+
+HEALTHY
+
+NEEDS ATTENTION
+
+URGENT
+
+Do not make unsupported legal conclusions.
+
+---
+
+# PART XIX
+
+# MATTER STAGES
+
+Where useful, matters should support meaningful stages.
+
+For litigation, examples might include:
+
+* Intake
+* Pre-Action
+* Pleadings
+* Case Management
+* Discovery
+* Interlocutory
+* Trial Preparation
+* Trial
+* Post-Trial
+* Appeal
+* Enforcement
+* Closed
+
+Other practice areas may require different stages.
+
+Do not force one workflow onto all practice areas.
+
+Architect the stage system flexibly.
+
+---
+
+# PART XX
+
+# PRACTICE-AREA-SPECIFIC WORKFLOWS
+
+Where architecture permits, allow matter templates or workflows for areas such as:
+
+* civil litigation;
+* criminal;
+* corporate;
+* conveyancing;
+* employment;
+* family;
+* Syariah;
+* intellectual property;
+* probate;
+* arbitration;
+* commercial advisory.
+
+The core matter system remains consistent.
+
+The workflow, documents, stages and checklists may vary.
+
+---
+
+# PART XXI
+
+# DOCUMENT-TO-ACTION PIPELINE
+
+A legal document should never simply sit in storage.
+
+Where appropriate:
+
+UPLOAD DOCUMENT
+
+↓
+
+EXTRACT TEXT
+
+↓
+
+CLASSIFY DOCUMENT
+
+↓
+
+IDENTIFY PARTIES
+
+↓
+
+IDENTIFY DATES
+
+↓
+
+IDENTIFY LEGAL ISSUES
+
+↓
+
+IDENTIFY ACTION ITEMS
+
+↓
+
+IDENTIFY DEADLINES
+
+↓
+
+IDENTIFY EVIDENCE
+
+↓
+
+UPDATE MATTER
+
+↓
+
+OPTIONALLY CREATE TASKS / CALENDAR ITEMS
+
+↓
+
+MAKE DOCUMENT SEARCHABLE.
+
+AI-assisted steps should be reviewable.
+
+---
+
+# PART XXII
+
+# RESEARCH-TO-DRAFT PIPELINE
+
+Build coherent workflow:
+
+LEGAL ISSUE
+
+↓
+
+RESEARCH QUESTION
+
+↓
+
+SEARCH AUTHORITIES
+
+↓
+
+VERIFY AUTHORITY
+
+↓
+
+SAVE AUTHORITY TO MATTER
+
+↓
+
+CREATE RESEARCH NOTE
+
+↓
+
+BUILD ARGUMENT
+
+↓
+
+USE IN DRAFT
+
+↓
+
+SAVE DRAFT TO MATTER.
+
+---
+
+# PART XXIII
+
+# FACT-TO-EVIDENCE PIPELINE
+
+Support:
+
+FACT
+
+↓
+
+SUPPORTING DOCUMENT
+
+↓
+
+WITNESS
+
+↓
+
+CONTRADICTORY EVIDENCE
+
+↓
+
+EVIDENCE STATUS
+
+↓
+
+LEGAL ISSUE.
+
+This can dramatically improve case preparation.
+
+---
+
+# PART XXIV
+
+# TASK-TO-WORKFLOW PIPELINE
+
+Allow useful conversion:
+
+AI RECOMMENDATION
+
+↓
+
+CREATE TASK
+
+↓
+
+ASSIGN LAWYER
+
+↓
+
+SET DEADLINE
+
+↓
+
+TRACK STATUS
+
+↓
+
+COMPLETE
+
+↓
+
+SHOW IN MATTER ACTIVITY.
+
+---
+
+# PART XXV
+
+# CASE CLOSURE
+
+Closing a matter should not simply change status to “Closed”.
+
+Consider a proper closure process:
+
+* outstanding tasks checked;
+* final documents;
+* final invoice;
+* client notification;
+* outcome recorded;
+* final matter summary;
+* important precedent/research identified;
+* archive status;
+* retention information where applicable.
+
+AI may create a closure summary.
+
+---
+
+# PART XXVI
+
+# KNOWLEDGE CAPTURE FROM CLOSED MATTERS
+
+Where confidentiality rules permit, allow authorised internal users to convert reusable knowledge into:
+
+* precedent;
+* checklist;
+* research note;
+* clause;
+* drafting template;
+* internal knowledge article.
+
+Strip or protect confidential client information appropriately.
+
+---
+
+# PART XXVII
+
+# UI ARCHITECTURE
+
+Navigation must reflect the product's actual priorities.
+
+Primary navigation should strongly prioritise concepts such as:
+
+DASHBOARD
+
+CLIENTS
+
+MATTERS / CASE FILES
+
+CALENDAR
+
+TASKS
+
+DOCUMENTS
+
+RESEARCH
+
+BILLING
+
+FIRM MANAGEMENT
+
+AI
+
+or equivalent architecture.
+
+Do not give twelve standalone AI tools equal visual priority to Clients and Matters.
+
+AI should increasingly be encountered INSIDE meaningful legal workflows.
+
+---
+
+# PART XXVIII
+
+# MATTER-FIRST UX
+
+Whenever reasonable, users should have a simple path:
+
+OPEN MATTER
+
+↓
+
+DO LEGAL WORK.
+
+Instead of:
+
+open AI app
+
+↓
+
+choose tool
+
+↓
+
+type client information again
+
+↓
+
+upload documents again
+
+↓
+
+generate output
+
+↓
+
+download
+
+↓
+
+manually remember which client it belonged to.
+
+That fragmented workflow is unacceptable.
+
+---
+
+# PART XXIX
+
+# CLIENT-FIRST UX
+
+From a client profile, user should easily see:
+
+* all matters;
+* active matters;
+* closed matters;
+* assigned lawyers;
+* recent communications;
+* outstanding invoices;
+* upcoming appointments;
+* recent activity.
+
+---
+
+# PART XXX
+
+# FIRM-FIRST UX FOR MANAGEMENT
+
+Partners and administrators should be able to move from:
+
+FIRM OVERVIEW
+
+→ PRACTICE AREA
+
+→ LAWYER
+
+→ CLIENT
+
+→ MATTER
+
+→ TASK / DOCUMENT / BILLING
+
+without disconnected reporting.
+
+---
+
+# PART XXXI
+
+# AUDIT ALL EXISTING MINI-APPS
+
+If this application contains multiple separate apps, modules or AI tools:
+
+DO NOT automatically delete them.
+
+Instead assess each one.
+
+For each module classify it as:
+
+### A. CORE CASE MANAGEMENT
+
+### B. CORE FIRM MANAGEMENT
+
+### C. AI CAPABILITY SUPPORTING CASE MANAGEMENT
+
+### D. AI CAPABILITY SUPPORTING FIRM MANAGEMENT
+
+### E. SHARED INFRASTRUCTURE
+
+### F. DUPLICATED / REDUNDANT
+
+### G. INCOMPLETE
+
+### H. UNRELATED TO PRODUCT STRATEGY.
+
+Then reorganise and integrate accordingly.
+
+---
+
+# PART XXXII
+
+# THE “ORPHAN FEATURE” AUDIT
+
+Identify any tool which:
+
+* does not know the client;
+* does not know the matter;
+* cannot save its output;
+* cannot connect its output to work;
+* does not contribute to firm management.
+
+These are ORPHAN FEATURES.
+
+For each:
+
+INTEGRATE IT,
+
+REDESIGN IT,
+
+or justify why it must remain standalone.
+
+---
+
+# PART XXXIII
+
+# DATA MODEL AUDIT
+
+Ensure core entities exist and relate coherently.
+
+Potential core objects include:
+
+Firm
+
+User
+
+Role
+
+Team
+
+Client
+
+Contact
+
+Matter
+
+MatterParticipant
+
+Document
+
+DocumentAnalysis
+
+Task
+
+CalendarEvent
+
+Deadline
+
+Note
+
+Communication
+
+ResearchQuery
+
+Authority
+
+ResearchMemo
+
+Draft
+
+ChronologyEvent
+
+EvidenceItem
+
+AIInteraction
+
+AIOutput
+
+TimeEntry
+
+Expense
+
+Invoice
+
+Payment
+
+ActivityLog.
+
+Do NOT create unnecessary duplicates if equivalent models already exist.
+
+Refactor safely.
+
+---
+
+# PART XXXIV
+
+# AI OUTPUT RECORD
+
+Consider maintaining useful metadata for significant AI outputs:
+
+* output ID;
+* firm;
+* client;
+* matter;
+* user;
+* AI tool;
+* source documents;
+* legal sources;
+* timestamp;
+* model/provider;
+* output type;
+* saved status;
+* version;
+* human-edited state.
+
+This supports retrieval and accountability.
+
+Do not store unnecessary sensitive prompts if not needed.
+
+---
+
+# PART XXXV
+
+# SOURCE TRACEABILITY
+
+For legal AI outputs, preserve traceability wherever possible.
+
+For example:
+
+AI statement
+
+→ underlying case
+
+→ relevant judgment text
+
+or
+
+AI factual summary
+
+→ client document
+
+→ relevant page/paragraph.
+
+This is especially important in legal work.
+
+---
+
+# PART XXXVI
+
+# FULL APPLICATION TECHNICAL AUDIT
+
+In addition to the architectural transformation above, audit EVERY technical component.
+
+Check every:
+
+* route;
+* page;
+* navigation item;
+* button;
+* link;
+* menu;
+* modal;
+* form;
+* field;
+* API;
+* database operation;
+* file action;
+* export;
+* upload;
+* search;
+* AI function;
+* authentication function;
+* billing function;
+* report;
+* dashboard;
+* notification;
+* role;
+* permission;
+* third-party integration.
+
+Do not merely inspect.
+
+ACTUALLY TEST.
+
+---
+
+# PART XXXVII
+
+# BUTTON-BY-BUTTON TEST
+
+Every clickable control must be verified.
+
+For each action:
+
+1. click it;
+2. confirm expected UI action;
+3. confirm backend action;
+4. confirm database persistence;
+5. refresh;
+6. retrieve result;
+7. test error state;
+8. test double-click;
+9. test permission restrictions.
+
+No dead button is acceptable.
+
+---
+
+# PART XXXVIII
+
+# AUTHENTICATION & PERMISSIONS
+
+Test:
+
+* registration;
+* login;
+* logout;
+* password reset;
+* invitation;
+* role assignment;
+* session expiration;
+* account disabling.
+
+Test all role permissions.
+
+Firm A must NEVER access Firm B.
+
+This includes indirect access through:
+
+* URLs;
+* API;
+* search;
+* document URLs;
+* autocomplete;
+* exports;
+* AI retrieval.
+
+---
+
+# PART XXXIX
+
+# MULTI-TENANCY IS P0
+
+Create:
+
+FIRM A
+
+CLIENT A
+
+MATTER A
+
+and
+
+FIRM B
+
+CLIENT B
+
+MATTER B.
+
+Attempt cross-access aggressively.
+
+Any successful leakage is a P0 production blocker.
+
+---
+
+# PART XL
+
+# COMPLETE CLIENT TEST
+
+Test:
+
+prospect
+
+→ intake
+
+→ client creation
+
+→ client profile
+
+→ matter creation
+
+→ multiple matters
+
+→ communication
+
+→ documents
+
+→ billing
+
+→ archive.
+
+---
+
+# PART XLI
+
+# COMPLETE MATTER TEST
+
+Test:
+
+create
+
+→ assign
+
+→ upload
+
+→ analyse
+
+→ research
+
+→ chronology
+
+→ tasks
+
+→ deadlines
+
+→ draft
+
+→ communicate
+
+→ bill
+
+→ close
+
+→ archive
+
+→ retrieve.
+
+---
+
+# PART XLII
+
+# DOCUMENT MANAGEMENT
+
+Test:
+
+* PDF;
+* DOCX;
+* images;
+* multiple uploads;
+* large files;
+* duplicate names;
+* categorisation;
+* preview;
+* download;
+* delete;
+* restore if applicable;
+* linking;
+* AI processing.
+
+Legal documents must never silently disappear.
+
+---
+
+# PART XLIII
+
+# AI FAILURE TESTING
+
+Simulate:
+
+* model timeout;
+* invalid API response;
+* API unavailable;
+* provider rate limit;
+* token limit;
+* malformed JSON;
+* empty response;
+* huge file;
+* unsupported document.
+
+The system must fail gracefully.
+
+---
+
+# PART XLIV
+
+# NO HALLUCINATED LEGAL AUTHORITIES
+
+Test legal research heavily.
+
+AI must not invent:
+
+* cases;
+* citations;
+* statutory provisions;
+* judges;
+* holdings.
+
+Source-grounded systems should distinguish:
+
+VERIFIED SOURCE
+
+from
+
+AI-GENERATED ANALYSIS.
+
+---
+
+# PART XLV
+
+# CASE LAW DATABASE AUDIT
+
+Audit:
+
+* ingestion;
+* parsing;
+* metadata;
+* full judgment;
+* duplicates;
+* multi-case files;
+* citation;
+* year;
+* court;
+* judge;
+* parties;
+* legal issues;
+* subject classification;
+* search.
+
+AI-generated editorial summaries must be clearly system-generated.
+
+Do not unlawfully reproduce proprietary publisher editorial material.
+
+---
+
+# PART XLVI
+
+# AI FIQH / SYARIAH INTEGRATION
+
+If AI Fiqh exists, ensure it operates from inside the case workflow.
+
+Example:
+
+MATTER
+
+→ select Syariah issue
+
+→ select relevant document
+
+→ formulate research question
+
+→ AI Fiqh API
+
+→ return references
+
+→ save research
+
+→ attach to matter
+
+→ use in drafting.
+
+Track API usage.
+
+Avoid duplicate token consumption.
+
+---
+
+# PART XLVII
+
+# TASK MANAGEMENT
+
+Test:
+
+* create;
+* assign;
+* deadline;
+* priority;
+* status;
+* complete;
+* reopen;
+* filter;
+* matter link;
+* client link;
+* user workload.
+
+---
+
+# PART XLVIII
+
+# CALENDAR
+
+Test:
+
+* court dates;
+* filing;
+* client meeting;
+* mention;
+* hearing;
+* reminders;
+* rescheduling;
+* timezone.
+
+Avoid date shifting.
+
+---
+
+# PART XLIX
+
+# BILLING
+
+Test:
+
+* time;
+* fees;
+* expenses;
+* disbursements;
+* invoices;
+* payments;
+* outstanding amounts;
+* matter billing;
+* client billing.
+
+Verify calculations mathematically.
+
+---
+
+# PART L
+
+# DASHBOARDS
+
+Every number must be real.
+
+Trace every KPI to database data.
+
+No demo numbers.
+
+No fake charts.
+
+No random placeholder statistics.
+
+---
+
+# PART LI
+
+# REPORTS
+
+Test firm reports around:
+
+* clients;
+* matters;
+* lawyers;
+* tasks;
+* deadlines;
+* billing;
+* workloads;
+* activity;
+* practice areas;
+* AI usage.
+
+---
+
+# PART LII
+
+# PERFORMANCE
+
+Test increasingly large numbers of:
+
+* clients;
+* matters;
+* documents;
+* tasks;
+* search records;
+* case-law entries;
+* AI outputs.
+
+Fix major performance bottlenecks.
+
+---
+
+# PART LIII
+
+# RESPONSIVE DESIGN
+
+Test:
+
+desktop
+
+laptop
+
+tablet
+
+mobile.
+
+Lawyers should be able to perform basic matter work from mobile.
+
+---
+
+# PART LIV
+
+# SECURITY
+
+Audit defensively for:
+
+* broken access control;
+* IDOR;
+* XSS;
+* SQL injection;
+* CSRF where relevant;
+* unsafe file upload;
+* secrets exposure;
+* API-key exposure;
+* insecure logs;
+* privilege escalation.
+
+---
+
+# PART LV
+
+# DATA CONFIDENTIALITY
+
+Treat all client material as potentially privileged/confidential.
+
+Do not expose confidential content in:
+
+* logs;
+* public routes;
+* error messages;
+* analytics;
+* cross-tenant retrieval.
+
+---
+
+# PART LVI
+
+# NO PLACEHOLDER PRODUCTION FEATURES
+
+Search for:
+
+TODO
+
+FIXME
+
+COMING SOON
+
+PLACEHOLDER
+
+DUMMY
+
+DEMO
+
+MOCK
+
+TEMP
+
+NOT IMPLEMENTED
+
+LOREM IPSUM.
+
+Investigate and finish legitimate intended functionality.
+
+---
+
+# PART LVII
+
+# NO FAKE SUCCESS
+
+If UI says:
+
+“SAVED”
+
+verify database.
+
+If it says:
+
+“UPLOADED”
+
+verify storage.
+
+If it says:
+
+“INVOICE CREATED”
+
+retrieve invoice.
+
+If it says:
+
+“ANALYSIS SAVED”
+
+open matter and retrieve analysis.
+
+Success messages must represent actual success.
+
+---
+
+# PART LVIII
+
+# NO SILENT FAILURE
+
+Never allow important actions to:
+
+do nothing;
+
+spin forever;
+
+fail silently;
+
+lose data;
+
+show success after failure.
+
+---
+
+# PART LIX
+
+# END-TO-END MASTER REALISTIC TEST
+
+Create:
+
+FIRM:
+
+Rahman & Partners
+
+LAWYERS:
+
+Aisha Rahman
+
+Daniel Lim
+
+CLIENT:
+
+Ahmad bin Hassan
+
+MATTER:
+
+Ahmad bin Hassan v Meridian Holdings Sdn Bhd
+
+Run the complete workflow:
+
+1. Register firm.
+
+2. Configure firm.
+
+3. Add lawyer.
+
+4. Add staff.
+
+5. Create prospective client.
+
+6. Complete intake.
+
+7. Open client record.
+
+8. Create matter.
+
+9. Assign lead lawyer.
+
+10. Add opposing party.
+
+11. Add court details.
+
+12. Add case number.
+
+13. Upload correspondence.
+
+14. Upload contract.
+
+15. Upload pleadings.
+
+16. Run AI document analysis.
+
+17. Generate facts.
+
+18. Generate chronology.
+
+19. Identify issues.
+
+20. Save AI analysis to matter.
+
+21. Identify missing information.
+
+22. Generate research questions.
+
+23. Perform case-law search.
+
+24. Save authorities.
+
+25. Create research memo.
+
+26. Save memo to matter.
+
+27. Generate strategy analysis.
+
+28. Save strategy.
+
+29. Generate task suggestions.
+
+30. Convert tasks.
+
+31. Assign staff.
+
+32. Add deadlines.
+
+33. Generate client-update letter.
+
+34. Save correspondence.
+
+35. Generate legal draft.
+
+36. Save draft.
+
+37. Download draft.
+
+38. Record time.
+
+39. Record expense.
+
+40. Generate invoice.
+
+41. Check dashboard.
+
+42. Check lawyer workload.
+
+43. Check matter health.
+
+44. Ask AI:
+
+“What should we do next?”
+
+45. Confirm answer uses correct matter.
+
+46. Search globally.
+
+47. Retrieve matter.
+
+48. Logout.
+
+49. Login again.
+
+50. Retrieve everything.
+
+51. Close matter.
+
+52. Generate closure summary.
+
+53. Archive matter.
+
+54. Verify authorised retrieval.
+
+ANY FAILURE = investigate and repair.
+
+---
+
+# PART LX
+
+# CROSS-MATTER TEST
+
+Create:
+
+CLIENT 2:
+
+Siti Nur Aisyah
+
+MATTER 2:
+
+Siti Nur Aisyah v Eastern Development Berhad.
+
+Switch repeatedly between Matter 1 and Matter 2.
+
+Run:
+
+document analysis;
+
+research;
+
+drafting;
+
+AI chat;
+
+strategy;
+
+chronology.
+
+Confirm zero cross-contamination.
+
+---
+
+# PART LXI
+
+# FIRM MANAGEMENT MASTER TEST
+
+As managing partner:
+
+1. login;
+
+2. inspect active matters;
+
+3. identify overdue tasks;
+
+4. identify upcoming hearings;
+
+5. review workload;
+
+6. identify inactive matters;
+
+7. identify outstanding billing;
+
+8. review high-priority cases;
+
+9. ask AI for management briefing;
+
+10. drill into lawyer;
+
+11. drill into matter;
+
+12. reassign matter/task;
+
+13. verify dashboards update.
+
+---
+
+# PART LXII
+
+# AI FIRM MANAGEMENT TEST
+
+Ask the system:
+
+“What needs my attention today?”
+
+It should intelligently reference actual authorised data such as:
+
+* urgent deadlines;
+* overdue matters;
+* staff workloads;
+* upcoming hearings;
+* unpaid invoices;
+* unreviewed items.
+
+It must not return generic management advice when real firm data is available.
+
+---
+
+# PART LXIII
+
+# AUTOMATED TESTS
+
+Create meaningful tests for:
+
+* login;
+* permissions;
+* tenant isolation;
+* client creation;
+* matter creation;
+* client/matter association;
+* document persistence;
+* AI output/matter association;
+* task assignment;
+* deadline saving;
+* billing;
+* search;
+* critical API endpoints.
+
+---
+
+# PART LXIV
+
+# REGRESSION TESTING
+
+After every major repair, retest:
+
+AUTH
+
+CLIENTS
+
+MATTERS
+
+DOCUMENTS
+
+AI
+
+RESEARCH
+
+TASKS
+
+CALENDAR
+
+BILLING
+
+FIRM MANAGEMENT.
+
+Do not fix one component while breaking another.
+
+---
+
+# PART LXV
+
+# FIVE-PASS VERIFICATION
+
+Do not stop after one audit.
+
+Perform:
+
+### PASS 1
+
+Architecture and discovery.
+
+### PASS 2
+
+Functional defects and incomplete features.
+
+### PASS 3
+
+Case-centric / firm-centric integration.
+
+### PASS 4
+
+Security, edge cases, scale and AI contamination tests.
+
+### PASS 5
+
+Full production end-to-end regression.
+
+If material defects remain:
+
+FIX THEM
+
+and repeat.
+
+---
+
+# PART LXVI
+
+# PRIORITY HIERARCHY
+
+## P0
+
+* client data leakage;
+* cross-firm leakage;
+* wrong matter AI context;
+* data loss;
+* serious security flaw;
+* broken authentication.
+
+## P1
+
+* client management broken;
+* matter management broken;
+* documents broken;
+* AI cannot save to matter;
+* research disconnected from matter;
+* billing incorrect;
+* firm management broken.
+
+## P2
+
+* workflow friction;
+* weak integrations;
+* secondary features;
+* incomplete reports.
+
+## P3
+
+* cosmetic improvements.
+
+CASE MANAGEMENT MUST ALWAYS OUTRANK COSMETIC WORK.
+
+---
+
+# PART LXVII
+
+# REORGANISATION PRINCIPLE
+
+When choosing between:
+
+making another standalone AI tool
+
+versus
+
+deepening integration with client/matter management,
+
+CHOOSE THE SECOND.
+
+When choosing between:
+
+another decorative dashboard
+
+versus
+
+making case management more powerful,
+
+CHOOSE CASE MANAGEMENT.
+
+When choosing between:
+
+adding another AI model
+
+versus
+
+making existing AI understand the full matter,
+
+CHOOSE MATTER INTELLIGENCE.
+
+When choosing between:
+
+building another isolated feature
+
+versus
+
+connecting existing features,
+
+CHOOSE INTEGRATION.
+
+---
+
+# PART LXVIII
+
+# CRITICAL PRODUCT TEST
+
+A lawyer should be able to open ONE matter and:
+
+* understand the matter;
+* see the client;
+* read documents;
+* ask AI about documents;
+* search law;
+* save authorities;
+* generate chronology;
+* analyse evidence;
+* develop strategy;
+* draft documents;
+* communicate;
+* create tasks;
+* monitor deadlines;
+* record work;
+* bill;
+* collaborate;
+* see history;
+* know what to do next.
+
+If the lawyer must constantly jump through disconnected applications, the architecture is NOT FINISHED.
+
+---
+
+# PART LXIX
+
+# CRITICAL MANAGEMENT TEST
+
+A managing partner should be able to open ONE firm dashboard and understand:
+
+* what matters require attention;
+* what deadlines are coming;
+* which lawyers are overloaded;
+* which matters are inactive;
+* which clients need updates;
+* what has been billed;
+* what remains unpaid;
+* where work is accumulating;
+* what the firm's overall operational position is.
+
+AI should help interpret this information.
+
+---
+
+# PART LXX
+
+# COMPLETION CHECKLIST
+
+Do NOT declare production readiness until ALL relevant statements are true:
+
+[ ] Case management is the primary operational centre.
+
+[ ] Firm management is the second primary operational centre.
+
+[ ] AI is embedded into both.
+
+[ ] Clients have coherent profiles.
+
+[ ] Matters function as complete digital files.
+
+[ ] Every important AI tool is matter-aware where relevant.
+
+[ ] AI outputs can be saved to matters.
+
+[ ] Research can be attached to matters.
+
+[ ] Drafts can be attached to matters.
+
+[ ] Documents can be analysed within matters.
+
+[ ] Chronology can be created and saved.
+
+[ ] Tasks connect to matters.
+
+[ ] Deadlines connect to matters.
+
+[ ] Communications connect to matters.
+
+[ ] Billing connects to clients/matters.
+
+[ ] Firm dashboards reflect actual data.
+
+[ ] Management AI uses actual firm information.
+
+[ ] No cross-client AI contamination.
+
+[ ] No cross-firm data leakage.
+
+[ ] Data persists.
+
+[ ] Core buttons work.
+
+[ ] Core workflows work.
+
+[ ] Production build succeeds.
+
+[ ] No major unfinished modules remain.
+
+---
+
+# PART LXXI
+
+# FINAL REQUIRED REPORT
+
+After implementation and testing, provide:
+
+## A. CARDINAL PILLAR STATUS
+
+### Case Management
+
+Score /100.
+
+Explain remaining deficiencies.
+
+### Firm Management
+
+Score /100.
+
+Explain remaining deficiencies.
+
+### AI Integration Into Case Management
+
+Score /100.
+
+### AI Integration Into Firm Management
+
+Score /100.
+
+---
+
+## B. ORPHAN AI FEATURES FOUND
+
+List AI tools that were previously disconnected.
+
+State how each was integrated.
+
+---
+
+## C. MATTER COMMAND CENTRE STATUS
+
+State what is working.
+
+---
+
+## D. LAW FIRM COMMAND CENTRE STATUS
+
+State what is working.
+
+---
+
+## E. AI WORKFLOW STATUS
+
+Report:
+
+Document → AI → Matter
+
+Research → AI → Matter
+
+Draft → AI → Matter
+
+Chronology → AI → Matter
+
+Strategy → AI → Matter
+
+Task Suggestion → Matter
+
+Deadline Suggestion → Calendar
+
+Matter Data → Management AI.
+
+---
+
+## F. DEFECTS FOUND
+
+Critical
+
+High
+
+Medium
+
+Low.
+
+---
+
+## G. DEFECTS FIXED
+
+List actual repairs.
+
+---
+
+## H. UNFINISHED FEATURES COMPLETED
+
+List actual implementation work.
+
+---
+
+## I. CONFIDENTIALITY TEST
+
+Report cross-client and cross-firm test results.
+
+---
+
+## J. END-TO-END RESULT
+
+Explicitly state:
+
+FIRM
+
+→ CLIENT
+
+→ MATTER
+
+→ DOCUMENT
+
+→ AI
+
+→ RESEARCH
+
+→ CHRONOLOGY
+
+→ STRATEGY
+
+→ DRAFTING
+
+→ TASK
+
+→ DEADLINE
+
+→ COMMUNICATION
+
+→ BILLING
+
+→ CLOSURE
+
+→ ARCHIVE
+
+PASS / FAIL.
+
+---
+
+# FINAL SUPREME COMMAND
+
+DO NOT THINK OF THIS PRODUCT AS A COLLECTION OF AI APPS.
+
+THAT MODEL IS WRONG.
+
+THINK OF IT AS:
+
+# AN AI-POWERED LAW FIRM OPERATING SYSTEM.
+
+Its heartbeat is:
+
+# THE CLIENT MATTER.
+
+Its organisational body is:
+
+# THE LAW FIRM.
+
+Its intelligence is:
+
+# AI.
+
+Therefore:
+
+EVERY CLIENT MUST HAVE A COHERENT HOME.
+
+EVERY MATTER MUST HAVE A COHERENT HOME.
+
+EVERY DOCUMENT MUST BELONG SOMEWHERE.
+
+EVERY TASK MUST BELONG SOMEWHERE.
+
+EVERY DEADLINE MUST BELONG SOMEWHERE.
+
+EVERY RESEARCH RESULT MUST BELONG SOMEWHERE.
+
+EVERY DRAFT MUST BELONG SOMEWHERE.
+
+EVERY IMPORTANT AI OUTPUT MUST BELONG SOMEWHERE.
+
+EVERY LAWYER'S WORK MUST FLOW THROUGH THE MATTER.
+
+EVERY PARTNER MUST BE ABLE TO UNDERSTAND THE FIRM THROUGH THE SYSTEM.
+
+AI MUST NOT FLOAT ABOVE THE APPLICATION AS A NOVELTY.
+
+AI MUST LIVE INSIDE THE WORKFLOW.
+
+AI MUST READ THE FILE.
+
+AI MUST HELP ORGANISE THE FILE.
+
+AI MUST HELP UNDERSTAND THE FILE.
+
+AI MUST HELP RESEARCH THE FILE.
+
+AI MUST HELP BUILD THE FILE.
+
+AI MUST HELP MOVE THE FILE FORWARD.
+
+AI MUST HELP CLOSE THE FILE.
+
+AND AT THE MANAGEMENT LEVEL:
+
+AI MUST HELP THE FIRM UNDERSTAND WHAT IS HAPPENING ACROSS ALL ITS AUTHORISED MATTERS, LAWYERS, CLIENTS, DEADLINES, TASKS AND FINANCIAL WORKFLOWS.
+
+The final standard is this:
+
+# A LAWYER SHOULD FEEL THAT THE ENTIRE APPLICATION REVOLVES AROUND THE CLIENT'S CASE FILE.
+
+AND:
+
+# A MANAGING PARTNER SHOULD FEEL THAT THE ENTIRE APPLICATION GIVES THEM CONTROL OF THE LAW FIRM.
+
+Everything else is secondary.
+
+Audit the existing application against that standard.
+
+Repair it.
+
+Complete it.
+
+Integrate it.
+
+Strengthen it.
+
+Test it.
+
+Break-test it.
+
+Retest it.
+
+And do not declare the system complete until those TWO CARDINAL PILLARS genuinely dominate the architecture, the workflow, the user experience, the database relationships and the AI intelligence of the entire application.

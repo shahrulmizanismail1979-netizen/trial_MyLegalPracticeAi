@@ -29,6 +29,15 @@ import {
   useClients,
   useCreateClient,
   useUpdateClient,
+  useMatterClients,
+  useLinkClient,
+  useUnlinkClient,
+  useCaseEvents,
+  useAddCaseEvent,
+  useUpdateCaseEvent,
+  useDeleteCaseEvent,
+  useCaseReview,
+  CASE_EVENT_KINDS,
   SYA_STAGES,
   categoryMeta,
   daysUntil,
@@ -40,6 +49,7 @@ import {
   type MatterDeadline,
   type MatterWorkItem,
   type ClientItem,
+  type CaseEvent,
 } from "@/hooks/use-matters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,6 +104,10 @@ import {
   Building2,
   CreditCard,
   ChevronRight,
+  Sparkles,
+  Link2,
+  X,
+  History,
 } from "lucide-react";
 
 function fmtDate(iso: string, mode: string) {
@@ -628,6 +642,360 @@ function downloadIcs(matter: { title: string; deadlines: MatterDeadline[] }) {
   a.click();
 }
 
+const EVENT_KIND_LABELS: Record<string, { en: string; bm: string }> = {
+  filing: { en: "Filing", bm: "Pemfailan" },
+  hearing: { en: "Hearing", bm: "Perbicaraan" },
+  correspondence: { en: "Correspondence", bm: "Surat-menyurat" },
+  instruction: { en: "Instruction", bm: "Arahan" },
+  deadline: { en: "Deadline", bm: "Tarikh Akhir" },
+  stage: { en: "Stage", bm: "Peringkat" },
+  "saved-work": { en: "Saved work", bm: "Kerja disimpan" },
+  note: { en: "Note", bm: "Catatan" },
+  payment: { en: "Payment", bm: "Bayaran" },
+  meeting: { en: "Meeting", bm: "Mesyuarat" },
+};
+
+const EVENT_KIND_COLORS: Record<string, string> = {
+  filing: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  hearing: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  correspondence: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
+  instruction: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  deadline: "bg-red-500/10 text-red-600 border-red-500/20",
+  stage: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+  "saved-work": "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  note: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  payment: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  meeting: "bg-pink-500/10 text-pink-600 border-pink-500/20",
+};
+
+function kindLabel(kind: string, mode: string) {
+  const m = EVENT_KIND_LABELS[kind];
+  return m ? (mode === "bm" ? m.bm : m.en) : kind;
+}
+
+function ChronologyTab({ matterId, mode }: { matterId: number; mode: string }) {
+  const { data: events, isLoading } = useCaseEvents(matterId);
+  const addEvent = useAddCaseEvent();
+  const updateEvent = useUpdateCaseEvent();
+  const deleteEvent = useDeleteCaseEvent();
+  const { toast } = useToast();
+  const t = (en: string, bm: string) => (mode === "bm" ? bm : en);
+
+  const blank = { title: "", event_date: new Date().toISOString().slice(0, 10), kind: "filing", description: "" };
+  const [form, setForm] = useState(blank);
+  const [editing, setEditing] = useState<CaseEvent | null>(null);
+  const [editForm, setEditForm] = useState(blank);
+
+  const sorted = [...(events ?? [])].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+  );
+
+  const submit = async () => {
+    if (!form.title.trim() || !form.event_date) {
+      toast({ title: t("Title and date required", "Tajuk dan tarikh diperlukan"), variant: "destructive" });
+      return;
+    }
+    try {
+      await addEvent.mutateAsync({
+        matterId,
+        title: form.title.trim(),
+        event_date: form.event_date,
+        kind: form.kind,
+        description: form.description.trim() || undefined,
+      });
+      setForm(blank);
+      toast({ title: t("Event added", "Peristiwa ditambah") });
+    } catch (e) {
+      toast({ title: t("Could not add event", "Tidak dapat menambah"), description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (!editForm.title.trim() || !editForm.event_date) {
+      toast({ title: t("Title and date required", "Tajuk dan tarikh diperlukan"), variant: "destructive" });
+      return;
+    }
+    try {
+      await updateEvent.mutateAsync({
+        matterId,
+        eventId: editing.id,
+        title: editForm.title.trim(),
+        event_date: editForm.event_date,
+        kind: editForm.kind,
+        description: editForm.description.trim() || undefined,
+      });
+      setEditing(null);
+      toast({ title: t("Event updated", "Peristiwa dikemas kini") });
+    } catch (e) {
+      toast({ title: t("Could not update", "Tidak dapat dikemas kini"), description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="font-serif font-bold text-lg flex items-center gap-2">
+        <History className="h-5 w-5 text-secondary" /> {t("Chronology", "Kronologi")}
+      </h2>
+
+      {/* Add event form */}
+      <Card className="border-border/50 bg-card/50">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {t("Add event", "Tambah peristiwa")}</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div><Label className="text-xs">{t("Date *", "Tarikh *")}</Label><Input type="date" value={form.event_date} onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))} className="mt-1" /></div>
+            <div>
+              <Label className="text-xs">{t("Kind *", "Jenis *")}</Label>
+              <Select value={form.kind} onValueChange={(v) => setForm((f) => ({ ...f, kind: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{CASE_EVENT_KINDS.map((k) => <SelectItem key={k} value={k}>{kindLabel(k, mode)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-1"><Label className="text-xs">{t("Title *", "Tajuk *")}</Label><Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder={t("e.g. Statement of claim filed", "cth. Penyata tuntutan difailkan")} className="mt-1" /></div>
+          </div>
+          <div><Label className="text-xs">{t("Description", "Huraian")}</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="mt-1" /></div>
+          <Button onClick={submit} disabled={addEvent.isPending || !form.title.trim()} className="gap-2">
+            {addEvent.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {t("Add event", "Tambah peristiwa")}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-muted-foreground animate-pulse">{t("Loading…", "Memuatkan…")}</div>
+      ) : sorted.length === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-8 text-center">
+            <History className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">{t("No chronology events yet.", "Tiada peristiwa kronologi lagi.")}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="relative">
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-border/50" />
+          <div className="space-y-4 pl-10">
+            {sorted.map((ev) => (
+              <div key={ev.id} className="relative">
+                <div className="absolute -left-6 top-2 h-3 w-3 rounded-full border-2 bg-secondary border-secondary" />
+                <Card className="border-border/50 bg-card/50">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${EVENT_KIND_COLORS[ev.kind] ?? EVENT_KIND_COLORS.note}`}>{kindLabel(ev.kind, mode)}</span>
+                          <span className="text-xs text-muted-foreground">{fmtDate(ev.event_date, mode)}</span>
+                        </div>
+                        <p className="text-sm font-medium text-foreground mt-1">{ev.title}</p>
+                        {ev.description && <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">{ev.description}</p>}
+                        {ev.source && <p className="text-[10px] text-muted-foreground/70 mt-1">{t("Source", "Sumber")}: {ev.source}</p>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => { setEditing(ev); setEditForm({ title: ev.title, event_date: ev.event_date.slice(0, 10), kind: ev.kind, description: ev.description ?? "" }); }} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-secondary hover:bg-secondary/30"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={async () => { try { await deleteEvent.mutateAsync({ matterId, eventId: ev.id }); } catch { toast({ title: t("Could not delete", "Tidak dapat dipadam"), variant: "destructive" }); } }} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary/30"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-serif">{t("Edit Event", "Sunting Peristiwa")}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>{t("Date *", "Tarikh *")}</Label><Input type="date" className="mt-1" value={editForm.event_date} onChange={(e) => setEditForm((f) => ({ ...f, event_date: e.target.value }))} /></div>
+            <div>
+              <Label>{t("Kind *", "Jenis *")}</Label>
+              <Select value={editForm.kind} onValueChange={(v) => setEditForm((f) => ({ ...f, kind: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{CASE_EVENT_KINDS.map((k) => <SelectItem key={k} value={k}>{kindLabel(k, mode)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>{t("Title *", "Tajuk *")}</Label><Input className="mt-1" value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} /></div>
+            <div><Label>{t("Description", "Huraian")}</Label><Textarea rows={2} className="mt-1" value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} /></div>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>{t("Cancel", "Batal")}</Button>
+              <Button className="flex-1" onClick={saveEdit} disabled={updateEvent.isPending}>{updateEvent.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} {t("Save", "Simpan")}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AiReviewButton({ matterId, mode }: { matterId: number; mode: string }) {
+  const review = useCaseReview();
+  const { toast } = useToast();
+  const [result, setResult] = useState<string | null>(null);
+  const t = (en: string, bm: string) => (mode === "bm" ? bm : en);
+
+  const run = async () => {
+    setResult(null);
+    try {
+      const res = await review.mutateAsync(matterId);
+      setResult(res.review ?? "");
+    } catch (e) {
+      toast({ title: t("AI review failed", "Semakan AI gagal"), description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-secondary" />
+          <h3 className="font-serif font-semibold text-foreground">{t("AI Case Review", "Semakan Kes AI")}</h3>
+        </div>
+        <Button size="sm" className="gap-2" onClick={run} disabled={review.isPending}>
+          {review.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {review.isPending ? t("Reviewing…", "Menyemak…") : t("Run AI review", "Jalankan semakan AI")}
+        </Button>
+      </div>
+      {review.isPending && (
+        <Card className="border-secondary/20 bg-secondary/5">
+          <CardContent className="p-5 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 text-secondary animate-spin shrink-0" />
+            <p className="text-sm text-muted-foreground">{t("Generating case review and prioritised next actions… this can take up to a minute.", "Menjana semakan kes dan tindakan seterusnya… ini boleh mengambil masa sehingga seminit.")}</p>
+          </CardContent>
+        </Card>
+      )}
+      {result != null && !review.isPending && (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-4">
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans">{result}</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function MatterClientsSection({ matterId, mode }: { matterId: number; mode: string }) {
+  const { data: linked, isLoading } = useMatterClients(matterId);
+  const { data: allClients } = useClients();
+  const createClient = useCreateClient();
+  const linkClient = useLinkClient();
+  const unlinkClient = useUnlinkClient();
+  const { toast } = useToast();
+  const t = (en: string, bm: string) => (mode === "bm" ? bm : en);
+
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [newForm, setNewForm] = useState({ name: "", phone: "", email: "" });
+
+  const linkedIds = new Set((linked ?? []).map((c) => c.id));
+  const available = (allClients ?? []).filter((c) => !linkedIds.has(c.id));
+
+  const doLinkExisting = async () => {
+    if (!selectedId) return;
+    try {
+      await linkClient.mutateAsync({ clientId: parseInt(selectedId, 10), matterId });
+      toast({ title: t("Client linked", "Klien dipautkan") });
+      setSelectedId("");
+      setLinkOpen(false);
+    } catch (e) {
+      toast({ title: t("Could not link", "Tidak dapat dipautkan"), description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const doCreateAndLink = async () => {
+    if (!newForm.name.trim()) { toast({ title: t("Name required", "Nama diperlukan"), variant: "destructive" }); return; }
+    try {
+      const created: ClientItem = await createClient.mutateAsync({
+        name: newForm.name.trim(),
+        phone: newForm.phone.trim() || undefined,
+        email: newForm.email.trim() || undefined,
+      });
+      await linkClient.mutateAsync({ clientId: created.id, matterId });
+      toast({ title: t("Client created & linked", "Klien dicipta & dipautkan") });
+      setNewForm({ name: "", phone: "", email: "" });
+      setLinkOpen(false);
+    } catch (e) {
+      toast({ title: t("Could not create client", "Tidak dapat mencipta klien"), description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-serif font-semibold text-foreground flex items-center gap-2">
+          <User className="h-5 w-5 text-secondary" /> {t("Linked Clients", "Klien Dipautkan")}
+        </h3>
+        <Button size="sm" className="gap-2" onClick={() => setLinkOpen(true)}><Link2 className="h-4 w-4" /> {t("Link client", "Pautkan klien")}</Button>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 text-center text-muted-foreground animate-pulse">{t("Loading…", "Memuatkan…")}</div>
+      ) : (linked?.length ?? 0) === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-8 text-center">
+            <User className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">{t("No client linked to this matter yet.", "Tiada klien dipautkan ke kes ini lagi.")}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {linked!.map((client) => (
+            <Card key={client.id} className="border-border/50 bg-card/50">
+              <CardContent className="p-4 flex items-start justify-between gap-3">
+                <div className="space-y-1.5 min-w-0">
+                  <p className="font-semibold text-foreground">{client.name}</p>
+                  {client.company_name && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3 w-3" /> {client.company_name}</p>}
+                  {client.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" /> {client.email}</p>}
+                  {client.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="h-3 w-3" /> {client.phone}</p>}
+                </div>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive shrink-0" onClick={async () => { try { await unlinkClient.mutateAsync({ clientId: client.id, matterId }); toast({ title: t("Client unlinked", "Klien dinyahpaut") }); } catch { toast({ title: t("Could not unlink", "Tidak dapat dinyahpaut"), variant: "destructive" }); } }} disabled={unlinkClient.isPending}>
+                  <X className="h-3.5 w-3.5" /> {t("Unlink", "Nyahpaut")}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-serif">{t("Link a Client", "Pautkan Klien")}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>{t("Existing client", "Klien sedia ada")}</Label>
+              {available.length === 0 ? (
+                <p className="text-xs text-muted-foreground mt-1">{t("No other clients available.", "Tiada klien lain tersedia.")}</p>
+              ) : (
+                <div className="flex gap-2 mt-1">
+                  <Select value={selectedId} onValueChange={setSelectedId}>
+                    <SelectTrigger className="flex-1"><SelectValue placeholder={t("Choose a client", "Pilih klien")} /></SelectTrigger>
+                    <SelectContent>{available.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Button onClick={doLinkExisting} disabled={!selectedId || linkClient.isPending}>{linkClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} {t("Link", "Pautkan")}</Button>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-border/50 pt-4 space-y-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">{t("Or create a new client", "Atau cipta klien baharu")}</p>
+              <div><Label>{t("Full name *", "Nama penuh *")}</Label><Input className="mt-1" value={newForm.name} onChange={(e) => setNewForm((f) => ({ ...f, name: e.target.value }))} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{t("Phone", "Telefon")}</Label><Input className="mt-1" value={newForm.phone} onChange={(e) => setNewForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+                <div><Label>Email</Label><Input className="mt-1" type="email" value={newForm.email} onChange={(e) => setNewForm((f) => ({ ...f, email: e.target.value }))} /></div>
+              </div>
+              <Button className="w-full gap-2" onClick={doCreateAndLink} disabled={createClient.isPending || linkClient.isPending || !newForm.name.trim()}>
+                {(createClient.isPending || linkClient.isPending) && <Loader2 className="h-4 w-4 animate-spin" />} {t("Create & link", "Cipta & pautkan")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function MatterDetailPage() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "", 10);
@@ -827,6 +1195,7 @@ export default function MatterDetailPage() {
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> {t("Overview", "Gambaran")}</TabsTrigger>
           <TabsTrigger value="timeline" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> {t("Timeline", "Garis Masa")}</TabsTrigger>
+          <TabsTrigger value="chronology" className="gap-1.5"><History className="h-3.5 w-3.5" /> {t("Chronology", "Kronologi")}</TabsTrigger>
           <TabsTrigger value="documents" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> {t("Documents", "Dokumen")} {(work?.length ?? 0) > 0 && <Badge variant="outline" className="ml-1 text-[10px] py-0 h-4">{work!.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="checklist" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> {t("Checklist", "Senarai Semak")}</TabsTrigger>
           <TabsTrigger value="team" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("Team", "Pasukan")}</TabsTrigger>
@@ -836,6 +1205,10 @@ export default function MatterDetailPage() {
         {/* Overview tab */}
         <TabsContent value="overview" className="space-y-6">
           <AiInsightsPanel matterId={matter.id} mode={mode} />
+
+          <AiReviewButton matterId={matter.id} mode={mode} />
+
+          <MatterClientsSection matterId={matter.id} mode={mode} />
 
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">{t("Matter Details", "Butiran Kes")}</p>
@@ -938,6 +1311,11 @@ export default function MatterDetailPage() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* Chronology tab */}
+        <TabsContent value="chronology">
+          <ChronologyTab matterId={matter.id} mode={mode} />
         </TabsContent>
 
         {/* Documents tab */}

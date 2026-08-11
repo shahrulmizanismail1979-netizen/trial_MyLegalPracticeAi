@@ -33,6 +33,10 @@ import {
   Mail,
   MapPin,
   CreditCard,
+  History,
+  Link2,
+  Unlink,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +87,15 @@ import {
   useClients,
   useCreateClient,
   useUpdateClient,
+  useMatterClients,
+  useLinkClientToMatter,
+  useUnlinkClientFromMatter,
+  useCaseEvents,
+  useAddCaseEvent,
+  useUpdateCaseEvent,
+  useDeleteCaseEvent,
+  useCaseReview,
+  CASE_EVENT_KINDS,
   CRIM_STAGES,
   categoryMeta,
   daysUntil,
@@ -91,7 +104,9 @@ import {
   type SavedWorkItem,
   type MatterInput,
   type ClientItem,
+  type CaseEvent,
 } from "@/hooks/use-matters";
+import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 
 const CATEGORY_OPTIONS = ["remand", "charge", "bail", "trial", "appeal", "revision", "custom"];
 const STATUS_OPTIONS = ["open", "on-hold", "closed"];
@@ -514,14 +529,22 @@ function TimeTab({ matterId }: { matterId: number }) {
 
 function TeamTab({ matterId, clientName }: { matterId: number; clientName: string | null }) {
   const { data: clients } = useClients();
+  const { data: linkedClients } = useMatterClients(matterId);
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
+  const linkClient = useLinkClientToMatter();
+  const unlinkClient = useUnlinkClientFromMatter();
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
   const [editClient, setEditClient] = useState<ClientItem | null>(null);
   const [form, setForm] = useState({ name: "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
+  // Inline "create + link" mini form
+  const [newLink, setNewLink] = useState({ name: "", phone: "", email: "" });
 
+  const linkedIds = new Set((linkedClients ?? []).map((c) => c.id));
   const suggested = clients?.find((c) => clientName && c.name.toLowerCase().includes(clientName.toLowerCase()));
+  const linkableClients = (clients ?? []).filter((c) => !linkedIds.has(c.id));
 
   const submitAdd = async () => {
     if (!form.name.trim()) return;
@@ -546,43 +569,162 @@ function TeamTab({ matterId, clientName }: { matterId: number; clientName: strin
     }
   };
 
+  const doLink = async (clientId: number) => {
+    try {
+      await linkClient.mutateAsync({ clientId, matterId });
+      toast({ title: "Client linked to matter" });
+    } catch (e) {
+      toast({ title: "Could not link client", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const doUnlink = async (clientId: number) => {
+    try {
+      await unlinkClient.mutateAsync({ clientId, matterId });
+      toast({ title: "Client unlinked" });
+    } catch (e) {
+      toast({ title: "Could not unlink client", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const createAndLink = async () => {
+    if (!newLink.name.trim()) {
+      toast({ title: "Name required", variant: "destructive" });
+      return;
+    }
+    try {
+      const created = await createClient.mutateAsync({
+        name: newLink.name.trim(),
+        phone: newLink.phone || undefined,
+        email: newLink.email || undefined,
+      });
+      await linkClient.mutateAsync({ clientId: created.id, matterId });
+      toast({ title: "Client created and linked" });
+      setNewLink({ name: "", phone: "", email: "" });
+      setLinkOpen(false);
+    } catch (e) {
+      toast({ title: "Could not create client", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-serif font-semibold text-foreground flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" /> Client Records
+          <Users className="h-5 w-5 text-primary" /> Clients
         </h3>
-        <Button size="sm" className="gap-2" onClick={() => {
-          setForm({ name: clientName ?? "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
-          setAddOpen(true);
-        }}>
-          <Plus className="h-4 w-4" /> Add client
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setLinkOpen(true)}>
+            <Link2 className="h-4 w-4" /> Link client
+          </Button>
+          <Button size="sm" className="gap-2" onClick={() => {
+            setForm({ name: clientName ?? "", ic_number: "", company_name: "", email: "", phone: "", address: "", notes: "" });
+            setAddOpen(true);
+          }}>
+            <Plus className="h-4 w-4" /> Add client
+          </Button>
+        </div>
       </div>
 
-      {suggested && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="p-4">
-            <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-2">Matched client</p>
-            <ClientCard client={suggested} onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Linked-to-this-matter section */}
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Linked to this matter</p>
+        {(linkedClients?.length ?? 0) === 0 ? (
+          <Card className="border-border/50 bg-card/50">
+            <CardContent className="p-6 text-center">
+              <User className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No client linked to this matter yet. Use "Link client" above.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {linkedClients!.map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }}
+                onUnlink={() => doUnlink(client.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {(clients?.length ?? 0) === 0 ? (
-        <Card className="border-border/50 bg-card/50">
-          <CardContent className="p-8 text-center">
-            <User className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No client records yet. Add a client card to track contact details.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {clients!.filter((c) => c.id !== suggested?.id).map((client) => (
-            <ClientCard key={client.id} client={client} onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }} />
-          ))}
-        </div>
-      )}
+      {/* Full directory */}
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">All client records</p>
+        {suggested && (
+          <Card className="border-primary/20 bg-primary/5 mb-2">
+            <CardContent className="p-4">
+              <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-2">Matched client</p>
+              <ClientCard client={suggested} onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }} onLink={linkedIds.has(suggested.id) ? undefined : () => doLink(suggested.id)} linked={linkedIds.has(suggested.id)} />
+            </CardContent>
+          </Card>
+        )}
+
+        {(clients?.length ?? 0) === 0 ? (
+          <Card className="border-border/50 bg-card/50">
+            <CardContent className="p-8 text-center">
+              <User className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No client records yet. Add a client card to track contact details.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {clients!.filter((c) => c.id !== suggested?.id).map((client) => (
+              <ClientCard
+                key={client.id}
+                client={client}
+                onEdit={(c) => { setEditClient(c); setForm({ name: c.name, ic_number: c.ic_number ?? "", company_name: c.company_name ?? "", email: c.email ?? "", phone: c.phone ?? "", address: c.address ?? "", notes: c.notes ?? "" }); }}
+                onLink={linkedIds.has(client.id) ? undefined : () => doLink(client.id)}
+                linked={linkedIds.has(client.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Link client dialog */}
+      <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-serif">Link a Client</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Pick from your clients</p>
+              {linkableClients.length === 0 ? (
+                <p className="text-sm text-muted-foreground">All your clients are already linked. Create a new one below.</p>
+              ) : (
+                <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+                  {linkableClients.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-border/50 bg-card/50">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                        {(c.phone || c.email) && <p className="text-xs text-muted-foreground truncate">{[c.phone, c.email].filter(Boolean).join(" · ")}</p>}
+                      </div>
+                      <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={() => doLink(c.id)} disabled={linkClient.isPending}>
+                        <Link2 className="h-3.5 w-3.5" /> Link
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="pt-2 border-t border-border/50">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Or create &amp; link a new client</p>
+              <div className="space-y-2">
+                <Input placeholder="Full name *" value={newLink.name} onChange={(e) => setNewLink((f) => ({ ...f, name: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Phone" value={newLink.phone} onChange={(e) => setNewLink((f) => ({ ...f, phone: e.target.value }))} />
+                  <Input placeholder="Email" value={newLink.email} onChange={(e) => setNewLink((f) => ({ ...f, email: e.target.value }))} />
+                </div>
+                <Button className="w-full gap-2" onClick={createAndLink} disabled={createClient.isPending || linkClient.isPending || !newLink.name.trim()}>
+                  {(createClient.isPending || linkClient.isPending) && <Loader2 className="h-4 w-4 animate-spin" />} Create &amp; link
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add client dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -615,20 +757,43 @@ function TeamTab({ matterId, clientName }: { matterId: number; clientName: strin
   );
 }
 
-function ClientCard({ client, onEdit }: { client: ClientItem; onEdit: (c: ClientItem) => void }) {
+function ClientCard({
+  client,
+  onEdit,
+  onUnlink,
+  onLink,
+  linked,
+}: {
+  client: ClientItem;
+  onEdit: (c: ClientItem) => void;
+  onUnlink?: () => void;
+  onLink?: () => void;
+  linked?: boolean;
+}) {
   return (
     <Card className="border-border/50 bg-card/50">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <p className="font-semibold text-foreground">{client.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-foreground">{client.name}</p>
+              {linked && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border text-primary bg-primary/10 border-primary/20">Linked</span>}
+            </div>
             {client.ic_number && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3 w-3" /> {client.ic_number}</p>}
             {client.company_name && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3 w-3" /> {client.company_name}</p>}
             {client.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" /> {client.email}</p>}
             {client.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="h-3 w-3" /> {client.phone}</p>}
             {client.address && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><MapPin className="h-3 w-3" /> {client.address}</p>}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(client)} className="shrink-0"><Pencil className="h-3.5 w-3.5" /></Button>
+          <div className="flex items-center gap-1 shrink-0">
+            {onLink && (
+              <Button variant="ghost" size="sm" onClick={onLink} className="gap-1.5" title="Link to this matter"><Link2 className="h-3.5 w-3.5" /></Button>
+            )}
+            {onUnlink && (
+              <Button variant="ghost" size="sm" onClick={onUnlink} className="gap-1.5 text-muted-foreground hover:text-destructive" title="Unlink from this matter"><Unlink className="h-3.5 w-3.5" /></Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => onEdit(client)}><Pencil className="h-3.5 w-3.5" /></Button>
+          </div>
         </div>
         {client.notes && <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50 whitespace-pre-wrap">{client.notes}</p>}
       </CardContent>
@@ -676,6 +841,272 @@ function downloadIcs(matter: { title: string; deadlines: MatterDeadline[] }) {
   a.href = URL.createObjectURL(blob);
   a.download = `${matter.title.replace(/[^a-z0-9]/gi, "-")}-deadlines.ics`;
   a.click();
+}
+
+const EVENT_KIND_META: Record<string, { label: string; color: string }> = {
+  filing: { label: "Filing", color: "text-blue-600 bg-blue-500/10 border-blue-500/20" },
+  hearing: { label: "Hearing", color: "text-amber-600 bg-amber-500/10 border-amber-500/20" },
+  correspondence: { label: "Correspondence", color: "text-cyan-600 bg-cyan-500/10 border-cyan-500/20" },
+  instruction: { label: "Instruction", color: "text-violet-600 bg-violet-500/10 border-violet-500/20" },
+  deadline: { label: "Deadline", color: "text-red-600 bg-red-500/10 border-red-500/20" },
+  stage: { label: "Stage", color: "text-indigo-600 bg-indigo-500/10 border-indigo-500/20" },
+  "saved-work": { label: "Saved work", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20" },
+  note: { label: "Note", color: "text-slate-500 bg-slate-500/10 border-slate-400/20" },
+  payment: { label: "Payment", color: "text-green-600 bg-green-500/10 border-green-500/20" },
+  meeting: { label: "Meeting", color: "text-orange-600 bg-orange-500/10 border-orange-500/20" },
+};
+
+function eventKindMeta(kind: string) {
+  return EVENT_KIND_META[kind] ?? EVENT_KIND_META.note;
+}
+
+function ChronologyTab({ matterId }: { matterId: number }) {
+  const { data: events, isLoading } = useCaseEvents(matterId);
+  const addEvent = useAddCaseEvent();
+  const updateEvent = useUpdateCaseEvent();
+  const deleteEvent = useDeleteCaseEvent();
+  const { toast } = useToast();
+
+  const blank = { title: "", event_date: new Date().toISOString().slice(0, 10), kind: "note", description: "" };
+  const [form, setForm] = useState(blank);
+  const [editing, setEditing] = useState<CaseEvent | null>(null);
+  const [editForm, setEditForm] = useState(blank);
+
+  const sorted = [...(events ?? [])].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime(),
+  );
+
+  const submitAdd = async () => {
+    if (!form.title.trim() || !form.event_date) {
+      toast({ title: "Title and date required", variant: "destructive" });
+      return;
+    }
+    try {
+      await addEvent.mutateAsync({
+        matterId,
+        title: form.title.trim(),
+        event_date: form.event_date,
+        kind: form.kind,
+        description: form.description.trim() || undefined,
+      });
+      toast({ title: "Event added to chronology" });
+      setForm(blank);
+    } catch (e) {
+      toast({ title: "Could not add event", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const openEdit = (ev: CaseEvent) => {
+    setEditing(ev);
+    setEditForm({
+      title: ev.title,
+      event_date: ev.event_date.slice(0, 10),
+      kind: ev.kind,
+      description: ev.description ?? "",
+    });
+  };
+
+  const submitEdit = async () => {
+    if (!editing || !editForm.title.trim() || !editForm.event_date) {
+      toast({ title: "Title and date required", variant: "destructive" });
+      return;
+    }
+    try {
+      await updateEvent.mutateAsync({
+        matterId,
+        eventId: editing.id,
+        title: editForm.title.trim(),
+        event_date: editForm.event_date,
+        kind: editForm.kind,
+        description: editForm.description.trim() || undefined,
+      });
+      toast({ title: "Event updated" });
+      setEditing(null);
+    } catch (e) {
+      toast({ title: "Could not update event", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  const removeEvent = async (ev: CaseEvent) => {
+    try {
+      await deleteEvent.mutateAsync({ matterId, eventId: ev.id });
+    } catch (e) {
+      toast({ title: "Could not delete event", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h2 className="font-serif font-bold text-lg flex items-center gap-2">
+        <History className="h-5 w-5 text-primary" /> Case Chronology
+      </h2>
+
+      {/* Add event form */}
+      <Card className="border-border/50 bg-card/50">
+        <CardHeader className="pb-3 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> Add Event</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Date *</Label>
+              <Input type="date" value={form.event_date} onChange={(e) => setForm((f) => ({ ...f, event_date: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Kind</Label>
+              <Select value={form.kind} onValueChange={(v) => setForm((f) => ({ ...f, kind: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CASE_EVENT_KINDS.map((k) => <SelectItem key={k} value={k}>{eventKindMeta(k).label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Title *</Label>
+            <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Charge read and understood" className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs">Description</Label>
+            <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="mt-1" />
+          </div>
+          <Button onClick={submitAdd} disabled={addEvent.isPending || !form.title.trim() || !form.event_date} className="w-full gap-2">
+            {addEvent.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Add event
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Timeline */}
+      {isLoading ? (
+        <div className="py-8 text-center text-muted-foreground animate-pulse">Loading chronology…</div>
+      ) : sorted.length === 0 ? (
+        <Card className="border-border/50 bg-card/50">
+          <CardContent className="p-10 text-center">
+            <History className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No chronology events yet. Add the first event above.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="relative">
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-border/50" />
+          <div className="space-y-3 pl-10">
+            {sorted.map((ev) => {
+              const meta = eventKindMeta(ev.kind);
+              return (
+                <div key={ev.id} className="relative">
+                  <div className="absolute -left-6 top-3 h-3 w-3 rounded-full border-2 bg-primary border-primary" />
+                  <Card className="border-border/50 bg-card/50">
+                    <CardContent className="p-3 flex items-start gap-3">
+                      <CalendarClock className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">{ev.title}</span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${meta.color}`}>{meta.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(ev.event_date)}</p>
+                        {ev.description && <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap leading-relaxed">{ev.description}</p>}
+                        {ev.source && <p className="text-[10px] text-muted-foreground/60 mt-1">Source: {ev.source}</p>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => openEdit(ev)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => removeEvent(ev)} className="h-7 w-7 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-secondary"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Edit event dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-serif">Edit Event</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Date *</Label>
+                <Input type="date" value={editForm.event_date} onChange={(e) => setEditForm((f) => ({ ...f, event_date: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Kind</Label>
+                <Select value={editForm.kind} onValueChange={(v) => setEditForm((f) => ({ ...f, kind: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CASE_EVENT_KINDS.map((k) => <SelectItem key={k} value={k}>{eventKindMeta(k).label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Title *</Label>
+              <Input value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Description</Label>
+              <Textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="mt-1" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button className="flex-1" onClick={submitEdit} disabled={updateEvent.isPending}>Save changes</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function AiCaseReviewButton({ matterId }: { matterId: number }) {
+  const review = useCaseReview();
+  const { toast } = useToast();
+  const [result, setResult] = useState<string | null>(null);
+
+  const run = async () => {
+    setResult(null);
+    try {
+      const res = await review.mutateAsync(matterId);
+      setResult(res.review);
+    } catch (e) {
+      toast({ title: "Case review failed", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="font-serif font-semibold text-foreground">AI Case Review</h3>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2" onClick={run} disabled={review.isPending}>
+            {review.isPending
+              ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reviewing…</>
+              : <><Sparkles className="h-3.5 w-3.5" /> {result ? "Re-run review" : "Run case review"}</>}
+          </Button>
+        </div>
+        {!result && !review.isPending && (
+          <p className="text-sm text-muted-foreground">
+            Generate a grounded review of this matter — current position, risks and prioritised next actions. Takes up to a minute.
+          </p>
+        )}
+        {review.isPending && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Assembling context and generating review…
+          </div>
+        )}
+        {result && (
+          <div className="pt-2 border-t border-border/50">
+            <MarkdownRenderer content={result} />
+            <p className="text-[10px] text-muted-foreground/60 mt-3">AI-generated · verify against the file before relying on it.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function MatterDetailPage() {
@@ -918,6 +1349,7 @@ export function MatterDetailPage() {
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="timeline" className="gap-1.5"><Calendar className="h-3.5 w-3.5" /> Timeline</TabsTrigger>
+          <TabsTrigger value="chronology" className="gap-1.5"><History className="h-3.5 w-3.5" /> Chronology</TabsTrigger>
           <TabsTrigger value="hearings" className="gap-1.5"><Gavel className="h-3.5 w-3.5" /> Hearings</TabsTrigger>
           <TabsTrigger value="documents" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Documents {(matterWork?.length ?? 0) > 0 && <Badge variant="outline" className="ml-1 text-[10px] py-0 h-4">{matterWork!.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="checklist" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Checklist</TabsTrigger>
@@ -929,6 +1361,9 @@ export function MatterDetailPage() {
         <TabsContent value="overview" className="space-y-6">
           {/* AI Insights */}
           <AiInsightsPanel matterId={matter.id} />
+
+          {/* AI Case Review (on-demand) */}
+          <AiCaseReviewButton matterId={matter.id} />
 
           {/* Matter info */}
           <div>
@@ -1074,6 +1509,11 @@ export function MatterDetailPage() {
               Computed dates apply ordinary CPC / Courts of Judicature Act periods and roll forward off weekends. <span className="text-amber-700 font-medium">Always verify against sealed orders before relying on a date.</span>
             </p>
           </div>
+        </TabsContent>
+
+        {/* Chronology tab */}
+        <TabsContent value="chronology">
+          <ChronologyTab matterId={matter.id} />
         </TabsContent>
 
         {/* Hearings tab */}
