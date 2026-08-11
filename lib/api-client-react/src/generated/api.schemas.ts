@@ -9,19 +9,6 @@ export interface HealthStatus {
   status: string;
 }
 
-/**
- * @nullable
- */
-export type SubscriberTier =
-  | (typeof SubscriberTier)[keyof typeof SubscriberTier]
-  | null;
-
-export const SubscriberTier = {
-  bundle: "bundle",
-  single: "single",
-  standard: "standard",
-} as const;
-
 export type SubscriberPaymentStatus =
   (typeof SubscriberPaymentStatus)[keyof typeof SubscriberPaymentStatus];
 
@@ -53,7 +40,7 @@ export interface Subscriber {
   /** @nullable */
   kohortId?: number | null;
   /** @nullable */
-  tier?: SubscriberTier;
+  tier?: string | null;
   paymentStatus: SubscriberPaymentStatus;
   paymentAmount: string;
   /** @nullable */

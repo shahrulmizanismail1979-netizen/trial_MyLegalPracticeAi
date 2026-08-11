@@ -95,14 +95,7 @@ export const ListSubscribersResponseItem = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
-  tier: zod
-    .union([
-      zod.literal("bundle"),
-      zod.literal("single"),
-      zod.literal("standard"),
-      zod.literal(null),
-    ])
-    .nullish(),
+  tier: zod.string().nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
@@ -166,14 +159,7 @@ export const GetSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
-  tier: zod
-    .union([
-      zod.literal("bundle"),
-      zod.literal("single"),
-      zod.literal("standard"),
-      zod.literal(null),
-    ])
-    .nullish(),
+  tier: zod.string().nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
@@ -236,14 +222,7 @@ export const UpdateSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
-  tier: zod
-    .union([
-      zod.literal("bundle"),
-      zod.literal("single"),
-      zod.literal("standard"),
-      zod.literal(null),
-    ])
-    .nullish(),
+  tier: zod.string().nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
@@ -471,14 +450,7 @@ export const ConfirmSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
-  tier: zod
-    .union([
-      zod.literal("bundle"),
-      zod.literal("single"),
-      zod.literal("standard"),
-      zod.literal(null),
-    ])
-    .nullish(),
+  tier: zod.string().nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),
@@ -512,14 +484,7 @@ export const RejectSubscriberResponse = zod.object({
   phone: zod.string(),
   apps: zod.array(zod.string()),
   kohortId: zod.number().nullish(),
-  tier: zod
-    .union([
-      zod.literal("bundle"),
-      zod.literal("single"),
-      zod.literal("standard"),
-      zod.literal(null),
-    ])
-    .nullish(),
+  tier: zod.string().nullish(),
   paymentStatus: zod.enum(["pending", "confirmed", "rejected", "cancelled"]),
   paymentAmount: zod.string(),
   paymentDate: zod.coerce.date().nullish(),

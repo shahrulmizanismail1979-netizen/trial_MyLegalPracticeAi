@@ -7,7 +7,6 @@
  */
 import type { SubscriberPaymentProvider } from "./subscriberPaymentProvider";
 import type { SubscriberPaymentStatus } from "./subscriberPaymentStatus";
-import type { SubscriberTier } from "./subscriberTier";
 
 export interface Subscriber {
   id: number;
@@ -18,7 +17,7 @@ export interface Subscriber {
   /** @nullable */
   kohortId?: number | null;
   /** @nullable */
-  tier?: SubscriberTier;
+  tier?: string | null;
   paymentStatus: SubscriberPaymentStatus;
   paymentAmount: string;
   /** @nullable */

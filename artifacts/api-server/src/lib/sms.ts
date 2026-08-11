@@ -3,10 +3,11 @@ import { logger } from "./logger";
 export type SmsResult = "sent" | "failed" | "not_configured";
 
 /**
- * Send an SMS via the Twilio Replit connector.
+ * Send an SMS via Twilio.
  *
- * Until the Twilio integration is connected, this returns "not_configured"
- * and provisioning falls back to email-only delivery.
+ * Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER
+ * to be set as environment secrets.  If any are missing this returns
+ * "not_configured" and provisioning falls back to email-only delivery.
  */
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
   const client = await getTwilioSender();
@@ -52,9 +53,28 @@ interface TwilioSender {
 }
 
 /**
- * Placeholder until the Twilio Replit connector is authorized.
- * Once connected, this is replaced with the connector client snippet.
+ * Returns a real Twilio sender when TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+ * and TWILIO_FROM_NUMBER are all present, or null when any are missing
+ * (causing the caller to fall back to email-only delivery).
+ *
+ * The client is constructed fresh on every call — do not cache it.
  */
 async function getTwilioSender(): Promise<TwilioSender | null> {
-  return null;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_FROM_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber) {
+    return null;
+  }
+
+  // Dynamic import keeps the module out of the hot path when Twilio is not configured.
+  const twilio = (await import("twilio")).default;
+  const client = twilio(accountSid, authToken);
+
+  return {
+    async send(to: string, body: string): Promise<void> {
+      await client.messages.create({ to, from: fromNumber, body });
+    },
+  };
 }

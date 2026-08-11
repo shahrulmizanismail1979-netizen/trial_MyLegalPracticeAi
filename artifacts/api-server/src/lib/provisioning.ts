@@ -885,7 +885,13 @@ export async function provisionFromCheckoutSession(
       if (smsResult === "failed") {
         await db.insert(activityTable).values({
           type: "sms_failed",
-          description: `FAILED to SMS access code ${accessCode} to ${phone} — send manually`,
+          description: `FAILED to SMS access code ${accessCode} to ${phone} — code was emailed to ${email} instead`,
+        });
+      } else if (smsResult === "not_configured") {
+        // Never skip silently: record that SMS is off and email carried the code.
+        await db.insert(activityTable).values({
+          type: "sms_skipped",
+          description: `SMS not configured (Twilio secrets missing) — access code ${accessCode} for ${phone} was emailed to ${email} instead`,
         });
       }
     }
