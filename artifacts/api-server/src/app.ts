@@ -111,8 +111,72 @@ app.use(
 // Clerk proxy and Stripe webhook responses also benefit.
 app.use(
   helmet({
-    // Allow the portals (same-origin iframes) to embed content and use workers.
-    contentSecurityPolicy: false,
+    // Content-Security-Policy tuned for the portal stack:
+    //
+    //  • script-src  — same-origin bundles + Clerk's CDN (npm.clerk.com serves
+    //                  ClerkJS; *.clerk.accounts.dev is the FAPI host used in
+    //                  dev instances).  'unsafe-inline' is required because
+    //                  Vite injects a small inline modulepreload polyfill script
+    //                  at build time; without it the entire SPA fails to boot.
+    //                  'unsafe-eval' is required in development (Vite HMR) and
+    //                  by some Clerk internals.  blob: covers dynamic workers
+    //                  that some portal AI tools spin up.
+    //
+    //  • worker-src  — PDF.js and Clerk create workers from blob: URLs.
+    //
+    //  • style-src   — 'unsafe-inline' is required by React component libraries
+    //                  (emotion / MUI / Tailwind JIT) that inject <style> tags
+    //                  at runtime and by Clerk's embedded UI.
+    //
+    //  • img-src     — data: for PDF canvas thumbnails; blob: for object-URL
+    //                  previews; https: for any remote images in AI outputs.
+    //
+    //  • connect-src — Clerk FAPI (*.clerk.accounts.dev), our own API (/api/*),
+    //                  and WebSocket for Vite HMR in development (ws://).
+    //
+    //  • font-src    — data: covers base64-embedded fonts in some PDF outputs.
+    //
+    //  • media-src   — blob: for audio/video playback from object-URL previews
+    //                  (MySyariahAI voice mode, MyLawFirmAI recordings).
+    //
+    //  • frame-src   — same-origin only (Clerk's hosted sign-in modal uses an
+    //                  iframe to accounts.clerk.dev).
+    //
+    //  • object-src / base-uri — locked down entirely.
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://npm.clerk.com",
+          "https://*.clerk.accounts.dev",
+          "blob:",
+        ],
+        workerSrc: ["'self'", "blob:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: [
+          "'self'",
+          "https://npm.clerk.com",
+          "https://*.clerk.accounts.dev",
+          "https://api.clerk.dev",
+          "wss:",
+          "ws:",
+        ],
+        fontSrc: ["'self'", "data:"],
+        mediaSrc: ["'self'", "blob:"],
+        frameSrc: [
+          "'self'",
+          "https://*.clerk.accounts.dev",
+          "https://accounts.clerk.dev",
+        ],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
     // HSTS: 1 year, include subdomains. Only meaningful in production (HTTPS).
     strictTransportSecurity:
       process.env.NODE_ENV === "production"
