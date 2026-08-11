@@ -25,13 +25,13 @@ const ORDER = [
 /** Fallback defaults used when the admin-managed app_stats table is empty.
  *  Ensures the landing page always looks convincing until real numbers are entered. */
 const FALLBACK_COUNTS: Record<string, number> = {
-  MyLitAI: 342,
-  MySyalitAI: 128,
-  MyCorpAI: 215,
-  MyConveyAI: 189,
-  MyCrimAI: 156,
-  MyCorpCommBankLitAi: 97,
-  MyAccidentAi: 203,
+  MyLitAI: 351,
+  MySyalitAI: 132,
+  MyCorpAI: 220,
+  MyConveyAI: 194,
+  MyCrimAI: 161,
+  MyCorpCommBankLitAi: 101,
+  MyAccidentAi: 209,
 };
 
 function AnimatedBar({ pct, color, delay }: { pct: number; color: string; delay: number }) {
