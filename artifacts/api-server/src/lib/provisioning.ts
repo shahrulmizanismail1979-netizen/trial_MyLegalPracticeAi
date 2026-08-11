@@ -661,12 +661,37 @@ function customerEmailHtml(params: {
   accessCode: string;
   apps: string[];
   trial: boolean;
+  tier?: string | null;
 }): string {
-  const { name, accessCode, apps, trial } = params;
+  const { name, accessCode, apps, trial, tier } = params;
+  const bundle = tier ? BUNDLE_TIER_CATALOG[tier] : undefined;
   const appsText =
     apps.length > 0
       ? apps.join(", ")
       : "the AI portal of your choice (reply to this email to tell us which portal you picked)";
+  if (bundle) {
+    return `
+  <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
+    <h2 style="color:#8a6d1a">Welcome to MyLegalPracticeAI</h2>
+    <p>Dear ${name},</p>
+    <p>Thank you for subscribing to the <b>${bundle.name}</b>. Your team's access code is below:</p>
+    <div style="background:#f7f3e8;border:2px solid #d4af37;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
+      <span style="font-size:24px;font-weight:bold;letter-spacing:2px;font-family:monospace">${accessCode}</span>
+    </div>
+    <p><b>Your plan:</b> ${bundle.name}<br/>
+    <b>Licensed users:</b> ${bundle.licenses}</p>
+    <p><b>One code for your whole team.</b> This single access code covers all ${bundle.licenses} of your licensed team members across every portal in your subscription: ${appsText}.</p>
+    <p><b>How to add your teammates:</b></p>
+    <ol style="padding-left:20px;margin:8px 0">
+      <li>Share the access code above with each team member (up to ${bundle.licenses} people).</li>
+      <li>Each person visits the portal they need and signs in with this code.</li>
+      <li>That's it — no separate accounts or extra codes needed.</li>
+    </ol>
+    <p>Keep this code safe and only share it within your team — access is limited to ${bundle.licenses} licensed users. If a portal has not yet activated your code, it will be activated shortly (usually within a few hours).</p>
+    <p>Questions? Just reply to this email.</p>
+    <p style="color:#777;font-size:13px;margin-top:28px">MyLegalPracticeAI · https://mylegalpracticeai.life</p>
+  </div>`;
+  }
   return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
     <h2 style="color:#8a6d1a">Welcome to MyLegalPracticeAI</h2>
@@ -849,7 +874,14 @@ export async function provisionFromCheckoutSession(
   // Emails/SMS are best-effort: provisioning must not fail if delivery is down.
   void (async () => {
     if (phone) {
-      const smsResult = await sendSms(phone, accessCodeSmsBody({ accessCode, trial }));
+      const smsResult = await sendSms(
+        phone,
+        accessCodeSmsBody({
+          accessCode,
+          trial,
+          licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
+        }),
+      );
       if (smsResult === "failed") {
         await db.insert(activityTable).values({
           type: "sms_failed",
@@ -862,7 +894,7 @@ export async function provisionFromCheckoutSession(
       subject: trial
         ? "Your MyLegalPracticeAI access code (7-day free trial)"
         : "Your MyLegalPracticeAI access code",
-      html: customerEmailHtml({ name, accessCode, apps, trial }),
+      html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
     });
     if (!sent) {
       await db.insert(activityTable).values({

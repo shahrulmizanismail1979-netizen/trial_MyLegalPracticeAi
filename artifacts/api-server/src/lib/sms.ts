@@ -20,8 +20,20 @@ export async function sendSms(to: string, body: string): Promise<SmsResult> {
   }
 }
 
-export function accessCodeSmsBody(params: { accessCode: string; trial: boolean }): string {
-  const { accessCode, trial } = params;
+export function accessCodeSmsBody(params: {
+  accessCode: string;
+  trial: boolean;
+  /** Licensed seat count for team bundles — changes the copy to team wording. */
+  licenses?: number;
+}): string {
+  const { accessCode, trial, licenses } = params;
+  if (licenses != null) {
+    return (
+      `MyLegalPracticeAI: your team access code is ${accessCode}. ` +
+      `One code covers all ${licenses} licensed users on every portal — share it with your team. ` +
+      "Help: shahrulmizan@ukm.edu.my"
+    );
+  }
   return (
     `MyLegalPracticeAI: your access code is ${accessCode}. ` +
     (trial
