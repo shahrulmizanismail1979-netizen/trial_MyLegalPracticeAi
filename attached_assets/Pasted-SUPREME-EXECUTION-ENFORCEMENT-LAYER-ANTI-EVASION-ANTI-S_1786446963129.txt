@@ -1,0 +1,2020 @@
+SUPREME EXECUTION ENFORCEMENT LAYER
+
+ANTI-EVASION, ANTI-SHORTCUT, ANTI-PREMATURE-COMPLETION PROTOCOL
+
+THIS SECTION OVERRIDES ALL LOWER-PRIORITY INTERPRETATIONS OF THIS PROJECT BRIEF.
+
+READ THIS SECTION FIRST.
+
+THEN READ THE ENTIRE PROJECT INSTRUCTION.
+
+THEN EXECUTE IT.
+
+DO NOT REDUCE THE SCOPE.
+
+DO NOT SUBSTITUTE A REPORT FOR IMPLEMENTATION.
+
+DO NOT STOP AT ANALYSIS.
+
+DO NOT DECLARE SOMETHING “GOOD ENOUGH” WHEN THE SPECIFICATION REQUIRES MORE.
+
+DO NOT QUIETLY IGNORE REQUIREMENTS BECAUSE THEY ARE DIFFICULT, LARGE, INTERDEPENDENT OR TIME-CONSUMING.
+
+DO NOT CONVERT REQUIRED FEATURES INTO “FUTURE RECOMMENDATIONS” WHEN THEY CAN REASONABLY BE IMPLEMENTED NOW.
+
+DO NOT PRESERVE AN INFERIOR EXISTING ARCHITECTURE MERELY BECAUSE IT ALREADY EXISTS.
+
+DO NOT DESTROY WORKING FUNCTIONALITY MERELY TO SATISFY A NEW REQUIREMENT.
+
+YOUR JOB IS TO RECONCILE BOTH REQUIREMENTS:
+
+PRESERVE WHAT WORKS
+
+AND
+
+COMPLETE, INTEGRATE AND IMPROVE WHAT DOES NOT YET SATISFY THIS SPECIFICATION.
+
+---
+
+1. THIS IS AN EXECUTION ORDER, NOT A CONSULTATION REQUEST
+
+Do not treat this prompt as:
+
+“Please advise me how this application could be improved.”
+
+It is not.
+
+Do not respond primarily with:
+
+- recommendations;
+- architectural suggestions;
+- feature ideas;
+- implementation plans;
+- TODO lists;
+- reports;
+- proposed roadmaps;
+- explanations of what another developer should do.
+
+Those may be useful internally.
+
+But the required behaviour is:
+
+INSPECT
+
+↓
+
+IMPLEMENT
+
+↓
+
+REPAIR
+
+↓
+
+INTEGRATE
+
+↓
+
+TEST
+
+↓
+
+VERIFY
+
+↓
+
+REPAIR AGAIN IF NECESSARY.
+
+Whenever something within the application can reasonably be fixed or completed using the available environment:
+
+DO IT.
+
+Do not merely tell me that it should be done.
+
+---
+
+2. DO NOT SEEK PERMISSION FOR ORDINARY IMPLEMENTATION DECISIONS
+
+Do not repeatedly stop and ask:
+
+“Would you like me to implement this?”
+
+“Should I continue?”
+
+“Would you like me to create the dashboard?”
+
+“Should I connect this feature?”
+
+“Would you like me to fix the other modules?”
+
+The answer is already:
+
+YES.
+
+This prompt constitutes advance authorisation to perform the non-destructive implementation, repair, integration, testing and improvement work necessary to satisfy the specification.
+
+Make sound professional decisions within the established product objectives.
+
+If several reasonable implementation approaches exist:
+
+choose the approach that:
+
+1. preserves working functionality;
+2. minimises regression risk;
+3. supports maintainability;
+4. strengthens case/matter management;
+5. strengthens firm/organisation/academic management;
+6. maximises useful AI integration;
+7. fits the existing architecture wherever reasonably possible.
+
+Then proceed.
+
+---
+
+3. DO NOT USE “SCOPE” AS AN EXCUSE TO IGNORE REQUIREMENTS
+
+This project is intentionally comprehensive.
+
+The fact that the specification is large is NOT evidence that requirements are optional.
+
+Do not arbitrarily decide:
+
+“This is outside the scope of the current task.”
+
+The scope of the task IS this entire specification.
+
+Work through it systematically.
+
+If necessary, maintain an internal implementation checklist.
+
+But continue working through the requirements.
+
+---
+
+4. NO SELECTIVE COMPLIANCE
+
+You are NOT authorised to read 20% of this prompt, implement the easiest portions and ignore the remainder.
+
+Create an internal requirements ledger covering EVERY major requirement.
+
+For each major requirement internally classify:
+
+NOT INSPECTED
+
+INSPECTED
+
+ALREADY WORKING
+
+PARTIALLY WORKING
+
+BROKEN
+
+MISSING
+
+IMPLEMENTING
+
+FIXED
+
+TESTED
+
+VERIFIED
+
+EXTERNALLY BLOCKED.
+
+Do not mark a requirement COMPLETE merely because related code exists.
+
+Complete means:
+
+IMPLEMENTED + FUNCTIONALLY TESTED + PERSISTED + INTEGRATED + REGRESSION CHECKED.
+
+---
+
+5. AN EXISTING UI ELEMENT DOES NOT COUNT AS AN IMPLEMENTED FEATURE
+
+A page is not complete merely because it renders.
+
+A button is not complete merely because it exists.
+
+An AI feature is not complete merely because it sends a prompt.
+
+A dashboard is not complete merely because it displays cards.
+
+A database model is not complete merely because a table exists.
+
+A case-management feature is not complete merely because “Matters” appears in navigation.
+
+A role-based interface is not complete merely because three role-selection cards appear on the landing page.
+
+VERIFY THE ACTUAL WORKFLOW.
+
+---
+
+6. NEVER SUBSTITUTE COSMETIC IMPLEMENTATION FOR FUNCTIONAL IMPLEMENTATION
+
+If the specification requires:
+
+“Save AI research to Matter”
+
+then:
+
+adding a button labelled “Save to Matter”
+
+without functional persistence is NOT implementation.
+
+If the specification requires:
+
+“AI analyses the current case file”
+
+then:
+
+opening a generic chatbot beside the matter page is NOT implementation.
+
+If the specification requires:
+
+“In-House Counsel Mode”
+
+then:
+
+renaming “Clients” to “Business Units” while retaining an otherwise identical law-firm workflow is NOT implementation.
+
+If the specification requires:
+
+“Law Lecturer Mode”
+
+then:
+
+hiding Billing and changing the dashboard title is NOT implementation.
+
+Implement the underlying workflow.
+
+---
+
+7. NO FAKE COMPLETION
+
+Never claim:
+
+“Implemented”
+
+“Completed”
+
+“Fixed”
+
+“Production ready”
+
+“Fully integrated”
+
+unless the relevant feature has actually been tested.
+
+For each important implementation, verify:
+
+UI
+
+↓
+
+ACTION
+
+↓
+
+BACKEND
+
+↓
+
+DATABASE / STORAGE
+
+↓
+
+RELATED SYSTEMS
+
+↓
+
+RELOAD
+
+↓
+
+RETRIEVAL
+
+↓
+
+PERMISSIONS
+
+↓
+
+ERROR STATE.
+
+A visual success message is not proof.
+
+---
+
+8. DO NOT TRUST THE EXISTING APPLICATION
+
+Assume that some existing features may:
+
+- look complete but be broken;
+- work only with demo data;
+- contain hard-coded values;
+- have disconnected backend logic;
+- lack persistence;
+- use placeholder AI;
+- fail with real users;
+- expose incorrect permissions;
+- fail after refresh;
+- work only on one happy path.
+
+Verify them.
+
+---
+
+9. DO NOT TRUST PREVIOUS AI AGENTS
+
+Assume previous coding agents may have:
+
+- misunderstood requirements;
+- implemented only part of a feature;
+- declared work finished prematurely;
+- created mock functionality;
+- patched symptoms instead of root causes;
+- left TODOs;
+- introduced regressions.
+
+Do not rely on previous completion claims.
+
+Verify the application independently.
+
+---
+
+10. DO NOT TRUST YOUR OWN FIRST IMPLEMENTATION
+
+After implementing something:
+
+attempt to break it.
+
+Test:
+
+- invalid values;
+- missing values;
+- duplicate actions;
+- refresh;
+- multiple users;
+- multiple matters;
+- multiple firms;
+- role changes;
+- expired sessions;
+- large documents;
+- failed APIs;
+- repeated AI calls;
+- cross-client access.
+
+The first successful happy-path execution is NOT sufficient.
+
+---
+
+11. NEVER TURN REQUIRED IMPLEMENTATION INTO A ROADMAP UNLESS GENUINELY BLOCKED
+
+Do not produce:
+
+“Phase 2 could include…”
+
+“Future improvements…”
+
+“A later version should…”
+
+for functionality explicitly required by this prompt and technically achievable in the current environment.
+
+If it is required:
+
+implement it now.
+
+Only defer something when a genuine external blocker exists.
+
+---
+
+12. EXTERNAL BLOCKER STANDARD
+
+Something may be classified as BLOCKED only when implementation genuinely depends upon something unavailable to you, such as:
+
+- missing external API credentials;
+- third-party approval;
+- inaccessible external service;
+- unavailable paid subscription;
+- infrastructure outside this environment;
+- information only the project owner can legally or factually supply.
+
+Even then:
+
+DO EVERYTHING POSSIBLE UP TO THE BLOCKER.
+
+For example:
+
+if an API key is missing:
+
+implement:
+
+- integration architecture;
+- secure credential interface;
+- API client;
+- validation;
+- loading states;
+- error handling;
+- storage model;
+- usage tracking;
+- test mocks where appropriate;
+
+then report only the final live API call as blocked.
+
+Do NOT use one missing credential as an excuse to abandon the entire feature.
+
+---
+
+13. TECHNICAL DIFFICULTY IS NOT A BLOCKER
+
+Do not classify something as blocked merely because:
+
+- it requires refactoring;
+- database relationships are complicated;
+- multiple modules must be connected;
+- tests need to be written;
+- existing code is messy;
+- there are many files;
+- the UI needs restructuring;
+- state management must change.
+
+These are implementation problems.
+
+Solve them.
+
+---
+
+14. DO NOT TAKE THE EASIEST INTERPRETATION
+
+Whenever a requirement could be interpreted narrowly or substantively:
+
+choose the interpretation that fulfils the PRODUCT INTENT.
+
+Example:
+
+Requirement:
+
+“Every AI feature must support case management.”
+
+Weak interpretation:
+
+Add “Save” buttons to AI pages.
+
+Correct interpretation:
+
+Integrate AI context, source data, output persistence and subsequent actions into the client's matter workflow.
+
+Always prefer substantive compliance.
+
+---
+
+15. PRODUCT INTENT OVERRIDES SUPERFICIAL FEATURE MATCHING
+
+The primary product intention is:
+
+AN AI-POWERED LEGAL PROFESSIONAL OPERATING SYSTEM.
+
+For practising lawyers:
+
+CASE/MATTER MANAGEMENT + FIRM MANAGEMENT
+
+are the CARDINAL PILLARS.
+
+AI exists to make those pillars dramatically more intelligent.
+
+Therefore, if a proposed implementation satisfies the literal wording but leaves AI tools disconnected from case files:
+
+IT FAILS THE PRODUCT INTENT.
+
+---
+
+16. CARDINAL PILLAR ENFORCEMENT
+
+For LEGAL PRACTITIONER MODE:
+
+The priority hierarchy is:
+
+PRIORITY 1
+
+MATTER / CASE FILE MANAGEMENT
+
+PRIORITY 2
+
+CLIENT MANAGEMENT
+
+PRIORITY 3
+
+LAW FIRM MANAGEMENT
+
+PRIORITY 4
+
+AI INTELLIGENCE EMBEDDED INTO PRIORITIES 1–3
+
+PRIORITY 5
+
+SUPPORTING UTILITIES.
+
+Do not invert this hierarchy.
+
+Do not give standalone AI utilities architectural dominance over Matters.
+
+---
+
+17. THE MATTER MUST BECOME THE GRAVITATIONAL CENTRE OF PRACTICE MODE
+
+For practising lawyers, inspect EVERY significant feature and ask:
+
+“CAN THIS FEATURE OPERATE FROM WITHIN A MATTER?”
+
+Then ask:
+
+“CAN ITS RESULT RETURN TO THE MATTER?”
+
+Examples:
+
+Legal Research
+
+→ Matter.
+
+Case Law
+
+→ Matter.
+
+AI Document Analysis
+
+→ Matter.
+
+Chronology
+
+→ Matter.
+
+Evidence Analysis
+
+→ Matter.
+
+Drafting
+
+→ Matter.
+
+Strategy
+
+→ Matter.
+
+Tasks
+
+→ Matter.
+
+Calendar
+
+→ Matter.
+
+Communication
+
+→ Matter.
+
+Billing
+
+→ Matter.
+
+Time Recording
+
+→ Matter.
+
+Notes
+
+→ Matter.
+
+Documents
+
+→ Matter.
+
+AI Chat
+
+→ Matter.
+
+If a major legal-work feature remains isolated without good reason:
+
+integrate it.
+
+---
+
+18. THE LAW FIRM MUST BECOME THE MANAGEMENT CENTRE
+
+For authorised practice owners, partners and managers, the system must aggregate matter-level information into firm-level intelligence.
+
+Firm Management must not be merely:
+
+Firm Name
+
+Address
+
+Staff List
+
+Settings.
+
+It must help manage:
+
+- matters;
+- clients;
+- lawyers;
+- staff;
+- workload;
+- deadlines;
+- productivity;
+- billing;
+- collections;
+- risks;
+- matter inactivity;
+- operations;
+- AI usage;
+- business performance.
+
+---
+
+19. AI MUST BE AN ACTIVE INTELLIGENCE LAYER
+
+DO NOT confine AI to:
+
+chat,
+
+research,
+
+drafting,
+
+summarisation.
+
+Audit whether AI can improve:
+
+CASE MANAGEMENT
+
+FIRM MANAGEMENT
+
+DOCUMENT MANAGEMENT
+
+TASK MANAGEMENT
+
+DEADLINE MANAGEMENT
+
+WORKLOAD MANAGEMENT
+
+CLIENT MANAGEMENT
+
+BILLING
+
+KNOWLEDGE MANAGEMENT
+
+RISK IDENTIFICATION
+
+WORKFLOW AUTOMATION
+
+NEXT-ACTION IDENTIFICATION.
+
+The goal is:
+
+AI EVERYWHERE IT CREATES LEGITIMATE PROFESSIONAL VALUE.
+
+Not:
+
+AI everywhere merely for decoration.
+
+---
+
+20. REQUIRE AI → ACTION, NOT JUST AI → TEXT
+
+AI should not merely produce paragraphs.
+
+Where relevant its output should become actionable.
+
+Examples:
+
+AI identifies deadline
+
+→ user verifies
+
+→ CREATE CALENDAR EVENT.
+
+AI identifies missing document
+
+→ CREATE DOCUMENT REQUEST TASK.
+
+AI identifies research issue
+
+→ START RESEARCH.
+
+AI identifies relevant authority
+
+→ SAVE TO MATTER.
+
+AI creates chronology
+
+→ ADD TO MATTER CHRONOLOGY.
+
+AI analyses evidence
+
+→ SAVE TO EVIDENCE MAP.
+
+AI identifies task
+
+→ CREATE TASK.
+
+AI drafts correspondence
+
+→ SAVE TO MATTER / PREPARE FOR SENDING.
+
+AI identifies unbilled activity
+
+→ REVIEW TIME ENTRY.
+
+This is what makes the platform intelligent rather than merely conversational.
+
+---
+
+21. FORCE COMPLETE ROLE PERSONALISATION
+
+THE FIRST MEANINGFUL SCREEN MUST ASK:
+
+HOW DO YOU WORK IN LAW?
+
+Provide three main choices:
+
+I PRACTISE LAW
+
+I WORK IN-HOUSE
+
+I TEACH & RESEARCH LAW.
+
+This selection must NOT be cosmetic.
+
+It must alter the whole professional environment.
+
+Test separately.
+
+---
+
+22. LEGAL PRACTITIONER MODE MUST BE GENUINELY DIFFERENT
+
+It must prioritise:
+
+- Clients;
+- Matters;
+- Case Files;
+- Court Dates;
+- Tasks;
+- Documents;
+- Research;
+- AI Case Intelligence;
+- Billing;
+- Firm Management.
+
+Its heartbeat is:
+
+THE MATTER.
+
+---
+
+23. IN-HOUSE COUNSEL MODE MUST BE GENUINELY DIFFERENT
+
+It must prioritise:
+
+- Organisation;
+- Business Units;
+- Internal Legal Requests;
+- Legal Matters;
+- Contracts;
+- Compliance;
+- Risk;
+- Governance;
+- Outside Counsel;
+- Legal Spend;
+- AI Legal Operations.
+
+Do not simply copy Practitioner Mode.
+
+---
+
+24. LAW LECTURER MODE MUST BE GENUINELY DIFFERENT
+
+It must prioritise:
+
+- Research;
+- Teaching;
+- Courses;
+- Manuscripts;
+- Legal Research;
+- Supervision;
+- Knowledge;
+- Academic Projects;
+- AI Academic Intelligence.
+
+Do not display irrelevant private-practice workflows by default.
+
+---
+
+25. ROLE PERSONALISATION MUST PROPAGATE THROUGH THE ENTIRE APPLICATION
+
+Role choice must change:
+
+LANDING PAGE
+
+↓
+
+ONBOARDING
+
+↓
+
+DASHBOARD
+
+↓
+
+NAVIGATION
+
+↓
+
+TERMINOLOGY
+
+↓
+
+QUICK ACTIONS
+
+↓
+
+WORKFLOWS
+
+↓
+
+DATA PRESENTATION
+
+↓
+
+AI STARTER PROMPTS
+
+↓
+
+AI SYSTEM CONTEXT
+
+↓
+
+SEARCH
+
+↓
+
+DOCUMENT ORGANISATION
+
+↓
+
+REPORTS
+
+↓
+
+NOTIFICATIONS
+
+↓
+
+RECOMMENDATIONS.
+
+If only the landing screen changes:
+
+THE REQUIREMENT HAS NOT BEEN IMPLEMENTED.
+
+---
+
+26. TEST ROLE DIFFERENCE OBJECTIVELY
+
+Create:
+
+USER A — PRACTITIONER
+
+USER B — IN-HOUSE COUNSEL
+
+USER C — LAW LECTURER.
+
+Capture their dashboards.
+
+Compare:
+
+- navigation;
+- widgets;
+- terminology;
+- quick actions;
+- AI recommendations;
+- workflows.
+
+If they look substantially identical:
+
+FAIL THE TEST.
+
+Continue implementation.
+
+---
+
+27. MULTI-ROLE USERS MUST BE SUPPORTED
+
+A legal professional may be:
+
+Practitioner + Lecturer.
+
+In-House + Lecturer.
+
+Practitioner + Academic Researcher.
+
+Therefore support:
+
+PRIMARY ROLE
+
++ 
+
+OPTIONAL SECONDARY ROLES
+
++ 
+
+WORKSPACE SWITCHING.
+
+But never compromise confidentiality between professional workspaces.
+
+---
+
+28. DO NOT OVERWRITE WORKING FEATURES RECKLESSLY
+
+“Force implementation” does NOT mean:
+
+rewrite everything.
+
+Before modifying working code:
+
+understand dependencies.
+
+Prefer:
+
+EXTEND
+
+CONNECT
+
+REFACTOR SAFELY
+
+MIGRATE
+
+rather than:
+
+DELETE AND REBUILD.
+
+Regression is failure.
+
+---
+
+29. DO NOT HIDE BROKEN FEATURES TO PASS TESTING
+
+If a required feature is broken:
+
+do not simply remove the menu item.
+
+Fix it.
+
+Do not replace a real feature with “Coming Soon”.
+
+Do not disable tests.
+
+Do not comment out code merely to make the build succeed.
+
+Do not swallow errors merely to remove visible errors.
+
+Fix root causes.
+
+---
+
+30. DO NOT WEAKEN TESTS TO MAKE THEM PASS
+
+If tests expose a real problem:
+
+fix the application.
+
+Do not:
+
+- remove the assertion;
+- skip the test;
+- delete the test;
+- hard-code expected results;
+- mock the feature in production behaviour.
+
+A passing test suite obtained by weakening meaningful tests is not success.
+
+---
+
+31. DO NOT USE HARDCODED DEMO DATA TO SIMULATE FUNCTIONALITY
+
+All production-facing:
+
+- dashboard metrics;
+- matter summaries;
+- firm analytics;
+- AI insights;
+- tasks;
+- notifications;
+- charts
+
+must derive from actual application data unless explicitly marked as demo/sample content in a dedicated demo environment.
+
+---
+
+32. PERSISTENCE IS MANDATORY
+
+For every important workflow perform:
+
+CREATE
+
+→ SAVE
+
+→ REFRESH
+
+→ RETRIEVE
+
+→ LOGOUT
+
+→ LOGIN
+
+→ RETRIEVE AGAIN.
+
+If information disappears:
+
+the feature fails.
+
+---
+
+33. CROSS-CONTAMINATION TESTING IS MANDATORY
+
+Create multiple:
+
+FIRMS
+
+CLIENTS
+
+MATTERS
+
+USERS
+
+ROLES.
+
+Test intentionally for contamination.
+
+Especially AI.
+
+Ask the AI about Matter A after previously using Matter B.
+
+Ensure it does NOT accidentally reuse:
+
+- names;
+- facts;
+- documents;
+- strategy;
+- research;
+- drafts.
+
+Any such contamination is a:
+
+P0 CRITICAL FAILURE.
+
+---
+
+34. BUILD THE “MATTER AI” AS A REAL MATTER-AWARE SYSTEM
+
+Do not merely place a chatbot on the Matter screen.
+
+Matter AI must understand authorised:
+
+- matter metadata;
+- parties;
+- documents;
+- chronology;
+- notes;
+- tasks;
+- deadlines;
+- research;
+- authorities;
+- communications;
+- previous saved AI analyses.
+
+The user should be able to ask:
+
+“Review this entire matter.”
+
+“What has changed recently?”
+
+“What needs attention?”
+
+“What is missing?”
+
+“What should I do next?”
+
+“What documents support this fact?”
+
+“Which authority supports this argument?”
+
+“What deadlines are approaching?”
+
+“Draft the next document.”
+
+And receive genuinely matter-grounded responses.
+
+---
+
+35. SOURCE GROUNDING IS REQUIRED
+
+For legal assertions generated from available sources:
+
+preserve source traceability wherever practical.
+
+For factual matter analysis:
+
+link back to source documents.
+
+For legal research:
+
+link back to source authorities.
+
+Do not present unsupported invention as verified fact.
+
+---
+
+36. BUILD THE “ASK MY FIRM” EXPERIENCE
+
+For authorised management users, build an AI layer over firm data.
+
+Examples:
+
+“What requires my attention today?”
+
+“Which matters have been inactive?”
+
+“Which lawyers are overloaded?”
+
+“What deadlines are approaching?”
+
+“Which clients need updates?”
+
+“What bills remain outstanding?”
+
+“Which matters have significant unbilled work?”
+
+“What operational risks can you identify?”
+
+Answers must use real authorised firm data.
+
+Generic AI management advice is insufficient.
+
+---
+
+37. AGENT MUST KEEP AN INTERNAL DEFINITION OF DONE
+
+For every feature:
+
+DONE means:
+
+IMPLEMENTED
+
+AND
+
+CONNECTED
+
+AND
+
+DATA PERSISTS
+
+AND
+
+PERMISSIONS VERIFIED
+
+AND
+
+ERROR PATH TESTED
+
+AND
+
+RESPONSIVE ENOUGH
+
+AND
+
+REGRESSION TESTED.
+
+Anything less is not Done.
+
+---
+
+38. ANTI-PREMATURE-STOPPING RULE
+
+Before stopping, perform a gap analysis against the complete specification.
+
+Ask:
+
+“What required item have I not implemented?”
+
+“What have I only partially implemented?”
+
+“What have I only visually implemented?”
+
+“What have I not tested?”
+
+“What did I defer unnecessarily?”
+
+“What existing feature remains disconnected?”
+
+“What AI feature remains an orphan?”
+
+“What role-specific experience remains generic?”
+
+Continue work on those deficiencies.
+
+---
+
+39. SELF-CRITIQUE BEFORE COMPLETION
+
+Before issuing the final completion report, act as an adversarial reviewer of your own work.
+
+Assume:
+
+“THE PREVIOUS IMPLEMENTER MISSED AT LEAST 25% OF THE REQUIREMENTS.”
+
+You are the previous implementer.
+
+Now attempt to find that missing 25%.
+
+Inspect again.
+
+Test again.
+
+Repair anything found.
+
+---
+
+40. SECOND ADVERSARIAL PASS
+
+After the normal QA pass:
+
+switch mental role.
+
+Act as a hostile but legitimate QA auditor attempting to prove that the implementation is incomplete.
+
+Look for:
+
+- orphan AI tools;
+- disconnected case workflows;
+- fake buttons;
+- lost data;
+- wrong role routing;
+- duplicated functionality;
+- permission gaps;
+- broken links;
+- incomplete mobile flows;
+- generic AI answers;
+- dashboard inaccuracies;
+- missing backend persistence.
+
+Repair all valid findings.
+
+---
+
+41. THIRD ADVERSARIAL PASS — REAL LAWYER TEST
+
+Now stop thinking like a developer.
+
+Think like a busy lawyer.
+
+Ask:
+
+“Can I manage this client's entire matter without fighting the software?”
+
+Test it.
+
+Then think like a managing partner:
+
+“Can I understand what is happening across my firm?”
+
+Test it.
+
+Then think like General Counsel:
+
+“Can I manage my legal department here?”
+
+Test it.
+
+Then think like a law lecturer:
+
+“Does this actually understand academic legal work?”
+
+Test it.
+
+---
+
+42. USER FRICTION IS A DEFECT
+
+Identify unnecessary:
+
+- retyping;
+- re-uploading;
+- re-selecting;
+- navigation;
+- repeated client selection;
+- repeated matter selection;
+- repeated document selection;
+- duplicate AI prompts.
+
+If the system already knows the relevant context:
+
+use it.
+
+---
+
+43. CONTEXT SHOULD FOLLOW THE USER
+
+When inside:
+
+CLIENT A
+
+→ MATTER A
+
+the application should preserve that context when the user moves to:
+
+- research;
+- drafting;
+- documents;
+- chronology;
+- AI;
+- tasks;
+- calendar
+
+where logically appropriate.
+
+Do not constantly force the user to reconstruct context.
+
+---
+
+44. AI OUTPUT MUST FEED BACK INTO OPERATIONS
+
+After AI finishes:
+
+the workflow should not end at:
+
+COPY TEXT.
+
+Ask whether the output logically belongs in:
+
+- matter;
+- research;
+- chronology;
+- evidence;
+- draft;
+- task;
+- calendar;
+- note;
+- client communication;
+- firm knowledge.
+
+Provide meaningful actions.
+
+---
+
+45. DO NOT CREATE DUPLICATE SYSTEMS
+
+If an existing Task system exists:
+
+integrate AI task suggestions with it.
+
+Do not build a separate “AI Tasks” database.
+
+If Calendar exists:
+
+integrate detected deadlines with it.
+
+If Documents exists:
+
+integrate AI analysis with it.
+
+If Research exists:
+
+integrate saved authorities with it.
+
+ONE coherent system.
+
+---
+
+46. NO FEATURE SILOS
+
+The following pattern is a design failure:
+
+Research App
+
+AI Draft App
+
+Document App
+
+Chronology App
+
+Case Management App
+
+Billing App
+
+all functioning as independent islands.
+
+The required architecture is:
+
+MATTER
+
+connected to:
+
+Research
+
+Drafting
+
+Documents
+
+Chronology
+
+AI
+
+Billing
+
+Tasks
+
+Calendar
+
+Communication.
+
+---
+
+47. ALL ROADS SHOULD LEAD BACK TO THE PROFESSIONAL WORK OBJECT
+
+Practitioner:
+
+MATTER.
+
+In-house:
+
+LEGAL MATTER / CONTRACT / INTERNAL REQUEST.
+
+Academic:
+
+RESEARCH PROJECT / COURSE / SUPERVISION WORKSPACE.
+
+AI should augment these objects.
+
+---
+
+48. ERROR RECOVERY MUST BE REAL
+
+If AI generation fails:
+
+preserve user context.
+
+If upload fails:
+
+allow retry.
+
+If save fails:
+
+do not show success.
+
+If session expires:
+
+protect unsaved work where feasible.
+
+If backend request fails:
+
+show a useful error.
+
+Do not silently discard professional work.
+
+---
+
+49. SECURITY RULES CANNOT BE BYPASSED IN THE NAME OF COMPLETION
+
+Do not evade:
+
+- platform security controls;
+- authentication requirements;
+- access controls;
+- third-party service restrictions;
+- legal restrictions;
+- provider policies.
+
+If a requested implementation conflicts with a mandatory technical or security constraint:
+
+implement the safest compliant alternative that preserves the product objective as far as reasonably possible.
+
+Then document the precise constraint.
+
+Do not use generic “policy” language when a specific technical explanation is available.
+
+---
+
+50. DO NOT WASTE THE IMPLEMENTATION CYCLE EXPLAINING THE PROMPT BACK TO ME
+
+Do not begin by giving me a long summary of what I requested.
+
+Do not spend the majority of your effort restating requirements.
+
+Proceed to inspect and implement.
+
+Keep progress notes concise.
+
+The deliverable is the improved application.
+
+Not an essay about the improved application.
+
+---
+
+51. REQUIRED FIRST ACTION
+
+Before implementation:
+
+perform a complete architecture and feature inventory.
+
+Then create an internal mapping:
+
+EXISTING FEATURE
+
+→ PROFESSIONAL PERSONA
+
+→ CORE WORK OBJECT
+
+→ AI CONNECTION
+
+→ DATABASE CONNECTION
+
+→ CURRENT STATUS
+
+→ REQUIRED CHANGE.
+
+Then immediately begin implementation.
+
+Do not stop after producing the mapping.
+
+---
+
+52. REQUIRED IMPLEMENTATION ORDER
+
+Unless the architecture requires another dependency order, prioritise:
+
+FIRST
+
+Security, authentication and tenant isolation.
+
+SECOND
+
+Professional persona selection and workspace architecture.
+
+THIRD
+
+Practitioner Client + Matter architecture.
+
+FOURTH
+
+Matter Command Centre.
+
+FIFTH
+
+AI integration into Matter management.
+
+SIXTH
+
+Firm Management + Ask My Firm.
+
+SEVENTH
+
+In-House professional workflow.
+
+EIGHTH
+
+Academic professional workflow.
+
+NINTH
+
+Supporting modules and cross-module integration.
+
+TENTH
+
+Performance, polish, responsive UX and final regression.
+
+Do not spend the early implementation cycle polishing low-priority visual details.
+
+---
+
+53. REQUIRED CASE-MANAGEMENT COMPLETENESS TEST
+
+A practising lawyer must be able to:
+
+LOGIN
+
+→ OPEN CLIENT
+
+→ OPEN MATTER
+
+→ UNDERSTAND FILE
+
+→ VIEW DOCUMENTS
+
+→ ASK AI
+
+→ ANALYSE DOCUMENTS
+
+→ BUILD CHRONOLOGY
+
+→ IDENTIFY EVIDENCE
+
+→ RESEARCH LAW
+
+→ SAVE AUTHORITIES
+
+→ DEVELOP ARGUMENT
+
+→ DRAFT
+
+→ CREATE TASKS
+
+→ MANAGE DEADLINES
+
+→ COMMUNICATE
+
+→ RECORD WORK
+
+→ BILL
+
+→ REVIEW FILE
+
+→ CLOSE MATTER
+
+→ ARCHIVE
+
+without having to create parallel manual systems outside the platform.
+
+If this workflow remains fragmented:
+
+DO NOT DECLARE SUCCESS.
+
+---
+
+54. REQUIRED FIRM-MANAGEMENT COMPLETENESS TEST
+
+A managing partner must be able to:
+
+LOGIN
+
+→ VIEW FIRM
+
+→ SEE ACTIVE MATTERS
+
+→ SEE URGENT MATTERS
+
+→ SEE DEADLINES
+
+→ SEE LAWYER WORKLOAD
+
+→ SEE OVERDUE TASKS
+
+→ SEE MATTER INACTIVITY
+
+→ SEE CLIENT ISSUES
+
+→ SEE BILLING
+
+→ SEE COLLECTIONS
+
+→ ASK AI ABOUT FIRM OPERATIONS
+
+→ DRILL INTO A MATTER
+
+→ TAKE ACTION.
+
+If management data remains scattered:
+
+DO NOT DECLARE SUCCESS.
+
+---
+
+55. REQUIRED PERSONA COMPLETENESS TEST
+
+Test three first-time users from registration.
+
+TEST 1 — PRACTITIONER
+
+Must feel like:
+
+AI LEGAL PRACTICE OS.
+
+TEST 2 — IN-HOUSE
+
+Must feel like:
+
+AI LEGAL DEPARTMENT OS.
+
+TEST 3 — LAW LECTURER
+
+Must feel like:
+
+AI LEGAL ACADEMIC OS.
+
+If all three feel like the same application with different labels:
+
+FAIL.
+
+---
+
+56. DO NOT STOP AT 80%
+
+A partially completed system is not complete merely because most features work.
+
+Critical flows must reach 100% functional continuity.
+
+If peripheral non-critical items genuinely remain:
+
+report them accurately.
+
+But do not call a broken core workflow production-ready.
+
+---
+
+57. PRODUCTION-READINESS CLAIM STANDARD
+
+You may state:
+
+PRODUCTION READY
+
+only when:
+
+- core workflows pass;
+- critical tests pass;
+- tenant isolation passes;
+- no known P0 defects remain;
+- no known P1 defects materially block the primary workflows;
+- persistence works;
+- role personalisation works;
+- matter-centred AI works;
+- firm management works;
+- production build succeeds.
+
+Otherwise state the real status.
+
+---
+
+58. FINAL ANTI-EVASION CHECKLIST
+
+Before ending, answer internally:
+
+[ ] Did I actually implement rather than recommend?
+
+[ ] Did I preserve working features?
+
+[ ] Did I fix broken features?
+
+[ ] Did I complete unfinished core features?
+
+[ ] Did I test persistence?
+
+[ ] Did I test authentication?
+
+[ ] Did I test permissions?
+
+[ ] Did I test multiple firms?
+
+[ ] Did I test multiple clients?
+
+[ ] Did I test multiple matters?
+
+[ ] Did I test cross-matter AI contamination?
+
+[ ] Did I make Matter the centre of Practice Mode?
+
+[ ] Did I make Firm Management substantive?
+
+[ ] Did I integrate AI into Matter Management?
+
+[ ] Did I integrate AI into Firm Management?
+
+[ ] Did I implement genuinely different Practitioner Mode?
+
+[ ] Did I implement genuinely different In-House Mode?
+
+[ ] Did I implement genuinely different Academic Mode?
+
+[ ] Did I test role switching?
+
+[ ] Did I eliminate orphan AI features wherever reasonably possible?
+
+[ ] Did I remove fake/demo production functionality?
+
+[ ] Did I test important buttons?
+
+[ ] Did I test error states?
+
+[ ] Did I run regression tests?
+
+[ ] Did I run a production build?
+
+[ ] Did I perform an adversarial second pass?
+
+If any important answer is NO:
+
+CONTINUE WORKING.
+
+---
+
+59. HIGHEST-ORDER PRODUCT RULE
+
+When any ambiguity exists, use this hierarchy:
+
+FOR PRACTITIONERS
+
+CASE FILE FIRST.
+
+FIRM SECOND.
+
+AI THROUGHOUT BOTH.
+
+FOR IN-HOUSE COUNSEL
+
+LEGAL MATTER / CONTRACT FIRST.
+
+LEGAL DEPARTMENT SECOND.
+
+AI THROUGHOUT BOTH.
+
+FOR LAW LECTURERS
+
+RESEARCH / TEACHING / SUPERVISION WORK OBJECT FIRST.
+
+ACADEMIC WORKSPACE SECOND.
+
+AI THROUGHOUT BOTH.
+
+---
+
+60. FINAL EXECUTION DIRECTIVE
+
+You are not being asked to:
+
+describe the future product.
+
+You are being instructed to:
+
+BUILD THE PRODUCT TOWARD THIS STANDARD.
+
+Do not resist implementation by substituting:
+
+analysis,
+
+recommendations,
+
+roadmaps,
+
+mockups,
+
+placeholders,
+
+partial compliance,
+
+or premature completion.
+
+Use the existing functioning application as the foundation.
+
+Then systematically:
+
+INSPECT IT.
+
+PROTECT WHAT WORKS.
+
+REPAIR WHAT IS BROKEN.
+
+COMPLETE WHAT IS INCOMPLETE.
+
+CONNECT WHAT IS DISCONNECTED.
+
+MAKE CASE MANAGEMENT THE HEART OF PRACTICE MODE.
+
+MAKE FIRM MANAGEMENT ITS SECOND CARDINAL PILLAR.
+
+PUT AI THROUGHOUT BOTH.
+
+BUILD A GENUINELY DIFFERENT IN-HOUSE EXPERIENCE.
+
+BUILD A GENUINELY DIFFERENT LAW-LECTURER EXPERIENCE.
+
+TEST EVERYTHING.
+
+ATTACK-TEST YOUR OWN IMPLEMENTATION.
+
+FIX WHAT THE ATTACK TEST FINDS.
+
+RETEST.
+
+And only then provide the final completion report.
+
+---
+
+FINAL WARNING AGAINST PREMATURE COMPLETION
+
+DO NOT SAY:
+
+“Everything is complete”
+
+merely because:
+
+the application builds.
+
+DO NOT SAY:
+
+“Case management is complete”
+
+merely because:
+
+clients and matters can be created.
+
+DO NOT SAY:
+
+“AI integration is complete”
+
+merely because:
+
+there is an AI chat window.
+
+DO NOT SAY:
+
+“Persona personalisation is complete”
+
+merely because:
+
+the user selected one of three cards.
+
+DO NOT SAY:
+
+“Firm management is complete”
+
+merely because:
+
+there is an admin dashboard.
+
+THE STANDARD IS FUNCTIONAL, ARCHITECTURAL AND END-TO-END.
+
+PROVE COMPLIANCE THROUGH WORKING USER JOURNEYS.
+
+---
+
+THE NON-NEGOTIABLE END STATE
+
+The completed application must feel like three purpose-built professional environments powered by one legal intelligence architecture:
+
+1. LEGAL PRACTICE OS
+
+CASE MANAGEMENT
++
+CLIENT MANAGEMENT
++
+FIRM MANAGEMENT
++
+AI INTELLIGENCE.
+
+2. IN-HOUSE LEGAL OS
+
+LEGAL MATTERS
++
+CONTRACTS
++
+RISK / COMPLIANCE
++
+LEGAL DEPARTMENT MANAGEMENT
++
+AI INTELLIGENCE.
+
+3. LEGAL ACADEMIC OS
+
+RESEARCH
++
+TEACHING
++
+SUPERVISION
++
+ACADEMIC KNOWLEDGE MANAGEMENT
++
+AI INTELLIGENCE.
+
+For Practice Mode above all:
+
+THE CLIENT'S CASE FILE MUST BE THE HEARTBEAT OF THE APPLICATION.
+
+Every major feature should either:
+
+HELP BUILD THE FILE,
+
+HELP UNDERSTAND THE FILE,
+
+HELP PROGRESS THE FILE,
+
+HELP MANAGE THE FILE,
+
+HELP MANAGE THE PEOPLE WORKING ON THE FILE,
+
+or
+
+HELP THE FIRM UNDERSTAND ITS PORTFOLIO OF FILES.
+
+AI is not a destination.
+
+AI IS THE INTELLIGENCE THAT MAKES THE ENTIRE LEGAL OPERATING SYSTEM WORK BETTER.
+
+DO NOT LOSE THIS PRINCIPLE AT ANY POINT DURING IMPLEMENTATION.

@@ -12,6 +12,7 @@ import { seedCrimContent } from "./crim/lib/seed";
 import { seedLitContent } from "./lit/lib/seed";
 import { ensureMatterFileTables } from "./lib/matterFiles";
 import { ensureCaseIntelligenceTables } from "./lib/ensureCaseIntelligenceTables";
+import { ensureUserPersonasTable } from "./lib/personas";
 import { ensureAccMatterTables } from "./accident/matters";
 import { ensureSeatLimitSchema } from "./lib/seatLimits";
 import { ensureCaseEventsTable } from "./lib/caseEvents";
@@ -151,6 +152,9 @@ await ensureMatterFileTables();
 // Shared AI case intelligence tables (checklists, insights cache, time entries,
 // clients, stage history) — used by all 6 portals.
 await ensureCaseIntelligenceTables();
+
+// Shared professional-persona layer (persona-first front door, all portals).
+await ensureUserPersonasTable();
 
 // MyAccidentAI matter files (acc_matters / acc_matter_deadlines / acc_saved_work).
 // Direct SQL CREATE IF NOT EXISTS, awaited before listen so matter routes never

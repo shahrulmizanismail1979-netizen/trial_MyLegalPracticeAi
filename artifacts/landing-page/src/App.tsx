@@ -27,6 +27,8 @@ import {
   stripBase,
 } from "@/lib/clerk";
 
+import { PersonaProvider } from "@/lib/persona";
+
 const queryClient = new QueryClient();
 
 // Keeps the webview cache fresh when the signed-in user changes.
@@ -133,9 +135,11 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
-    </WouterRouter>
+    <PersonaProvider>
+      <WouterRouter base={basePath}>
+        <ClerkProviderWithRoutes />
+      </WouterRouter>
+    </PersonaProvider>
   );
 }
 

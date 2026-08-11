@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ExternalLink, Sparkles, ChevronDown, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/lib/currency";
+import { usePersona } from "@/lib/persona";
 
 type AppVersion = {
   label: string;
@@ -147,6 +148,38 @@ function VersionCard({ version }: { version: AppVersion }) {
 
 export function AppsGrid() {
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const { persona } = usePersona();
+
+  // Reorder apps based on persona
+  const orderedApps = [...apps].sort((a, b) => {
+    const getScore = (app: App) => {
+      if (persona === "inhouse") {
+        if (app.tag === "Corporate") return 100;
+        if (app.tag === "Corp/Comm/Banking") return 90;
+        if (app.tag === "Firm Management") return 10;
+        if (app.tag === "Lecturers") return 5;
+        if (app.tag === "Publications") return 5;
+        return 50;
+      }
+      if (persona === "academic") {
+        if (app.tag === "Lecturers") return 100;
+        if (app.tag === "Publications") return 90;
+        if (app.tag === "Litigation") return 80; // Good for teaching
+        if (app.tag === "Firm Management") return 10;
+        return 50;
+      }
+      // practitioner
+      if (app.tag === "Litigation") return 100;
+      if (app.tag === "Syariah") return 90;
+      if (app.tag === "Conveyancing") return 80;
+      if (app.tag === "Criminal") return 70;
+      if (app.tag === "Firm Management") return 60;
+      if (app.tag === "Lecturers") return 10;
+      if (app.tag === "Publications") return 10;
+      return 50;
+    };
+    return getScore(b) - getScore(a);
+  });
 
   return (
     <section id="apps" className="py-24 px-6 lg:px-8 max-w-7xl mx-auto">
@@ -160,7 +193,7 @@ export function AppsGrid() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {apps.map((app, index) => {
+        {orderedApps.map((app, index) => {
           if (app.comingSoon) {
             return (
               <div key={app.title} className="block" style={{ animationDelay: `${index * 100}ms` }}>

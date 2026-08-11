@@ -31,6 +31,7 @@ import firmRouter from "../firm";
 import { acadSession } from "../acad/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 import researchRouter from "../research/routes";
+import { buildPersonasRouter } from "../lib/personas";
 
 const router: IRouter = Router();
 
@@ -43,6 +44,8 @@ router.use("/stripe", stripeRouter);
 router.use("/access", accessRouter);
 router.use("/assistant", assistantRouter);
 router.use("/currency", currencyRouter);
+// Shared professional-persona layer (persona-first front door, all portals).
+router.use("/personas", buildPersonasRouter());
 router.use("/admin", requireAuth, requireStaff, adminRouter);
 // Judgment Research Platform (Phase 00): staff-only, private by default.
 // See docs/SECURITY_MODEL.md — no public access to research data.

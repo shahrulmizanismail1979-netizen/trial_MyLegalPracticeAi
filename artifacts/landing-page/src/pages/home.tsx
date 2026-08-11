@@ -13,8 +13,23 @@ import { Trust } from "@/components/trust";
 import { TermsPrivacy } from "@/components/terms-privacy";
 import { Footer } from "@/components/footer";
 import { CheckoutSuccess } from "@/components/checkout-success";
+import { PersonaFrontDoor } from "@/components/persona-front-door";
+import { PersonaSwitcher } from "@/components/persona-switch";
+import { usePersona } from "@/lib/persona";
 
 export default function Home() {
+  const { persona } = usePersona();
+
+  // A fresh checkout return must always see its confirmation — never hide it
+  // behind the persona front door (new subscribers have no persona yet).
+  const isCheckoutReturn =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("session_id");
+
+  if (!persona && !isCheckoutReturn) {
+    return <PersonaFrontDoor />;
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -23,16 +38,50 @@ export default function Home() {
       </div>
       
       <CheckoutSuccess />
-      <div className="relative z-10">
+      <PersonaSwitcher />
+      
+      <div className="relative z-10 animate-in fade-in duration-1000">
         <Hero />
         <ReceptionChat />
         <ContributeCTA />
         <AppsGrid />
         <SubscriberStats />
         <Pricing />
-        <FirmBundles />
-        <CorporateBundles />
-        <EducationBundles />
+        
+        {/* Bundles ordered and shown based on persona */}
+        {persona === "practitioner" && (
+          <>
+            <FirmBundles />
+            <CorporateBundles />
+            <EducationBundles />
+          </>
+        )}
+        
+        {persona === "inhouse" && (
+          <>
+            <CorporateBundles />
+            <FirmBundles />
+            <EducationBundles />
+          </>
+        )}
+        
+        {persona === "academic" && (
+          <>
+            <EducationBundles />
+            <FirmBundles />
+            <CorporateBundles />
+          </>
+        )}
+
+        {/* No persona yet (e.g. fresh checkout return): show everything in default order */}
+        {!persona && (
+          <>
+            <FirmBundles />
+            <CorporateBundles />
+            <EducationBundles />
+          </>
+        )}
+
         <Security />
         <Payment />
         <Trust />
