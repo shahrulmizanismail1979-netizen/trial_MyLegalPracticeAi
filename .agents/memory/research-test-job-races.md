@@ -13,3 +13,5 @@ Parallel vitest workers all poll the same live `research_jobs` table, so any wor
 - Scope audit-event lookups to this run's actor/RUN_ID; the shared DB retains matching events from earlier runs (last-100 scans will match stale rows).
 
 **Why:** these races made `api-tests` validation fail nondeterministically (different file each run) while every file passed in isolation.
+
+- Cross-worker purges must park competitors in a state the owner can recover from; each worker must re-queue its own job if a competitor parked it, or tests strand jobs and time out.

@@ -143,19 +143,41 @@ async function enqueueAndDrive(
 async function driveUntilComplete(
   idempotencyKey: string,
   kind: string,
-  maxTries = 30,
+  maxTries = 120,
 ): Promise<(typeof researchJobs.$inferSelect) | null> {
   const TERMINAL = ["SUCCEEDED", "FAILED_PERMANENT", "CANCELLED", "BLOCKED_BY_RIGHTS", "REVIEW_REQUIRED"];
+  let runningStreak = 0;
   for (let i = 0; i < maxTries; i++) {
     const [row] = await db
       .select()
       .from(researchJobs)
       .where(eq(researchJobs.idempotencyKey, idempotencyKey));
     if (row && TERMINAL.includes(row.state)) return row;
+    // A parallel worker may have claimed our job and then been disrupted
+    // (purged mid-flight, or its process finished) leaving it RUNNING
+    // forever. If it stays RUNNING for ~2s straight, reclaim it.
+    runningStreak = row?.state === "RUNNING" ? runningStreak + 1 : 0;
+    if (runningStreak >= 20) {
+      await db.execute(
+        sql`UPDATE research_jobs
+            SET state = 'QUEUED', failure_reason = NULL, last_error = NULL
+            WHERE idempotency_key = ${idempotencyKey} AND state = 'RUNNING'`,
+      );
+      runningStreak = 0;
+    }
+    // A parallel test worker's purge (below) may have parked OUR job as
+    // FAILED_RETRYABLE — claimNext only picks QUEUED, so re-queue it.
+    if (row && row.state === "FAILED_RETRYABLE") {
+      await db.execute(
+        sql`UPDATE research_jobs
+            SET state = 'QUEUED', failure_reason = NULL, last_error = NULL
+            WHERE idempotency_key = ${idempotencyKey} AND state = 'FAILED_RETRYABLE'`,
+      );
+    }
     // Purge competing jobs each iteration to handle concurrent test workers.
     await db.execute(
       sql`UPDATE research_jobs
-          SET state = 'FAILED', failure_reason = '"STALE"'::jsonb, last_error = 'cleaned by driveUntilComplete'
+          SET state = 'FAILED_RETRYABLE', failure_reason = '"STALE"'::jsonb, last_error = 'cleaned by driveUntilComplete'
           WHERE kind = ${kind} AND state IN ('RUNNING','QUEUED') AND idempotency_key != ${idempotencyKey}`,
     );
     try {

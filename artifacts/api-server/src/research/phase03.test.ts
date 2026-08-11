@@ -404,6 +404,14 @@ describe("secure upload pipeline", () => {
       poll++
     ) {
       await new Promise((resolve) => setTimeout(resolve, 500));
+      // A parallel worker may have claimed one of our ingest jobs and left it
+      // FAILED_RETRYABLE (only QUEUED jobs get claimed) — re-queue ours.
+      await db.execute(
+        sql`UPDATE research_jobs
+            SET state = 'QUEUED', failure_reason = NULL, last_error = NULL
+            WHERE kind = 'container.ingest' AND state = 'FAILED_RETRYABLE'
+              AND (payload->>'batchId')::int = ${batch.id}`,
+      );
       await drainJobs("container.ingest");
       after = await listBatchItems(batch.id);
     }
