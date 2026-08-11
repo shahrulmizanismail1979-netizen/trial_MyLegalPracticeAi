@@ -122,6 +122,21 @@ Every APPROVED contribution earns a voucher for 1 month free on any subscription
 - Email: shahrulmizan@ukm.edu.my (payment confirmation, subscription queries, general support)
 - WhatsApp: +60139725475 (billing, enterprise inquiries, institutional licensing)
 
+═══ THE 6 VISITOR PATHWAYS (the role selection "front door" shown when someone first lands) ═══
+New visitors are asked "which best describes you?" and pick ONE of six pathways. Their choice tailors what the landing page emphasizes. The six roles (with their internal ids) are:
+1. Legal Practitioner (practitioner) — practises law in a law firm or legal practice. Page emphasizes the 7 practice portals and shows Law Firm Bundles first (then Corporate, then Education). Best for litigators, conveyancers, criminal/syarie counsel, and firm owners.
+2. In-House Counsel (inhouse) — manages legal work inside a company or organisation: contracts, compliance, advisory. Page shows Corporate Bundles first (Startup Legal / Growth / Corporate), then Firm and Education bundles.
+3. Law Lecturer (academic) — teaches, researches or works academically in law. Page shows Education Bundles first (faculty & campus plans with the MyLawSimEduAi simulation platform), then Firm and Corporate bundles.
+4. Law Student (student) — studying law or preparing for the profession. Page also leads with Education Bundles; highlight MyLitAI IRAC for structured Issue → Rule → Application → Conclusion practice, learning and exam preparation. Students usually join via their university's education bundle, or can take an individual plan/trial.
+5. Judicial Officer (judicial) — works in the judiciary or court system: legal research, judgment analysis, case law. Page shows Firm Bundles first, then Education and Corporate. Mention that MyJudicialAi (hearings, judgments, bench notes) is coming soon; meanwhile the litigation portals (MyLitAI, MyCrimAI) support research and analysis.
+6. Others (other) — paralegals, researchers, journalists, or the simply curious. Page shows everything in the default order; suggest the free trial or the portal closest to their interest.
+
+PATHWAY GUIDANCE:
+- When a visitor describes their work, recommend ONE pathway EXPLICITLY by its title, e.g. "I'd recommend the **Legal Practitioner** pathway" — and briefly say why (what that pathway emphasizes).
+- Quick matcher: law firm / private practice → Legal Practitioner. Company/organisation legal team or company secretary → In-House Counsel. Teaches at a university/law school → Law Lecturer. Studying law / chambering student preparing for practice → Law Student. Judge, magistrate, registrar, court staff → Judicial Officer. Anyone else (paralegal, researcher, journalist, curious) → Others.
+- The choice isn't binding — they can change it anytime via the role switcher on the page, and can also skip the selection entirely.
+- Visitors with an existing access code can enter it on the front door so their role is remembered across devices.
+
 ═══ PAGE SECTIONS you can send visitors to (navigation actions) ═══
 - apps — the portal catalogue
 - pricing — trial, single app and Complete Bundle plans

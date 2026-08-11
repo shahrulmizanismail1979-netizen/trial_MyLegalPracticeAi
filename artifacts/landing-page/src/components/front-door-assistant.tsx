@@ -17,6 +17,8 @@ const SUGGESTIONS = [
   "I work in a law firm",
   "I'm in-house counsel at a company",
   "I teach law at a university",
+  "I'm a law student",
+  "I work in the courts",
   "Can I change my choice later?",
 ];
 
