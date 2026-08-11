@@ -905,8 +905,14 @@ router.get("/admin/question-bank/stats", async (req, res): Promise<void> => {
   res.json({ total, breakdown: rows });
 });
 
-router.post("/admin/question-bank/seed", aiRateLimit, async (req, res): Promise<void> => {
+// Admin check runs BEFORE the rate limiter so unauthenticated requests are
+// rejected with 401 and never reach the shared __noauth__ rate-limit bucket.
+const requireAdminMiddleware: import("express").RequestHandler = (req, res, next) => {
   if (!requireAdmin(req, res)) return;
+  next();
+};
+
+router.post("/admin/question-bank/seed", requireAdminMiddleware, aiRateLimit, async (req, res): Promise<void> => {
   const rawPerApp = req.body?.perApp;
   const rawExtras = req.body?.extras;
   const rawOnly = req.body?.onlyAppSlugs;

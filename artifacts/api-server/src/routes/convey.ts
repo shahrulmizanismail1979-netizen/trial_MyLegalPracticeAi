@@ -68,7 +68,11 @@ const CONVEY_NON_AI_POSTS = new Set([
   "/convey/tts", "/convey/export-docx",
 ]);
 router.use((req, res, next) => {
-  if (req.method !== "POST" || CONVEY_NON_AI_POSTS.has(req.path)) {
+  // This router is mounted at the API root, so it sees EVERY /api/* request.
+  // Scope the limiter strictly to /convey/* — otherwise unauthenticated POSTs
+  // to any other portal would drain the shared __noauth__ fallback bucket
+  // (and rate-limit unrelated portals' traffic before their own auth runs).
+  if (req.method !== "POST" || !req.path.startsWith("/convey/") || CONVEY_NON_AI_POSTS.has(req.path)) {
     return next();
   }
   return void aiRateLimit(req, res, next);

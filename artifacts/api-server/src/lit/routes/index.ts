@@ -45,10 +45,16 @@ router.use("/jurisprudence", jurisprudenceRouter);
 router.use("/costs", costsRouter);
 router.use("/compendium", compendiumRouter);
 router.use("/terminology", terminologyRouter);
-router.use("/ai", aiRateLimit, aiRouter);
-router.use("/gemini", aiRateLimit, geminiRouter);
-router.use("/irac", aiRateLimit, iracRouter);
-router.use("/banking-recovery", aiRateLimit, bankingRecoveryRouter);
+// requireLitAuth runs BEFORE aiRateLimit: litSessionGate lets unauthenticated
+// requests fall through (some lit routes are public), so without an explicit
+// auth gate here unauthenticated POSTs would reach the rate limiter and drain
+// the shared __noauth__ fallback bucket.
+const litAuth: import("express").RequestHandler = (req, res, next) =>
+  void requireLitAuth(req, res, next);
+router.use("/ai", litAuth, aiRateLimit, aiRouter);
+router.use("/gemini", litAuth, aiRateLimit, geminiRouter);
+router.use("/irac", litAuth, aiRateLimit, iracRouter);
+router.use("/banking-recovery", litAuth, aiRateLimit, bankingRecoveryRouter);
 router.use("/uploads", uploadsRouter);
 router.use("/exports", exportsRouter);
 router.use("/saved-work", savedWorkRouter);

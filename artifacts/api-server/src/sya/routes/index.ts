@@ -96,6 +96,15 @@ const SYA_AI_PREFIXES = new Set([
 router.use((req, res, next) => {
   const segment = `/${req.path.split("/")[1] ?? ""}`;
   if (SYA_AI_PREFIXES.has(segment)) {
+    // Auth must be confirmed BEFORE the limiter: syaSessionGate lets
+    // unauthenticated requests fall through, and the tier GATES above don't
+    // cover every AI prefix (e.g. /gemini, /voice, /cause-papers). Without
+    // this check unauthenticated POSTs would reach the rate limiter and
+    // drain the shared __noauth__ fallback bucket.
+    if (!req.session.userId) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
     return void aiRateLimit(req, res, next);
   }
   next();
