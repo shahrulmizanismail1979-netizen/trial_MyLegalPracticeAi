@@ -3,8 +3,11 @@ import { Link } from 'wouter';
 import {
   useMatters,
   useCreateMatter,
+  useBriefingSummary,
+  usePrepareMatter,
   ApiError,
   type MatterInput,
+  type MatterBriefing,
   daysUntil,
 } from '@/hooks/use-matters';
 import {
@@ -19,6 +22,7 @@ import {
   Label,
   Select,
 } from '@/components/ui';
+import { renderMarkdownLite } from '@/pages/MatterDetail';
 import { useToast } from '@/hooks/use-toast';
 import {
   Briefcase,
@@ -31,6 +35,10 @@ import {
   CalendarClock,
   AlertTriangle,
   CircleCheck,
+  Layers,
+  ListChecks,
+  Loader2,
+  ChevronRight,
 } from 'lucide-react';
 
 const MATTER_TYPES = [
@@ -111,8 +119,247 @@ const EMPTY: MatterInput = {
   notes: '',
 };
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ── "Prepare with AI" modal ────────────────────────────────────────────────────
+
+function PrepareModal({
+  matter,
+  onClose,
+}: {
+  matter: MatterBriefing | null;
+  onClose: () => void;
+}) {
+  const prepare = usePrepareMatter();
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastId, setLastId] = useState<number | null>(null);
+
+  const step = matter?.next_step?.label;
+
+  const run = async () => {
+    if (!matter) return;
+    setResult(null);
+    setError(null);
+    try {
+      const res = await prepare.mutateAsync({ matterId: matter.id, step });
+      setResult(res.preparation);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Preparation failed. Please try again.');
+    }
+  };
+
+  // Auto-run once per opened matter.
+  if (matter && matter.id !== lastId && !prepare.isPending) {
+    setLastId(matter.id);
+    setResult(null);
+    setError(null);
+    void run();
+  }
+
+  return (
+    <Modal isOpen={matter != null} onClose={() => { setLastId(null); onClose(); }} title="Prepare with AI">
+      {matter && (
+        <div className="space-y-3">
+          <div>
+            <p className="font-serif font-semibold text-foreground">{matter.title}</p>
+            {step && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Preparing for: <span className="font-medium text-foreground">{step}</span>
+              </p>
+            )}
+          </div>
+
+          {prepare.isPending && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 animate-pulse">
+              <Loader2 className="h-4 w-4 animate-spin" /> Assembling context and drafting your preparation…
+            </div>
+          )}
+
+          {error && !prepare.isPending && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 space-y-3">
+              <p className="text-sm font-semibold text-red-400 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" /> Preparation failed
+              </p>
+              <p className="text-sm text-red-300">{error}</p>
+              <Button variant="outline" size="sm" className="gap-2" onClick={run}>
+                <Sparkles className="h-3.5 w-3.5" /> Retry
+              </Button>
+            </div>
+          )}
+
+          {result && !prepare.isPending && (
+            <div className="pt-2 border-t border-border/50 max-h-[55vh] overflow-y-auto">
+              <div className="mt-3">{renderMarkdownLite(result)}</div>
+              <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                <p className="text-[10px] text-muted-foreground/60">AI-generated · verify against the file before relying on it.</p>
+                <Button variant="outline" size="sm" className="gap-2" onClick={run}>
+                  <Sparkles className="h-3.5 w-3.5" /> Re-run
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ── "My Cases" dashboard overview ──────────────────────────────────────────────
+
+function MyCasesSection({ onPrepare }: { onPrepare: (m: MatterBriefing) => void }) {
+  const { data, isLoading, isError, error, refetch } = useBriefingSummary();
+
+  if (isLoading) {
+    return (
+      <div className="mb-8">
+        <MyCasesHeading />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}><CardContent className="p-5 h-44 animate-pulse" /></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mb-8">
+        <MyCasesHeading />
+        <Card className="border-red-500/20">
+          <CardContent className="p-5 space-y-3">
+            <p className="text-sm font-semibold text-red-400 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Couldn't load your cases
+            </p>
+            <p className="text-sm text-muted-foreground">{error instanceof Error ? error.message : 'Please try again.'}</p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const matters = data?.matters ?? [];
+  if (matters.length === 0) {
+    return (
+      <div className="mb-8">
+        <MyCasesHeading />
+        <Card>
+          <CardContent className="p-10 text-center">
+            <Briefcase className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="text-base font-serif font-semibold text-foreground mb-1">No matters yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">Create a matter below to see your case overview here.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8">
+      <MyCasesHeading />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {matters.map((m) => <MyCaseCard key={m.id} m={m} onPrepare={onPrepare} />)}
+      </div>
+    </div>
+  );
+}
+
+function MyCasesHeading() {
+  return (
+    <div className="mb-4">
+      <h2 className="font-serif text-xl font-bold text-foreground flex items-center gap-2">
+        <Layers className="h-5 w-5 text-primary" /> My Cases
+      </h2>
+      <p className="text-sm text-muted-foreground mt-0.5">
+        Where each matter stands, its next step, and one-click AI preparation.
+      </p>
+    </div>
+  );
+}
+
+function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: MatterBriefing) => void }) {
+  const isClosed = m.status?.toLowerCase() === 'closed';
+  const sm = statusMeta(m.status);
+  const nd = m.next_deadline;
+  const ndDays = nd ? daysUntil(nd.due_date) : null;
+
+  return (
+    <Card className={`flex flex-col h-full ${isClosed ? 'opacity-60' : 'hover:border-primary/50'} transition-all`}>
+      <CardContent className="p-5 flex flex-col gap-3 flex-1">
+        <Link href={`/app/matters/${m.id}`}>
+          <div className="cursor-pointer flex flex-col gap-2 group">
+            <div className="flex items-start justify-between gap-2">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${sm.color}`}>
+                {sm.label}
+              </span>
+              {m.matter_type && (
+                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{m.matter_type}</span>
+              )}
+            </div>
+            <h3 className="font-serif font-bold text-base text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+              {m.title}
+            </h3>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+              {m.stage_index >= 0 && m.stage_count > 0 && (
+                <span className="inline-flex items-center gap-1"><Layers className="h-3 w-3" /> Stage {m.stage_index + 1} of {m.stage_count}</span>
+              )}
+              {m.checklist_total > 0 && (
+                <span className="inline-flex items-center gap-1"><ListChecks className="h-3 w-3" /> {m.checklist_done}/{m.checklist_total} done</span>
+              )}
+            </div>
+            {m.stage_index >= 0 && m.stage_count > 0 && (
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, ((m.stage_index + 1) / m.stage_count) * 100)}%` }} />
+              </div>
+            )}
+            {nd && (
+              <div className="flex items-center gap-2 text-[11px]">
+                {m.overdue_count > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border text-red-400 bg-red-500/10 border-red-500/20">
+                    <AlertTriangle className="h-3 w-3" /> {m.overdue_count} overdue
+                  </span>
+                ) : (
+                  <CalendarClock className={`h-3.5 w-3.5 shrink-0 ${ndDays !== null && ndDays <= 7 ? 'text-amber-400' : 'text-muted-foreground'}`} />
+                )}
+                <span className="truncate text-muted-foreground">{nd.title}</span>
+                <span className="text-muted-foreground/70 ml-auto shrink-0">{fmtDate(nd.due_date)}</span>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {m.next_step && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+              Next: {m.next_step.label}
+              {m.next_step.due_date && <span className="font-normal text-muted-foreground">· {fmtDate(m.next_step.due_date)}</span>}
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-auto pt-1">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => onPrepare(m)}>
+            <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
+          </Button>
+          <Link href={`/app/matters/${m.id}`}>
+            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+              Open <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Matters() {
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [prepareMatter, setPrepareMatter] = useState<MatterBriefing | null>(null);
   const { data: matters, isLoading } = useMatters(statusFilter || undefined);
   const createMatter = useCreateMatter();
   const { toast } = useToast();
@@ -169,6 +416,8 @@ export default function Matters() {
           </Button>
         }
       />
+
+      <MyCasesSection onPrepare={setPrepareMatter} />
 
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {allStages.map((s) => (
@@ -341,6 +590,8 @@ export default function Matters() {
           </div>
         </div>
       </Modal>
+
+      <PrepareModal matter={prepareMatter} onClose={() => setPrepareMatter(null)} />
     </div>
   );
 }

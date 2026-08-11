@@ -30,6 +30,7 @@ import { makeTimeRecordingRouter } from "./caseTimeRecording";
 import { buildCaseEventsRouter } from "./caseEvents";
 import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
+import { buildCaseBriefingRouter } from "./caseBriefing";
 import { logger } from "./logger";
 
 type MatterRow = Record<string, unknown>;
@@ -246,6 +247,9 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
     fetchDeadlines,
   });
   router.use(P === "" ? "/" : P, reviewRouter);
+
+  // ── Dashboard case briefing (all matters overview) ───────────────────────────
+  router.use(P === "" ? "/" : P, buildCaseBriefingRouter(portal, getOwnerKey));
 }
 
 /**

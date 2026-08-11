@@ -20,6 +20,7 @@ import { CausePaperGenerator } from "@/components/workspace/cause-paper-generato
 import { ChecklistsTab } from "@/components/workspace/checklists-tab";
 import { templates } from "@/components/workspace/templates";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import MyCases from "@/components/my-cases";
 
 function tokenize(query: string): string[] {
   return query.toLowerCase().split(/[^a-z0-9]+/i).filter(t => t.length > 0);
@@ -31,10 +32,10 @@ function matchesTokens(tokens: string[], haystack: string): boolean {
   return tokens.every(t => h.includes(t));
 }
 
-type Tab = "theory" | "cases" | "workflows" | "documents" | "glossary" | "calculator" | "assistant" | "statutes" | "checklists" | "applications" | "generator" | "analyzer" | "drafter";
+type Tab = "my-cases" | "theory" | "cases" | "workflows" | "documents" | "glossary" | "calculator" | "assistant" | "statutes" | "checklists" | "applications" | "generator" | "analyzer" | "drafter";
 
 export default function Workspace() {
-  const [activeTab, setActiveTab] = useState<Tab>("theory");
+  const [activeTab, setActiveTab] = useState<Tab>("my-cases");
   const [searchQuery, setSearchQuery] = useState("");
   const [generatorTemplateId, setGeneratorTemplateId] = useState<string | undefined>(undefined);
 
@@ -72,6 +73,7 @@ export default function Workspace() {
   }
 
   const tabs: { id: Tab; label: string; icon: typeof BookOpen; count?: number }[] = [
+    { id: "my-cases", label: "My Cases", icon: Folder },
     { id: "theory", label: "Theory & Principles", icon: BookOpen, count: theoryTopics.length },
     { id: "cases", label: "Case Law Database", icon: Scale, count: caseLaws.length },
     { id: "statutes", label: "Statutes & Sections", icon: Library, count: statuteReferences.reduce((s, r) => s + r.sections.length, 0) },
@@ -169,6 +171,7 @@ export default function Workspace() {
         </header>
 
         <div className="p-8">
+          {activeTab === "my-cases" && <MyCases />}
           {activeTab === "theory" && <TheoryTab search={searchQuery} />}
           {activeTab === "cases" && <CasesTab search={searchQuery} />}
           {activeTab === "statutes" && <StatutesTab search={searchQuery} />}

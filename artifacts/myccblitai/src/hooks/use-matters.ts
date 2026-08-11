@@ -491,6 +491,50 @@ export function useCaseReview() {
   });
 }
 
+// ── Matter briefing (dashboard "My Cases") ───────────────────────────────────────
+
+export interface MatterNextStep {
+  source: "deadline" | "checklist" | "stage";
+  label: string;
+  due_date?: string;
+}
+
+export interface MatterBriefing {
+  id: number;
+  title: string;
+  status: string;
+  matter_type: string | null;
+  updated_at: string;
+  stage_index: number;
+  stage_count: number;
+  checklist_total: number;
+  checklist_done: number;
+  next_deadline: { title: string; due_date: string } | null;
+  overdue_count: number;
+  last_event: { title: string; kind: string; event_date: string } | null;
+  next_step: MatterNextStep | null;
+}
+
+export interface MattersBriefing {
+  matters: MatterBriefing[];
+  stageCount: number;
+  stages: string[];
+}
+
+export function useMattersBriefing() {
+  return useQuery<MattersBriefing>({
+    queryKey: [...KEY, "briefing"],
+    queryFn: () => api("/briefing/summary"),
+  });
+}
+
+export function usePrepareMatter() {
+  return useMutation({
+    mutationFn: ({ id, step }: { id: number; step?: string }): Promise<{ preparation: string; step: string }> =>
+      api(`/${id}/prepare`, { method: "POST", body: JSON.stringify(step ? { step } : {}) }),
+  });
+}
+
 // ── Saved work ──────────────────────────────────────────────────────────────────
 
 export interface SaveWorkInput {

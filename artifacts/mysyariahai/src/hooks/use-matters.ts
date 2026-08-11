@@ -652,6 +652,51 @@ export function useCaseReview() {
   });
 }
 
+// ── Dashboard case briefing ("My Cases" overview) ─────────────────────────────
+
+export interface BriefingNextStep {
+  source: "deadline" | "checklist" | "stage";
+  label: string;
+  due_date?: string | null;
+}
+
+export interface MatterBriefing {
+  id: number;
+  title: string;
+  status: string | null;
+  matter_type: string | null;
+  updated_at: string | null;
+  stage_index: number;
+  stage_count: number;
+  checklist_total: number;
+  checklist_done: number;
+  next_deadline: { title: string; due_date: string } | null;
+  overdue_count: number;
+  last_event: { title: string; kind: string; event_date: string } | null;
+  next_step: BriefingNextStep;
+}
+
+export interface CaseBriefing {
+  matters: MatterBriefing[];
+  stageCount: number;
+  stages: string[];
+}
+
+export function useCaseBriefing() {
+  return useQuery<CaseBriefing>({
+    queryKey: [...KEY, "briefing"],
+    queryFn: () => api("/briefing/summary"),
+  });
+}
+
+// Proactive AI preparation for a matter's next step. Returns markdown.
+export function usePrepareMatter() {
+  return useMutation({
+    mutationFn: ({ matterId, step }: { matterId: number; step?: string }): Promise<{ preparation: string; step: string | null }> =>
+      api(`/${matterId}/prepare`, { method: "POST", body: JSON.stringify(step ? { step } : {}) }),
+  });
+}
+
 // ── Metadata / utilities ──────────────────────────────────────────────────────
 
 /** Syariah matter categories (matterType values). */

@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
+import MyCases from "@/components/my-cases";
 import {
   Briefcase,
   Plus,
@@ -160,6 +161,8 @@ export default function MattersPage() {
           <Plus className="h-4 w-4" /> {t("New Matter", "Fail Kes Baharu")}
         </Button>
       </div>
+
+      <MyCases />
 
       {urgent.length > 0 && (
         <Card className="border-amber-800/30 bg-amber-950/10">

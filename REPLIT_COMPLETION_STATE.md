@@ -7,6 +7,12 @@ Updated: 2026-08-11 — case-centric OS session (SUPREME MASTER PROMPT phase 1)
 3. **Client ↔ matter linking**: `case_client_matters` link table on the existing `case_clients` directory; link/unlink routes on makeClientsRouter; `GET {matters}/:id/clients`; accident portal now mounts the clients directory too. Link/create/unlink UI in crim/sya/ccb/acc/corp matter pages (lit keeps its own lit_clients linking).
 4. Boot-ensures added in api-server index.ts; all tables direct SQL.
 
+## Also completed 2026-08-11 — "My Cases" dashboard briefing (all 6 matter portals)
+- Shared `GET {matters}/briefing/summary` (lib/caseBriefing.ts): every matter the subscriber owns with stage progress, checklist done/total, next deadline + overdue count, latest chronology event, and a derived NEXT STEP (deadline → open checklist item → next stage). Owner-scoped per portal.
+- `POST {matters}/:id/prepare` (lib/caseReview.ts): proactive AI preparation briefing for the matter's next step (prep checklist, documents to assemble, key points, watch-outs). Prompt hardened: tenant/identity columns stripped, matter data wrapped in untrusted-data delimiters.
+- All six portal dashboards (lit/crim/sya/acc/ccb/corp) gained a "My Cases" section with progress, status, next step and a "Prepare with AI" dialog; honest loading/empty/error states.
+- Evidence: full api-tests 583/583 (incl. 3 new briefing tests: aggregates + tenant isolation + auth), tsc clean, live curl verification on accident (cookie) and corp (Bearer/matterFiles mount) — summary + prepare returned real data/AI markdown.
+
 ## Evidence (2026-08-11)
 - api-tests: 577/577 passing (full suite, post-merge baseline + 12 new lib tests).
 - Whole-workspace `npx tsc -b`: clean.

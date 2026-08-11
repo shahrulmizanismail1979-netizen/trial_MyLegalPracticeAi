@@ -612,3 +612,50 @@ export function useCaseReview() {
       api(`/${matterId}/review`, { method: 'POST', body: JSON.stringify({}) }),
   });
 }
+
+// ── Matter briefing (dashboard "My Cases" overview) ───────────────────────────
+
+export interface MatterBriefing {
+  id: number;
+  title: string;
+  status: string;
+  matter_type: string | null;
+  updated_at: string;
+  stage_index: number; // 0-based, -1 if unknown
+  stage_count: number;
+  checklist_total: number;
+  checklist_done: number;
+  next_deadline: { title: string; due_date: string } | null;
+  overdue_count: number;
+  last_event: { title: string; kind: string; event_date: string } | null;
+  next_step: { source: 'deadline' | 'checklist' | 'stage'; label: string; due_date?: string } | null;
+}
+
+export interface BriefingSummary {
+  matters: MatterBriefing[];
+  stageCount: number;
+  stages: string[];
+}
+
+export function useBriefingSummary() {
+  return useQuery<BriefingSummary>({
+    queryKey: [...KEY, 'briefing-summary'],
+    queryFn: () => api('/briefing/summary'),
+    staleTime: 60 * 1000,
+  });
+}
+
+export interface PrepareResult {
+  preparation: string;
+  step: string;
+}
+
+export function usePrepareMatter() {
+  return useMutation({
+    mutationFn: ({ matterId, step }: { matterId: number; step?: string }): Promise<PrepareResult> =>
+      api(`/${matterId}/prepare`, {
+        method: 'POST',
+        body: JSON.stringify(step ? { step } : {}),
+      }),
+  });
+}

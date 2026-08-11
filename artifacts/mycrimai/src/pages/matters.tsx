@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { FolderKanban, Plus, Loader2, CalendarClock, AlertTriangle, FileText, Hash, ChevronRight, Clock } from "lucide-react";
+import { FolderKanban, Plus, Loader2, CalendarClock, AlertTriangle, FileText, Hash, ChevronRight, Clock, Sparkles, ListChecks, ArrowRight, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,19 +21,287 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MarkdownRenderer } from "@/components/ai/markdown-renderer";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMatters,
   useCreateMatter,
   useUpcomingDeadlines,
+  useBriefingSummary,
+  usePrepareMatter,
   generateFileRef,
   daysUntil,
   categoryMeta,
   STAGE_OPTIONS,
+  type MatterBriefing,
 } from "@/hooks/use-matters";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+// ── "Prepare with AI" dialog ──────────────────────────────────────────────────
+
+function PrepareDialog({
+  matter,
+  open,
+  onOpenChange,
+}: {
+  matter: MatterBriefing | null;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const prepare = usePrepareMatter();
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const step = matter?.next_step?.label;
+
+  const run = async () => {
+    if (!matter) return;
+    setResult(null);
+    setError(null);
+    try {
+      const res = await prepare.mutateAsync({ matterId: matter.id, step });
+      setResult(res.preparation);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Preparation failed. Please try again.");
+    }
+  };
+
+  // Auto-run when the dialog opens for a matter.
+  const [lastMatterId, setLastMatterId] = useState<number | null>(null);
+  if (open && matter && matter.id !== lastMatterId && !prepare.isPending) {
+    setLastMatterId(matter.id);
+    setResult(null);
+    setError(null);
+    void run();
+  }
+  if (!open && lastMatterId !== null) {
+    setLastMatterId(null);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="font-serif flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> Prepare with AI
+          </DialogTitle>
+        </DialogHeader>
+        {matter && (
+          <div className="space-y-3">
+            <div>
+              <p className="font-serif font-semibold text-foreground">{matter.title}</p>
+              {step && (
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Preparing for: <span className="font-medium text-foreground">{step}</span>
+                </p>
+              )}
+            </div>
+
+            {prepare.isPending && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                <Loader2 className="h-4 w-4 animate-spin" /> Assembling context and drafting your preparation…
+              </div>
+            )}
+
+            {error && !prepare.isPending && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+                <p className="text-sm font-semibold text-red-700 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Preparation failed
+                </p>
+                <p className="text-sm text-red-600">{error}</p>
+                <Button variant="outline" size="sm" onClick={run} className="gap-2">
+                  <Sparkles className="h-3.5 w-3.5" /> Retry
+                </Button>
+              </div>
+            )}
+
+            {result && !prepare.isPending && (
+              <div className="pt-2 border-t border-border/50">
+                <MarkdownRenderer content={result} />
+                <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                  <p className="text-[10px] text-muted-foreground/60">
+                    AI-generated · verify against the file before relying on it.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={run} className="gap-2">
+                    <Sparkles className="h-3.5 w-3.5" /> Re-run
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── "My Cases" dashboard overview ──────────────────────────────────────────────
+
+function MyCasesSection({ onPrepare }: { onPrepare: (m: MatterBriefing) => void }) {
+  const { data, isLoading, isError, error, refetch } = useBriefingSummary();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <SectionHeading />
+        <div className="grid gap-4 md:grid-cols-2">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-40 w-full" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-3">
+        <SectionHeading />
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-5 space-y-3">
+            <p className="text-sm font-semibold text-red-700 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" /> Couldn't load your cases
+            </p>
+            <p className="text-sm text-red-600">{error instanceof Error ? error.message : "Please try again."}</p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const matters = data?.matters ?? [];
+  if (matters.length === 0) {
+    return (
+      <div className="space-y-3">
+        <SectionHeading />
+        <Card>
+          <CardContent className="p-10 text-center">
+            <FolderKanban className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="font-serif font-semibold mb-1">No matters yet</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Create a matter below to see your case overview here.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <SectionHeading />
+      <div className="grid gap-4 md:grid-cols-2" data-testid="list-my-cases">
+        {matters.map((m) => <MyCaseCard key={m.id} m={m} onPrepare={onPrepare} />)}
+      </div>
+    </div>
+  );
+}
+
+function SectionHeading() {
+  return (
+    <div className="space-y-1">
+      <h2 className="font-serif text-xl font-bold tracking-tight flex items-center gap-2">
+        <Layers className="h-5 w-5 text-primary" /> My Cases
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Where each matter stands, its next step, and one-click AI preparation.
+      </p>
+    </div>
+  );
+}
+
+function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: MatterBriefing) => void }) {
+  const isClosed = m.status?.toLowerCase() === "closed";
+  const nd = m.next_deadline;
+  const ndDays = nd ? daysUntil(nd.due_date) : null;
+
+  return (
+    <Card
+      className={`h-full transition-colors ${isClosed ? "opacity-60" : "hover:border-primary/40"}`}
+      data-testid={`card-my-case-${m.id}`}
+    >
+      <CardContent className="p-5 space-y-3">
+        <Link href={`/workspace/matters/${m.id}`}>
+          <div className="cursor-pointer space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-serif font-semibold text-foreground leading-snug hover:text-primary transition-colors">{m.title}</p>
+              <Badge variant="outline" className="shrink-0 capitalize">{m.status}</Badge>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+              {m.matter_type && <span className="truncate">{m.matter_type}</span>}
+              {m.stage_index >= 0 && m.stage_count > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Layers className="h-3 w-3" /> Stage {m.stage_index + 1} of {m.stage_count}
+                </span>
+              )}
+              {m.checklist_total > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <ListChecks className="h-3 w-3" /> {m.checklist_done}/{m.checklist_total} done
+                </span>
+              )}
+            </div>
+
+            {/* Stage progress bar */}
+            {m.stage_index >= 0 && m.stage_count > 0 && (
+              <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${Math.min(100, ((m.stage_index + 1) / m.stage_count) * 100)}%` }}
+                />
+              </div>
+            )}
+
+            {/* Next deadline */}
+            {nd && (
+              <div className="flex items-center gap-2 text-xs">
+                {m.overdue_count > 0 ? (
+                  <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {m.overdue_count} overdue
+                  </Badge>
+                ) : (
+                  <CalendarClock className={`h-3.5 w-3.5 shrink-0 ${ndDays !== null && ndDays <= 7 ? "text-amber-600" : "text-muted-foreground"}`} />
+                )}
+                <span className="truncate text-muted-foreground">{nd.title}</span>
+                <span className="text-muted-foreground/70 ml-auto shrink-0">{fmtDate(nd.due_date)}</span>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        {/* Next step — prominent */}
+        {m.next_step && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <ArrowRight className="h-3.5 w-3.5 text-primary shrink-0" />
+              Next: {m.next_step.label}
+              {m.next_step.due_date && (
+                <span className="font-normal text-muted-foreground">· {fmtDate(m.next_step.due_date)}</span>
+              )}
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => onPrepare(m)}
+            data-testid={`button-prepare-${m.id}`}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
+          </Button>
+          <Link href={`/workspace/matters/${m.id}`}>
+            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+              Open <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function MattersPage() {
@@ -43,6 +311,8 @@ export function MattersPage() {
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
+  const [prepareMatter, setPrepareMatter] = useState<MatterBriefing | null>(null);
+  const [prepareOpen, setPrepareOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     clientName: "",
@@ -53,6 +323,11 @@ export function MattersPage() {
     stage: "",
     notes: "",
   });
+
+  const openPrepare = (m: MatterBriefing) => {
+    setPrepareMatter(m);
+    setPrepareOpen(true);
+  };
 
   const submit = async () => {
     if (!form.title.trim()) {
@@ -85,6 +360,8 @@ export function MattersPage() {
           <Plus className="h-4 w-4" /> New matter
         </Button>
       </div>
+
+      <MyCasesSection onPrepare={openPrepare} />
 
       {(upcoming?.length ?? 0) > 0 && (
         <Card className="border-amber-200 bg-amber-50">
@@ -218,6 +495,8 @@ export function MattersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PrepareDialog matter={prepareMatter} open={prepareOpen} onOpenChange={setPrepareOpen} />
     </div>
   );
 }

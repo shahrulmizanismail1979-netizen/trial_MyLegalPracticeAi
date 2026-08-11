@@ -10,4 +10,6 @@ New capabilities that should appear on ALL matter portals belong in `src/lib/` a
 - **Why:** ownership gate proves the matter is yours, not that every row pointing at that matter is.
 - Client directory is the shared `case_clients` table (makeClientsRouter) for every portal EXCEPT lit (own lit_clients with clientId on lit_matters). Matter linking lives in `case_client_matters` (FK → case_clients, cascade on client delete; stale links after matter delete are tolerated — matter-scoped reads 404).
 - Before building a "new" shared capability, grep caseClients.ts/lib for an existing implementation — a parallel table (portal_clients) was nearly shipped alongside case_clients, which would have given users two conflicting client lists.
+- List-level routes added after portal routers must be TWO segments (e.g. `/briefing/summary`) — Express `get("/:id")` only matches one segment, so two-segment paths safely dodge the portals' earlier `/:id` handlers (verified live; no `use("/:id")` prefix mounts exist).
+- AI prompts built from matter rows must strip tenant/identity columns (access_code_id/owner_id/user_id/owner_type) and wrap the data in untrusted-data delimiters with an anti-injection instruction.
 - Review router paths must be prefix-relative (`/:id/review`), since attachCaseIntelligence pathPrefix is "" on some portals and "/matters" on others.

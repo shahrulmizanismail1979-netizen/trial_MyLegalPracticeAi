@@ -521,7 +521,7 @@ function ChronologyPanel({ matterId }: { matterId: number }) {
 
 // ── AI Case Review (on-demand markdown briefing) ────────────────────────────────
 
-function renderMarkdownLite(md: string) {
+export function renderMarkdownLite(md: string) {
   // Lightweight markdown → JSX renderer (no new deps). Handles headings,
   // bold, bullets and paragraphs; falls back to whitespace-pre for anything else.
   const lines = md.split('\n');
