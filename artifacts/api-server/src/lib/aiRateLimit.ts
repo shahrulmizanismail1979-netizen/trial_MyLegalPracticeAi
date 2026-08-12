@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import rateLimit from "express-rate-limit";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { deviceSeatKey } from "./seatLimits";
+import { isMasterToken } from "../routes/accident";
 
 const MAX = parseInt(process.env.AI_RATE_LIMIT_PER_MINUTE ?? "60", 10);
 
@@ -59,6 +60,22 @@ export function subscriberKey(req: Request, res: Response): string {
   if (crimCode && typeof crimCode.id === "number") {
     const seat = sessionId ?? seatOrDevice(req, res);
     return `crim:${crimCode.id}:${seat}`;
+  }
+
+  // Crim master-override sessions carry no DB code row (requireAuth sets a
+  // synthetic accessCode without a numeric id, and req.session.isMaster).
+  // Give each master login its own bucket instead of the shared fallback.
+  if (session?.isMaster === true) {
+    const seat = sessionId ?? seatOrDevice(req, res);
+    return `crim:master:${seat}`;
+  }
+
+  // Accident master-override sessions authenticate via a signed "master.*"
+  // token in the session_id cookie (no DB row, so accidentAccessCodeId is
+  // absent). Key each master token to its own bucket.
+  const accidentToken = rawCookie(req, "session_id");
+  if (typeof accidentToken === "string" && isMasterToken(accidentToken)) {
+    return `accident:master:${accidentToken.slice(0, 24)}`;
   }
 
   // Acad: res.locals.user.id is already a per-individual user ID — no change needed.

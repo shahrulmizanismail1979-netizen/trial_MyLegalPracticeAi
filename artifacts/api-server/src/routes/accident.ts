@@ -53,7 +53,7 @@ function signMasterNonce(nonce: string): string {
   return crypto.createHmac("sha256", SESSION_SECRET).update(`master:${nonce}`).digest("hex");
 }
 
-function createMasterToken(): string {
+export function createMasterToken(): string {
   const nonce = crypto.randomBytes(16).toString("hex");
   return `master.${nonce}.${signMasterNonce(nonce)}`;
 }

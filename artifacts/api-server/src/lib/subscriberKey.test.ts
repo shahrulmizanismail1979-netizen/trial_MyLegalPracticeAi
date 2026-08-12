@@ -12,12 +12,14 @@ import { describe, it, expect } from "vitest";
 import type { Request, Response } from "express";
 import { subscriberKey } from "./aiRateLimit";
 import { deviceSeatKey } from "./seatLimits";
+import { createMasterToken } from "../routes/accident";
 
 interface Shape {
   locals?: Record<string, unknown>;
   session?: Record<string, unknown>;
   sessionID?: string;
   userId?: number;
+  cookieHeader?: string;
 }
 
 const IP = "203.0.113.9";
@@ -26,7 +28,10 @@ const UA = "vitest-agent/1.0";
 function makeReqRes(shape: Shape): { req: Request; res: Response } {
   const req = {
     ip: IP,
-    headers: { "user-agent": UA },
+    headers: {
+      "user-agent": UA,
+      ...(shape.cookieHeader ? { cookie: shape.cookieHeader } : {}),
+    },
     session: shape.session,
     sessionID: shape.sessionID,
     ...(shape.userId !== undefined ? { userId: shape.userId } : {}),
@@ -70,6 +75,11 @@ describe("subscriberKey per-portal buckets", () => {
       expected: `crim:44:dev:${device}`,
     },
     {
+      portal: "Crim master override (req.session.isMaster + session ID)",
+      shape: { session: { isMaster: true }, sessionID: "sess-master" },
+      expected: "crim:master:sess-master",
+    },
+    {
       portal: "Acad (res.locals.user.id, string uuid)",
       shape: { locals: { user: { id: "a1b2c3-uuid" } } },
       expected: "acad:a1b2c3-uuid",
@@ -94,6 +104,17 @@ describe("subscriberKey per-portal buckets", () => {
   it.each(cases)("$portal → $expected", ({ shape, expected }) => {
     const { req, res } = makeReqRes(shape);
     expect(subscriberKey(req, res)).toBe(expected);
+  });
+
+  it("accident master-override token gets its own bucket, not __noauth__", () => {
+    const token = createMasterToken();
+    const { req, res } = makeReqRes({ cookieHeader: `session_id=${token}` });
+    expect(subscriberKey(req, res)).toBe(`accident:master:${token.slice(0, 24)}`);
+  });
+
+  it("a non-master session_id cookie does NOT match the master branch", () => {
+    const { req, res } = makeReqRes({ cookieHeader: "session_id=some-ordinary-session" });
+    expect(subscriberKey(req, res)).toBe("__noauth__");
   });
 
   it("two subscribers on the same portal get different buckets", () => {

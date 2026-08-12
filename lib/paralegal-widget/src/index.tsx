@@ -254,7 +254,9 @@ export function ParalegalWidget({
         body: JSON.stringify({ messages: history }),
       });
       if (!res.ok || !res.body) {
-        throw new Error(String(res.status));
+        const err = new Error(String(res.status)) as Error & { status?: number };
+        err.status = res.status;
+        throw err;
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -291,14 +293,15 @@ export function ParalegalWidget({
         setMessages([...history, { role: "assistant", content: acc }]);
       }
       void speak(acc);
-    } catch {
-      setMessages([
-        ...history,
-        {
-          role: "assistant",
-          content: "Sorry — the paralegal is unavailable right now. Please try again shortly.",
-        },
-      ]);
+    } catch (e) {
+      const status = (e as { status?: number } | null)?.status;
+      const content =
+        status === 429
+          ? "You've reached your AI usage limit for now. Please wait a minute and try again."
+          : status === 401
+            ? "Your session has ended — please sign in again to keep chatting."
+            : "Sorry — the paralegal is unavailable right now. Please try again shortly.";
+      setMessages([...history, { role: "assistant", content }]);
     } finally {
       setBusy(false);
     }
