@@ -16,7 +16,8 @@ export type AIProvider = "gemini" | "openai" | "perplexity";
 let currentProvider: AIProvider = "gemini";
 
 export function setApiProvider(provider: AIProvider): void {
-  currentProvider = provider === "openai" ? "openai" : "gemini";
+  currentProvider =
+    provider === "openai" || provider === "perplexity" ? provider : "gemini";
 }
 
 export function getApiProvider(): AIProvider {
