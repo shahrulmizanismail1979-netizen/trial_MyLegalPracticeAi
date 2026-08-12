@@ -801,6 +801,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1005,6 +1008,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1206,6 +1212,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1410,6 +1419,9 @@ importers:
       '@workspace/tiers':
         specifier: workspace:*
         version: link:../../lib/tiers
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1614,6 +1626,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2240,6 +2255,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2646,6 +2664,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/vault-ui':
+        specifier: workspace:*
+        version: link:../../lib/vault-ui
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2851,6 +2872,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+
+  lib/vault-ui:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
 
   scripts:
     dependencies:

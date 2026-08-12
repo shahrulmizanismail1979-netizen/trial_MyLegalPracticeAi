@@ -17,6 +17,7 @@ import { ensureAccMatterTables } from "./accident/matters";
 import { ensureSeatLimitSchema } from "./lib/seatLimits";
 import { ensureCaseEventsTable } from "./lib/caseEvents";
 import { ensureBillingTables } from "./lib/caseBilling";
+import { ensureDocumentTables } from "./lib/caseDocuments";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
 
 // ── Research background job worker ──────────────────────────────────────────
@@ -166,6 +167,7 @@ await ensureAccMatterTables();
 await ensureSeatLimitSchema();
 await ensureCaseEventsTable();
 await ensureBillingTables();
+await ensureDocumentTables();
 await ensureCaseClientMatterTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work

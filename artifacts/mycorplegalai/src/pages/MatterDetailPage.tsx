@@ -31,9 +31,10 @@ import {
   CircleCheck, Building2, Users, Hash, Clock, FileText, Copy, Download, ChevronDown,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   User, Phone, Mail, Timer, ChevronRight, ArrowRight, History, Link2, X, Loader2,
-  Calculator,
+  Calculator, FolderLock,
 } from "lucide-react";
 import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } from "@workspace/billing-ui";
+import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -49,19 +50,22 @@ export const billingRequest: BillingRequest = (path, init) => {
   });
 };
 
+const vaultRequest: VaultRequest = billingRequest;
+
 const CORP_STAGES = ["Instruction", "Due Diligence", "Advisory", "Opinion Delivered", "Closed"];
 const STATUS_OPTIONS = [...CORP_STAGES];
 const CATEGORY_OPTIONS = ["filing", "compliance", "meeting", "closing", "hearing", "custom"];
 const inputCls =
   "w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary";
 
-type Tab = "overview" | "chronology" | "timeline" | "documents" | "checklist" | "team" | "time" | "billing";
+type Tab = "overview" | "chronology" | "timeline" | "documents" | "vault" | "checklist" | "team" | "time" | "billing";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
   { id: "chronology", label: "Chronology", icon: History },
   { id: "timeline", label: "Timeline", icon: CalendarClock },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "vault", label: "Vault", icon: FolderLock },
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
@@ -1199,6 +1203,10 @@ export default function MatterDetailPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === "vault" && (
+          <DocumentsPanel request={vaultRequest} matterId={matter.id} accent="#d4a017" />
         )}
 
         {activeTab === "checklist" && <ChecklistTab matterId={matter.id} />}

@@ -15,6 +15,7 @@
     }
   },
   "references": [
+    { "path": "../../lib/vault-ui" },
     { "path": "../../lib/billing-ui" },
     {
       "path": "../../lib/paralegal-widget"

@@ -22,6 +22,7 @@ import {
   Mail,
   X,
   Calculator,
+  FolderLock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,9 +78,11 @@ import {
   type CaseEvent,
 } from "@/hooks/use-matters";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/accident/matters${path}`, { credentials: "include", ...init });
+const vaultRequest: VaultRequest = billingRequest;
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -89,7 +92,7 @@ function fmtDate(iso: string) {
   });
 }
 
-type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "time" | "billing";
+type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "vault" | "time" | "billing";
 
 const KIND_META: Record<string, { label: string; color: string }> = {
   filing: { label: "Filing", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
@@ -151,6 +154,7 @@ export default function MatterDetailPage() {
     { id: "deadlines", label: "Deadlines", icon: CalendarClock },
     { id: "checklist", label: "Checklist", icon: CheckSquare },
     { id: "documents", label: "Documents", icon: FileText },
+    { id: "vault", label: "Vault", icon: FolderLock },
     { id: "time", label: "Time", icon: Clock },
     { id: "billing", label: "Billing", icon: Calculator },
   ];
@@ -206,6 +210,9 @@ export default function MatterDetailPage() {
         {tab === "deadlines" && <DeadlinesTab matterId={matterId!} deadlines={matter.deadlines} />}
         {tab === "checklist" && <ChecklistTab matterId={matterId!} />}
         {tab === "documents" && <DocumentsTab matterId={matterId!} />}
+        {tab === "vault" && (
+          <DocumentsPanel request={vaultRequest} matterId={matter.id} accent="#f59e0b" />
+        )}
         {tab === "time" && <TimeTab matterId={matterId!} />}
         {tab === "billing" && (
           <BillingTab

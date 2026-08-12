@@ -109,11 +109,14 @@ import {
   X,
   History,
   Calculator,
+  FolderLock,
 } from "lucide-react";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/sya/matters${path}`, { credentials: "include", ...init });
+const vaultRequest: VaultRequest = billingRequest;
 
 function fmtDate(iso: string, mode: string) {
   return new Date(iso).toLocaleDateString(mode === "bm" ? "ms-MY" : "en-MY", {
@@ -1206,6 +1209,7 @@ export default function MatterDetailPage() {
           <TabsTrigger value="team" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("Team", "Pasukan")}</TabsTrigger>
           <TabsTrigger value="time" className="gap-1.5"><Timer className="h-3.5 w-3.5" /> {t("Time", "Masa")}</TabsTrigger>
           <TabsTrigger value="billing" className="gap-1.5"><Calculator className="h-3.5 w-3.5" /> {t("Billing", "Pengebilan")}</TabsTrigger>
+          <TabsTrigger value="vault" className="gap-1.5"><FolderLock className="h-3.5 w-3.5" /> {t("Vault", "Peti Simpanan", "الخزنة")}</TabsTrigger>
         </TabsList>
 
         {/* Overview tab */}
@@ -1400,6 +1404,15 @@ export default function MatterDetailPage() {
             accent="#0f766e"
             currency="RM"
             defaultClientName={matter.clientName ?? undefined}
+          />
+        </TabsContent>
+
+        {/* Vault tab */}
+        <TabsContent value="vault">
+          <DocumentsPanel
+            request={vaultRequest}
+            matterId={matter.id}
+            accent="#0f766e"
           />
         </TabsContent>
       </Tabs>

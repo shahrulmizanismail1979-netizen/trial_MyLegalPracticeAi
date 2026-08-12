@@ -68,12 +68,14 @@ import {
   Banknote, Clock, FileText, ArrowRight, GitBranch,
   Sparkles, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   Users, Timer, Loader2, ChevronRight, CheckSquare,
-  Phone, Mail, CreditCard, History, Calculator,
+  Phone, Mail, CreditCard, History, Calculator, FolderLock,
 } from 'lucide-react';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
+import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/lit/matters${path}`, { credentials: 'include', ...init });
+const vaultRequest: VaultRequest = billingRequest;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -930,6 +932,9 @@ export default function MatterDetail() {
           <TabsTrigger value="billing" className="gap-1.5">
             <Calculator className="h-3.5 w-3.5" /> Billing
           </TabsTrigger>
+          <TabsTrigger value="vault" className="gap-1.5">
+            <FolderLock className="h-3.5 w-3.5" /> Vault
+          </TabsTrigger>
           <TabsTrigger value="diary" className="gap-1.5">
             <CalendarClock className="h-3.5 w-3.5" /> Diary
             {pending.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{pending.length}</Badge>}
@@ -1318,6 +1323,11 @@ export default function MatterDetail() {
             currency="RM"
             defaultClientName={matter.clientName ?? undefined}
           />
+        </TabsContent>
+
+        {/* ── VAULT (client documents) ── */}
+        <TabsContent value="vault">
+          <DocumentsPanel request={vaultRequest} matterId={matter.id} accent="#8a6d2f" />
         </TabsContent>
 
         {/* ── DIARY ── */}

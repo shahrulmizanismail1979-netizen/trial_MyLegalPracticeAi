@@ -38,6 +38,7 @@ import {
 } from '@/lib/matters';
 import { useToast } from '@/hooks/use-toast';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
+import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/convey/matters${path}`, {
@@ -50,15 +51,18 @@ const billingRequest: BillingRequest = (path, init) =>
     },
   });
 
+const vaultRequest: VaultRequest = billingRequest;
+
 const CONVEY_STAGES = ['Instruction', 'SPA Execution', 'Financing', 'Stamping', 'Completion', 'Registration', 'Closed'];
 const STATUS_OPTIONS = ['open', 'closed'];
-type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'checklist' | 'team' | 'time' | 'billing';
+type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'vault' | 'checklist' | 'team' | 'time' | 'billing';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'progress', label: 'Transaction' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'documents', label: 'Documents' },
+  { id: 'vault', label: 'Vault' },
   { id: 'checklist', label: 'Checklist' },
   { id: 'team', label: 'Team' },
   { id: 'time', label: 'Time' },
@@ -747,6 +751,10 @@ export function MatterDetail() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'vault' && (
+          <DocumentsPanel request={vaultRequest} matterId={matter.id} accent="#d97706" />
         )}
 
         {activeTab === 'checklist' && <ChecklistTab matterId={matter.id} />}

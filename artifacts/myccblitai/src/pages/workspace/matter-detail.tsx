@@ -56,28 +56,31 @@ import {
   AlertTriangle, CircleCheck, User, Hash, Clock, FileText, Copy,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   Phone, Mail, Timer, Building2, Users, ChevronDown, Download,
-  History, Link2, X, Loader2, Calculator,
+  History, Link2, X, Loader2, Calculator, FolderLock,
 } from "lucide-react";
 import { authHeaders } from "@/lib/auth";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/ccb/matters${path}`, {
     ...init,
     headers: { ...(init?.headers ?? {}), ...authHeaders() },
   });
+const vaultRequest: VaultRequest = billingRequest;
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 const STATUS_OPTIONS = [...CCB_STAGES];
 const selectCls = "flex h-10 w-full items-center rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
-type Tab = "overview" | "timeline" | "chronology" | "documents" | "checklist" | "team" | "time" | "billing";
+type Tab = "overview" | "timeline" | "chronology" | "documents" | "vault" | "checklist" | "team" | "time" | "billing";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
   { id: "timeline", label: "Timeline", icon: CalendarClock },
   { id: "chronology", label: "Chronology", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "vault", label: "Vault", icon: FolderLock },
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
@@ -987,6 +990,10 @@ export default function MatterDetailPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === "vault" && (
+          <DocumentsPanel request={vaultRequest} matterId={matter.id} accent="#d99e1f" />
         )}
 
         {activeTab === "checklist" && <ChecklistTab matterId={matter.id} />}

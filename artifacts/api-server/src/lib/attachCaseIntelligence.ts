@@ -32,6 +32,7 @@ import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { buildCaseBriefingRouter } from "./caseBriefing";
 import { attachBilling } from "./caseBilling";
+import { attachDocumentVault } from "./caseDocuments";
 import { aiRateLimit } from "./aiRateLimit";
 import { logger } from "./logger";
 
@@ -255,6 +256,8 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
 
   // ── Time & billing (fee items, invoices, invoice PDFs, settings) ─────────────
   attachBilling({ router, portal, pathPrefix: P, getOwnerKey });
+
+  attachDocumentVault({ router, portal, pathPrefix: P, getOwnerKey });
 }
 
 /**
