@@ -1,7 +1,7 @@
 /**
  * Shared streaming helper for MyLitAI AI-generation endpoints.
  *
- * Reads the `RateLimit-Remaining` draft-8 header from every successful
+ * Reads the draft-8 `RateLimit` header from every successful
  * response and emits the value to the portal-level rate-limit event bus,
  * so `RateLimitWarning` can display a countdown to the user.
  *
@@ -22,7 +22,7 @@ export interface StreamOptions {
 /**
  * POST `body` to `endpoint` and stream SSE chunks via callbacks.
  *
- * The function reads `RateLimit-Remaining` from the response and forwards
+ * The function reads the remaining count from the response's rate-limit headers and forwards
  * it to the rate-limit event bus.  All existing call-sites keep the same
  * signature; pass `options` for credentials / 402 messages / abort.
  */

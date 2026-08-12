@@ -212,6 +212,10 @@ const corsAllowedHosts = new Set(
 app.use(
   cors({
     credentials: true,
+    // Let browser frontends read the draft-8 rate-limit headers on AI
+    // responses (used for the "requests left" warning banner). Same-origin
+    // requests can always read them; this covers allowed cross-origin dev setups.
+    exposedHeaders: ["RateLimit", "RateLimit-Policy"],
     origin(origin, callback) {
       // Same-origin requests and non-browser clients send no Origin header.
       if (!origin) return callback(null, true);

@@ -20,20 +20,20 @@ let _authTokenGetter: AuthTokenGetter | null = null;
 
 // ---------------------------------------------------------------------------
 // Optional response interceptor — portals can register a callback to inspect
-// every successful Response (e.g. to read RateLimit-Remaining headers).
+// every Response, success or error (e.g. to read draft-8 RateLimit headers).
 // ---------------------------------------------------------------------------
 type ResponseInterceptor = (res: Response) => void;
 let _responseInterceptor: ResponseInterceptor | null = null;
 
 /**
- * Register a callback that is invoked with each successful HTTP Response
- * before its body is consumed.  Pass `null` to clear the interceptor.
+ * Register a callback that is invoked with every HTTP Response (success or
+ * error) before its body is consumed.  Pass `null` to clear the interceptor.
  *
  * Usage (e.g. in App.tsx of portals that use this client):
  *   import { setResponseInterceptor } from "@workspace/api-client-react";
  *   setResponseInterceptor((res) => {
- *     const rl = res.headers.get("RateLimit-Remaining");
- *     if (rl !== null) emitRateLimit(parseInt(rl, 10));
+ *     const n = readRateLimitRemaining(res); // parses draft-8 RateLimit header
+ *     if (n !== null) emitRateLimit(n);
  *   });
  */
 export function setResponseInterceptor(fn: ResponseInterceptor | null): void {
@@ -384,13 +384,21 @@ export async function customFetch<T = unknown>(
 
   const response = await fetch(input, { ...init, method, headers });
 
+  // Notify registered interceptors before any body handling, for BOTH success
+  // and error responses — e.g. a 429 must still surface its rate-limit
+  // headers so portals can show a "limit reached" warning.
+  if (_responseInterceptor) {
+    try {
+      _responseInterceptor(response);
+    } catch {
+      // Interceptors must never break the request path.
+    }
+  }
+
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
     throw new ApiError(response, errorData, requestInfo);
   }
-
-  // Notify registered interceptors (e.g. to read RateLimit-Remaining header).
-  if (_responseInterceptor) _responseInterceptor(response);
 
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
 }

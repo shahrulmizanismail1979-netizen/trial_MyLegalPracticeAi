@@ -1,6 +1,6 @@
 /**
  * Thin fetch wrapper for MySyariahAI AI endpoints.
- * Reads the RateLimit-Remaining draft-8 header from each response and emits
+ * Reads the draft-8 `RateLimit` header from each response and emits
  * the value to the rate-limit event bus so the RateLimitWarning component
  * can surface a countdown to the user.
  */

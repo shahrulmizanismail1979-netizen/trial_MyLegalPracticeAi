@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { RateLimitBanner } from "@/lib/rate-limit-monitor";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { StaffGate } from "@/components/StaffGate";
@@ -72,6 +73,7 @@ function App() {
           </LanguageProvider>
         </AuthProvider>
         <Toaster />
+        <RateLimitBanner />
       </TooltipProvider>
     </QueryClientProvider>
   );

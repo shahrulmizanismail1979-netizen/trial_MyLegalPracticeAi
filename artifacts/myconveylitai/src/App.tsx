@@ -3,16 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { setResponseInterceptor } from "@workspace/api-client-react";
-import { emitRateLimit } from "@/lib/rate-limit-bus";
+import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 
 // Register a response interceptor so the shared API client emits rate-limit
-// events whenever it receives a RateLimit-Remaining header from the server.
+// events whenever it receives a rate-limit header from the server.
 setResponseInterceptor((res) => {
-  const raw = res.headers.get("RateLimit-Remaining");
-  if (raw !== null) {
-    const n = parseInt(raw, 10);
-    if (!isNaN(n)) emitRateLimit(n);
-  }
+  const n = readRateLimitRemaining(res);
+  if (n !== null) emitRateLimit(n);
 });
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
