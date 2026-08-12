@@ -31,7 +31,23 @@ import {
   CircleCheck, Building2, Users, Hash, Clock, FileText, Copy, Download, ChevronDown,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   User, Phone, Mail, Timer, ChevronRight, ArrowRight, History, Link2, X, Loader2,
+  Calculator,
 } from "lucide-react";
+import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } from "@workspace/billing-ui";
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+export const billingRequest: BillingRequest = (path, init) => {
+  const token = localStorage.getItem("auth_token");
+  return fetch(`${API_BASE}/api/corp/matters${path}`, {
+    credentials: "include",
+    ...init,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers || {}),
+    },
+  });
+};
 
 const CORP_STAGES = ["Instruction", "Due Diligence", "Advisory", "Opinion Delivered", "Closed"];
 const STATUS_OPTIONS = [...CORP_STAGES];
@@ -39,7 +55,7 @@ const CATEGORY_OPTIONS = ["filing", "compliance", "meeting", "closing", "hearing
 const inputCls =
   "w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary";
 
-type Tab = "overview" | "chronology" | "timeline" | "documents" | "checklist" | "team" | "time";
+type Tab = "overview" | "chronology" | "timeline" | "documents" | "checklist" | "team" | "time" | "billing";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -49,6 +65,7 @@ const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
+  { id: "billing", label: "Billing", icon: Calculator },
 ];
 
 const EVENT_KIND_META: Record<string, { label: string; color: string }> = {
@@ -1187,6 +1204,15 @@ export default function MatterDetailPage() {
         {activeTab === "checklist" && <ChecklistTab matterId={matter.id} />}
         {activeTab === "team" && <TeamTab matter={matter} />}
         {activeTab === "time" && <TimeTab matterId={matter.id} />}
+        {activeTab === "billing" && (
+          <BillingTab
+            request={billingRequest}
+            matterId={matter.id}
+            currency="RM"
+            accent="#d4a017"
+            defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
       </div>
 
       {/* Edit matter */}

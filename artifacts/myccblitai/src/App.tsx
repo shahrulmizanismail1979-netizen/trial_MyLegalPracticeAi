@@ -14,6 +14,7 @@ import ReferencePage from "@/pages/workspace/reference";
 import StrategyPage from "@/pages/workspace/strategy";
 import MattersPage from "@/pages/workspace/matters";
 import MatterDetailPage from "@/pages/workspace/matter-detail";
+import BillingPage from "@/pages/workspace/billing";
 import AdminLoginPage from "@/pages/admin/login";
 import AdminDashboardPage from "@/pages/admin/dashboard";
 
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/workspace/strategy" component={StrategyPage} />
       <Route path="/workspace/matters" component={MattersPage} />
       <Route path="/workspace/matters/:id" component={MatterDetailPage} />
+      <Route path="/workspace/billing" component={BillingPage} />
       <Route path="/workspace/tool/:toolId" component={ToolPage} />
       <Route path="/admin" component={AdminLoginPage} />
       <Route path="/admin/dashboard" component={AdminDashboardPage} />

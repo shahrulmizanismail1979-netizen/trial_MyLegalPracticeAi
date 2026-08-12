@@ -107,12 +107,27 @@ export function makeTimeRecordingRouter(
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    // Include owner_key so a tenant cannot delete another's entries
-    await pool.query(
+    // Include owner_key so a tenant cannot delete another's entries.
+    // Never delete an entry that has been billed onto an invoice.
+    const del = await pool.query(
       `DELETE FROM case_time_entries
-       WHERE portal = $1 AND matter_id = $2 AND owner_key = $3 AND id = $4`,
+       WHERE portal = $1 AND matter_id = $2 AND owner_key = $3 AND id = $4
+         AND invoice_id IS NULL`,
       [portal, matterId, ownerKey, entryId],
     );
+    if (del.rowCount === 0) {
+      const { rows } = await pool.query(
+        `SELECT invoice_id FROM case_time_entries
+         WHERE portal = $1 AND matter_id = $2 AND owner_key = $3 AND id = $4`,
+        [portal, matterId, ownerKey, entryId],
+      );
+      if (rows.length > 0) {
+        res.status(409).json({
+          error: "This time entry has been billed on an invoice and cannot be deleted. Void the invoice first.",
+        });
+        return;
+      }
+    }
     res.json({ success: true });
   });
 

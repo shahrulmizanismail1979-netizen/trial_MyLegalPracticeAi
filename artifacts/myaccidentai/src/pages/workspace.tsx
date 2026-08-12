@@ -135,6 +135,11 @@ export default function Workspace() {
               <Folder className="h-4 w-4" /> Matter Files
             </Button>
           </Link>
+          <Link href="/workspace/billing" data-testid="link-billing-from-workspace">
+            <Button variant="outline" size="sm" className="w-full gap-2">
+              <Calculator className="h-4 w-4" /> Billing
+            </Button>
+          </Link>
           <Link href="/" data-testid="link-home-from-workspace">
             <Button variant="outline" size="sm" className="w-full gap-2">
               <Home className="h-4 w-4" /> Home

@@ -38,6 +38,7 @@ import AIToolkitPage from "@/pages/ai-toolkit";
 import DraftingPage from "@/pages/drafting";
 import MattersPage from "@/pages/matters";
 import MatterDetailPage from "@/pages/matter-detail";
+import BillingPage from "@/pages/billing";
 import PricingPage from "@/pages/pricing";
 import AccountPage from "@/pages/account";
 import NotFound from "@/pages/not-found";
@@ -101,6 +102,7 @@ function AuthGate() {
         <Route path="/drafting" component={DraftingPage} />
         <Route path="/matters" component={MattersPage} />
         <Route path="/matters/:id" component={MatterDetailPage} />
+        <Route path="/billing" component={BillingPage} />
         <Route path="/pricing" component={PricingPage} />
         <Route path="/account" component={AccountPage} />
         <Route component={NotFound} />

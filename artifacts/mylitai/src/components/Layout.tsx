@@ -39,6 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: t('nav.oralAdvocacy'), path: '/app/oral-practice', icon: Mic, highlight: true },
     { name: t('nav.matters'), path: '/app/matters', icon: FolderKanban },
     { name: t('nav.diary'), path: '/app/diary', icon: CalendarClock },
+    { name: t('nav.billing'), path: '/app/billing', icon: Calculator },
     { name: t('nav.bankingRecovery'), path: '/app/banking-recovery', icon: Landmark, highlight: true },
     { name: t('nav.enforcement'), path: '/app/enforcement', icon: Gavel, highlight: true },
     { name: t('nav.bundles'), path: '/app/bundles', icon: Layers, highlight: true },

@@ -21,6 +21,7 @@ import {
   Phone,
   Mail,
   X,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,10 @@ import {
   type ComputedDeadline,
   type CaseEvent,
 } from "@/hooks/use-matters";
+import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+
+const billingRequest: BillingRequest = (path, init) =>
+  fetch(`/api/accident/matters${path}`, { credentials: "include", ...init });
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -84,7 +89,7 @@ function fmtDate(iso: string) {
   });
 }
 
-type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "time";
+type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "time" | "billing";
 
 const KIND_META: Record<string, { label: string; color: string }> = {
   filing: { label: "Filing", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
@@ -147,6 +152,7 @@ export default function MatterDetailPage() {
     { id: "checklist", label: "Checklist", icon: CheckSquare },
     { id: "documents", label: "Documents", icon: FileText },
     { id: "time", label: "Time", icon: Clock },
+    { id: "billing", label: "Billing", icon: Calculator },
   ];
 
   return (
@@ -201,6 +207,15 @@ export default function MatterDetailPage() {
         {tab === "checklist" && <ChecklistTab matterId={matterId!} />}
         {tab === "documents" && <DocumentsTab matterId={matterId!} />}
         {tab === "time" && <TimeTab matterId={matterId!} />}
+        {tab === "billing" && (
+          <BillingTab
+            request={billingRequest}
+            matterId={matterId!}
+            accent="#f59e0b"
+            currency="RM"
+            defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
       </main>
     </div>
   );

@@ -28,6 +28,7 @@ import MyWork from "@/pages/MyWork";
 import Matters from "@/pages/Matters";
 import MatterDetail from "@/pages/MatterDetail";
 import Diary from "@/pages/Diary";
+import Billing from "@/pages/Billing";
 import BankingRecovery from "@/pages/BankingRecovery";
 import Enforcement from "@/pages/Enforcement";
 import Bundles from "@/pages/Bundles";
@@ -106,6 +107,7 @@ function Router() {
       <Route path="/app/matters"><ProtectedRoute component={Matters} /></Route>
       <Route path="/app/matters/:id"><ProtectedRoute component={MatterDetail} /></Route>
       <Route path="/app/diary"><ProtectedRoute component={Diary} /></Route>
+      <Route path="/app/billing"><ProtectedRoute component={Billing} /></Route>
       <Route path="/app/banking-recovery"><PremiumRoute component={BankingRecovery} /></Route>
       <Route path="/app/enforcement"><PremiumRoute component={Enforcement} /></Route>
       <Route path="/app/bundles"><PremiumRoute component={Bundles} /></Route>

@@ -10,6 +10,7 @@ import Workspace from "@/pages/workspace";
 import Admin from "@/pages/admin";
 import MattersPage from "@/pages/matters";
 import MatterDetailPage from "@/pages/matter-detail";
+import BillingPage from "@/pages/billing";
 import { useEffect } from "react";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/workspace" component={Workspace} />
       <Route path="/workspace/matters" component={MattersPage} />
       <Route path="/workspace/matters/:id" component={MatterDetailPage} />
+      <Route path="/workspace/billing" component={BillingPage} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>

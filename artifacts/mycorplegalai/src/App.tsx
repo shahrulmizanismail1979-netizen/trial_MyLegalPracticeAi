@@ -13,6 +13,7 @@ import ToolsPage from "@/pages/ToolsPage";
 import ToolDetailPage from "@/pages/ToolDetailPage";
 import MattersPage from "@/pages/MattersPage";
 import MatterDetailPage from "@/pages/MatterDetailPage";
+import BillingPage from "@/pages/BillingPage";
 import AdminPage from "@/pages/AdminPage";
 import PricingPage from "@/pages/PricingPage";
 import NotFound from "@/pages/not-found";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/tools/:id" component={ToolDetailPage} />
       <Route path="/matters" component={MattersPage} />
       <Route path="/matters/:id" component={MatterDetailPage} />
+      <Route path="/billing" component={BillingPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route component={NotFound} />

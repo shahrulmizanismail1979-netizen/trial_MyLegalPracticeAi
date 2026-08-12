@@ -37,10 +37,22 @@ import {
   type CaseInsights,
 } from '@/lib/matters';
 import { useToast } from '@/hooks/use-toast';
+import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
+
+const billingRequest: BillingRequest = (path, init) =>
+  fetch(`/api/convey/matters${path}`, {
+    ...init,
+    headers: {
+      ...(localStorage.getItem('convey_token')
+        ? { Authorization: `Bearer ${localStorage.getItem('convey_token')}` }
+        : {}),
+      ...(init?.headers || {}),
+    },
+  });
 
 const CONVEY_STAGES = ['Instruction', 'SPA Execution', 'Financing', 'Stamping', 'Completion', 'Registration', 'Closed'];
 const STATUS_OPTIONS = ['open', 'closed'];
-type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'checklist' | 'team' | 'time';
+type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'checklist' | 'team' | 'time' | 'billing';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -50,6 +62,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'checklist', label: 'Checklist' },
   { id: 'team', label: 'Team' },
   { id: 'time', label: 'Time' },
+  { id: 'billing', label: 'Billing' },
 ];
 
 const inputCls = 'w-full bg-gold-950 border border-gold-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500';
@@ -739,6 +752,15 @@ export function MatterDetail() {
         {activeTab === 'checklist' && <ChecklistTab matterId={matter.id} />}
         {activeTab === 'team' && <TeamTab matter={matter} />}
         {activeTab === 'time' && <TimeTab matterId={matter.id} />}
+        {activeTab === 'billing' && (
+          <BillingTab
+            request={billingRequest}
+            matterId={matter.id}
+            accent="#d97706"
+            currency="RM"
+            defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
       </div>
 
       {/* Edit modal */}

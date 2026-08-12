@@ -72,6 +72,12 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
                 <span>Matter Files</span>
               </div>
             </Link>
+            <Link href="/workspace/billing">
+              <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${currentLocation.startsWith("/workspace/billing") ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`} data-testid="nav-billing">
+                <Calculator size={18} />
+                <span>Time &amp; Billing</span>
+              </div>
+            </Link>
           </div>
 
           <div className="px-4 mt-6 mb-2">

@@ -15,6 +15,7 @@
     }
   },
   "references": [
+    { "path": "../../lib/billing-ui" },
     {
       "path": "../../lib/paralegal-widget"
     }

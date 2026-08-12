@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, LogOut, Menu, FolderKanban } from 'lucide-react';
+import { Scale, LogOut, Menu, FolderKanban, Calculator } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useApp } from '@/contexts/AppContext';
 import { NAV_MENU } from '@/lib/data';
@@ -71,6 +71,16 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
           >
             <FolderKanban className="w-5 h-5 mr-3 text-slate-500 group-hover:text-slate-300 transition-colors" />
             Matter Files
+          </button>
+          <button
+            onClick={() => {
+              navigate('/billing');
+              setMobileOpen(false);
+            }}
+            className="w-full text-left px-4 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center group text-slate-400 hover:bg-gold-900 hover:text-slate-200 border border-transparent"
+          >
+            <Calculator className="w-5 h-5 mr-3 text-slate-500 group-hover:text-slate-300 transition-colors" />
+            Billing
           </button>
         </nav>
 

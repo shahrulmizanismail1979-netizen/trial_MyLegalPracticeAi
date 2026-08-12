@@ -16,6 +16,7 @@ import { ensureUserPersonasTable } from "./lib/personas";
 import { ensureAccMatterTables } from "./accident/matters";
 import { ensureSeatLimitSchema } from "./lib/seatLimits";
 import { ensureCaseEventsTable } from "./lib/caseEvents";
+import { ensureBillingTables } from "./lib/caseBilling";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
 
 // ── Research background job worker ──────────────────────────────────────────
@@ -164,6 +165,7 @@ await ensureAccMatterTables();
 // Team-bundle seat limits: shared seat registry + per-portal max_seats columns.
 await ensureSeatLimitSchema();
 await ensureCaseEventsTable();
+await ensureBillingTables();
 await ensureCaseClientMatterTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work

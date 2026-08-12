@@ -108,7 +108,12 @@ import {
   Link2,
   X,
   History,
+  Calculator,
 } from "lucide-react";
+import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+
+const billingRequest: BillingRequest = (path, init) =>
+  fetch(`/api/sya/matters${path}`, { credentials: "include", ...init });
 
 function fmtDate(iso: string, mode: string) {
   return new Date(iso).toLocaleDateString(mode === "bm" ? "ms-MY" : "en-MY", {
@@ -1200,6 +1205,7 @@ export default function MatterDetailPage() {
           <TabsTrigger value="checklist" className="gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> {t("Checklist", "Senarai Semak")}</TabsTrigger>
           <TabsTrigger value="team" className="gap-1.5"><Users className="h-3.5 w-3.5" /> {t("Team", "Pasukan")}</TabsTrigger>
           <TabsTrigger value="time" className="gap-1.5"><Timer className="h-3.5 w-3.5" /> {t("Time", "Masa")}</TabsTrigger>
+          <TabsTrigger value="billing" className="gap-1.5"><Calculator className="h-3.5 w-3.5" /> {t("Billing", "Pengebilan")}</TabsTrigger>
         </TabsList>
 
         {/* Overview tab */}
@@ -1384,6 +1390,17 @@ export default function MatterDetailPage() {
         {/* Time tab */}
         <TabsContent value="time">
           <TimeTab matterId={matter.id} mode={mode} />
+        </TabsContent>
+
+        {/* Billing tab */}
+        <TabsContent value="billing">
+          <BillingTab
+            request={billingRequest}
+            matterId={matter.id}
+            accent="#0f766e"
+            currency="RM"
+            defaultClientName={matter.clientName ?? undefined}
+          />
         </TabsContent>
       </Tabs>
 

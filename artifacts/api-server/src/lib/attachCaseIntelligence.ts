@@ -31,6 +31,7 @@ import { buildCaseEventsRouter } from "./caseEvents";
 import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { buildCaseBriefingRouter } from "./caseBriefing";
+import { attachBilling } from "./caseBilling";
 import { aiRateLimit } from "./aiRateLimit";
 import { logger } from "./logger";
 
@@ -251,6 +252,9 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
 
   // ── Dashboard case briefing (all matters overview) ───────────────────────────
   router.use(P === "" ? "/" : P, buildCaseBriefingRouter(portal, getOwnerKey));
+
+  // ── Time & billing (fee items, invoices, invoice PDFs, settings) ─────────────
+  attachBilling({ router, portal, pathPrefix: P, getOwnerKey });
 }
 
 /**

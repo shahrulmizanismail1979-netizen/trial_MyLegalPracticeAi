@@ -68,8 +68,12 @@ import {
   Banknote, Clock, FileText, ArrowRight, GitBranch,
   Sparkles, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   Users, Timer, Loader2, ChevronRight, CheckSquare,
-  Phone, Mail, CreditCard, History,
+  Phone, Mail, CreditCard, History, Calculator,
 } from 'lucide-react';
+import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
+
+const billingRequest: BillingRequest = (path, init) =>
+  fetch(`/api/lit/matters${path}`, { credentials: 'include', ...init });
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -923,6 +927,9 @@ export default function MatterDetail() {
             <Timer className="h-3.5 w-3.5" /> Time
             {totalMinutes > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{minutesToHm(totalMinutes)}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="billing" className="gap-1.5">
+            <Calculator className="h-3.5 w-3.5" /> Billing
+          </TabsTrigger>
           <TabsTrigger value="diary" className="gap-1.5">
             <CalendarClock className="h-3.5 w-3.5" /> Diary
             {pending.length > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{pending.length}</Badge>}
@@ -1300,6 +1307,17 @@ export default function MatterDetail() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* ── BILLING ── */}
+        <TabsContent value="billing">
+          <BillingTab
+            request={billingRequest}
+            matterId={matter.id}
+            accent="#8a6d2f"
+            currency="RM"
+            defaultClientName={matter.clientName ?? undefined}
+          />
         </TabsContent>
 
         {/* ── DIARY ── */}

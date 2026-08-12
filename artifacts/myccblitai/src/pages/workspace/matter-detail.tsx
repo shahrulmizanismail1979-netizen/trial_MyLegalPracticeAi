@@ -56,14 +56,22 @@ import {
   AlertTriangle, CircleCheck, User, Hash, Clock, FileText, Copy,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   Phone, Mail, Timer, Building2, Users, ChevronDown, Download,
-  History, Link2, X, Loader2,
+  History, Link2, X, Loader2, Calculator,
 } from "lucide-react";
+import { authHeaders } from "@/lib/auth";
+import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
+
+const billingRequest: BillingRequest = (path, init) =>
+  fetch(`/api/ccb/matters${path}`, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), ...authHeaders() },
+  });
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 const STATUS_OPTIONS = [...CCB_STAGES];
 const selectCls = "flex h-10 w-full items-center rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
-type Tab = "overview" | "timeline" | "chronology" | "documents" | "checklist" | "team" | "time";
+type Tab = "overview" | "timeline" | "chronology" | "documents" | "checklist" | "team" | "time" | "billing";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -73,6 +81,7 @@ const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "checklist", label: "Checklist", icon: ListChecks },
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
+  { id: "billing", label: "Billing", icon: Calculator },
 ];
 
 const EVENT_KIND_COLORS: Record<string, string> = {
@@ -983,6 +992,15 @@ export default function MatterDetailPage() {
         {activeTab === "checklist" && <ChecklistTab matterId={matter.id} />}
         {activeTab === "team" && <TeamTab matter={matter} />}
         {activeTab === "time" && <TimeTab matterId={matter.id} />}
+        {activeTab === "billing" && (
+          <BillingTab
+            request={billingRequest}
+            matterId={matter.id}
+            currency="RM"
+            accent="#d99e1f"
+            defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
       </div>
 
       {/* Dialogs */}

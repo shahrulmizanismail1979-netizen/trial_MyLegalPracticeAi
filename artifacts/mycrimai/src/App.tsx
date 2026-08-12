@@ -38,6 +38,7 @@ import { AiAppealGroundsPage } from "@/pages/ai-appeal-grounds";
 import { HowToUsePage } from "@/pages/how-to-use";
 import { MattersPage } from "@/pages/matters";
 import { MatterDetailPage } from "@/pages/matter-detail";
+import { BillingPage } from "@/pages/billing";
 import { AdminLoginPage } from "@/pages/admin-login";
 import { AdminDashboardPage } from "@/pages/admin-dashboard";
 import { PricingPage } from "@/pages/pricing";
@@ -110,6 +111,9 @@ function Router() {
       </Route>
       <Route path="/workspace/matters/:id">
         {() => <WorkspaceRoute component={MatterDetailPage} />}
+      </Route>
+      <Route path="/workspace/billing">
+        {() => <WorkspaceRoute component={BillingPage} />}
       </Route>
       <Route path="/workspace/sample-documents">
         {() => <WorkspaceRoute component={SampleDocumentsPage} />}

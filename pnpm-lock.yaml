@@ -792,6 +792,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -993,6 +996,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.4(vite@7.3.6(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1191,6 +1197,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1389,6 +1398,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1590,6 +1602,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2216,6 +2231,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2619,6 +2637,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.4(vite@7.3.6(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@workspace/billing-ui':
+        specifier: workspace:*
+        version: link:../../lib/billing-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2715,6 +2736,15 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.76
+
+  lib/billing-ui:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
 
   lib/db:
     dependencies:

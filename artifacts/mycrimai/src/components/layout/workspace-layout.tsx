@@ -24,7 +24,8 @@ import {
   TrendingUp,
   Lightbulb,
   HelpCircle,
-  Lock
+  Lock,
+  Calculator
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEntitlements, AI_TOOL_PATHS } from "@/lib/entitlements";
@@ -53,6 +54,7 @@ const navigation = [
   { name: "Theory Topics", href: "/workspace/topics", icon: BookOpen },
   { name: "Case Laws", href: "/workspace/case-laws", icon: Scale },
   { name: "Matter Files", href: "/workspace/matters", icon: FolderKanban },
+  { name: "Billing", href: "/workspace/billing", icon: Calculator },
   { name: "Cause Papers", href: "/workspace/cause-papers", icon: FileText },
   { name: "Practice Workflows", href: "/workspace/workflows", icon: Workflow },
   { name: "Sample Documents", href: "/workspace/sample-documents", icon: Files },
