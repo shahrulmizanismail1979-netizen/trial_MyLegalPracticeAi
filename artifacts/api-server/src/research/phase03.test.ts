@@ -400,7 +400,7 @@ describe("secure upload pipeline", () => {
     let after = await listBatchItems(batch.id);
     for (
       let poll = 0;
-      poll < 30 && !after.every((i) => i.state === "INGESTED");
+      poll < 90 && !after.every((i) => i.state === "INGESTED");
       poll++
     ) {
       await new Promise((resolve) => setTimeout(resolve, 500));

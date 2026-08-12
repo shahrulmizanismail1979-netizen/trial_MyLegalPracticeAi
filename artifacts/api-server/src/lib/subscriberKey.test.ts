@@ -47,17 +47,17 @@ describe("subscriberKey per-portal buckets", () => {
     {
       portal: "CCB (res.locals.ccbAccessCodeId)",
       shape: { locals: { ccbAccessCodeId: 11 } },
-      expected: `ccb:11:${device}`,
+      expected: `ccb:11:dev:${device}`,
     },
     {
       portal: "Accident (res.locals.accidentAccessCodeId)",
       shape: { locals: { accidentAccessCodeId: 22 } },
-      expected: `accident:22:${device}`,
+      expected: `accident:22:dev:${device}`,
     },
     {
       portal: "Corp (res.locals.accessCodeId)",
       shape: { locals: { accessCodeId: 33 } },
-      expected: `corp:33:${device}`,
+      expected: `corp:33:dev:${device}`,
     },
     {
       portal: "Crim (res.locals.accessCode.id + session ID)",
@@ -67,7 +67,7 @@ describe("subscriberKey per-portal buckets", () => {
     {
       portal: "Crim without session ID falls back to device fingerprint",
       shape: { locals: { accessCode: { id: 44, tier: "full" } } },
-      expected: `crim:44:${device}`,
+      expected: `crim:44:dev:${device}`,
     },
     {
       portal: "Acad (res.locals.user.id, string uuid)",

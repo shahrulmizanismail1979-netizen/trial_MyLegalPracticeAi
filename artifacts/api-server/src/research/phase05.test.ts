@@ -352,7 +352,7 @@ afterAll(async () => {
     // our child-delete and the candidate delete — so retry the whole
     // child-then-parent sequence until it sticks.
     let candidatesDeleted = false;
-    for (let attempt = 0; attempt < 5 && !candidatesDeleted; attempt++) {
+    for (let attempt = 0; attempt < 10 && !candidatesDeleted; attempt++) {
       const allCandidateRows = await db
         .select({ id: researchCaseCandidates.id })
         .from(researchCaseCandidates)
@@ -385,7 +385,7 @@ afterAll(async () => {
           .where(inArray(researchCaseCandidates.containerId, trackedContainerIds));
         candidatesDeleted = true;
       } catch (err) {
-        if (attempt === 4) throw err;
+        if (attempt === 9) throw err;
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
@@ -498,7 +498,7 @@ afterAll(async () => {
         .where(inArray(researchSourceContainers.id, trackedContainerIds));
       break;
     } catch (err) {
-      if (attempt === 4) throw err;
+      if (attempt === 9) throw err;
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await db.delete(researchTransformations)
         .where(inArray(researchTransformations.containerId, trackedContainerIds));

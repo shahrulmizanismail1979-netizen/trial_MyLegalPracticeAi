@@ -41,5 +41,6 @@
 - [Shared matter-intelligence layer](matter-intelligence-layer.md) — new all-portal matter features mount once in attachCaseIntelligence; supporting-table queries need per-portal owner predicates, not just the ownership gate.
 - [Shared professional-persona layer](persona-layer.md) — persona keyed to access code via /api/personas; active+unexpired check, login rate limit, SSR-safe front door, checkout bypass.
 - [AI rate limiter auth ordering](ai-ratelimit-auth-ordering.md) — auth must run before the shared AI limiter; root-mounted routers must path-scope middleware; session "gates" often pass unauth through.
+- [Per-seat AI quota identity](ai-seat-identity.md) — never key per-lawyer quotas on IP+UA (office NAT collides); use signed seat cookie, counted only when the client presented it.
 - [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.
 - [AI rate-limit visibility banner](rate-limit-banner.md) — portals show remaining AI quota by parsing draft-8 RateLimit headers via a per-portal fetch interceptor; keep header contract test in sync.
