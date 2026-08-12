@@ -12,7 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function AIProviderSwitcher({ className }: { className?: string }) {
-  const { provider, adminDefault, override, openaiAvailable, setOverride } = useAIProvider();
+  const { provider, adminDefault, override, openaiAvailable, perplexityAvailable, setOverride } =
+    useAIProvider();
 
   return (
     <DropdownMenu>
@@ -40,9 +41,11 @@ export function AIProviderSwitcher({ className }: { className?: string }) {
           {override === null && <span className="text-[hsl(var(--gold-bright))]">✓</span>}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {(["openai", "gemini"] as const).map((p) => {
+        {(["openai", "gemini", "perplexity"] as const).map((p) => {
           const meta = PARALEGALS[p];
-          const disabled = p === "openai" && !openaiAvailable;
+          const disabled =
+            (p === "openai" && !openaiAvailable) ||
+            (p === "perplexity" && !perplexityAvailable);
           return (
             <DropdownMenuItem
               key={p}

@@ -21,15 +21,16 @@ import { logger } from "../../lib/logger";
 // sent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AIProvider = "gemini" | "openai";
+export type AIProvider = "gemini" | "openai" | "perplexity";
 
 export const DEFAULT_PROVIDER: AIProvider = "gemini";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || "sonar-pro";
 
 export function isAIProvider(v: unknown): v is AIProvider {
-  return v === "gemini" || v === "openai";
+  return v === "gemini" || v === "openai" || v === "perplexity";
 }
 
 /** Coerce arbitrary input (request body/query) to a valid provider. */
@@ -51,6 +52,55 @@ function getOpenAI(): OpenAI {
     openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
   return openaiClient;
+}
+
+/** True when a Perplexity API key is configured (user-supplied secret). */
+export function perplexityConfigured(): boolean {
+  return Boolean(process.env.PERPLEXITY_API_KEY);
+}
+
+// Perplexity exposes an OpenAI-compatible chat API at its own base URL.
+let perplexityClient: OpenAI | null = null;
+function getPerplexity(): OpenAI {
+  if (!process.env.PERPLEXITY_API_KEY) {
+    throw new Error("PERPLEXITY_API_KEY is not set");
+  }
+  if (!perplexityClient) {
+    perplexityClient = new OpenAI({
+      apiKey: process.env.PERPLEXITY_API_KEY,
+      baseURL: "https://api.perplexity.ai",
+    });
+  }
+  return perplexityClient;
+}
+
+/** Perplexity attaches live-web sources to chunks; normalize them to Citations. */
+interface PerplexitySearchResult {
+  title?: string;
+  url?: string;
+}
+function perplexityCitations(
+  chunk: unknown,
+  seen: Set<string>,
+): Citation[] {
+  const c = chunk as {
+    search_results?: PerplexitySearchResult[];
+    citations?: string[];
+  };
+  const fresh: Citation[] = [];
+  for (const r of c.search_results ?? []) {
+    if (r.url && !seen.has(r.url)) {
+      seen.add(r.url);
+      fresh.push({ uri: r.url, title: r.title || r.url });
+    }
+  }
+  for (const uri of c.citations ?? []) {
+    if (uri && !seen.has(uri)) {
+      seen.add(uri);
+      fresh.push({ uri, title: uri });
+    }
+  }
+  return fresh;
 }
 
 export interface ChatMessage {
@@ -154,6 +204,29 @@ export async function* streamChat(
     return;
   }
 
+  if (provider === "perplexity") {
+    const client = getPerplexity();
+    const stream = await client.chat.completions.create({
+      model: PERPLEXITY_MODEL,
+      messages: toOpenAI(litMessages, opts),
+      max_tokens: opts.maxOutputTokens,
+      temperature: opts.temperature,
+      stream: true,
+    });
+    const seenUris = new Set<string>();
+    let pplxFinish: string | undefined;
+    for await (const chunk of stream) {
+      const choice = chunk.choices?.[0];
+      const text = choice?.delta?.content;
+      if (text) yield { text };
+      if (choice?.finish_reason) pplxFinish = choice.finish_reason;
+      const fresh = perplexityCitations(chunk, seenUris);
+      if (fresh.length > 0) yield { citations: fresh };
+    }
+    if (pplxFinish === "length") yield { truncated: true };
+    return;
+  }
+
   // Gemini (default)
   const { contents, config } = toGemini(litMessages, opts);
   const stream = await ai.models.generateContentStream({
@@ -202,6 +275,18 @@ export async function generateChat(
       temperature: opts.temperature,
     });
     return { text: resp.choices?.[0]?.message?.content ?? "", citations: [] };
+  }
+
+  if (provider === "perplexity") {
+    const client = getPerplexity();
+    const resp = await client.chat.completions.create({
+      model: PERPLEXITY_MODEL,
+      messages: toOpenAI(litMessages, opts),
+      max_tokens: opts.maxOutputTokens,
+      temperature: opts.temperature,
+    });
+    const citations = perplexityCitations(resp, new Set<string>());
+    return { text: resp.choices?.[0]?.message?.content ?? "", citations };
   }
 
   const { contents, config } = toGemini(litMessages, opts);

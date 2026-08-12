@@ -2,6 +2,10 @@ import { Link } from 'wouter';
 import { BookOpen, GitBranch, FileText, Gavel, ArrowRight, AlertTriangle, Calculator, BookA, FolderOpen, Scale, CalendarClock, Clock, FolderKanban, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, PageHeader, Badge } from '@/components/ui';
 import { useUpcomingDeadlines, categoryMeta, daysUntil } from '@/hooks/use-matters';
+import { ParalegalWidget } from '@workspace/paralegal-widget';
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/lit/paralegal${path.replace(/^\/paralegal/, '')}`, { ...init, credentials: 'include' });
 
 function DeadlineRadar() {
   const { data, isLoading } = useUpcomingDeadlines(30);
@@ -274,6 +278,11 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+      <ParalegalWidget
+        portalName="MyLitAI"
+        request={paralegalRequest}
+        accent="#8a6d2f"
+      />
     </div>
   );
 }

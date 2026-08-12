@@ -14,6 +14,8 @@ type AIProviderContextValue = {
   override: AIProvider | null;
   /** True when the server has an OPENAI_API_KEY configured. */
   openaiAvailable: boolean;
+  /** True when the server has a PERPLEXITY_API_KEY configured. */
+  perplexityAvailable: boolean;
   /** Set (or clear, with null) the user's override. */
   setOverride: (p: AIProvider | null) => void;
 };
@@ -25,12 +27,13 @@ const STORAGE_KEY = "irac.aiProvider.override";
 function readOverride(): AIProvider | null {
   if (typeof window === "undefined") return null;
   const v = window.localStorage.getItem(STORAGE_KEY);
-  return v === "openai" || v === "gemini" ? v : null;
+  return v === "openai" || v === "gemini" || v === "perplexity" ? v : null;
 }
 
 export function AIProviderProvider({ children }: { children: ReactNode }) {
   const [adminDefault, setAdminDefault] = useState<AIProvider>("gemini");
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
+  const [perplexityAvailable, setPerplexityAvailable] = useState(false);
   const [override, setOverrideState] = useState<AIProvider | null>(() => readOverride());
 
   // Fetch the admin default once on mount.
@@ -41,6 +44,7 @@ export function AIProviderProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setAdminDefault(status.provider);
         setOpenaiAvailable(status.openaiConfigured);
+        setPerplexityAvailable(Boolean(status.perplexityConfigured));
       })
       .catch(() => {
         /* keep gemini default on failure */
@@ -54,6 +58,7 @@ export function AIProviderProvider({ children }: { children: ReactNode }) {
   // If OpenAI isn't actually available on the server, never resolve to it.
   let provider: AIProvider = override ?? adminDefault;
   if (provider === "openai" && !openaiAvailable) provider = "gemini";
+  if (provider === "perplexity" && !perplexityAvailable) provider = "gemini";
 
   // Keep the api client's module-level provider in sync with the resolved value.
   useEffect(() => {
@@ -70,7 +75,7 @@ export function AIProviderProvider({ children }: { children: ReactNode }) {
 
   return (
     <AIProviderContext.Provider
-      value={{ provider, adminDefault, override, openaiAvailable, setOverride }}
+      value={{ provider, adminDefault, override, openaiAvailable, perplexityAvailable, setOverride }}
     >
       {children}
     </AIProviderContext.Provider>

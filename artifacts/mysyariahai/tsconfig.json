@@ -13,5 +13,10 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "references": [
+    {
+      "path": "../../lib/paralegal-widget"
+    }
+  ]
 }

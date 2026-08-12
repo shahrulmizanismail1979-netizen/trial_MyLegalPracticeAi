@@ -18,6 +18,7 @@ import {
   FlickerBadge,
 } from "@/components/cinematic";
 import { useAuth } from "@/lib/auth-context";
+import { AcadParalegal } from "@/components/paralegal";
 
 export default function ExaminerDashboard() {
   const [, navigate] = useLocation();
@@ -311,6 +312,7 @@ export default function ExaminerDashboard() {
           },
         ]}
       />
+      <AcadParalegal />
     </CinematicShell>
   );
 }

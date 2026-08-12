@@ -19,6 +19,9 @@
   "references": [
     {
       "path": "../../lib/object-storage-web"
+    },
+    {
+      "path": "../../lib/paralegal-widget"
     }
   ]
 }

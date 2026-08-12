@@ -10,6 +10,7 @@ import {
   setDefaultProvider,
   normalizeProvider,
   openaiConfigured,
+  perplexityConfigured,
 } from "../lib/aiProvider";
 
 const router: IRouter = Router();
@@ -136,7 +137,11 @@ router.post("/codes/restore", adminAuth, async (req, res) => {
 router.get("/ai-provider", async (_req, res) => {
   try {
     const provider = await getDefaultProvider();
-    return res.json({ provider, openaiConfigured: openaiConfigured() });
+    return res.json({
+      provider,
+      openaiConfigured: openaiConfigured(),
+      perplexityConfigured: perplexityConfigured(),
+    });
   } catch (err) {
     logger.error({ err }, "Get AI provider error");
     return res.status(500).json({ error: "Internal server error" });
@@ -150,6 +155,11 @@ router.post("/ai-provider", adminAuth, async (req, res) => {
     return res
       .status(400)
       .json({ error: "OPENAI_API_KEY is not configured on the server" });
+  }
+  if (provider === "perplexity" && !perplexityConfigured()) {
+    return res
+      .status(400)
+      .json({ error: "PERPLEXITY_API_KEY is not configured on the server" });
   }
   try {
     await setDefaultProvider(provider);

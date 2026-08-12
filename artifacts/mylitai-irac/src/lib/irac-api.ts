@@ -11,7 +11,7 @@ const API_BASE = "/api/lit/irac";
 // (user override → admin default → gemini) and pushed here. Every AI request
 // from this client carries it in the body so the server honours it. Defaults to
 // gemini so behaviour is unchanged until something explicitly switches it.
-export type AIProvider = "gemini" | "openai";
+export type AIProvider = "gemini" | "openai" | "perplexity";
 
 let currentProvider: AIProvider = "gemini";
 
@@ -1513,6 +1513,7 @@ export async function restoreAccessCode(password: string, id: number): Promise<v
 export interface AiProviderStatus {
   provider: AIProvider;
   openaiConfigured: boolean;
+  perplexityConfigured?: boolean;
 }
 
 /** Public: read the admin-selected default provider + whether OpenAI is usable. */
@@ -1537,7 +1538,7 @@ export async function setAdminAiProvider(
     // Never surface raw backend error text — it can name the underlying AI
     // provider/API. Map to neutral, persona-safe wording for the user.
     if (res.status === 401) throw new Error("Incorrect admin password.");
-    throw new Error("That paralegal is currently unavailable. Please choose the other paralegal.");
+    throw new Error("That paralegal is currently unavailable. Please choose another paralegal.");
   }
   return (data as { provider: AIProvider }).provider;
 }

@@ -58,6 +58,7 @@ export default function Admin() {
 
   const [aiProvider, setAiProvider] = useState<AIProvider>("gemini");
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
+  const [perplexityAvailable, setPerplexityAvailable] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
   const [aiErr, setAiErr] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export default function Admin() {
         .then((s) => {
           setAiProvider(s.provider);
           setOpenaiAvailable(s.openaiConfigured);
+          setPerplexityAvailable(Boolean(s.perplexityConfigured));
         })
         .catch(() => {});
     }
@@ -217,10 +219,13 @@ export default function Admin() {
             still pick a different paralegal for their own browser. This does not affect the
             banking-litigation platform.
           </p>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {(["openai", "gemini"] as const).map((p) => {
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {(["openai", "gemini", "perplexity"] as const).map((p) => {
               const meta = PARALEGALS[p];
-              const disabled = aiBusy || (p === "openai" && !openaiAvailable);
+              const disabled =
+                aiBusy ||
+                (p === "openai" && !openaiAvailable) ||
+                (p === "perplexity" && !perplexityAvailable);
               const active = aiProvider === p;
               return (
                 <button
@@ -249,7 +254,7 @@ export default function Admin() {
                   <span className="block text-xs text-muted-foreground mt-1">
                     <span className="text-foreground/70">Trade-offs:</span> {meta.weaknesses}
                   </span>
-                  {p === "openai" && !openaiAvailable && (
+                  {disabled && !aiBusy && (
                     <span className="block text-xs italic text-muted-foreground mt-2">
                       Currently unavailable.
                     </span>

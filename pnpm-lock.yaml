@@ -795,6 +795,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -993,6 +996,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1188,6 +1194,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1383,6 +1392,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       '@workspace/tiers':
         specifier: workspace:*
         version: link:../../lib/tiers
@@ -1584,6 +1596,9 @@ importers:
       '@workspace/entitlements':
         specifier: workspace:*
         version: link:../../lib/entitlements
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1659,6 +1674,9 @@ importers:
 
   artifacts/mylawacad:
     dependencies:
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
@@ -1879,6 +1897,9 @@ importers:
       '@workspace/object-storage-web':
         specifier: workspace:*
         version: link:../../lib/object-storage-web
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -2198,6 +2219,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2273,6 +2297,9 @@ importers:
 
   artifacts/mylitai-irac:
     dependencies:
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       react-dropzone:
         specifier: ^15.0.0
         version: 15.0.0(react@19.1.0)
@@ -2595,6 +2622,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2776,6 +2806,15 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.14
+
+  lib/paralegal-widget:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
 
   lib/tiers:
     devDependencies:

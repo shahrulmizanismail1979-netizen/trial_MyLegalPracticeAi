@@ -4,8 +4,11 @@ import { db, firmAccessCodesTable, isFirmAccessCodeExpired } from "./db";
 import {
   staffSessionCodeId,
   hasManagerCookie,
+  verifySession,
+  MANAGER_COOKIE,
 } from "./lib/managerSession";
 import { claimSeat, deviceSeatKey, seatLimitMessage } from "../lib/seatLimits";
+import { attachVirtualParalegal } from "../lib/virtualParalegal";
 import firmRoutes from "./routes";
 
 /**
@@ -77,6 +80,32 @@ const router: IRouter = Router();
 router.use((req, res, next) => {
   void sessionGate(req, res, next);
 });
+
+// Floating dashboard virtual paralegal (chat + voice). Mounted behind the
+// sessionGate above so the shared AI rate limiter inside always sees an
+// authenticated request. Owner key is the per-login identity: the verified
+// manager id, else the staff cookie's access-code row id (0 = master
+// sentinel). Fails closed (null) when neither cookie is present/valid.
+const paralegalRouter = Router();
+attachVirtualParalegal({
+  router: paralegalRouter,
+  portal: "firm",
+  portalLabel: "MyLawFirmAi",
+  focus:
+    "Law firm practice management — matters, clients, billing, deadlines, staff productivity and firm operations.",
+  getOwnerKey: (req) => {
+    const cookies = (req as typeof req & { cookies?: Record<string, string> })
+      .cookies;
+    const managerId = verifySession(cookies?.[MANAGER_COOKIE]);
+    if (managerId != null) return `mgr:${managerId}`;
+    const staffCodeId = staffSessionCodeId(req);
+    if (staffCodeId != null) return `staff:${staffCodeId}`;
+    return null;
+  },
+  pathPrefix: "",
+});
+router.use("/paralegal", paralegalRouter);
+
 router.use(firmRoutes);
 
 export default router;

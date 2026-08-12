@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter, { requireLitAuth, litSessionGate } from "./auth";
+import { attachVirtualParalegal } from "../../lib/virtualParalegal";
 import adminRouter from "./admin";
 import theoryRouter from "./theory";
 import workflowsRouter from "./workflows";
@@ -69,5 +70,22 @@ router.use("/affidavits", affidavitsRouter);
 router.use("/practice-directions", practiceDirectionsRouter);
 router.use("/bar-council-rulings", barCouncilRouter);
 router.use("/clients", clientsRouter);
+
+// Floating dashboard virtual paralegal (chat + voice). Gated by litAuth so the
+// shared AI rate limiter inside always sees an authenticated request.
+const paralegalRouter = Router();
+attachVirtualParalegal({
+  router: paralegalRouter,
+  portal: "lit",
+  portalLabel: "MyLitAI",
+  focus:
+    "Malaysian civil litigation practice — pleadings, affidavits, submissions, banking recovery, enforcement, appeals, bundles and matter management.",
+  getOwnerKey: (req) => {
+    const id = (req.session as { accessCodeId?: number } | undefined)?.accessCodeId;
+    return id ? String(id) : null;
+  },
+  pathPrefix: "",
+});
+router.use("/paralegal", litAuth, paralegalRouter);
 
 export default router;

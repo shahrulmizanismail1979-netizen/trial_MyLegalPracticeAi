@@ -76,6 +76,7 @@
     "@workspace/draft-export": "workspace:*"
   },
   "dependencies": {
+    "@workspace/paralegal-widget": "workspace:*",
     "react-dropzone": "^15.0.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"

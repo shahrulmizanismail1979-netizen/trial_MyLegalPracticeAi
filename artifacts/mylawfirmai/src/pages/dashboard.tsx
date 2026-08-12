@@ -16,8 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import type { RecentActivityEntry, Dashboard } from "@/lib/api-client";
 import { CountUp } from "@/components/CountUp";
 import { ProgressRing } from "@/components/ProgressRing";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 const ACTIVITY_PAGE_SIZE = 12;
+
+// Authed fetch for the floating virtual paralegal. The widget passes relative
+// paths ("/paralegal/chat" | "/paralegal/speak"); target the firm portal's API
+// base and send the httpOnly session cookie (same auth as the rest of the app).
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/firm${path}`, { ...init, credentials: "include" });
 
 // Wrap a single CSV cell: escape embedded quotes and always quote so commas,
 // newlines and leading separators in names can't break the columns.
@@ -420,6 +427,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      <ParalegalWidget
+        portalName="MyLawFirmAi"
+        request={paralegalRequest}
+        accent="#8a6d2f"
+      />
     </AppLayout>
   );
 }

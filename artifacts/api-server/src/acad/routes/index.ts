@@ -8,6 +8,7 @@ import templatesRouter from "./templates";
 import examsRouter from "./exams";
 import studioRouter from "./studio";
 import stripeRouter from "./stripe";
+import paralegalRouter from "./paralegal";
 
 const router: IRouter = Router();
 
@@ -23,5 +24,6 @@ router.use(templatesRouter);
 router.use(examsRouter);
 router.use(studioRouter);
 router.use(stripeRouter);
+router.use(paralegalRouter);
 
 export default router;

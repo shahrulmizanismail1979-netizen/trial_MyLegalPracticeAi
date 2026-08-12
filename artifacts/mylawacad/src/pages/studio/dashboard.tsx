@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { CinematicShell, PageHeader, SpotlightCard, SectionTitle } from "@/components/cinematic-studio";
+import { AcadParalegal } from "@/components/paralegal";
 import {
   useGetStudioDashboardStats,
   useListStudioAssessments,
@@ -288,6 +289,7 @@ export default function Dashboard() {
           },
         ]}
       />
+      <AcadParalegal />
     </CinematicShell>
   );
 }

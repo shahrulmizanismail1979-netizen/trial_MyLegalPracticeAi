@@ -18,8 +18,15 @@ import {
   AlertTriangle, Sparkles, BrainCircuit, ChevronRight, Building, Landmark,
   FileText, Shield, Target, ListChecks, Loader2, RefreshCw,
 } from "lucide-react";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, authHeaders } from "@/lib/auth";
 import { motion } from "framer-motion";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/ccb${path}`, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), ...authHeaders() },
+  });
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 
@@ -370,6 +377,11 @@ export default function WorkspaceIndex() {
           ))}
         </div>
       </div>
+      <ParalegalWidget
+        portalName="MyCorpCommBankLitAI"
+        request={paralegalRequest}
+        accent="#8a6d2f"
+      />
     </WorkspaceLayout>
   );
 }

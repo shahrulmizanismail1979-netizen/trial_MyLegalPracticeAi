@@ -13,11 +13,13 @@ import conveyRouter from "./convey";
 import conveySubscriptionRouter from "./convey-subscription";
 import conveyAdminRouter from "./convey-admin";
 import conveyMattersRouter from "./convey-matters";
+import conveyParalegalRouter from "./convey-paralegal";
 import legacyCodesRouter from "./legacy-codes";
 import accidentRouter from "./accident";
 import accidentAiRouter from "./accident-ai";
 import accidentAdminRouter from "./accident-admin";
 import accidentMattersRouter from "../accident/matters";
+import accidentParalegalRouter from "./accident-paralegal";
 import crimRouter from "../crim/routes";
 import { crimSession } from "../crim/session";
 import corpRouter from "../corp/routes";
@@ -57,6 +59,10 @@ router.use(conveySubscriptionRouter);
 router.use(conveyAdminRouter);
 // MyConveyLitAI matter files (Task #110): /convey/matters, /convey/saved-work.
 router.use(conveyMattersRouter);
+// Floating dashboard virtual paralegal (chat + voice): /convey/paralegal/*.
+// Auth (attachUser + requireAuth) is scoped inside the router so the shared AI
+// rate limiter never sees an unauthenticated request.
+router.use(conveyParalegalRouter);
 // Legacy access-code import (x-admin-token auth): /legacy-codes/import.
 router.use(legacyCodesRouter);
 router.use("/accident", accidentRouter);
@@ -66,6 +72,10 @@ router.use("/accident", accidentAdminRouter);
 // scoped inside the router (requireMatterTenant reads the session_id cookie),
 // so this never blocks the other /accident routes.
 router.use("/accident", accidentMattersRouter);
+// Floating dashboard virtual paralegal (chat + voice): /accident/paralegal/*.
+// Auth (requireAccidentSession) is scoped inside the router so the shared AI
+// rate limiter never sees an unauthenticated request.
+router.use("/accident", accidentParalegalRouter);
 // MyCrimAI (criminal law app): /crim/*. Uses express-session (Postgres-backed),
 // scoped to this mount so the rest of the API is unaffected.
 router.use("/crim", crimSession, crimRouter);

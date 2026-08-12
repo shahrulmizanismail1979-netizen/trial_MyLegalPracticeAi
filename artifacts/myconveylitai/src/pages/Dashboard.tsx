@@ -25,6 +25,21 @@ import { CasesSection } from '@/components/sections/Cases';
 import { CostsSection } from '@/components/sections/Costs';
 import { TerminologySection } from '@/components/sections/Terminology';
 import { NAV_MENU } from '@/lib/data';
+import { ParalegalWidget } from '@workspace/paralegal-widget';
+
+// Authed fetch for the floating virtual paralegal. Targets /api/convey and
+// attaches the same Bearer token + session cookie the matters API helper uses.
+const paralegalRequest = (path: string, init?: RequestInit) => {
+  const token = localStorage.getItem('convey_token');
+  return fetch(`/api/convey${path}`, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      ...(init?.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+};
 
 const AI_TOOLS: { mode: AiMode; label: string; shortLabel: string; icon: React.ComponentType<{ className?: string }>; group: string }[] = [
   { mode: 'tutor',           label: 'AI Tutor',                 shortLabel: 'Tutor',          icon: Bot,            group: 'Learn' },
@@ -299,6 +314,8 @@ export function Dashboard() {
       </main>
 
       <AIPanel />
+
+      <ParalegalWidget portalName="MyConveyLitAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }

@@ -29,8 +29,9 @@ import practiceDirectionsRouter from "./practice-directions";
 import mattersRouter from "./matters";
 import clientsRouter from "./clients";
 import { tierHasFeature, type FeatureKey } from "../lib/tiers";
-import { ensureCodeNotExpired, syaSessionGate } from "../lib/auth";
+import { ensureCodeNotExpired, syaSessionGate, requireAuth } from "../lib/auth";
 import { aiRateLimit } from "../../lib/aiRateLimit";
+import { attachVirtualParalegal } from "../../lib/virtualParalegal";
 
 const router: IRouter = Router();
 
@@ -138,5 +139,23 @@ router.use(voiceRouter);
 router.use(practiceDirectionsRouter);
 router.use(mattersRouter);
 router.use("/clients", clientsRouter);
+
+// Floating dashboard virtual paralegal (chat + voice). Gated by requireAuth so
+// the shared AI rate limiter inside always sees an authenticated request
+// (syaSessionGate above lets unauthenticated requests fall through).
+const paralegalRouter = Router();
+attachVirtualParalegal({
+  router: paralegalRouter,
+  portal: "sya",
+  portalLabel: "MySyariahAI",
+  focus:
+    "Malaysian Syariah law practice — faraid, marriage/divorce (talaq, fasakh), hadhanah, nafkah, harta sepencarian and Syariah court procedure.",
+  getOwnerKey: (req) => {
+    const id = req.session?.userId;
+    return id ? String(id) : null;
+  },
+  pathPrefix: "",
+});
+router.use("/paralegal", requireAuth, paralegalRouter);
 
 export default router;
