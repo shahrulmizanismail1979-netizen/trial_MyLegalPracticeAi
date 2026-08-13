@@ -10,6 +10,7 @@ import voiceRouter from "./voice";
 import ingestRouter from "./ingest";
 import storageRouter from "./storage";
 import recognitionRouter from "./recognition";
+import hrRouter from "./hr";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(voiceRouter);
 router.use(ingestRouter);
 router.use(storageRouter);
 router.use(recognitionRouter);
+router.use(hrRouter);
 
 export default router;

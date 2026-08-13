@@ -20,6 +20,7 @@ import { ensureBillingTables } from "./lib/caseBilling";
 import { ensureDocumentTables } from "./lib/caseDocuments";
 import { ensureDraftTables } from "./lib/caseDrafts";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
+import { ensureHrTables } from "./firm/routes/hr";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -171,6 +172,7 @@ await ensureBillingTables();
 await ensureDocumentTables();
   await ensureDraftTables();
 await ensureCaseClientMatterTable();
+await ensureHrTables();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

@@ -9,3 +9,4 @@ export * from "./taskAssessments";
 export * from "./goals";
 export * from "./meetings";
 export * from "./accessCodes";
+export * from "./hr";
