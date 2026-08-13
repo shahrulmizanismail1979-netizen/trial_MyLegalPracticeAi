@@ -17,6 +17,7 @@ import {
   useStageHistory,
   useUpdateStage,
   useAiInsights,
+  useRefreshAiInsights,
   useChecklist,
   useAddChecklistItem,
   useUpdateChecklistItem,
@@ -172,7 +173,18 @@ function TransactionProgress({ matterId, currentStatus, matterType }: { matterId
 
 // ── AI Insights ───────────────────────────────────────────────────────────────
 function AiInsightsCard({ matterId }: { matterId: number }) {
-  const { data: insights, isLoading, isError, refetch, isFetching } = useAiInsights(matterId);
+  const { data: insights, isLoading, isError, isFetching } = useAiInsights(matterId);
+  const refresh = useRefreshAiInsights();
+  const { toast } = useToast();
+
+  const handleRefresh = async () => {
+    try {
+      await refresh.mutateAsync(matterId);
+      toast({ title: 'AI insights refreshed' });
+    } catch {
+      toast({ title: 'Could not refresh insights', variant: 'destructive' });
+    }
+  };
 
   const riskColor = (rating: string) => {
     if (rating === 'High') return 'text-red-400 bg-red-500/10 border-red-500/20';
@@ -196,8 +208,8 @@ function AiInsightsCard({ matterId }: { matterId: number }) {
     return (
       <div className="border border-gold-800 rounded-2xl p-5 bg-gold-900/40 flex items-center justify-between">
         <span className="text-sm text-slate-400">AI insights unavailable</span>
-        <button onClick={() => refetch()} className="inline-flex items-center gap-1.5 text-xs text-amber-400 border border-gold-700 px-2.5 py-1.5 rounded-lg hover:bg-gold-800 transition-colors">
-          <RefreshCw className="w-3.5 h-3.5" /> Retry
+        <button onClick={handleRefresh} disabled={refresh.isPending} className="inline-flex items-center gap-1.5 text-xs text-amber-400 border border-gold-700 px-2.5 py-1.5 rounded-lg hover:bg-gold-800 transition-colors disabled:opacity-50">
+          {refresh.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Retry
         </button>
       </div>
     );
@@ -215,7 +227,9 @@ function AiInsightsCard({ matterId }: { matterId: number }) {
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${riskColor(insights.riskAssessment.rating)}`}>
               {insights.riskAssessment.rating} Risk
             </span>
-            <button onClick={() => refetch()} className="text-slate-500 hover:text-slate-300"><RefreshCw className="w-3.5 h-3.5" /></button>
+            <button onClick={handleRefresh} disabled={refresh.isPending} className="text-slate-500 hover:text-slate-300 disabled:opacity-50" title="Regenerate briefing">
+              {refresh.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
         <p className="text-sm text-slate-200 leading-relaxed">{insights.caseSummary}</p>

@@ -327,6 +327,17 @@ export function useAiInsights(matterId: number | null, enabled = true) {
   });
 }
 
+export function useRefreshAiInsights() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (matterId: number): Promise<CaseInsights> =>
+      api(`/${matterId}/ai-insights?refresh=1`),
+    onSuccess: (_data, matterId) => {
+      qc.invalidateQueries({ queryKey: [...KEY, "ai-insights", matterId] });
+    },
+  });
+}
+
 // ── Checklist ──────────────────────────────────────────────────────────────────
 
 export function useChecklist(matterId: number | null) {

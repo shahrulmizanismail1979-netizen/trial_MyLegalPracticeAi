@@ -22,6 +22,7 @@ import {
   useStageHistory,
   useUpdateStage,
   useAiInsights,
+  useRefreshAiInsights,
   useChecklist,
   useAddChecklistItem,
   useUpdateChecklistItem,
@@ -415,7 +416,18 @@ function StageStepper({ matterId, currentStatus }: { matterId: number; currentSt
 }
 
 function AiInsightsCard({ matterId }: { matterId: number }) {
-  const { data: insights, isLoading, isError, refetch, isFetching } = useAiInsights(matterId);
+  const { data: insights, isLoading, isError, isFetching } = useAiInsights(matterId);
+  const refresh = useRefreshAiInsights();
+  const { toast } = useToast();
+
+  const handleRefresh = async () => {
+    try {
+      await refresh.mutateAsync(matterId);
+      toast({ title: "AI insights refreshed" });
+    } catch {
+      toast({ title: "Could not refresh insights", variant: "destructive" });
+    }
+  };
 
   const riskColor = (rating: string) => {
     if (rating === "High") return "text-red-500 bg-red-500/10 border-red-500/20";
@@ -442,7 +454,9 @@ function AiInsightsCard({ matterId }: { matterId: number }) {
       <Card>
         <CardContent className="p-5 flex items-center justify-between">
           <span className="text-sm text-muted-foreground">AI insights unavailable</span>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => refetch()}><RefreshCw className="h-3.5 w-3.5" /> Retry</Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleRefresh} disabled={refresh.isPending}>
+            {refresh.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -461,7 +475,9 @@ function AiInsightsCard({ matterId }: { matterId: number }) {
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${riskColor(insights.riskAssessment.rating)}`}>
                 {insights.riskAssessment.rating} Risk
               </span>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => refetch()}><RefreshCw className="h-3 w-3" /></Button>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleRefresh} disabled={refresh.isPending} title="Regenerate briefing">
+                {refresh.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              </Button>
             </div>
           </div>
           <p className="text-sm text-foreground/90 leading-relaxed">{insights.caseSummary}</p>
