@@ -618,7 +618,7 @@ export function MatterDetail() {
     return (
       <div className="min-h-screen bg-gold-950 flex flex-col items-center justify-center gap-4 text-slate-300">
         <p>This matter could not be found.</p>
-        <Link href="/matters"><a className="inline-flex items-center gap-2 text-sm text-amber-400"><ArrowLeft className="w-4 h-4" /> Back to matters</a></Link>
+        <Link href="/matters" className="inline-flex items-center gap-2 text-sm text-amber-400"><ArrowLeft className="w-4 h-4" /> Back to matters</Link>
       </div>
     );
   }
@@ -682,10 +682,8 @@ export function MatterDetail() {
   return (
     <div className="min-h-screen bg-gold-950 text-slate-200">
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8">
-        <Link href="/matters">
-          <a className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-400 transition-colors mb-6">
-            <ArrowLeft className="w-4 h-4" /> All matters
-          </a>
+        <Link href="/matters" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-400 transition-colors mb-6">
+          <ArrowLeft className="w-4 h-4" /> All matters
         </Link>
 
         {/* Header */}
@@ -745,10 +743,8 @@ export function MatterDetail() {
                 <p className="text-xs text-slate-400">AI tools pre-filled with transaction context</p>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Link href="/dashboard">
-                  <a className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 bg-gold-800 hover:bg-gold-700 border border-gold-700 px-2.5 py-1.5 rounded-lg transition-colors">
-                    <FileText className="w-3.5 h-3.5" /> Open AI Tools
-                  </a>
+                <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 bg-gold-800 hover:bg-gold-700 border border-gold-700 px-2.5 py-1.5 rounded-lg transition-colors">
+                  <FileText className="w-3.5 h-3.5" /> Open AI Tools
                 </Link>
               </div>
             </div>

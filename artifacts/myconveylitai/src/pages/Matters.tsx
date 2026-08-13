@@ -72,10 +72,8 @@ export function Matters() {
   return (
     <div className="min-h-screen bg-gold-950 text-slate-200">
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
-        <Link href="/dashboard">
-          <a className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-400 transition-colors mb-6">
-            <ArrowLeft className="w-4 h-4" /> Back to workspace
-          </a>
+        <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber-400 transition-colors mb-6">
+          <ArrowLeft className="w-4 h-4" /> Back to workspace
         </Link>
 
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
@@ -127,8 +125,7 @@ export function Matters() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {matters!.map((m) => (
-              <Link key={m.id} href={`/matters/${m.id}`}>
-                <a className="block border border-gold-800 rounded-2xl p-5 bg-gold-900/40 hover:border-amber-500/40 transition-colors">
+              <Link key={m.id} href={`/matters/${m.id}`} className="block border border-gold-800 rounded-2xl p-5 bg-gold-900/40 hover:border-amber-500/40 transition-colors">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <h3 className="font-serif font-semibold text-slate-100 leading-snug">{m.title}</h3>
                     <span className={`shrink-0 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
@@ -144,7 +141,6 @@ export function Matters() {
                     {m.counterparty && <p className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {m.counterparty}</p>}
                     <p className="flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" /> Updated {fmtDate(m.updatedAt)}</p>
                   </div>
-                </a>
               </Link>
             ))}
           </div>
