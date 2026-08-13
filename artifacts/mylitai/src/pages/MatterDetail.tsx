@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { Link, useRoute } from 'wouter';
 import {
   useMatter,
@@ -20,6 +20,7 @@ import {
   type MatterInput,
   useAIInsights,
   useRefreshInsights,
+  AI_BRIEFING_POLL_TIMEOUT_MS,
   useChecklist,
   useAddChecklistItem,
   useToggleChecklistItem,
@@ -200,10 +201,18 @@ function StageTracker({
 // ── AI Insights panel ─────────────────────────────────────────────────────────
 
 function AIInsightsPanel({ matterId }: { matterId: number }) {
+  const mountedAt = useRef(Date.now());
   const { data: insights, isLoading, error } = useAIInsights(matterId);
   const refresh = useRefreshInsights();
 
-  if (isLoading) {
+  // While waiting for a background job that hasn't finished yet, show a
+  // "generating" state instead of the error/empty state. We poll the endpoint
+  // automatically (see useAIInsights) and flip to this banner until data
+  // arrives or the 3-minute timeout elapses.
+  const withinPollWindow = Date.now() - mountedAt.current < AI_BRIEFING_POLL_TIMEOUT_MS;
+  const isGenerating = isLoading || (!insights && withinPollWindow);
+
+  if (isGenerating) {
     return (
       <Card className="mb-6">
         <CardContent className="p-5">
@@ -213,7 +222,7 @@ function AIInsightsPanel({ matterId }: { matterId: number }) {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Generating AI analysis… this takes a moment.
+            Generating AI briefing from your uploaded documents…
           </div>
         </CardContent>
       </Card>
