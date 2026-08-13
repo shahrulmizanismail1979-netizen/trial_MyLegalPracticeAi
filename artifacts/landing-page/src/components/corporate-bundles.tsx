@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
 import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
+import { ComplimentaryPerks } from "@/components/complimentary-perks";
 
 const INDIVIDUAL_BUNDLE_PRICE = 79;
 
@@ -16,6 +17,7 @@ const tiers = [
     monthlyPrice: 213,
     headline: "Foundational corporate-advisory toolkit",
     includes: null,
+    solarKwp: null as number | null,
     features: [
       "Access to all 7 AI Portals",
       "Contract review & drafting templates",
@@ -34,6 +36,7 @@ const tiers = [
     featured: true,
     headline: "Adds compliance + AI advisory assistant",
     includes: "Startup Legal",
+    solarKwp: 4,
     features: [
       "Corporate advisory AI assistant",
       "Regulatory compliance tracker (Bursa, SC, BNM)",
@@ -51,6 +54,7 @@ const tiers = [
     monthlyPrice: 1300,
     headline: "Adds board, M&A & due diligence modules",
     includes: "Growth",
+    solarKwp: 7,
     features: [
       "Board & directors' duties advisory module",
       "M&A and due diligence playbooks",
@@ -68,6 +72,7 @@ const tiers = [
     monthlyPrice: null,
     headline: "Adds ESG, group governance & cross-border mapping",
     includes: "Corporate",
+    solarKwp: 9.45,
     features: [
       "Group governance & ESG advisory module",
       "Cross-border regulatory mapping",
@@ -202,7 +207,7 @@ your organisation.
                   </p>
                 )}
 
-                <ul className="space-y-3 mb-6 flex-1">
+                <ul className="space-y-3 mb-4 flex-1">
                   {tier.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -210,6 +215,10 @@ your organisation.
                     </li>
                   ))}
                 </ul>
+
+                {tier.solarKwp !== null && (
+                  <ComplimentaryPerks solarKwp={tier.solarKwp} />
+                )}
               </CardContent>
               <CardFooter>
                 {isEnterprise ? (

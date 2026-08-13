@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
 import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
+import { ComplimentaryPerks } from "@/components/complimentary-perks";
 
 const INDIVIDUAL_BUNDLE_PRICE = 79;
 
@@ -14,6 +15,7 @@ const tiers = [
     description: "Small firms & chambers",
     seats: 5,
     monthlyPrice: 355,
+    solarKwp: null as number | null,
     features: [
       "Access to all 7 AI Portals",
       "5 user licenses",
@@ -29,6 +31,7 @@ const tiers = [
     seats: 15,
     monthlyPrice: 1005,
     featured: true,
+    solarKwp: 4,
     features: [
       "Access to all 7 AI Portals",
       "15 user licenses",
@@ -44,6 +47,7 @@ const tiers = [
     description: "Large firms & legal departments",
     seats: 30,
     monthlyPrice: 1890,
+    solarKwp: 7,
     features: [
       "Access to all 7 AI Portals",
       "30 user licenses",
@@ -60,6 +64,7 @@ const tiers = [
     description: "Organisations needing 50+ seats",
     seats: null,
     monthlyPrice: null,
+    solarKwp: 9.45,
     features: [
       "Access to all 7 AI Portals",
       "50+ user licenses",
@@ -180,7 +185,7 @@ the larger your firm, the lower the equivalent per-user cost.
                 )}
                 {isEnterprise && <div className="mt-2 mb-6" />}
 
-                <ul className="space-y-3 mb-6 flex-1">
+                <ul className="space-y-3 mb-4 flex-1">
                   {tier.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -188,6 +193,10 @@ the larger your firm, the lower the equivalent per-user cost.
                     </li>
                   ))}
                 </ul>
+
+                {tier.solarKwp !== null && (
+                  <ComplimentaryPerks solarKwp={tier.solarKwp} />
+                )}
               </CardContent>
               <CardFooter>
                 {isEnterprise ? (

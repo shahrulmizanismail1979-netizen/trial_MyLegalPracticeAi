@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
 import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
+import { ComplimentaryPerks } from "@/components/complimentary-perks";
 
 const INDIVIDUAL_BUNDLE_PRICE = 79;
 
@@ -16,6 +17,7 @@ const tiers = [
     monthlyPrice: 1340,
     headline: "Foundational classroom access for small cohorts",
     includes: null,
+    solarKwp: null as number | null,
     features: [
       "Access to all 7 AI Portals",
       "MyLawSimEduAi simulation platform included",
@@ -34,6 +36,7 @@ const tiers = [
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
     includes: "Faculty Starter",
+    solarKwp: 4,
     features: [
       "Upgraded to 50 user licenses",
       "Lecturer onboarding session",
@@ -49,6 +52,7 @@ const tiers = [
     monthlyPrice: 9450,
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
+    solarKwp: 7,
     features: [
       "Upgraded to 150 user licenses",
       "Library & faculty-wide access",
@@ -65,6 +69,7 @@ const tiers = [
     monthlyPrice: null,
     headline: "Adds multi-campus deployment, SSO & API access",
     includes: "Campus",
+    solarKwp: 9.45,
     features: [
       "Unlimited or custom seat count",
       "Multi-year academic terms",
@@ -200,7 +205,7 @@ and lecturers.
                   </p>
                 )}
 
-                <ul className="space-y-3 mb-6 flex-1">
+                <ul className="space-y-3 mb-4 flex-1">
                   {tier.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -208,6 +213,10 @@ and lecturers.
                     </li>
                   ))}
                 </ul>
+
+                {tier.solarKwp !== null && (
+                  <ComplimentaryPerks solarKwp={tier.solarKwp} />
+                )}
               </CardContent>
               <CardFooter>
                 {isInstitution ? (
