@@ -73,6 +73,8 @@ import {
   useCreateClient,
   useLinkClient,
   useUnlinkClient,
+  useAiInsights,
+  useRefreshAiInsights,
   useIntakeBriefing,
   daysUntil,
   categoryMeta,
@@ -326,6 +328,167 @@ function IntakeBriefingPanel({ matterId }: { matterId: number }) {
   );
 }
 
+// ── AI Insights panel ─────────────────────────────────────────────────────────
+
+function AiInsightsPanel({ matterId }: { matterId: number }) {
+  const { data: insights, isLoading } = useAiInsights(matterId);
+  const refresh = useRefreshAiInsights();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+
+  const ratingColor =
+    insights?.riskAssessment.rating === "High"
+      ? "text-red-400"
+      : insights?.riskAssessment.rating === "Medium"
+        ? "text-amber-400"
+        : "text-emerald-400";
+
+  const priorityDot = (p: "high" | "medium" | "low") =>
+    p === "high" ? "bg-red-400" : p === "medium" ? "bg-amber-400" : "bg-emerald-400";
+
+  const handleRefresh = async () => {
+    try {
+      await refresh.mutateAsync(matterId);
+    } catch (e) {
+      toast({
+        title: "Could not refresh AI Insights",
+        description: e instanceof ApiError ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <Skeleton className="h-6 w-40 mb-2" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!insights) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <button
+            className="flex items-center gap-2 text-left flex-1"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            <span className="text-sm font-semibold text-foreground">AI Insights</span>
+            {insights.riskAssessment.rating && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ratingColor}`}>
+                {insights.riskAssessment.rating} Risk
+              </Badge>
+            )}
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleRefresh}
+            disabled={refresh.isPending}
+            className="gap-1.5 text-xs"
+            data-testid="button-refresh-ai-insights"
+          >
+            {refresh.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {refresh.isPending ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+
+        {open && (
+          <div className="mt-4 space-y-5">
+            {/* Case summary */}
+            {insights.caseSummary && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-1.5">
+                  Summary
+                </p>
+                <p className="text-sm text-foreground/80 leading-relaxed">{insights.caseSummary}</p>
+              </div>
+            )}
+
+            {/* Next steps */}
+            {insights.nextSteps.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                  Recommended Next Steps
+                </p>
+                <div className="space-y-2">
+                  {insights.nextSteps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${priorityDot(step.priority)}`} />
+                      <div className="text-sm text-foreground flex-1">
+                        <span>{step.action}</span>
+                        {step.suggestedDeadline && (
+                          <span className="ml-2 text-[11px] text-muted-foreground">
+                            by {step.suggestedDeadline}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Risk assessment */}
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                Risk Assessment —{" "}
+                <span className={ratingColor}>{insights.riskAssessment.rating}</span>
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {insights.riskAssessment.keyStrengths.length > 0 && (
+                  <div>
+                    <p className="text-xs text-emerald-400 font-medium mb-1">Strengths</p>
+                    <ul className="space-y-1">
+                      {insights.riskAssessment.keyStrengths.map((s, i) => (
+                        <li key={i} className="text-sm text-foreground/80 flex items-start gap-1.5">
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {insights.riskAssessment.keyWeaknesses.length > 0 && (
+                  <div>
+                    <p className="text-xs text-red-400 font-medium mb-1">Weaknesses</p>
+                    <ul className="space-y-1">
+                      {insights.riskAssessment.keyWeaknesses.map((w, i) => (
+                        <li key={i} className="text-sm text-foreground/80 flex items-start gap-1.5">
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                          {w}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground/60 pt-1">
+              AI-generated · cached {new Date(insights.cachedAt).toLocaleDateString()} · verify before relying on this
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Overview ──────────────────────────────────────────────────────────────────
 
 function OverviewTab({ matterId, matter }: { matterId: number; matter: NonNullable<ReturnType<typeof useMatter>["data"]> }) {
@@ -412,6 +575,8 @@ function OverviewTab({ matterId, matter }: { matterId: number; matter: NonNullab
       </Card>
 
       <IntakeBriefingPanel matterId={matterId} />
+
+      <AiInsightsPanel matterId={matterId} />
 
       <ClientSection matterId={matterId} />
 
