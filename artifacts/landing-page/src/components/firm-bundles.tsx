@@ -194,9 +194,7 @@ the larger your firm, the lower the equivalent per-user cost.
                   ))}
                 </ul>
 
-                {tier.solarKwp !== null && (
-                  <ComplimentaryPerks solarKwp={tier.solarKwp} />
-                )}
+                <ComplimentaryPerks solarKwp={tier.solarKwp} />
               </CardContent>
               <CardFooter>
                 {isEnterprise ? (

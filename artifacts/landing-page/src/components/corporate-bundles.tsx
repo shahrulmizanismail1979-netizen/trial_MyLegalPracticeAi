@@ -216,9 +216,7 @@ your organisation.
                   ))}
                 </ul>
 
-                {tier.solarKwp !== null && (
-                  <ComplimentaryPerks solarKwp={tier.solarKwp} />
-                )}
+                <ComplimentaryPerks solarKwp={tier.solarKwp} />
               </CardContent>
               <CardFooter>
                 {isEnterprise ? (
