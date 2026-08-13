@@ -31,7 +31,7 @@ export function MatterFileUpload({ onFilesExtracted }: Props) {
       try {
         const fd = new FormData();
         for (const f of selected.slice(0, 5)) fd.append('files', f);
-        const res = await fetch('/api/shared/uploads/extract', { method: 'POST', body: fd });
+        const res = await fetch('/api/shared/uploads/extract', { method: 'POST', body: fd, credentials: 'include' });
         if (!res.ok) throw new Error('Upload failed');
         const data: { files: ExtractedFile[] } = await res.json();
         const next = [...files, ...data.files];
@@ -79,7 +79,7 @@ export function MatterFileUpload({ onFilesExtracted }: Props) {
           <div className="flex flex-col items-center gap-1.5 py-2">
             <Upload className="h-6 w-6 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Drop files here or click to upload</span>
-            <span className="text-xs text-muted-foreground">PDF, DOCX, TXT, MD · up to 5 files · 10 MB each</span>
+            <span className="text-xs text-muted-foreground">PDF, DOCX, TXT, MD · up to 5 files · 5 MB each</span>
           </div>
         )}
       </div>

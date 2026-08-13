@@ -35,6 +35,8 @@ async function apiGet(url: string, cookie: string) {
   return res.json() as Promise<Record<string, unknown>>;
 }
 
+function pad2(n: number) { return String(n).padStart(2, "0"); }
+
 // ── Test ──────────────────────────────────────────────────────────────────────
 
 test("Download Excel produces a correctly structured .xlsx matching API data", async ({
@@ -43,7 +45,13 @@ test("Download Excel produces a correctly structured .xlsx matching API data", a
 }) => {
   const masterCode = process.env.MASTER_ACCESS_CODE;
   if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
-  const year = new Date().getFullYear();
+
+  // The Excel export dialog defaults: Jan 1 → current month of current year.
+  const now = new Date();
+  const fromYM = `${now.getFullYear()}-01`;
+  const toYM   = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+  const rangeLabel = fromYM === toYM ? fromYM : `${fromYM} to ${toYM}`;
+  const expectedFilename = `accounts-report-${fromYM}_${toYM}.xlsx`;
 
   // ── 1. Manager API auth — sets httpOnly session cookie in the browser ──────
   const loginRes = await page.request.post("/api/firm/auth/manager", {
@@ -56,13 +64,13 @@ test("Download Excel produces a correctly structured .xlsx matching API data", a
     .map((c) => `${c.name}=${c.value}`)
     .join("; ");
 
-  // ── 2. Fetch expected report data from the API ────────────────────────────
+  // ── 2. Fetch expected report data from the API (date-range params) ─────────
   const [plResp, expResp, trustResp] = await Promise.all([
-    apiGet(`/api/firm/accounts/reports/pl?year=${year}`, cookieHeader) as Promise<{
+    apiGet(`/api/firm/accounts/reports/pl?from=${fromYM}&to=${toYM}`, cookieHeader) as Promise<{
       pl: Array<{ month: string; income: number; expense: number; net: number }>;
       totalIncome: number; totalExpense: number; netProfit: number;
     }>,
-    apiGet(`/api/firm/accounts/reports/expenses?year=${year}`, cookieHeader) as Promise<{
+    apiGet(`/api/firm/accounts/reports/expenses?from=${fromYM}&to=${toYM}`, cookieHeader) as Promise<{
       breakdown: Array<{ category: string; total: number }>; grandTotal: number;
     }>,
     apiGet("/api/firm/accounts/reports/trust", cookieHeader) as Promise<{
@@ -71,7 +79,7 @@ test("Download Excel produces a correctly structured .xlsx matching API data", a
     }>,
   ]);
 
-  // ── 3. Navigate to Accounts > Reports and trigger the download ────────────
+  // ── 3. Navigate to Accounts > Reports and open the export dialog ──────────
   await page.goto("/mylawfirmai/accounts");
 
   // Accounts page requires manager; if StaffGate still visible, fill it.
@@ -84,20 +92,26 @@ test("Download Excel produces a correctly structured .xlsx matching API data", a
   await page.waitForSelector('[role="tablist"]', { timeout: 20_000 });
   await page.getByRole("tab", { name: /reports/i }).click();
 
+  // "Download Excel" now opens a date-range dialog; click it to open.
   const downloadBtn = page.getByRole("button", { name: /download excel/i });
   await downloadBtn.waitFor({ timeout: 10_000 });
   await expect(downloadBtn).toBeEnabled();
+  await downloadBtn.click();
 
+  // Wait for the Export Date Range dialog to appear.
+  await page.waitForSelector('text=Export Date Range', { timeout: 10_000 });
+
+  // The dialog defaults are already set (Jan → current month). Click "Export Excel".
   const [download] = await Promise.all([
     context.waitForEvent("download", { timeout: 45_000 }),
-    downloadBtn.click(),
+    page.getByRole("button", { name: /export excel/i }).click(),
   ]);
 
   // ── 4. Filename ───────────────────────────────────────────────────────────
-  expect(download.suggestedFilename()).toBe(`accounts-report-${year}.xlsx`);
+  expect(download.suggestedFilename()).toBe(expectedFilename);
 
   // ── 5. Save and parse the downloaded file with ExcelJS ───────────────────
-  const tmpPath = path.join(os.tmpdir(), `accounts-report-${year}-e2e.xlsx`);
+  const tmpPath = path.join(os.tmpdir(), `accounts-report-e2e.xlsx`);
   await download.saveAs(tmpPath);
   expect(fs.existsSync(tmpPath)).toBe(true);
   expect(fs.statSync(tmpPath).size).toBeGreaterThan(0);
@@ -107,7 +121,7 @@ test("Download Excel produces a correctly structured .xlsx matching API data", a
 
   // ── 6. Sheet count and names ──────────────────────────────────────────────
   expect(wb.worksheets).toHaveLength(3);
-  expect(wb.worksheets[0].name).toBe(`P&L ${year}`);
+  expect(wb.worksheets[0].name).toBe(`P&L ${rangeLabel}`);
   expect(wb.worksheets[1].name).toBe("Expense Breakdown");
   expect(wb.worksheets[2].name).toBe("Trust Balances");
 

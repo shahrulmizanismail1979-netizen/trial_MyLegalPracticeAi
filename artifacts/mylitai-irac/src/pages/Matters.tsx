@@ -66,8 +66,14 @@ export default function Matters() {
     try {
       const year = new Date().getFullYear();
       const baseNotes = `File Ref: MLA/${year}/${Math.floor(1000 + Math.random() * 9000)}`;
-      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
-      const notes = fileContext ? baseNotes + '\n\n--- Supporting Documents ---\n' + fileContext : baseNotes;
+      const NOTES_BUDGET = 19_800;
+      const SEP = '\n\n--- Supporting Documents ---\n';
+      const fcBudget = Math.max(0, NOTES_BUDGET - baseNotes.length - SEP.length);
+      let fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      if (fileContext.length > fcBudget) {
+        fileContext = fileContext.slice(0, Math.max(0, fcBudget - 60)) + '\n[… document text truncated — matter notes limit reached]';
+      }
+      const notes = fileContext ? baseNotes + SEP + fileContext : baseNotes;
       const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
       await createMatter.mutateAsync({
         title: title.trim(),
