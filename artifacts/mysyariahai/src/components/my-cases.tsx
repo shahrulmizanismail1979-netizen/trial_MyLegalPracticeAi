@@ -126,11 +126,11 @@ function CaseRow({ m }: { m: MatterBriefing }) {
 
         <div className="flex items-center gap-2 pt-0.5">
           <PrepareButton m={m} />
-          <Link href={`/matters/${m.id}`} className="ml-auto">
-            <Button variant="ghost" size="sm" className="gap-1.5 text-secondary" data-testid={`my-case-open-${m.id}`}>
+          <Button variant="ghost" size="sm" className="ml-auto gap-1.5 text-secondary" data-testid={`my-case-open-${m.id}`} asChild>
+            <Link href={`/matters/${m.id}`}>
               {t("Open matter", "Buka fail")} <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -278,11 +278,9 @@ export default function MyCases() {
                 "Buka fail kes untuk mula menjejaki peringkat, tarikh akhir dan langkah seterusnya.",
               )}
             </p>
-            <Link href="/matters">
-              <Button size="sm" className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="my-cases-create">
-                {t("Create a matter", "Buka fail kes")} <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+            <Button size="sm" className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground" data-testid="my-cases-create" asChild>
+              <Link href="/matters">{t("Create a matter", "Buka fail kes")} <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (

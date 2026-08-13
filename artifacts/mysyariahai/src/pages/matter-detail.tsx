@@ -1152,7 +1152,7 @@ export default function MatterDetailPage() {
     return (
       <div className="p-8 text-center space-y-3">
         <p className="text-muted-foreground">{t("Matter not found.", "Fail kes tidak dijumpai.")}</p>
-        <Link href="/matters"><Button variant="outline">{t("Back to matters", "Kembali ke fail kes")}</Button></Link>
+        <Button variant="outline" asChild><Link href="/matters">{t("Back to matters", "Kembali ke fail kes")}</Link></Button>
       </div>
     );
   }
@@ -1244,10 +1244,8 @@ export default function MatterDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="space-y-1 min-w-0">
-          <Link href="/matters">
-            <button className="text-xs text-muted-foreground hover:text-secondary flex items-center gap-1 transition-colors">
-              <ArrowLeft className="h-3.5 w-3.5" /> {t("All matters", "Semua fail kes")}
-            </button>
+          <Link href="/matters" className="text-xs text-muted-foreground hover:text-secondary flex items-center gap-1 transition-colors">
+            <ArrowLeft className="h-3.5 w-3.5" /> {t("All matters", "Semua fail kes")}
           </Link>
           <h1 className="text-2xl font-serif font-bold text-foreground" data-testid="matter-detail-title">{matter.title}</h1>
           <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
@@ -1340,11 +1338,9 @@ export default function MatterDetailPage() {
             <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">{t("Launch AI Tools for This Matter", "Lancar Alat AI untuk Kes Ini")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {aiTools.map((tool) => (
-                <Link key={tool.id} href={tool.href}>
-                  <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5 transition-all text-sm">
-                    <Brain className="h-4 w-4 text-secondary shrink-0" />
-                    <span className="font-medium text-foreground truncate">{tool.name}</span>
-                  </button>
+                <Link key={tool.id} href={tool.href} className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5 transition-all text-sm">
+                  <Brain className="h-4 w-4 text-secondary shrink-0" />
+                  <span className="font-medium text-foreground truncate">{tool.name}</span>
                 </Link>
               ))}
             </div>
@@ -1456,11 +1452,9 @@ export default function MatterDetailPage() {
             <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-3">{t("Draft for This Matter", "Draf untuk Kes Ini")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {aiTools.map((tool) => (
-                <Link key={tool.id} href={tool.href}>
-                  <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5 transition-all text-sm">
-                    <Brain className="h-4 w-4 text-secondary shrink-0" />
-                    <span className="font-medium text-foreground truncate">{tool.name}</span>
-                  </button>
+                <Link key={tool.id} href={tool.href} className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-secondary/40 hover:bg-secondary/5 transition-all text-sm">
+                  <Brain className="h-4 w-4 text-secondary shrink-0" />
+                  <span className="font-medium text-foreground truncate">{tool.name}</span>
                 </Link>
               ))}
             </div>

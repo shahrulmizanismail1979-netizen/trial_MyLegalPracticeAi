@@ -23,18 +23,16 @@ export function CausePaperDetailPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Cause paper not found</h2>
-        <Link href="/workspace/cause-papers"><Button className="mt-6">Back to Cause Papers</Button></Link>
+        <Button className="mt-6" asChild><Link href="/workspace/cause-papers">Back to Cause Papers</Link></Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      <Link href="/workspace/cause-papers">
-        <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cause Papers
-        </Button>
-      </Link>
+      <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground" asChild>
+        <Link href="/workspace/cause-papers"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Cause Papers</Link>
+      </Button>
 
       <article className="space-y-8">
         <header className="space-y-4">

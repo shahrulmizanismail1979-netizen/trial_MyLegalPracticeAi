@@ -58,7 +58,7 @@ export default function BundleDetail() {
   if (!bundle) return (
     <div className="p-12 text-center">
       <p className="text-muted-foreground mb-4">Bundle not found.</p>
-      <Link href="/app/bundles"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to bundles</Button></Link>
+      <Link href="/app/bundles" className="inline-flex items-center justify-center gap-2 rounded-md transition-all duration-200 border border-border bg-transparent hover:bg-secondary text-foreground h-11 px-6 font-medium"><ArrowLeft className="h-4 w-4" /> Back to bundles</Link>
     </div>
   );
 
@@ -129,10 +129,8 @@ export default function BundleDetail() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
-      <Link href="/app/bundles">
-        <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-4 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> All bundles
-        </button>
+      <Link href="/app/bundles" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary mb-4 transition-colors">
+        <ArrowLeft className="h-4 w-4" /> All bundles
       </Link>
 
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">

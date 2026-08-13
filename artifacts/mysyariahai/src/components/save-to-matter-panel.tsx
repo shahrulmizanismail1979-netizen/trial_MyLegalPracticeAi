@@ -110,11 +110,11 @@ export function SaveToMatterPanel({
           {t("Filed into", "Difailkan ke dalam")}{" "}
           <span className="font-semibold">{savedMatter.title}</span>
         </div>
-        <Link href={`/matters/${savedMatter.id}`}>
-          <Button size="sm" variant="outline" className="gap-1.5 text-emerald-300 border-emerald-800/40">
+        <Button size="sm" variant="outline" className="gap-1.5 text-emerald-300 border-emerald-800/40" asChild>
+          <Link href={`/matters/${savedMatter.id}`}>
             {t("Open matter file", "Buka fail kes")} <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     );
   }

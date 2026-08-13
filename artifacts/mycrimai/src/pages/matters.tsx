@@ -294,11 +294,11 @@ function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: Matter
           >
             <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
           </Button>
-          <Link href={`/workspace/matters/${m.id}`}>
-            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" asChild>
+            <Link href={`/workspace/matters/${m.id}`}>
               Open <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

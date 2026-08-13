@@ -104,13 +104,13 @@ export default function AccountPage() {
 
       <div className="mt-5 flex flex-col sm:flex-row gap-3">
         {user.accountType === "email" && (
-          <Link href="/pricing" className="flex-1">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-view-plans">
+          <Button className="flex-1 w-full bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-view-plans" asChild>
+            <Link href="/pricing">
               {user.tier === "starter"
                 ? isBm ? "Naik Taraf Pelan" : "Upgrade Plan"
                 : isBm ? "Tukar Pelan" : "Change Plan"}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         )}
         {isPaid && (
           <Button

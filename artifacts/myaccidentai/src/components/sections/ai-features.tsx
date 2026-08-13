@@ -78,11 +78,11 @@ export function AIFeatures() {
 
             <div className="px-4 py-3 border-t border-border/40 bg-card/80 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">Visual preview only. Full interactive tools live inside the workspace.</p>
-              <Link href="/workspace" data-testid="link-preview-open-workspace">
-                <Button size="sm" className="h-8 gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button size="sm" className="h-8 gap-2 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                <Link href="/workspace" data-testid="link-preview-open-workspace">
                   Open in Workspace <ArrowRight className="h-3 w-3" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
 
             <div className="absolute inset-0 pointer-events-none rounded-2xl ring-1 ring-inset ring-white/5 dark:ring-white/10"></div>

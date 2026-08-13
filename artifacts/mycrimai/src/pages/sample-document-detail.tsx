@@ -23,18 +23,16 @@ export function SampleDocumentDetailPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Document not found</h2>
-        <Link href="/workspace/sample-documents"><Button className="mt-6">Back to Sample Documents</Button></Link>
+        <Button className="mt-6" asChild><Link href="/workspace/sample-documents">Back to Sample Documents</Link></Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      <Link href="/workspace/sample-documents">
-        <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Sample Documents
-        </Button>
-      </Link>
+      <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground" asChild>
+        <Link href="/workspace/sample-documents"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Sample Documents</Link>
+      </Button>
 
       <article className="space-y-8">
         <header className="space-y-4">

@@ -17,12 +17,12 @@ export function LandingPage() {
             <span className="font-serif font-bold text-xl tracking-tight">Mycrim<span className="text-primary">Ai</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost" className="hidden sm:inline-flex font-medium">Practitioner Login</Button>
-            </Link>
-            <Link href="/workspace">
-              <Button className="font-medium">Enter Workspace <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            </Link>
+            <Button variant="ghost" className="hidden sm:inline-flex font-medium" asChild>
+              <Link href="/login">Practitioner Login</Link>
+            </Button>
+            <Button className="font-medium" asChild>
+              <Link href="/workspace">Enter Workspace <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -51,16 +51,12 @@ export function LandingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-              <Link href="/workspace">
-                <Button size="lg" className="w-full sm:w-auto text-base h-12 px-8">
-                  Access Workspace
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto text-base h-12 px-8">
-                  Practitioner Login
-                </Button>
-              </Link>
+              <Button size="lg" className="w-full sm:w-auto text-base h-12 px-8" asChild>
+                <Link href="/workspace">Access Workspace</Link>
+              </Button>
+              <Button variant="outline" size="lg" className="w-full sm:w-auto text-base h-12 px-8" asChild>
+                <Link href="/login">Practitioner Login</Link>
+              </Button>
             </div>
           </div>
         </div>

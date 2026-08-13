@@ -30,20 +30,16 @@ export function CaseLawDetailPage() {
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Case law not found</h2>
         <p className="text-muted-foreground mt-2">The case you're looking for doesn't exist.</p>
-        <Link href="/workspace/case-laws">
-          <Button className="mt-6">Back to Case Laws</Button>
-        </Link>
+        <Button className="mt-6" asChild><Link href="/workspace/case-laws">Back to Case Laws</Link></Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      <Link href="/workspace/case-laws">
-        <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Case Laws
-        </Button>
-      </Link>
+      <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground" asChild>
+        <Link href="/workspace/case-laws"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Case Laws</Link>
+      </Button>
 
       <article className="space-y-8">
         <header className="space-y-4">

@@ -802,7 +802,7 @@ export default function MatterDetail() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground mb-4">This matter could not be found.</p>
-        <Link href="/app/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to matters</Button></Link>
+        <Link href="/app/matters" className="inline-flex items-center justify-center gap-2 rounded-md transition-all duration-200 border border-border bg-transparent hover:bg-secondary text-foreground h-11 px-6 font-medium"><ArrowLeft className="h-4 w-4" /> Back to matters</Link>
       </div>
     );
   }
@@ -988,10 +988,8 @@ export default function MatterDetail() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <Link href="/app/matters">
-        <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" /> All matters
-        </button>
+      <Link href="/app/matters" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+        <ArrowLeft className="h-4 w-4" /> All matters
       </Link>
 
       <PageHeader
@@ -1124,9 +1122,7 @@ export default function MatterDetail() {
                     </p>
                   </div>
                 </div>
-                <Link href={`/app/practice/${hubEntry.matter.id}?matter=${matter.id}`}>
-                  <Button className="gap-2">Draft for this matter <ArrowRight className="h-4 w-4" /></Button>
-                </Link>
+                <Link href={`/app/practice/${hubEntry.matter.id}?matter=${matter.id}`} className="inline-flex items-center justify-center gap-2 rounded-md transition-all duration-200 bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 h-11 px-6 font-medium">Draft for this matter <ArrowRight className="h-4 w-4" /></Link>
               </CardContent>
             </Card>
           )}

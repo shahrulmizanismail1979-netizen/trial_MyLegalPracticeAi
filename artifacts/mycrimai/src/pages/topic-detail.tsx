@@ -33,20 +33,16 @@ export function TopicDetailPage() {
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Topic not found</h2>
         <p className="text-muted-foreground mt-2">The topic you're looking for doesn't exist or has been removed.</p>
-        <Link href="/workspace/topics">
-          <Button className="mt-6">Back to Topics</Button>
-        </Link>
+        <Button className="mt-6" asChild><Link href="/workspace/topics">Back to Topics</Link></Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      <Link href="/workspace/topics">
-        <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Topics
-        </Button>
-      </Link>
+      <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground" asChild>
+        <Link href="/workspace/topics"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Topics</Link>
+      </Button>
 
       <article className="space-y-8">
         <header className="space-y-4">

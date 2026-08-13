@@ -25,11 +25,9 @@ export default function BillingPage() {
       <header className="border-b border-border bg-card/50 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/workspace/matters">
-              <Button variant="ghost" size="icon" data-testid="link-back">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" data-testid="link-back" asChild>
+              <Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /></Link>
+            </Button>
             <div className="flex items-center gap-2 min-w-0">
               <Calculator className="h-5 w-5 text-primary flex-shrink-0" />
               <div className="min-w-0">
@@ -40,11 +38,9 @@ export default function BillingPage() {
               </div>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Home className="h-4 w-4" /> Home
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/"><Home className="h-4 w-4" /> Home</Link>
+          </Button>
         </div>
       </header>
 

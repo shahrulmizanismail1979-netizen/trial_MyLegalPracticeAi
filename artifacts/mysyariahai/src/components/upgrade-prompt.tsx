@@ -48,11 +48,9 @@ export default function UpgradePrompt({
                 : "Access-code accounts should have full access — try logging in again."}
             </p>
           ) : (
-            <Link href="/pricing">
-              <Button className="mt-5 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-upgrade">
-                {isBm ? "Lihat Pelan" : "View Plans"}
-              </Button>
-            </Link>
+            <Button className="mt-5 bg-primary hover:bg-primary/90 text-primary-foreground" data-testid="button-upgrade" asChild>
+              <Link href="/pricing">{isBm ? "Lihat Pelan" : "View Plans"}</Link>
+            </Button>
           )}
         </CardContent>
       </Card>

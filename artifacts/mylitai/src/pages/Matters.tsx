@@ -347,10 +347,8 @@ function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: Matter
           <Button variant="outline" size="sm" className="gap-2" onClick={() => onPrepare(m)}>
             <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
           </Button>
-          <Link href={`/app/matters/${m.id}`}>
-            <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
-              Open <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+          <Link href={`/app/matters/${m.id}`} className="inline-flex items-center justify-center gap-1 rounded-md transition-all duration-200 bg-transparent hover:bg-secondary text-muted-foreground h-9 px-3 text-sm">
+            Open <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </CardContent>

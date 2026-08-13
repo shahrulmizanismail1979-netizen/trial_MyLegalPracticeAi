@@ -144,16 +144,12 @@ export default function MattersPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/workspace">
-              <Button variant="outline" size="sm" className="gap-2" data-testid="link-back-workspace">
-                <ArrowLeft className="h-4 w-4" /> Workspace
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Home className="h-4 w-4" /> Home
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" className="gap-2" data-testid="link-back-workspace" asChild>
+              <Link href="/workspace"><ArrowLeft className="h-4 w-4" /> Workspace</Link>
+            </Button>
+            <Button variant="outline" size="sm" className="gap-2" asChild>
+              <Link href="/"><Home className="h-4 w-4" /> Home</Link>
+            </Button>
             <Button size="sm" onClick={() => setOpen(true)} className="gap-2" data-testid="button-new-matter">
               <Plus className="h-4 w-4" /> New matter
             </Button>

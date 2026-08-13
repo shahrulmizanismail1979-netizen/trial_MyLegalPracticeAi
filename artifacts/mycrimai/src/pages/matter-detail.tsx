@@ -1244,7 +1244,7 @@ export function MatterDetailPage() {
     return (
       <div className="p-8 text-center">
         <p className="text-muted-foreground mb-4">This matter could not be found.</p>
-        <Link href="/workspace/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to matters</Button></Link>
+        <Button variant="outline" className="gap-2" asChild><Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /> Back to matters</Link></Button>
       </div>
     );
   }
@@ -1409,10 +1409,8 @@ export function MatterDetailPage() {
   return (
     <div className="pb-16">
       {/* Header */}
-      <Link href="/workspace/matters">
-        <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" /> All matters
-        </button>
+      <Link href="/workspace/matters" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+        <ArrowLeft className="h-4 w-4" /> All matters
       </Link>
 
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
@@ -1511,11 +1509,11 @@ export function MatterDetailPage() {
                   </p>
                 </div>
               </div>
-              <Link href={linkedWorkflow ? `/workspace/workflows/${linkedWorkflow.id}` : "/workspace/workflows"}>
-                <Button size="sm" className="gap-2 shrink-0">
+              <Button size="sm" className="gap-2 shrink-0" asChild>
+                <Link href={linkedWorkflow ? `/workspace/workflows/${linkedWorkflow.id}` : "/workspace/workflows"}>
                   {linkedWorkflow ? "Open workflow" : "Browse workflows"} <ChevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardContent>
           </Card>
 
@@ -1526,11 +1524,9 @@ export function MatterDetailPage() {
               {aiTools.map((tool) => {
                 const Icon = tool.icon;
                 return (
-                  <Link key={tool.name} href={tool.href}>
-                    <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
-                      <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-medium text-foreground truncate">{tool.name}</span>
-                    </button>
+                  <Link key={tool.name} href={tool.href} className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
+                    <Icon className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-medium text-foreground truncate">{tool.name}</span>
                   </Link>
                 );
               })}
@@ -1730,11 +1726,9 @@ export function MatterDetailPage() {
               {aiTools.map((tool) => {
                 const Icon = tool.icon;
                 return (
-                  <Link key={tool.name} href={tool.href}>
-                    <button className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
-                      <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-medium text-foreground truncate">{tool.name}</span>
-                    </button>
+                  <Link key={tool.name} href={tool.href} className="w-full text-left flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-card/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-sm">
+                    <Icon className="h-4 w-4 text-primary shrink-0" />
+                    <span className="font-medium text-foreground truncate">{tool.name}</span>
                   </Link>
                 );
               })}

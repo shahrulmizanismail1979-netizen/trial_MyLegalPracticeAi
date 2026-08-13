@@ -205,11 +205,9 @@ export default function Landing() {
           </div>
         )}
 
-        <Link href="/login">
-          <button className="inline-flex items-center gap-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-[#080c18] font-bold text-lg px-10 py-4 rounded-full transition-all duration-200 shadow-xl shadow-amber-500/25 hover:shadow-amber-400/35 hover:scale-[1.03] cursor-pointer select-none">
-            {t('cta.enter')}
-            <span className="text-xl leading-none">→</span>
-          </button>
+        <Link href="/login" className="inline-flex items-center gap-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-[#080c18] font-bold text-lg px-10 py-4 rounded-full transition-all duration-200 shadow-xl shadow-amber-500/25 hover:shadow-amber-400/35 hover:scale-[1.03] select-none">
+          {t('cta.enter')}
+          <span className="text-xl leading-none">→</span>
         </Link>
 
         <p className="mt-10 mb-16 text-[11px] tracking-[0.2em] text-gray-600 uppercase font-medium">

@@ -99,10 +99,8 @@ export function SaveToMatterPanel({
         <div className="flex items-center gap-2 text-sm text-emerald-300">
           <Check className="h-4 w-4" /> Filed into <span className="font-semibold">{savedMatter.title}</span>
         </div>
-        <Link href={`/app/matters/${savedMatter.id}`}>
-          <Button size="sm" variant="outline" className="gap-1.5 text-emerald-300 border-emerald-800/40">
-            Open matter file <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
+        <Link href={`/app/matters/${savedMatter.id}`} className="inline-flex items-center justify-center gap-1.5 rounded-md transition-all duration-200 border border-emerald-800/40 bg-transparent hover:bg-secondary text-emerald-300 h-9 px-3 text-sm">
+          Open matter file <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
     );

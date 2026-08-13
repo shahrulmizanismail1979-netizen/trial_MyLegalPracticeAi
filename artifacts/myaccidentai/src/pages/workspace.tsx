@@ -131,21 +131,15 @@ export default function Workspace() {
         </nav>
 
         <div className="p-4 border-t border-border space-y-2">
-          <Link href="/workspace/matters" data-testid="link-matters-from-workspace">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <Folder className="h-4 w-4" /> Matter Files
-            </Button>
-          </Link>
-          <Link href="/workspace/billing" data-testid="link-billing-from-workspace">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <Calculator className="h-4 w-4" /> Billing
-            </Button>
-          </Link>
-          <Link href="/" data-testid="link-home-from-workspace">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <Home className="h-4 w-4" /> Home
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+            <Link href="/workspace/matters" data-testid="link-matters-from-workspace"><Folder className="h-4 w-4" /> Matter Files</Link>
+          </Button>
+          <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+            <Link href="/workspace/billing" data-testid="link-billing-from-workspace"><Calculator className="h-4 w-4" /> Billing</Link>
+          </Button>
+          <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+            <Link href="/" data-testid="link-home-from-workspace"><Home className="h-4 w-4" /> Home</Link>
+          </Button>
           <Button variant="outline" size="sm" className="w-full gap-2 text-destructive" onClick={handleLogout} data-testid="button-logout">
             <LogOut className="h-4 w-4" /> Logout
           </Button>

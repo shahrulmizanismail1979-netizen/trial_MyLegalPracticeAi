@@ -148,11 +148,9 @@ export default function MatterDetailPage() {
     return (
       <div className="max-w-4xl mx-auto p-6 text-center">
         <p className="text-muted-foreground">Matter not found.</p>
-        <Link href="/workspace/matters">
-          <Button variant="outline" size="sm" className="mt-4 gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to matters
-          </Button>
-        </Link>
+        <Button variant="outline" size="sm" className="mt-4 gap-2" asChild>
+          <Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /> Back to matters</Link>
+        </Button>
       </div>
     );
   }
@@ -174,11 +172,9 @@ export default function MatterDetailPage() {
       <header className="border-b border-border bg-card/50 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/workspace/matters">
-              <Button variant="ghost" size="icon" data-testid="link-back">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" data-testid="link-back" asChild>
+              <Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /></Link>
+            </Button>
             <div className="min-w-0">
               <h1 className="text-lg font-serif font-bold truncate" data-testid="text-matter-title">{matter.title}</h1>
               <p className="text-xs text-muted-foreground truncate">
@@ -187,11 +183,9 @@ export default function MatterDetailPage() {
               </p>
             </div>
           </div>
-          <Link href="/">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Home className="h-4 w-4" /> Home
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/"><Home className="h-4 w-4" /> Home</Link>
+          </Button>
         </div>
       </header>
 

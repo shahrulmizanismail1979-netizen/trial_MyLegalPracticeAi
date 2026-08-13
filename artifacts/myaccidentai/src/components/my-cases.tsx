@@ -199,11 +199,11 @@ function CaseRow({ m }: { m: MatterBriefing }) {
 
       <div className="flex items-center gap-2 pt-0.5">
         <PrepareButton m={m} />
-        <Link href={`/workspace/matters/${m.id}`} className="ml-auto">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-primary" data-testid={`my-case-open-${m.id}`}>
+        <Button variant="ghost" size="sm" className="ml-auto gap-1.5 text-primary" data-testid={`my-case-open-${m.id}`} asChild>
+          <Link href={`/workspace/matters/${m.id}`}>
             Open matter <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -246,11 +246,9 @@ export default function MyCases() {
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
             Open a matter file to start tracking stages, deadlines and next steps.
           </p>
-          <Link href="/workspace/matters">
-            <Button size="sm" className="gap-2" data-testid="my-cases-create">
-              Create a matter <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <Button size="sm" className="gap-2" data-testid="my-cases-create" asChild>
+            <Link href="/workspace/matters">Create a matter <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

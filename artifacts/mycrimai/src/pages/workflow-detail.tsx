@@ -29,7 +29,7 @@ export function WorkflowDetailPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-2xl font-bold">Workflow not found</h2>
-        <Link href="/workspace/workflows"><Button className="mt-6">Back to Workflows</Button></Link>
+        <Button className="mt-6" asChild><Link href="/workspace/workflows">Back to Workflows</Link></Button>
       </div>
     );
   }
@@ -39,11 +39,9 @@ export function WorkflowDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto pb-16">
-      <Link href="/workspace/workflows">
-        <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Workflows
-        </Button>
-      </Link>
+      <Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground" asChild>
+        <Link href="/workspace/workflows"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Workflows</Link>
+      </Button>
 
       <article className="space-y-8">
         <header className="space-y-4">

@@ -80,7 +80,7 @@ export default function PracticeMatter() {
     return (
       <div className="p-8 text-center space-y-4">
         <p className="text-muted-foreground">Matter type not found.</p>
-        <Link href="/app/practice"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to Your Online LA</Button></Link>
+        <Link href="/app/practice" className="inline-flex items-center justify-center gap-2 rounded-md transition-all duration-200 border border-border bg-transparent hover:bg-secondary text-foreground h-11 px-6 font-medium"><ArrowLeft className="h-4 w-4" /> Back to Your Online LA</Link>
       </div>
     );
   }
@@ -102,18 +102,14 @@ export default function PracticeMatter() {
             <span className="font-semibold text-primary">{linkedMatter.title}</span>
             {' '}<span className="text-xs text-muted-foreground">— drafts made here will be filed into this matter.</span>
           </p>
-          <Link href={`/app/matters/${linkedMatter.id}`}>
-            <Button size="sm" variant="outline" className="gap-1.5"><ArrowRight className="h-3.5 w-3.5" /> Open matter file</Button>
-          </Link>
+          <Link href={`/app/matters/${linkedMatter.id}`} className="inline-flex items-center justify-center gap-1.5 rounded-md transition-all duration-200 border border-border bg-transparent hover:bg-secondary text-foreground h-9 px-3 text-sm"><ArrowRight className="h-3.5 w-3.5" /> Open matter file</Link>
         </div>
       )}
 
       {matter.moduleLink && (
         <div className="mb-6 -mt-2">
-          <Link href={matter.moduleLink.path}>
-            <Button variant="outline" className="gap-2 text-primary border-primary/30">
-              <ExternalLink className="h-4 w-4" /> {matter.moduleLink.label}
-            </Button>
+          <Link href={matter.moduleLink.path} className="inline-flex items-center justify-center gap-2 rounded-md transition-all duration-200 border border-primary/30 bg-transparent hover:bg-secondary text-primary h-11 px-6 font-medium">
+            <ExternalLink className="h-4 w-4" /> {matter.moduleLink.label}
           </Link>
         </div>
       )}

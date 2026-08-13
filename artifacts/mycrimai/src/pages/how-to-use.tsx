@@ -212,11 +212,11 @@ export function HowToUsePage() {
       </Card>
 
       <div className="text-center pt-4">
-        <Link href="/workspace">
-          <Button size="lg" className="font-medium">
+        <Button size="lg" className="font-medium" asChild>
+          <Link href="/workspace">
             Go to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
     </div>
   );
