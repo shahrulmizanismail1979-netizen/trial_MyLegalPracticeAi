@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Plus, ArrowRight, Building2, Users, Hash, Sparkles } from "lucide-react";
+import { MatterFileUpload, type ExtractedFile } from "@/components/MatterFileUpload";
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   open: { label: "Open", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
@@ -45,6 +46,7 @@ export default function MattersPage() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<MatterInput>(EMPTY);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
 
   useEffect(() => {
     if (!localStorage.getItem("auth_token")) setLocation("/login");
@@ -58,10 +60,15 @@ export default function MattersPage() {
       return;
     }
     try {
-      await createMatter.mutateAsync(form);
-      toast({ title: "Matter created", description: `“${form.title}” is now in your workspace.` });
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext
+        ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
+        : (form.notes ?? '');
+      await createMatter.mutateAsync({ ...form, notes });
+      toast({ title: "Matter created", description: `"${form.title}" is now in your workspace.` });
       setOpen(false);
       setForm(EMPTY);
+      setExtractedFiles([]);
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         toast({ title: "Premium feature", description: "Creating matters needs an active subscription.", variant: "destructive" });
@@ -165,7 +172,7 @@ export default function MattersPage() {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setExtractedFiles([]); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">New Matter</DialogTitle>
@@ -213,9 +220,13 @@ export default function MattersPage() {
               <Label>Notes</Label>
               <Textarea value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} placeholder="Background, deal terms, key contacts…" rows={3} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setOpen(false); setExtractedFiles([]); }}>Cancel</Button>
             <Button onClick={submit} disabled={createMatter.isPending}>
               {createMatter.isPending ? "Creating…" : "Create matter"}
             </Button>

@@ -3,7 +3,8 @@ import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { useLocation, useParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PRACTITIONER_TOOLS } from "@/data/ai-tools-data";
-import { ArrowLeft, Send, Loader2, Copy, Check, Download, RotateCcw, Sparkles, Lock, Volume2, Square } from "lucide-react";
+import { ArrowLeft, Send, Loader2, RotateCcw, Sparkles, Lock, Volume2, Square } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
@@ -27,7 +28,6 @@ export default function ToolDetailPage() {
   const [output, setOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const outputRef = useRef<HTMLDivElement>(null);
 
@@ -169,22 +169,6 @@ export default function ToolDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = () => {
-    const blob = new Blob([output], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${tool.id}-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleReset = () => {
@@ -335,20 +319,7 @@ export default function ToolDetailPage() {
                       {tts.isPlaying ? "Stop" : "Read aloud"}
                     </button>
                   )}
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent/10 transition-colors"
-                  >
-                    {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-accent/10 transition-colors"
-                  >
-                    <Download className="w-3 h-3" />
-                    Download
-                  </button>
+                  <DraftExportButtons title={tool?.name || "Document"} content={output} hideMarkdown />
                 </div>
               )}
             </div>

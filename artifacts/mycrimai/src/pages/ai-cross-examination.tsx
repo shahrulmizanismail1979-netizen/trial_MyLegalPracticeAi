@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { MessageSquareWarning, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -109,13 +110,19 @@ export function AiCrossExaminationPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {!isStreaming && response && (
-                  <SaveToMatterPanel
-                    draftTitle={witnessRole ? `Cross-Examination Questions — ${witnessRole}` : "Cross-Examination Questions"}
-                    draftContent={response}
-                    kind="cross-examination"
-                    sourceLabel="Cross-Examination Helper"
-                    inputJson={{ witnessStatement, witnessRole, caseContext }}
-                  />
+                  <div className="space-y-3">
+                    <DraftExportButtons
+                      title={witnessRole ? `Cross-Examination Questions — ${witnessRole}` : "Cross-Examination Questions"}
+                      content={response}
+                    />
+                    <SaveToMatterPanel
+                      draftTitle={witnessRole ? `Cross-Examination Questions — ${witnessRole}` : "Cross-Examination Questions"}
+                      draftContent={response}
+                      kind="cross-examination"
+                      sourceLabel="Cross-Examination Helper"
+                      inputJson={{ witnessStatement, witnessRole, caseContext }}
+                    />
+                  </div>
                 )}
                 <MarkdownRenderer content={response} />
               </CardContent>

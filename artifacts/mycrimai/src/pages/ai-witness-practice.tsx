@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Users, Send, Loader2, RotateCcw, Bot, User, Settings2, Mic, MicOff, Volume2, VolumeX, Square } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -353,7 +354,11 @@ export function AiWitnessPracticePage() {
       </div>
 
       {!isStreaming && hasWitnessReply && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          <DraftExportButtons
+            title={witnessTranscriptTitle}
+            content={witnessTranscript}
+          />
           <SaveToMatterPanel
             draftTitle={witnessTranscriptTitle}
             draftContent={witnessTranscript}

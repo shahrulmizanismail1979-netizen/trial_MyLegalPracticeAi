@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Lightbulb, Loader2, RotateCcw } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,7 +139,11 @@ The investigating officer admitted under cross-examination that the chain of cus
               </div>
             )}
             {response && !isStreaming && (
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                <DraftExportButtons
+                  title="Appeal Grounds Analysis"
+                  content={response}
+                />
                 <SaveToMatterPanel
                   draftTitle="Appeal Grounds Analysis"
                   draftContent={response}

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import ExportActions from "@/components/export-actions";
 
 function formatAnalyzerText(result: AnalysisResult, t: (en: string, bm: string) => string): string {
   const lines: string[] = [];
@@ -489,6 +490,7 @@ export default function AnalyzerPage() {
             <p className="text-xs text-muted-foreground italic text-center">{result.disclaimer}</p>
           )}
 
+          <ExportActions content={formatAnalyzerText(result, ts)} filenameBase={ts("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")} />
           <SaveToMatterPanel
             draftTitle={ts("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}
             draftContent={formatAnalyzerText(result, ts)}

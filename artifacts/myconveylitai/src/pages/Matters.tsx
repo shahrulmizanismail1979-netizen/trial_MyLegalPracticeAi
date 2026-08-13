@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import {
   FolderKanban, Plus, ArrowLeft, Loader2, FileText, CalendarClock, Building2, Users, X,
 } from 'lucide-react';
+import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
 import {
   useMatters,
   useCreateMatter,
@@ -24,6 +25,7 @@ export function Matters() {
   const createMatter = useCreateMatter();
 
   const [open, setOpen] = useState(false);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
   const [form, setForm] = useState<{ title: string; clientName: string; counterparty: string; matterType: string; propertyAddress: string; notes: string }>({
     title: '', clientName: '', counterparty: '', matterType: 'SPA', propertyAddress: '', notes: '',
   });
@@ -41,6 +43,8 @@ export function Matters() {
       const notesParts: string[] = [];
       if (form.propertyAddress.trim()) notesParts.push(`Property address: ${form.propertyAddress.trim()}`);
       if (form.notes.trim()) notesParts.push(form.notes.trim());
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      if (fileContext) notesParts.push('--- Supporting Documents ---\n' + fileContext);
       const matter = await createMatter.mutateAsync({
         title: form.title.trim(),
         clientName: form.clientName.trim() || null,
@@ -52,6 +56,7 @@ export function Matters() {
       } as MatterInput);
       toast({ title: 'Matter created', description: matter.reference ?? undefined });
       setOpen(false);
+      setExtractedFiles([]);
       setForm({ title: '', clientName: '', counterparty: '', matterType: 'SPA', propertyAddress: '', notes: '' });
       navigate(`/matters/${matter.id}`);
     } catch (e) {
@@ -147,7 +152,7 @@ export function Matters() {
           <div className="w-full max-w-lg bg-gold-900 border border-gold-700 rounded-2xl p-6 max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-serif font-bold text-lg text-slate-50">New Matter File</h2>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-200"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setOpen(false); setExtractedFiles([]); }} className="text-slate-400 hover:text-slate-200"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -180,9 +185,13 @@ export function Matters() {
                 <label className={labelCls}>Notes</label>
                 <textarea className={inputCls} rows={3} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Any extra context…" />
               </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Supporting Documents <span className="font-normal text-slate-500 text-xs normal-case">(optional — AI will read these)</span></label>
+                <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+              </div>
               <p className="text-[11px] text-slate-500">A file reference (CVY/YYYY/NNNN) is generated automatically.</p>
               <div className="flex gap-3 pt-1">
-                <button onClick={() => setOpen(false)} className="flex-1 text-sm font-semibold text-slate-300 bg-gold-800 hover:bg-gold-700 border border-gold-700 py-2.5 rounded-xl transition-colors">Cancel</button>
+                <button onClick={() => { setOpen(false); setExtractedFiles([]); }} className="flex-1 text-sm font-semibold text-slate-300 bg-gold-800 hover:bg-gold-700 border border-gold-700 py-2.5 rounded-xl transition-colors">Cancel</button>
                 <button onClick={submit} disabled={createMatter.isPending} className="flex-1 inline-flex items-center justify-center gap-2 text-sm font-bold text-slate-900 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 py-2.5 rounded-xl transition-colors">
                   {createMatter.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Create
                 </button>

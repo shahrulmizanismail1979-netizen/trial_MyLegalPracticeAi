@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Brain, Send, Loader2, RotateCcw, User, Bot, Sparkles } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -89,7 +90,11 @@ export function AiLegalResearchPage() {
       </div>
 
       {!isStreaming && hasAssistantReply && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
+          <DraftExportButtons
+            title={researchTitle}
+            content={researchTranscript}
+          />
           <SaveToMatterPanel
             draftTitle={researchTitle}
             draftContent={researchTranscript}

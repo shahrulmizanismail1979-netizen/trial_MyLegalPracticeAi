@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
 import { FolderKanban, Plus, Loader2, CalendarClock, AlertTriangle, FileText, Hash, ChevronRight, Clock, Sparkles, ListChecks, ArrowRight, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -313,6 +314,7 @@ export function MattersPage() {
   const [open, setOpen] = useState(false);
   const [prepareMatter, setPrepareMatter] = useState<MatterBriefing | null>(null);
   const [prepareOpen, setPrepareOpen] = useState(false);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
   const [form, setForm] = useState({
     title: "",
     clientName: "",
@@ -335,9 +337,12 @@ export function MattersPage() {
       return;
     }
     try {
-      await createMatter.mutateAsync({ ...form, fileRef: generateFileRef(), status: "open" });
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext) : (form.notes ?? '');
+      await createMatter.mutateAsync({ ...form, notes, fileRef: generateFileRef(), status: "open" });
       toast({ title: "Matter created" });
       setOpen(false);
+      setExtractedFiles([]);
       setForm({ title: "", clientName: "", accusedName: "", charge: "", court: "", caseNo: "", stage: "", notes: "" });
     } catch (e) {
       toast({ title: "Could not create matter", description: e instanceof Error ? e.message : "", variant: "destructive" });
@@ -439,7 +444,7 @@ export function MattersPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setExtractedFiles([]); }}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif">New Matter File</DialogTitle>
@@ -486,8 +491,12 @@ export function MattersPage() {
               <Label>Notes</Label>
               <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+            </div>
             <div className="flex gap-3 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setOpen(false); setExtractedFiles([]); }}>Cancel</Button>
               <Button className="flex-1" onClick={submit} disabled={createMatter.isPending} data-testid="button-submit-matter">
                 {createMatter.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Create matter
               </Button>

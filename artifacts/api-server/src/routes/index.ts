@@ -34,11 +34,13 @@ import { acadSession } from "../acad/session";
 import { requireAuth, requireStaff } from "../middlewares/requireAdmin";
 import researchRouter from "../research/routes";
 import { buildPersonasRouter } from "../lib/personas";
+import sharedUploadsRouter from "./shared-uploads";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(sharedUploadsRouter);
 router.use(storageRouter);
 router.use(contributionsRouter);
 router.use(statsRouter);

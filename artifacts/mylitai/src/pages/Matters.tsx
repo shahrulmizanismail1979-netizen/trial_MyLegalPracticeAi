@@ -10,6 +10,7 @@ import {
   type MatterBriefing,
   daysUntil,
 } from '@/hooks/use-matters';
+import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
 import {
   PageHeader,
   Card,
@@ -366,6 +367,7 @@ export default function Matters() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<MatterInput>(EMPTY);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
 
   const set = (k: keyof MatterInput, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -375,10 +377,15 @@ export default function Matters() {
       return;
     }
     try {
-      await createMatter.mutateAsync(form);
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext
+        ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
+        : (form.notes ?? '');
+      await createMatter.mutateAsync({ ...form, notes });
       toast({ title: 'Matter created', description: `"${form.title}" is now in your workspace.` });
       setOpen(false);
       setForm(EMPTY);
+      setExtractedFiles([]);
     } catch (e) {
       if (e instanceof ApiError && e.status === 402) {
         toast({
@@ -508,7 +515,7 @@ export default function Matters() {
         </div>
       )}
 
-      <Modal isOpen={open} onClose={() => setOpen(false)} title="New Matter">
+      <Modal isOpen={open} onClose={() => { setOpen(false); setExtractedFiles([]); }} title="New Matter">
         <div className="space-y-4">
           <div className="flex items-start gap-2 bg-primary/5 border border-primary/15 rounded-lg p-3">
             <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -582,8 +589,13 @@ export default function Matters() {
             <Textarea value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Background, security documents, facility details…" rows={3} />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+            <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+          </div>
+
           <div className="flex gap-3 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" className="flex-1" onClick={() => { setOpen(false); setExtractedFiles([]); }}>Cancel</Button>
             <Button className="flex-1" onClick={submit} disabled={createMatter.isPending}>
               {createMatter.isPending ? 'Creating…' : 'Create matter'}
             </Button>

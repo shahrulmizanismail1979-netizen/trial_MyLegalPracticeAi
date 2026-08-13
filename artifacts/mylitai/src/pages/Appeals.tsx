@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
+import { DraftExportButtons } from '@workspace/draft-export/react';
 import {
   Gavel,
   Scale,
@@ -8,7 +9,6 @@ import {
   Loader2,
   AlertTriangle,
   Check,
-  Copy,
   BookmarkPlus,
   CalendarPlus,
   ChevronRight,
@@ -158,7 +158,6 @@ export default function Appeals() {
   const [disclaimer, setDisclaimer] = useState<string | undefined>();
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveMatterId, setSaveMatterId] = useState<string>('');
 
@@ -499,9 +498,7 @@ export default function Appeals() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Draft</span>
-                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => { navigator.clipboard.writeText(output); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-                    {copied ? <><Check className="h-3.5 w-3.5" />Copied</> : <><Copy className="h-3.5 w-3.5" />Copy</>}
-                  </Button>
+                  <DraftExportButtons title={draftFor ? `${draftFor.paper.name} — ${draftFor.pathway.shortName}` : 'Appeal'} content={output} />
                 </div>
                 <LegalOutput text={output} />
                 {disclaimer && (

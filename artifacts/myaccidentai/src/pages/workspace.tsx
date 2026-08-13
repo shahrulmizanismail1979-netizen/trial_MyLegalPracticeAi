@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccidentCheckSession, useAccidentLogout, getAccidentCheckSessionQueryKey } from "@workspace/api-client-react";
@@ -996,9 +997,7 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
               {loading ? "Analyzing…" : "Analyze Case"}
             </Button>
             {analysis && (
-              <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(analysis)} data-testid="button-copy-analysis">
-                Copy
-              </Button>
+              <DraftExportButtons title="AI Case Analysis" content={analysis} hideMarkdown />
             )}
           </div>
           {error && (
@@ -1067,16 +1066,6 @@ function AiDrafterTab() {
     }
   };
 
-  const download = () => {
-    const blob = new Blob([output], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${mode}-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="max-w-5xl">
       <div className="bg-muted/30 rounded-xl p-4 border border-border mb-6">
@@ -1123,14 +1112,11 @@ function AiDrafterTab() {
               {loading ? "Drafting…" : `Draft ${mode === "demand-letter" ? "Letter of Demand" : "Written Submissions"}`}
             </Button>
             {output && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(output)} data-testid="button-copy-doc">
-                  Copy
-                </Button>
-                <Button variant="outline" size="sm" onClick={download} data-testid="button-download-doc">
-                  Download
-                </Button>
-              </>
+              <DraftExportButtons
+                title={mode === "demand-letter" ? "Letter of Demand" : "Written Submissions"}
+                content={output}
+                hideMarkdown
+              />
             )}
           </div>
           {error && <p className="mt-2 text-xs text-destructive">{error}</p>}

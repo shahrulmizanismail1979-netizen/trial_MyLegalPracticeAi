@@ -14,6 +14,7 @@ import {
 import { FolderKanban, FolderPlus, Loader2, ArrowRight, CalendarClock, AlertTriangle, CircleCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMatters, useCreateMatter, daysUntil } from '@/hooks/use-matters';
+import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
 
 const LIT_STAGES = ['Pre-Trial', 'Trial', 'Judgment', 'Appeal', 'Closed'];
 
@@ -58,20 +59,25 @@ export default function Matters() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState('');
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
 
   const handleCreate = async () => {
     if (!title.trim()) return;
     try {
       const year = new Date().getFullYear();
+      const baseNotes = `File Ref: MLA/${year}/${Math.floor(1000 + Math.random() * 9000)}`;
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext ? baseNotes + '\n\n--- Supporting Documents ---\n' + fileContext : baseNotes;
       await createMatter.mutateAsync({
         title: title.trim(),
         clientName: clientName.trim() || null,
         status: 'active',
-        notes: `File Ref: MLA/${year}/${Math.floor(1000 + Math.random() * 9000)}`,
+        notes,
       });
       setOpen(false);
       setTitle('');
       setClientName('');
+      setExtractedFiles([]);
       toast({ title: 'Matter created', description: 'AI is generating a procedural checklist…' });
     } catch (e) {
       toast({ title: 'Could not create matter', description: e instanceof Error ? e.message : '', variant: 'destructive' });
@@ -141,7 +147,7 @@ export default function Matters() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setExtractedFiles([]); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>New matter</DialogTitle>
@@ -154,6 +160,10 @@ export default function Matters() {
             <div>
               <Label>Client (optional)</Label>
               <Input className="mt-1" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="e.g. Maybank Bhd" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
             </div>
             <p className="text-xs text-muted-foreground">AI will auto-generate a procedural checklist after creation.</p>
             <Button className="w-full gap-2" onClick={handleCreate} disabled={createMatter.isPending || !title.trim()}>

@@ -1,10 +1,7 @@
-import { useState } from "react";
-import { Check, Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { DisclaimerNotice } from "@/components/DisclaimerNotice";
 import { SaveToVault } from "@/components/SaveToVault";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 interface StreamOutputProps {
   output: string;
@@ -16,8 +13,8 @@ interface StreamOutputProps {
   saveLabel?: string;
 }
 
-// Shared rendered output for the streamed drafters (affidavits, appeals): a copy
-// button, an optional save-to-vault button, the markdown body and the disclaimer.
+// Shared rendered output for the streamed drafters (affidavits, appeals): export
+// buttons, an optional save-to-vault button, the markdown body and the disclaimer.
 export function StreamOutput({
   output,
   disclaimer,
@@ -26,11 +23,9 @@ export function StreamOutput({
   saveTitle,
   saveLabel,
 }: StreamOutputProps) {
-  const { t } = useLanguage();
-  const [copied, setCopied] = useState(false);
   return (
     <div className="space-y-3">
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 flex-wrap">
         {saveKind && !generating && output && (
           <SaveToVault
             kind={saveKind}
@@ -39,28 +34,11 @@ export function StreamOutput({
             content={output}
           />
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => {
-            navigator.clipboard.writeText(output);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              {t("common.copied")}
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              {t("common.copy")}
-            </>
-          )}
-        </Button>
+        <DraftExportButtons
+          title={saveTitle || saveLabel || "Document"}
+          content={output}
+          hideMarkdown
+        />
       </div>
       <div className="bg-background/60 border border-border rounded-lg p-5 max-h-[60vh] overflow-y-auto">
         <MarkdownRenderer content={output} />

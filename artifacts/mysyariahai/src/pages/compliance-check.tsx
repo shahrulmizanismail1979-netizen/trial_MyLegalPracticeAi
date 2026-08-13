@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import ExportActions from "@/components/export-actions";
 
 const API_BASE = "/api/sya";
 
@@ -325,6 +326,7 @@ function ComplianceCheckPageInner() {
                 </CardContent>
               </Card>
 
+              <ExportActions content={formatComplianceText(result, t)} filenameBase={t("Compliance Check", "Semakan Pematuhan")} />
               <SaveToMatterPanel
                 draftTitle={
                   (txTypes?.find((tt: any) => tt.id === transactionType)

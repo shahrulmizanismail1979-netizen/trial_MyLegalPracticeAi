@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { MatterFileUpload, type ExtractedFile } from "@/components/MatterFileUpload";
 import {
   FolderKanban,
   Plus,
@@ -74,6 +75,7 @@ export default function MattersPage() {
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
   const [form, setForm] = useState({
     title: "",
     clientName: "",
@@ -93,12 +95,18 @@ export default function MattersPage() {
       return;
     }
     try {
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext
+        ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
+        : (form.notes ?? '');
       const matter = await createMatter.mutateAsync({
         ...form,
+        notes,
         fileRef: generateFileRef(),
         status: "open",
       });
       setOpen(false);
+      setExtractedFiles([]);
       setForm({
         title: "",
         clientName: "",
@@ -238,7 +246,7 @@ export default function MattersPage() {
         </section>
       </main>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setExtractedFiles([]); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>New matter file</DialogTitle>
@@ -300,8 +308,12 @@ export default function MattersPage() {
               <Label className="text-xs">Notes</Label>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} data-testid="input-notes" />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="ghost" onClick={() => { setOpen(false); setExtractedFiles([]); }}>Cancel</Button>
               <Button onClick={submit} disabled={createMatter.isPending} className="gap-2" data-testid="button-create-matter">
                 {createMatter.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create matter

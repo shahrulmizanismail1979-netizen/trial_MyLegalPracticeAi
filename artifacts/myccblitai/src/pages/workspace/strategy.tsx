@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Target, ChevronRight, Check } from "lucide-react";
+import { ArrowLeft, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Target, ChevronRight, Check } from "lucide-react";
 import { isAuthenticated, getToken } from "@/lib/auth";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { apiUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 
 export default function StrategyPage() {
   const [, setLocation] = useLocation();
@@ -173,14 +174,6 @@ export default function StrategyPage() {
       setIsGenerating(false);
       abortControllerRef.current = null;
     }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(output);
-    toast({
-      title: "Copied to clipboard",
-      description: "The strategy has been copied."
-    });
   };
 
   const handleReset = () => {
@@ -483,16 +476,11 @@ export default function StrategyPage() {
                     </Button>
                   ) : (
                     <>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleCopy} 
-                        disabled={!output}
-                        className="h-8 border-border/50 text-xs"
-                        data-testid="btn-copy"
-                      >
-                        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
-                      </Button>
+                      <DraftExportButtons
+                        title={inputs.partiesInvolved ? `Case Strategy — ${inputs.partiesInvolved}` : "AI Case Strategy"}
+                        content={output}
+                        hideMarkdown
+                      />
                       <Button 
                         variant="outline" 
                         size="sm" 

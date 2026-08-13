@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { MatterFileUpload, type ExtractedFile } from "@/components/MatterFileUpload";
 import WorkspaceLayout from "./layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export default function MattersPage() {
   const createMatter = useCreateMatter();
 
   const [open, setOpen] = useState(false);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
   const [form, setForm] = useState({ title: "", clientName: "", counterparty: "", matterType: "", notes: "" });
 
   useEffect(() => {
@@ -57,6 +59,10 @@ export default function MattersPage() {
       return;
     }
     try {
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext
+        ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
+        : (form.notes || null);
       const matter = await createMatter.mutateAsync({
         title: form.title.trim(),
         clientName: form.clientName || null,
@@ -64,10 +70,11 @@ export default function MattersPage() {
         matterType: form.matterType || null,
         reference: generateFileRef("CCB"),
         status: "open",
-        notes: form.notes || null,
+        notes: notes || null,
       });
       toast({ title: "Matter created" });
       setOpen(false);
+      setExtractedFiles([]);
       setForm({ title: "", clientName: "", counterparty: "", matterType: "", notes: "" });
       setLocation(`/workspace/matters/${matter.id}`);
     } catch (e) {
@@ -161,7 +168,7 @@ export default function MattersPage() {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setExtractedFiles([]); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>New matter</DialogTitle>
@@ -189,10 +196,14 @@ export default function MattersPage() {
               <Label>Notes</Label>
               <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} />
             </div>
+            <div className="space-y-1.5">
+              <Label>Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+            </div>
             <p className="text-xs text-muted-foreground">A file reference is generated automatically.</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setOpen(false); setExtractedFiles([]); }}>Cancel</Button>
             <Button onClick={submitCreate} disabled={createMatter.isPending}>Create matter</Button>
           </DialogFooter>
         </DialogContent>

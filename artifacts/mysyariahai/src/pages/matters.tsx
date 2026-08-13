@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import {
@@ -96,6 +97,7 @@ export default function MattersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<MatterInput>(EMPTY);
   const [workflowTouched, setWorkflowTouched] = useState(false);
+  const [extractedFiles, setExtractedFiles] = useState<ExtractedFile[]>([]);
 
   const { data: workflowOptions } = useQuery<any[]>({
     queryKey: ["workflows", "options"],
@@ -126,9 +128,12 @@ export default function MattersPage() {
       return;
     }
     try {
-      await createMatter.mutateAsync(form);
+      const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
+      const notes = fileContext ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext) : (form.notes ?? '');
+      await createMatter.mutateAsync({ ...form, notes });
       toast({ title: ts("Matter created", "Fail kes dibuka") });
       setOpen(false);
+      setExtractedFiles([]);
       setForm(EMPTY);
       setWorkflowTouched(false);
     } catch (e) {
@@ -293,7 +298,7 @@ export default function MattersPage() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setExtractedFiles([]); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("New Matter", "Fail Kes Baharu")}</DialogTitle>
@@ -394,8 +399,17 @@ export default function MattersPage() {
               <Label>{t("Notes", "Catatan")}</Label>
               <Textarea value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} rows={3} />
             </div>
+            <div className="space-y-1.5">
+              <Label>
+                {mode === 'bm' ? 'Dokumen Sokongan' : 'Supporting Documents'}{' '}
+                <span className="font-normal text-muted-foreground text-xs">
+                  {mode === 'bm' ? '(pilihan — AI akan membaca ini)' : '(optional — AI will read these)'}
+                </span>
+              </Label>
+              <MatterFileUpload onFilesExtracted={setExtractedFiles} />
+            </div>
             <div className="flex gap-3 pt-1">
-              <Button variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+              <Button variant="outline" className="flex-1" onClick={() => { setOpen(false); setExtractedFiles([]); }}>
                 {t("Cancel", "Batal")}
               </Button>
               <Button

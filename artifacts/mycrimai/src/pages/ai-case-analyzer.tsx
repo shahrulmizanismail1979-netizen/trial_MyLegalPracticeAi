@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Scale, Loader2, RotateCcw, Sparkles, Send } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,13 +97,19 @@ export function AiCaseAnalyzerPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {!isStreaming && response && (
-                  <SaveToMatterPanel
-                    draftTitle="Case Fact Analysis"
-                    draftContent={response}
-                    kind="case-analysis"
-                    sourceLabel="Case Fact Analyzer"
-                    inputJson={{ facts }}
-                  />
+                  <div className="space-y-3">
+                    <DraftExportButtons
+                      title="Case Fact Analysis"
+                      content={response}
+                    />
+                    <SaveToMatterPanel
+                      draftTitle="Case Fact Analysis"
+                      draftContent={response}
+                      kind="case-analysis"
+                      sourceLabel="Case Fact Analyzer"
+                      inputJson={{ facts }}
+                    />
+                  </div>
                 )}
                 <MarkdownRenderer content={response} />
               </CardContent>

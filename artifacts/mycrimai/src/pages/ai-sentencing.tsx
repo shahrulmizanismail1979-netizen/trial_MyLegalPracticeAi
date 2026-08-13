@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Target, Send, Loader2, RotateCcw } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,7 +124,11 @@ Mitigating: First offender, provocation by deceased, intoxication, young age, so
               </div>
             )}
             {response && !isStreaming && (
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                <DraftExportButtons
+                  title="Sentencing Prediction"
+                  content={response}
+                />
                 <SaveToMatterPanel
                   draftTitle="Sentencing Prediction"
                   draftContent={response}

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
+import { DraftExportButtons } from '@workspace/draft-export/react';
 import {
   Gavel,
   Loader2,
   AlertTriangle,
   Check,
-  Copy,
   BookmarkPlus,
   CircleAlert,
   ScrollText,
@@ -136,7 +136,7 @@ const DEBTOR_BADGE: Record<EnforcementMethod['debtor'], string> = {
   any: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
 };
 
-// ─── Shared output block (copy / save / link to matter) ───────────────────────
+// ─── Shared output block (export / save / link to matter) ─────────────────────
 function OutputBlock({
   output,
   disclaimer,
@@ -153,7 +153,6 @@ function OutputBlock({
   const { data: matters } = useMatters();
   const { toast } = useToast();
   const saveWork = useSaveWork();
-  const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [matterId, setMatterId] = useState('');
 
@@ -174,9 +173,7 @@ function OutputBlock({
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">{title}</span>
-        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => { navigator.clipboard.writeText(output); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-          {copied ? <><Check className="h-3.5 w-3.5" />Copied</> : <><Copy className="h-3.5 w-3.5" />Copy</>}
-        </Button>
+        <DraftExportButtons title={title} content={output} />
       </div>
       <LegalOutput text={output} />
       {disclaimer && (

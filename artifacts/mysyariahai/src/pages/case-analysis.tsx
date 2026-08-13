@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import ExportActions from "@/components/export-actions";
 
 const API_BASE = "/api/sya";
 
@@ -290,6 +291,7 @@ export default function CaseAnalysisPage() {
                 </CardContent>
               </Card>
 
+              <ExportActions content={formatAnalysisText(result, t)} filenameBase={t("Case Analysis", "Analisis Kes")} />
               <SaveToMatterPanel
                 draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}
                 draftContent={formatAnalysisText(result, t)}

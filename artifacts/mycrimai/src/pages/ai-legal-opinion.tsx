@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { FileCheck, Send, Loader2, RotateCcw } from "lucide-react";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -149,7 +150,11 @@ ${specificQuestions ? `SPECIFIC QUESTIONS TO ADDRESS:\n${specificQuestions}` : "
               </div>
             )}
             {response && !isStreaming && (
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                <DraftExportButtons
+                  title={`Legal Opinion — ${OPINION_TYPES.find((t) => t.value === opinionType)?.label || "General Legal Opinion"}`}
+                  content={response}
+                />
                 <SaveToMatterPanel
                   draftTitle={`Legal Opinion — ${OPINION_TYPES.find((t) => t.value === opinionType)?.label || "General Legal Opinion"}`}
                   draftContent={response}
