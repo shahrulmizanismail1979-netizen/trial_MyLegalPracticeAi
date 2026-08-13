@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -256,6 +257,9 @@ export default function MattersPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>New matter file</DialogTitle>
+            <DialogDescription>
+              Enter the matter details below. Supporting documents are optional — the AI will read them to generate an intake briefing.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
