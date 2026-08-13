@@ -12,6 +12,9 @@ import request from "supertest";
 import express from "express";
 import cookieParser from "cookie-parser";
 import firmRouter from "../index";
+import { writeFileSync, unlinkSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 // ── DB cleanup helpers ─────────────────────────────────────────────────────────
 
@@ -350,7 +353,154 @@ describe("client trust ledger", () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 4. Report PDF routes (smoke — verify they return valid PDFs)
+// 4. Excel workbook structure — mirrors handleExportExcel in accounts.tsx
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe("Excel accounts export workbook structure", () => {
+  const YEAR = new Date().getFullYear();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  it("builds a valid .xlsx with correct sheets, freeze panes, bold totals and column widths", async () => {
+    // Fetch the same three endpoints that handleExportExcel calls in the browser.
+    const [plRes, expRes, trustRes] = await Promise.all([
+      authed(request(app).get(`/api/firm/accounts/reports/pl?year=${YEAR}`)),
+      authed(request(app).get(`/api/firm/accounts/reports/expenses?year=${YEAR}`)),
+      authed(request(app).get("/api/firm/accounts/reports/trust")),
+    ]);
+    expect(plRes.status).toBe(200);
+    expect(expRes.status).toBe(200);
+    expect(trustRes.status).toBe(200);
+
+    const plResp   = plRes.body    as { year: string; pl: Array<{ month: string; income: number; expense: number; net: number }>; totalIncome: number; totalExpense: number; netProfit: number };
+    const expResp  = expRes.body   as { breakdown: Array<{ category: string; total: number }>; grandTotal: number };
+    const trustResp = trustRes.body as { ledgers: Array<{ clientName: string; matterRef?: string; balance: number }>; totalBalance: number };
+
+    // Build the workbook exactly as handleExportExcel does in accounts.tsx.
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "MyLawFirmAI";
+
+    const HEADER_FILL = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF002147" } };
+    const HEADER_FONT = { bold: true, color: { argb: "FFFFFFFF" } };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyHeader = (sheet: any) => {
+      const row = sheet.getRow(1);
+      row.font = HEADER_FONT;
+      row.fill = HEADER_FILL;
+      row.alignment = { vertical: "middle" };
+    };
+
+    // Sheet 1: P&L by Month
+    const plSheet = workbook.addWorksheet(`P&L ${YEAR}`, { views: [{ state: "frozen", ySplit: 1 }] });
+    plSheet.columns = [
+      { header: "Month",        width: 18 },
+      { header: "Income (RM)",  width: 18 },
+      { header: "Expense (RM)", width: 18 },
+      { header: "Net (RM)",     width: 16 },
+    ];
+    applyHeader(plSheet);
+    const fmtM = (m: string) => { const idx = parseInt(m.slice(5)) - 1; return (MONTHS[idx] ?? m) + " " + YEAR; };
+    for (const row of plResp.pl) plSheet.addRow([fmtM(row.month), row.income, row.expense, row.net]);
+    const plTotalRow = plSheet.addRow(["TOTAL", plResp.totalIncome, plResp.totalExpense, plResp.netProfit]);
+    plTotalRow.font = { bold: true };
+
+    // Sheet 2: Expense Breakdown
+    const expSheet = workbook.addWorksheet("Expense Breakdown", { views: [{ state: "frozen", ySplit: 1 }] });
+    expSheet.columns = [
+      { header: "Category",   width: 32 },
+      { header: "Total (RM)", width: 18 },
+      { header: "% of Total", width: 14 },
+    ];
+    applyHeader(expSheet);
+    for (const row of expResp.breakdown) {
+      expSheet.addRow([
+        row.category.replace(/_/g, " ").replace(/\b\w/g, (x: string) => x.toUpperCase()),
+        row.total,
+        expResp.grandTotal > 0 ? parseFloat(((row.total / expResp.grandTotal) * 100).toFixed(1)) : 0,
+      ]);
+    }
+    const expTotalRow = expSheet.addRow(["GRAND TOTAL", expResp.grandTotal, 100]);
+    expTotalRow.font = { bold: true };
+
+    // Sheet 3: Trust Balances
+    const trustSheet = workbook.addWorksheet("Trust Balances", { views: [{ state: "frozen", ySplit: 1 }] });
+    trustSheet.columns = [
+      { header: "Client Name",  width: 32 },
+      { header: "Matter Ref",   width: 22 },
+      { header: "Balance (RM)", width: 18 },
+    ];
+    applyHeader(trustSheet);
+    for (const l of trustResp.ledgers) trustSheet.addRow([l.clientName, l.matterRef ?? "", l.balance]);
+    const trustTotalRow = trustSheet.addRow(["TOTAL TRUST", "", trustResp.totalBalance]);
+    trustTotalRow.font = { bold: true };
+
+    // Write to a temp file and read back — avoids Node Buffer generic-type
+    // mismatch between writeBuffer() and xlsx.load() typings.
+    const tmpFile = join(tmpdir(), `accounts-test-${Date.now()}.xlsx`);
+    await workbook.xlsx.writeFile(tmpFile);
+
+    const wb2 = new ExcelJS.Workbook();
+    await wb2.xlsx.readFile(tmpFile);
+    unlinkSync(tmpFile);
+
+    // ── Sheet count and names ─────────────────────────────────────────────────
+    expect(wb2.worksheets).toHaveLength(3);
+    expect(wb2.worksheets[0].name).toBe(`P&L ${YEAR}`);
+    expect(wb2.worksheets[1].name).toBe("Expense Breakdown");
+    expect(wb2.worksheets[2].name).toBe("Trust Balances");
+
+    for (const ws of wb2.worksheets) {
+      // ── Freeze pane on row 1 ───────────────────────────────────────────────
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const view = ws.views[0] as any;
+      expect(view?.ySplit).toBe(1);
+      expect(view?.state).toBe("frozen");
+
+      // ── Header row (row 1): bold, white text, dark fill ───────────────────
+      const headerRow = ws.getRow(1);
+      expect(headerRow.font?.bold).toBe(true);
+      expect(headerRow.font?.color?.argb).toBe("FFFFFFFF");
+      expect((headerRow.fill as { fgColor?: { argb?: string } })?.fgColor?.argb).toBe("FF002147");
+
+      // ── Totals row (last row): bold ────────────────────────────────────────
+      const lastRow = ws.getRow(ws.rowCount);
+      expect(lastRow.font?.bold).toBe(true);
+
+      // ── All columns have explicit widths ───────────────────────────────────
+      const colCount = ws.columnCount;
+      expect(colCount).toBeGreaterThan(0);
+      for (let c = 1; c <= colCount; c++) {
+        const col = ws.getColumn(c);
+        expect(col.width).toBeDefined();
+        expect((col.width ?? 0)).toBeGreaterThan(0);
+      }
+    }
+
+    // ── P&L sheet: data rows match API response ────────────────────────────
+    const plWs = wb2.worksheets[0];
+    // Row 1 = header; last row = TOTAL; middle rows = monthly data
+    const plDataRows = plWs.rowCount - 2; // exclude header + totals
+    expect(plDataRows).toBe(plResp.pl.length);
+    // Totals row values must match API totals
+    const plTotals = plWs.getRow(plWs.rowCount);
+    expect(Number(plTotals.getCell(2).value)).toBeCloseTo(plResp.totalIncome, 2);
+    expect(Number(plTotals.getCell(3).value)).toBeCloseTo(plResp.totalExpense, 2);
+    expect(Number(plTotals.getCell(4).value)).toBeCloseTo(plResp.netProfit, 2);
+
+    // ── Expense Breakdown sheet: grand total matches API ──────────────────
+    const expWs = wb2.worksheets[1];
+    const expTotals = expWs.getRow(expWs.rowCount);
+    expect(Number(expTotals.getCell(2).value)).toBeCloseTo(expResp.grandTotal, 2);
+
+    // ── Trust Balances sheet: total trust matches API ─────────────────────
+    const trustWs = wb2.worksheets[2];
+    const trustTotals = trustWs.getRow(trustWs.rowCount);
+    expect(Number(trustTotals.getCell(3).value)).toBeCloseTo(trustResp.totalBalance, 2);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. Report PDF routes (smoke — verify they return valid PDFs)
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("report PDFs", () => {
