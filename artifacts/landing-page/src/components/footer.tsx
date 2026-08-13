@@ -4,14 +4,16 @@ export function Footer() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
           <div>
-            <p className="font-serif text-xl font-bold text-foreground mb-1">
-              AI Portals
-            </p>
-            <p className="text-sm text-muted-foreground mb-3">
+            <img
+              src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
+              alt="LAWYes"
+              className="h-10 w-auto mb-3"
+            />
+            <p className="text-sm text-muted-foreground mb-1">
               by Prof. Madya Dr. Shahrul Mizan Ismail
             </p>
             <p className="text-sm text-muted-foreground max-w-xs">
-              Malaysia's First AI-Powered Virtual Paralegal for the Malaysian legal profession.
+              Your Legal Work, Solved. — Malaysia's AI-powered virtual paralegal suite.
             </p>
           </div>
 
@@ -83,7 +85,7 @@ export function Footer() {
 
         <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} AI Portals by Shahrul Mizan Ismail. All rights reserved.
+            &copy; {new Date().getFullYear()} LAWYes by Shahrul Mizan Ismail. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
             Malaysia's First AI-Powered Virtual Paralegal

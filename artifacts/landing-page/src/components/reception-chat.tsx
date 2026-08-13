@@ -15,7 +15,7 @@ interface GotoAction {
 }
 
 const GREETING =
-  "Hello and welcome! 👋 I'm your AI receptionist at My Legal Practice AI. Whether you're a litigator, syarie counsel, company secretary, conveyancer, or in-house counsel — I can help you find the right AI portal, explain pricing and the 7-day free trial, or show you how to earn free months. Saya juga boleh membantu dalam Bahasa Malaysia. How can I help you today?";
+  "Hello and welcome! 👋 I'm your AI receptionist at LAWYes — Your Legal Work, Solved. Whether you're a litigator, syarie counsel, company secretary, conveyancer, or in-house counsel — I can help you find the right AI portal, explain pricing and the 7-day free trial, or show you how to earn free months. Saya juga boleh membantu dalam Bahasa Malaysia. How can I help you today?";
 
 const SUGGESTIONS = [
   "Which portal is right for my practice?",

@@ -792,10 +792,10 @@ function customerEmailHtml(params: {
   if (bundle) {
     return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-    <h2 style="color:#8a6d1a">Welcome to MyLegalPracticeAI</h2>
+    <h2 style="color:#1B3A6B">Welcome to LAWYes</h2>
     <p>Dear ${name},</p>
     <p>Thank you for subscribing to the <b>${bundle.name}</b>. Your team's access code is below:</p>
-    <div style="background:#f7f3e8;border:2px solid #d4af37;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
+    <div style="background:#EEF3FF;border:2px solid #1B3A6B;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
       <span style="font-size:24px;font-weight:bold;letter-spacing:2px;font-family:monospace">${accessCode}</span>
     </div>
     <p><b>Your plan:</b> ${bundle.name}<br/>
@@ -809,15 +809,15 @@ function customerEmailHtml(params: {
     </ol>
     <p>Keep this code safe and only share it within your team — access is limited to ${bundle.licenses} licensed users. If a portal has not yet activated your code, it will be activated shortly (usually within a few hours).</p>
     <p>Questions? Just reply to this email.</p>
-    <p style="color:#777;font-size:13px;margin-top:28px">MyLegalPracticeAI · https://mylegalpracticeai.life</p>
+    <p style="color:#777;font-size:13px;margin-top:28px">LAWYes · Your Legal Work, Solved. · https://lawyes.com</p>
   </div>`;
   }
   return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-    <h2 style="color:#8a6d1a">Welcome to MyLegalPracticeAI</h2>
+    <h2 style="color:#1B3A6B">Welcome to LAWYes</h2>
     <p>Dear ${name},</p>
     <p>Thank you for subscribing${trial ? " to the 7-day free trial" : ""}. Here is your access code:</p>
-    <div style="background:#f7f3e8;border:2px solid #d4af37;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
+    <div style="background:#EEF3FF;border:2px solid #1B3A6B;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
       <span style="font-size:24px;font-weight:bold;letter-spacing:2px;font-family:monospace">${accessCode}</span>
     </div>
     <p><b>Your subscription covers:</b> ${appsText}</p>
@@ -828,7 +828,7 @@ function customerEmailHtml(params: {
     }
     <p>Keep this code safe — you will use it to log in to your portal. If your portal has not yet activated your code, it will be activated shortly (usually within a few hours).</p>
     <p>Questions? Just reply to this email.</p>
-    <p style="color:#777;font-size:13px;margin-top:28px">MyLegalPracticeAI · https://mylegalpracticeai.life</p>
+    <p style="color:#777;font-size:13px;margin-top:28px">LAWYes · Your Legal Work, Solved. · https://lawyes.com</p>
   </div>`;
 }
 
@@ -853,8 +853,8 @@ export async function resendAccessCodeEmail(params: {
   return sendEmail({
     to: email,
     subject: trial
-      ? "Your MyLegalPracticeAI access code (7-day free trial)"
-      : "Your MyLegalPracticeAI access code",
+      ? "Your LAWYes access code (7-day free trial)"
+      : "Your LAWYes access code",
     html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
   });
 }
@@ -895,7 +895,7 @@ function ownerEmailHtml(params: {
   const { name, email, accessCode, apps, tier, trial } = params;
   return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a">
-    <h2>Subscriber baharu di MyLegalPracticeAI</h2>
+    <h2>Subscriber baharu di LAWYes</h2>
     <table style="border-collapse:collapse;width:100%">
       <tr><td style="padding:6px 10px;border:1px solid #ddd"><b>Nama</b></td><td style="padding:6px 10px;border:1px solid #ddd">${name}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #ddd"><b>Email</b></td><td style="padding:6px 10px;border:1px solid #ddd">${email}</td></tr>
@@ -904,7 +904,7 @@ function ownerEmailHtml(params: {
       <tr><td style="padding:6px 10px;border:1px solid #ddd"><b>Kod akses</b></td><td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace"><b>${accessCode}</b></td></tr>
     </table>
     <p><b>Tindakan:</b> Daftarkan kod akses ini dalam admin panel portal berkenaan supaya pelanggan boleh log masuk.</p>
-    <p style="color:#777;font-size:13px">Emel automatik dari sistem mylegalpracticeai.life</p>
+    <p style="color:#777;font-size:13px">Emel automatik dari sistem lawyes.com</p>
   </div>`;
 }
 
@@ -1073,8 +1073,8 @@ export async function provisionFromCheckoutSession(
     const sent = await sendEmail({
       to: email,
       subject: trial
-        ? "Your MyLegalPracticeAI access code (7-day free trial)"
-        : "Your MyLegalPracticeAI access code",
+        ? "Your LAWYes access code (7-day free trial)"
+        : "Your LAWYes access code",
       html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
     });
     if (!sent) {

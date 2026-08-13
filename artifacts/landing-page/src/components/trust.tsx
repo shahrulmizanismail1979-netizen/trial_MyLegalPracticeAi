@@ -97,7 +97,7 @@ export function Trust() {
 
           <div className="border-t border-border pt-6">
             <p className="text-sm text-muted-foreground leading-relaxed text-justify">
-              <strong className="text-foreground">AI Portals</strong> is a Malaysian legal-tech brand operated by Shahrul Mizan Ismail. Registered and operating in Malaysia. All subscriptions are governed by our{" "}
+              <strong className="text-foreground">LAWYes</strong> is a Malaysian legal-tech brand operated by Shahrul Mizan Ismail. Registered and operating in Malaysia. All subscriptions are governed by our{" "}
               <a href="#terms" className="text-primary hover:underline">Terms of Service</a>
               {" "}and{" "}
               <a href="#privacy" className="text-primary hover:underline">Privacy Policy</a>.

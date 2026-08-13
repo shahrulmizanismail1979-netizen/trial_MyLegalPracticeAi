@@ -31,7 +31,7 @@ export const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/lawyes-logo.png`,
     socialButtonsPlacement: "bottom" as const,
     socialButtonsVariant: "blockButton" as const,
   },
@@ -74,7 +74,7 @@ export const clerkLocalization = {
   signIn: {
     start: {
       title: "Staff sign in",
-      subtitle: "Access the AI Web Books command center",
+      subtitle: "Access the LAWYes command center",
     },
   },
   signUp: {

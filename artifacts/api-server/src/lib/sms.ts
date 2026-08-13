@@ -30,13 +30,13 @@ export function accessCodeSmsBody(params: {
   const { accessCode, trial, licenses } = params;
   if (licenses != null) {
     return (
-      `MyLegalPracticeAI: your team access code is ${accessCode}. ` +
+      `LAWYes: your team access code is ${accessCode}. ` +
       `One code covers all ${licenses} licensed users on every portal — share it with your team. ` +
       "Help: shahrulmizan@ukm.edu.my"
     );
   }
   return (
-    `MyLegalPracticeAI: your access code is ${accessCode}. ` +
+    `LAWYes: your access code is ${accessCode}. ` +
     (trial
       ? "Your 7-day free trial is active now — sign in with this code. "
       : "Your subscription is active — sign in with this code. ") +

@@ -128,8 +128,15 @@ export function PersonaFrontDoor() {
       
       <div className="max-w-5xl w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 my-auto py-12">
         <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <img
+              src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
+              alt="LAWYes — Your Legal Work, Solved."
+              className="h-16 w-auto"
+            />
+          </div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
-            Welcome to MyLegalPracticeAI
+            Welcome to LAWYes
           </p>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight mb-6" style={{ textWrap: "balance" }}>
             How do you primarily <span className="text-gradient-gold">work in law?</span>
