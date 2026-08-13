@@ -1159,6 +1159,16 @@ const en: Dict = {
   "acc.report.noCashflow": "No cashflow data yet.",
   "acc.report.last12": "Last 12 Months",
   "acc.report.cumulative": "Cumulative",
+  "acc.budget.title": "Monthly Budgets",
+  "acc.budget.set": "Set Budgets",
+  "acc.budget.saved": "Budget saved.",
+  "acc.budget.status": "Budget Status",
+  "acc.budget.overLimit": "Over budget",
+  "acc.budget.withinLimit": "Within budget",
+  "acc.budget.noBudget": "No limit set",
+  "acc.budget.actual": "Actual",
+  "acc.budget.budget": "Budget",
+  "acc.budget.vs": "vs Budget",
 };
 
 const ms: Dict = {
@@ -2322,6 +2332,16 @@ const ms: Dict = {
   "acc.report.noCashflow": "Tiada data aliran tunai lagi.",
   "acc.report.last12": "12 Bulan Lepas",
   "acc.report.cumulative": "Kumulatif",
+  "acc.budget.title": "Belanjawan Bulanan",
+  "acc.budget.set": "Tetapkan Belanjawan",
+  "acc.budget.saved": "Belanjawan disimpan.",
+  "acc.budget.status": "Status Belanjawan",
+  "acc.budget.overLimit": "Melebihi belanjawan",
+  "acc.budget.withinLimit": "Dalam belanjawan",
+  "acc.budget.noBudget": "Tiada had ditetapkan",
+  "acc.budget.actual": "Sebenar",
+  "acc.budget.budget": "Belanjawan",
+  "acc.budget.vs": "vs Belanjawan",
 };
 
 const dictionaries: Record<Lang, Dict> = { en, ms };

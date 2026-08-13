@@ -21,6 +21,7 @@ import {
 import {
   Landmark, Users, BarChart2, Plus, Download, Trash2,
   ChevronDown, ChevronUp, Loader2, ArrowDownLeft, ArrowUpRight, ArrowRightLeft,
+  Settings2, AlertTriangle, CheckCircle2,
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
@@ -62,7 +63,7 @@ interface ClientEntry {
   description: string; amount: number; entryDate: string; reference?: string; createdAt: string;
 }
 interface PlRow { month: string; income: number; expense: number; net: number; }
-interface ExpenseBreakdown { category: string; total: number; }
+interface ExpenseBreakdown { category: string; total: number; budget?: number | null; overBudget?: boolean; }
 interface CashflowRow { month: string; income: number; expense: number; net: number; cumulative: number; }
 
 const ENTRY_COLORS: Record<string, string> = {
@@ -90,8 +91,11 @@ function OfficeLedgerTab() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear]   = useState(now.getFullYear());
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpen, setAddOpen]       = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
   const [form, setForm] = useState({ type: "income" as "income" | "expense", category: "", description: "", amount: "", entryDate: "", reference: "" });
+  // Per-category budget input state in the budget dialog (keyed by category name)
+  const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["acc-office", month, year],
@@ -103,6 +107,41 @@ function OfficeLedgerTab() {
   const { data: cats } = useQuery({
     queryKey: ["acc-office-cats"],
     queryFn:  () => apiJson<{ income: string[]; expense: string[] }>("/accounts/office/categories"),
+  });
+
+  const { data: budgetData, refetch: refetchBudgets } = useQuery({
+    queryKey: ["acc-budgets", month, year],
+    queryFn:  () => apiJson<{ budgets: Record<string, number> }>(`/accounts/budgets?month=${month}&year=${year}`),
+  });
+
+  // Populate budget inputs when dialog opens
+  const openBudgetDialog = () => {
+    const existing = budgetData?.budgets ?? {};
+    const inputs: Record<string, string> = {};
+    for (const cat of (cats?.expense ?? [])) {
+      inputs[cat] = existing[cat] != null ? String(existing[cat]) : "";
+    }
+    setBudgetInputs(inputs);
+    setBudgetOpen(true);
+  };
+
+  const saveBudget = useMutation({
+    mutationFn: async () => {
+      for (const [category, val] of Object.entries(budgetInputs)) {
+        const budget = parseFloat(val || "0");
+        await apiJson("/accounts/budgets", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ year, month, category, budget }),
+        });
+      }
+    },
+    onSuccess: () => {
+      toast({ description: t("acc.budget.saved") });
+      refetchBudgets();
+      setBudgetOpen(false);
+    },
+    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
 
   const add = useMutation({
@@ -130,6 +169,16 @@ function OfficeLedgerTab() {
   const entries = data?.entries ?? [];
   const categoryList = form.type === "income" ? (cats?.income ?? []) : (cats?.expense ?? []);
 
+  // Compute actual spend per expense category for the budget status panel
+  const budgets = budgetData?.budgets ?? {};
+  const actualByCategory: Record<string, number> = {};
+  for (const e of entries.filter(e => e.type === "expense")) {
+    actualByCategory[e.category] = (actualByCategory[e.category] ?? 0) + e.amount;
+  }
+  const expenseCats = cats?.expense ?? [];
+  const catsWithBudget = expenseCats.filter(c => budgets[c] != null || (actualByCategory[c] ?? 0) > 0);
+  const overBudgetCount = catsWithBudget.filter(c => budgets[c] != null && (actualByCategory[c] ?? 0) > budgets[c]!).length;
+
   return (
     <div className="space-y-4">
       {/* Month/Year picker + summary + add button */}
@@ -144,6 +193,36 @@ function OfficeLedgerTab() {
           <span className="text-sm font-semibold text-red-700">{t("acc.expense")}: {MYR(data?.totalExpense ?? 0)}</span>
           <span className={`text-sm font-bold ${(data?.net ?? 0) >= 0 ? "text-emerald-700" : "text-red-700"}`}>{t("acc.net")}: {MYR(data?.net ?? 0)}</span>
         </div>
+        {/* Set Budgets dialog */}
+        <Dialog open={budgetOpen} onOpenChange={setBudgetOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={openBudgetDialog}>
+              <Settings2 className="w-3.5 h-3.5" /> {t("acc.budget.set")}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t("acc.budget.title")} — {MONTHS[month - 1]} {year}</DialogTitle>
+              <CardDescription className="text-xs text-muted-foreground pt-1">Set a monthly RM limit per expense category. Leave blank for no limit.</CardDescription>
+            </DialogHeader>
+            <div className="space-y-2 pt-2 max-h-80 overflow-y-auto pr-1">
+              {(cats?.expense ?? []).map(cat => (
+                <div key={cat} className="flex items-center gap-3">
+                  <Label className="text-xs flex-1 truncate">{cat.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase())}</Label>
+                  <Input
+                    type="number" min="0" step="0.01" placeholder="e.g. 5000"
+                    value={budgetInputs[cat] ?? ""}
+                    onChange={e => setBudgetInputs(p => ({ ...p, [cat]: e.target.value }))}
+                    className="w-32 h-7 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+            <Button className="w-full mt-3" disabled={saveBudget.isPending} onClick={() => saveBudget.mutate()}>
+              {saveBudget.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null} {t("acc.save")}
+            </Button>
+          </DialogContent>
+        </Dialog>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5"><Plus className="w-3.5 h-3.5" /> {t("acc.office.add")}</Button>
@@ -195,6 +274,58 @@ function OfficeLedgerTab() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Budget Status Panel */}
+      {catsWithBudget.length > 0 && (
+        <Card className={`glass-card border ${overBudgetCount > 0 ? "border-red-300 bg-red-50/30" : "border-emerald-200 bg-emerald-50/20"}`}>
+          <CardHeader className="pb-2 pt-3 px-4">
+            <div className="flex items-center gap-2">
+              {overBudgetCount > 0
+                ? <AlertTriangle className="w-4 h-4 text-red-600" />
+                : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+              <CardTitle className="text-sm font-semibold">
+                {t("acc.budget.status")} — {MONTHS[month - 1]} {year}
+                {overBudgetCount > 0 && (
+                  <Badge className="ml-2 bg-red-100 text-red-700 border-red-300 text-xs">
+                    {overBudgetCount} {t("acc.budget.overLimit")}
+                  </Badge>
+                )}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-3">
+            <div className="space-y-2">
+              {catsWithBudget.map(cat => {
+                const actual  = actualByCategory[cat] ?? 0;
+                const budget  = budgets[cat];
+                const isOver  = budget != null && actual > budget;
+                const pct     = budget != null && budget > 0 ? Math.min((actual / budget) * 100, 100) : null;
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className={`font-medium ${isOver ? "text-red-700" : "text-foreground"}`}>
+                        {cat.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase())}
+                        {isOver && <AlertTriangle className="w-3 h-3 inline ml-1 text-red-600" />}
+                      </span>
+                      <span className={`font-semibold ${isOver ? "text-red-700" : "text-muted-foreground"}`}>
+                        {MYR(actual)}{budget != null ? ` / ${MYR(budget)}` : ""}
+                      </span>
+                    </div>
+                    {pct !== null && (
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${isOver ? "bg-red-500" : pct > 80 ? "bg-amber-400" : "bg-emerald-500"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ledger table */}
       {isLoading ? (
@@ -427,6 +558,7 @@ function ReportsTab() {
   const { toast } = useToast();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
+  const [expMonth, setExpMonth] = useState<number | "">(now.getMonth() + 1);
   const [subTab, setSubTab] = useState<"pl"|"expenses"|"trust"|"cashflow">("pl");
   const [xlsxExporting, setXlsxExporting] = useState(false);
 
@@ -436,9 +568,13 @@ function ReportsTab() {
     enabled:  subTab === "pl",
   });
 
+  const expQuery = expMonth !== ""
+    ? `/accounts/reports/expenses?year=${year}&month=${expMonth}`
+    : `/accounts/reports/expenses?year=${year}`;
+
   const { data: expData, isLoading: expLoading } = useQuery({
-    queryKey: ["acc-exp", year],
-    queryFn:  () => apiJson<{ breakdown: ExpenseBreakdown[]; grandTotal: number }>(`/accounts/reports/expenses?year=${year}`),
+    queryKey: ["acc-exp", year, expMonth],
+    queryFn:  () => apiJson<{ breakdown: ExpenseBreakdown[]; grandTotal: number }>(expQuery),
     enabled:  subTab === "expenses",
   });
 
@@ -566,7 +702,19 @@ function ReportsTab() {
           </Button>
         ))}
         {(subTab === "pl" || subTab === "expenses") && (
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            {subTab === "expenses" && (
+              <>
+                <Label className="text-xs">{t("acc.month")}</Label>
+                <Select value={String(expMonth)} onValueChange={v => setExpMonth(v === "" ? "" : parseInt(v))}>
+                  <SelectTrigger className="w-28 h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All months</SelectItem>
+                    {MONTHS.map((m, i) => <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
             <Label className="text-xs">{t("acc.year")}</Label>
             <Input type="number" value={year} onChange={e => setYear(parseInt(e.target.value))} className="w-24 h-8 text-sm" />
           </div>
@@ -658,45 +806,117 @@ function ReportsTab() {
           {expData.breakdown.length === 0 ? (
             <p className="text-center text-muted-foreground py-8 text-sm">{t("acc.report.noExpenses")}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="glass-card">
-                <CardHeader><CardTitle className="text-base">{t("acc.report.expenses")}</CardTitle></CardHeader>
-                <CardContent className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={expData.breakdown} dataKey="total" nameKey="category" outerRadius={90} label={({ name, percent }) => `${name.replace(/_/g," ").slice(0,12)} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={9}>
-                        {expData.breakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                      </Pie>
-                      <RechartsTip formatter={(v: number) => [MYR(v), ""]} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardContent className="p-0 overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="text-xs uppercase text-muted-foreground border-b border-border">
-                        <th className="text-left py-2 px-4 font-semibold">{t("acc.category")}</th>
-                        <th className="text-right py-2 px-4 font-semibold">{t("acc.amount")}</th>
-                        <th className="text-right py-2 px-4 font-semibold">%</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {expData.breakdown.map((row, i) => (
-                        <tr key={row.category} className="hover:bg-muted/20">
-                          <td className="py-2 px-4 flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                            {row.category.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase())}
-                          </td>
-                          <td className="py-2 px-4 text-right font-semibold text-red-700">{MYR(row.total)}</td>
-                          <td className="py-2 px-4 text-right text-muted-foreground">{expData.grandTotal > 0 ? ((row.total / expData.grandTotal) * 100).toFixed(1) : "0"}%</td>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Pie chart */}
+                <Card className="glass-card">
+                  <CardHeader><CardTitle className="text-base">{t("acc.report.expenses")}</CardTitle></CardHeader>
+                  <CardContent className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={expData.breakdown} dataKey="total" nameKey="category" outerRadius={90} label={({ name, percent }) => `${name.replace(/_/g," ").slice(0,12)} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={9}>
+                          {expData.breakdown.map((row, i) => <Cell key={i} fill={row.overBudget ? "#c62828" : PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <RechartsTip formatter={(v: number) => [MYR(v), ""]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                {/* Budget vs Actual bar chart — only shown when a month is selected and budgets exist */}
+                {expMonth !== "" && expData.breakdown.some(r => r.budget != null) ? (
+                  <Card className="glass-card">
+                    <CardHeader><CardTitle className="text-base">{t("acc.budget.actual")} {t("acc.budget.vs")}</CardTitle></CardHeader>
+                    <CardContent className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={expData.breakdown.filter(r => r.budget != null).map(r => ({
+                            name: r.category.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase()).slice(0, 14),
+                            actual: r.total,
+                            budget: r.budget,
+                            over:   r.overBudget,
+                          }))}
+                          margin={{ top: 5, right: 10, left: 0, bottom: 40 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} angle={-35} textAnchor="end" interval={0} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                          <RechartsTip contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: "0.75rem", fontSize: 12 }} formatter={(v: number) => [MYR(v), ""]} />
+                          <Bar dataKey="actual" name={t("acc.budget.actual")} radius={[4,4,0,0]}>
+                            {expData.breakdown.filter(r => r.budget != null).map((row, i) => (
+                              <Cell key={i} fill={row.overBudget ? "#c62828" : "#1565c0"} />
+                            ))}
+                          </Bar>
+                          <Bar dataKey="budget" name={t("acc.budget.budget")} fill="#9e9e9e" radius={[4,4,0,0]} opacity={0.4} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  /* Fallback: category table */
+                  <Card className="glass-card">
+                    <CardContent className="p-0 overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="text-xs uppercase text-muted-foreground border-b border-border">
+                            <th className="text-left py-2 px-4 font-semibold">{t("acc.category")}</th>
+                            <th className="text-right py-2 px-4 font-semibold">{t("acc.amount")}</th>
+                            <th className="text-right py-2 px-4 font-semibold">%</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/30">
+                          {expData.breakdown.map((row, i) => (
+                            <tr key={row.category} className="hover:bg-muted/20">
+                              <td className="py-2 px-4 flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                {row.category.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase())}
+                              </td>
+                              <td className="py-2 px-4 text-right font-semibold text-red-700">{MYR(row.total)}</td>
+                              <td className="py-2 px-4 text-right text-muted-foreground">{expData.grandTotal > 0 ? ((row.total / expData.grandTotal) * 100).toFixed(1) : "0"}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+              {/* Full category table with budget column (always shown when month selected) */}
+              {expMonth !== "" && (
+                <Card className="glass-card">
+                  <CardContent className="p-0 overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="text-xs uppercase text-muted-foreground border-b border-border">
+                          <th className="text-left py-2 px-4 font-semibold">{t("acc.category")}</th>
+                          <th className="text-right py-2 px-4 font-semibold">{t("acc.budget.actual")}</th>
+                          <th className="text-right py-2 px-4 font-semibold">{t("acc.budget.budget")}</th>
+                          <th className="text-right py-2 px-4 font-semibold">%</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {expData.breakdown.map((row, i) => (
+                          <tr key={row.category} className={`hover:bg-muted/20 ${row.overBudget ? "bg-red-50/60" : ""}`}>
+                            <td className="py-2 px-4 flex items-center gap-2">
+                              {row.overBudget
+                                ? <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                                : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />}
+                              <span className={row.overBudget ? "font-semibold text-red-700" : ""}>
+                                {row.category.replace(/_/g," ").replace(/\b\w/g, x => x.toUpperCase())}
+                              </span>
+                              {row.overBudget && <Badge className="ml-1 bg-red-100 text-red-700 border-red-300 text-xs py-0">{t("acc.budget.overLimit")}</Badge>}
+                            </td>
+                            <td className={`py-2 px-4 text-right font-semibold ${row.overBudget ? "text-red-700" : "text-foreground"}`}>{MYR(row.total)}</td>
+                            <td className="py-2 px-4 text-right text-muted-foreground">
+                              {row.budget != null ? MYR(row.budget) : <span className="text-xs italic">{t("acc.budget.noBudget")}</span>}
+                            </td>
+                            <td className="py-2 px-4 text-right text-muted-foreground">{expData.grandTotal > 0 ? ((row.total / expData.grandTotal) * 100).toFixed(1) : "0"}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>

@@ -71,6 +71,21 @@ export async function ensureAccountsTables(): Promise<void> {
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS firm_acc_client_ledger_idx ON firm_accounts_client_entries(ledger_id)`);
 
+  // ── Expense budgets ────────────────────────────────────────────────────────
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS firm_accounts_budgets (
+      id          serial PRIMARY KEY,
+      year        integer NOT NULL,
+      month       integer NOT NULL CHECK (month >= 1 AND month <= 12),
+      category    text NOT NULL,
+      budget_sen  bigint NOT NULL CHECK (budget_sen >= 0),
+      created_by  integer REFERENCES firm_users(id),
+      updated_at  timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (year, month, category)
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS firm_acc_budgets_ym_idx ON firm_accounts_budgets(year, month)`);
+
   // ── Migration: convert existing double-precision columns to bigint sen ─────
   // Safe because the tables are new (no user-visible history yet) and float
   // values like 5000.0 map cleanly to 500000 sen. This runs at every boot but
@@ -274,6 +289,64 @@ router.get("/accounts/office/categories", async (req, res): Promise<void> => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// EXPENSE BUDGETS
+// ══════════════════════════════════════════════════════════════════════════════
+
+const BudgetUpsertBody = z.object({
+  year:      z.number().int().min(2000).max(2100),
+  month:     z.number().int().min(1).max(12),
+  category:  z.string().min(1).max(80),
+  budget:    z.number().min(0),  // RM — 0 means "remove / no limit"
+});
+
+/** GET /accounts/budgets?year=&month= — return all budgets for a month/year */
+router.get("/accounts/budgets", async (req, res): Promise<void> => {
+  if (await requireMgr(req, res) == null) return;
+  const now   = new Date();
+  const year  = parseInt(String(req.query.year  ?? now.getFullYear()), 10);
+  const month = parseInt(String(req.query.month ?? now.getMonth() + 1), 10);
+  if (Number.isNaN(year) || Number.isNaN(month)) {
+    res.status(400).json({ error: "Invalid year or month" });
+    return;
+  }
+  const rows = await db.execute(sql`
+    SELECT category, budget_sen FROM firm_accounts_budgets
+    WHERE year = ${year} AND month = ${month}
+  `);
+  const budgets: Record<string, number> = {};
+  for (const r of (rows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
+    budgets[r.category] = senToRm(parseInt(r.budget_sen, 10) || 0);
+  }
+  res.json({ year, month, budgets });
+});
+
+/** PUT /accounts/budgets — upsert a single category budget */
+router.put("/accounts/budgets", async (req, res): Promise<void> => {
+  const uid = await requireMgr(req, res);
+  if (uid == null) return;
+  const b = BudgetUpsertBody.safeParse(req.body);
+  if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
+  const { year, month, category, budget } = b.data;
+  const budgetSen = rmToSen(budget);
+
+  if (budgetSen === 0) {
+    // Treat zero as "remove budget"
+    await db.execute(sql`
+      DELETE FROM firm_accounts_budgets
+      WHERE year = ${year} AND month = ${month} AND category = ${category}
+    `);
+  } else {
+    await db.execute(sql`
+      INSERT INTO firm_accounts_budgets (year, month, category, budget_sen, created_by, updated_at)
+      VALUES (${year}, ${month}, ${category}, ${budgetSen}, ${uid}, now())
+      ON CONFLICT (year, month, category)
+      DO UPDATE SET budget_sen = EXCLUDED.budget_sen, updated_at = now()
+    `);
+  }
+  res.json({ year, month, category, budget });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // CLIENT TRUST LEDGERS
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -462,7 +535,7 @@ router.get("/accounts/reports/pl", async (req, res): Promise<void> => {
   });
 });
 
-/** GET /accounts/reports/expenses?year=&month= — expense breakdown by category */
+/** GET /accounts/reports/expenses?year=&month= — expense breakdown by category (with budgets) */
 router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const year  = String(req.query.year ?? new Date().getFullYear());
@@ -479,7 +552,30 @@ router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
   const breakdown = (rows as unknown as { rows: { category: string; total: string }[] }).rows.map(r => ({
     category: r.category,
     total:    senToRm(parseInt(r.total, 10) || 0),  // DB returns sen → RM
+    budget:   null as number | null,
+    overBudget: false,
   }));
+
+  // Attach budgets when a single month is selected
+  if (month) {
+    const monthInt = parseInt(month, 10);
+    const yearInt  = parseInt(year, 10);
+    const budgetRows = await db.execute(sql`
+      SELECT category, budget_sen FROM firm_accounts_budgets
+      WHERE year = ${yearInt} AND month = ${monthInt}
+    `);
+    const budgetMap: Record<string, number> = {};
+    for (const r of (budgetRows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
+      budgetMap[r.category] = senToRm(parseInt(r.budget_sen, 10) || 0);
+    }
+    for (const item of breakdown) {
+      if (budgetMap[item.category] != null) {
+        item.budget    = budgetMap[item.category]!;
+        item.overBudget = item.total > item.budget;
+      }
+    }
+  }
+
   const grandTotal = breakdown.reduce((s, v) => s + v.total, 0);
   res.json({ prefix, breakdown, grandTotal });
 });
