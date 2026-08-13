@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +24,7 @@ import {
 } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────────────────────
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const api = (path: string, init?: RequestInit) =>
   fetch(`/api/firm${path}`, { credentials: "include", ...init });
@@ -228,7 +228,10 @@ function OfficeLedgerTab() {
             <Button size="sm" className="gap-1.5"><Plus className="w-3.5 h-3.5" /> {t("acc.office.add")}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>{t("acc.office.add")}</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{t("acc.office.add")}</DialogTitle>
+              <DialogDescription>Fill in the details below to record a new office ledger entry.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3 pt-1">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -425,7 +428,10 @@ function ClientLedgerTab() {
             <Button size="sm" className="gap-1.5"><Plus className="w-3.5 h-3.5" /> {t("acc.client.new")}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>{t("acc.client.new")}</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>{t("acc.client.new")}</DialogTitle>
+              <DialogDescription>Create a new client trust ledger to track deposits and disbursements for a client.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-3 pt-1">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold uppercase tracking-wide">{t("acc.client.name")}</Label>
@@ -475,7 +481,10 @@ function ClientLedgerTab() {
                         <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs"><Plus className="w-3 h-3" /> {t("acc.client.addEntry")}</Button>
                       </DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>{t("acc.client.addEntry")} — {l.clientName}</DialogTitle></DialogHeader>
+                        <DialogHeader>
+                          <DialogTitle>{t("acc.client.addEntry")} — {l.clientName}</DialogTitle>
+                          <DialogDescription>Record a deposit, disbursement, or transfer to office for this client trust account.</DialogDescription>
+                        </DialogHeader>
                         <div className="space-y-3 pt-1">
                           <div className="space-y-1">
                             <Label className="text-xs font-semibold uppercase tracking-wide">{t("acc.type")}</Label>
