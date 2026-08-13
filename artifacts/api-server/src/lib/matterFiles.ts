@@ -11,7 +11,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { type Portal } from "./caseStages";
 import { makeClientsRouter } from "./caseClients";
-import { attachCaseIntelligence, triggerChecklistGeneration } from "./attachCaseIntelligence";
+import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "./attachCaseIntelligence";
 
 /**
  * Matter-file route factory for the corporate portals (Task #110), mirroring
@@ -186,6 +186,9 @@ export function createMatterFileRouters(
         row.title,
         (row as unknown as Record<string, unknown>).matterType as string | null,
       );
+      if (req.body?.hasDocuments === true) {
+        triggerIntakeBriefing(portal, row.id, String(ownerId), row as unknown as Record<string, unknown>);
+      }
     }
     res.status(201).json(row);
   });

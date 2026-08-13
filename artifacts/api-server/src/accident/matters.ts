@@ -15,6 +15,7 @@ import { makeClientsRouter } from "../lib/caseClients";
 import {
   attachCaseIntelligence,
   triggerChecklistGeneration,
+  triggerIntakeBriefing,
 } from "../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
@@ -240,6 +241,9 @@ router.post("/matters", async (req, res) => {
     row.title,
     row.matterType ?? null,
   );
+  if (req.body?.hasDocuments === true) {
+    triggerIntakeBriefing("acc", row.id, String(ownerId), row as unknown as Record<string, unknown>);
+  }
   res.status(201).json(row);
 });
 

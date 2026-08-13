@@ -339,8 +339,12 @@ export function MattersPage() {
     try {
       const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
       const notes = fileContext ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext) : (form.notes ?? '');
-      await createMatter.mutateAsync({ ...form, notes, fileRef: generateFileRef(), status: "open" });
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
+      await createMatter.mutateAsync({ ...form, notes, fileRef: generateFileRef(), status: "open", hasDocuments });
       toast({ title: "Matter created" });
+      if (hasDocuments) {
+        toast({ title: "AI briefing in progress", description: "An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab." });
+      }
       setOpen(false);
       setExtractedFiles([]);
       setForm({ title: "", clientName: "", accusedName: "", charge: "", court: "", caseNo: "", stage: "", notes: "" });

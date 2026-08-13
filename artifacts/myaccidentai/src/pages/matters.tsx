@@ -99,11 +99,13 @@ export default function MattersPage() {
       const notes = fileContext
         ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
         : (form.notes ?? '');
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
       const matter = await createMatter.mutateAsync({
         ...form,
         notes,
         fileRef: generateFileRef(),
         status: "open",
+        hasDocuments,
       });
       setOpen(false);
       setExtractedFiles([]);
@@ -119,6 +121,9 @@ export default function MattersPage() {
         claimAmount: "",
         notes: "",
       });
+      if (hasDocuments) {
+        toast({ title: "AI briefing in progress", description: "An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab." });
+      }
       setLocation(`/workspace/matters/${matter.id}`);
     } catch {
       toast({ title: "Could not create matter", variant: "destructive" });

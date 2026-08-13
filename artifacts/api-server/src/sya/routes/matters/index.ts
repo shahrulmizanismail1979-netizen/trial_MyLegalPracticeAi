@@ -18,7 +18,7 @@ import {
   SYA_DEADLINE_TRIGGERS,
 } from "../../lib/syariahDeadlines";
 import { logger } from "../../../lib/logger";
-import { attachCaseIntelligence, triggerChecklistGeneration } from "../../../lib/attachCaseIntelligence";
+import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "../../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -262,6 +262,9 @@ router.post("/matters", async (req, res) => {
     row.title,
     (row as unknown as Record<string, unknown>).matterType as string | null,
   );
+  if (req.body?.hasDocuments === true) {
+    triggerIntakeBriefing("sya", row.id, `${owner.ownerType}:${owner.ownerId}`, row as unknown as Record<string, unknown>);
+  }
   res.status(201).json(row);
 });
 

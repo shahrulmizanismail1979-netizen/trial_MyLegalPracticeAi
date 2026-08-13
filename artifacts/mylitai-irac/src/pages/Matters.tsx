@@ -68,17 +68,22 @@ export default function Matters() {
       const baseNotes = `File Ref: MLA/${year}/${Math.floor(1000 + Math.random() * 9000)}`;
       const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
       const notes = fileContext ? baseNotes + '\n\n--- Supporting Documents ---\n' + fileContext : baseNotes;
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
       await createMatter.mutateAsync({
         title: title.trim(),
         clientName: clientName.trim() || null,
         status: 'active',
         notes,
+        hasDocuments,
       });
       setOpen(false);
       setTitle('');
       setClientName('');
       setExtractedFiles([]);
       toast({ title: 'Matter created', description: 'AI is generating a procedural checklist…' });
+      if (hasDocuments) {
+        toast({ title: 'AI briefing in progress', description: 'An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab.' });
+      }
     } catch (e) {
       toast({ title: 'Could not create matter', description: e instanceof Error ? e.message : '', variant: 'destructive' });
     }

@@ -381,8 +381,12 @@ export default function Matters() {
       const notes = fileContext
         ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
         : (form.notes ?? '');
-      await createMatter.mutateAsync({ ...form, notes });
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
+      await createMatter.mutateAsync({ ...form, notes, hasDocuments });
       toast({ title: 'Matter created', description: `"${form.title}" is now in your workspace.` });
+      if (hasDocuments) {
+        toast({ title: 'AI briefing in progress', description: 'An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab.' });
+      }
       setOpen(false);
       setForm(EMPTY);
       setExtractedFiles([]);

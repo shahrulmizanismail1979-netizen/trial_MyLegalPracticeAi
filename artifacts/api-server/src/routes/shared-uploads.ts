@@ -7,6 +7,7 @@
  * return a friendly error (OCR not available).
  */
 import multer from "multer";
+import rateLimit from "express-rate-limit";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import mammoth from "mammoth";
 import { logger } from "../lib/logger.js";
@@ -105,10 +106,23 @@ function uploadMiddleware(req: Request, res: Response, next: NextFunction) {
   });
 }
 
+// IP-based rate limit: 30 extract requests per 15 minutes per IP.
+// This protects the CPU/memory-intensive PDF/DOCX parsing pipeline from
+// being abused by unauthenticated callers.
+const extractRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many extract requests — please try again later." },
+  keyGenerator: (req) => req.ip ?? "unknown",
+});
+
 const router = Router();
 
 router.post(
   "/shared/uploads/extract",
+  extractRateLimit,
   uploadMiddleware,
   async (req: Request, res: Response): Promise<void> => {
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];

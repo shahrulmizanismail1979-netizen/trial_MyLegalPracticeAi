@@ -3,7 +3,7 @@ import { db, crimMatters, crimMatterDeadlines, crimSavedWork } from "@workspace/
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireMatterTenant, tenantOf } from "./matterAuth";
 import { computeCrimDeadlines, CRIM_DEADLINE_TRIGGERS } from "../lib/crimDeadlines";
-import { attachCaseIntelligence, triggerChecklistGeneration } from "../../lib/attachCaseIntelligence";
+import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -143,6 +143,9 @@ router.post("/", async (req, res) => {
     row.title,
     row.charge ?? null,
   );
+  if (req.body?.hasDocuments === true) {
+    triggerIntakeBriefing("crim", row.id, String(accessCodeId), row as unknown as Record<string, unknown>);
+  }
   res.status(201).json(row);
 });
 

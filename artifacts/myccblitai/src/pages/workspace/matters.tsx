@@ -63,6 +63,7 @@ export default function MattersPage() {
       const notes = fileContext
         ? (form.notes?.trim() ? form.notes.trim() + '\n\n--- Supporting Documents ---\n' + fileContext : '--- Supporting Documents ---\n' + fileContext)
         : (form.notes || null);
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
       const matter = await createMatter.mutateAsync({
         title: form.title.trim(),
         clientName: form.clientName || null,
@@ -71,8 +72,12 @@ export default function MattersPage() {
         reference: generateFileRef("CCB"),
         status: "open",
         notes: notes || null,
+        hasDocuments,
       });
       toast({ title: "Matter created" });
+      if (hasDocuments) {
+        toast({ title: "AI briefing in progress", description: "An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab." });
+      }
       setOpen(false);
       setExtractedFiles([]);
       setForm({ title: "", clientName: "", counterparty: "", matterType: "", notes: "" });

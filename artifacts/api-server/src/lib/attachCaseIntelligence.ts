@@ -279,3 +279,37 @@ export function triggerChecklistGeneration(
     (err) => logger.warn({ err }, "Background checklist generation failed"),
   );
 }
+
+/**
+ * Hook called after a matter is created with uploaded documents — fires AI
+ * intake briefing generation in the background (non-blocking). The result is
+ * stored in case_ai_insights so the AI Insights tab is pre-populated when
+ * the lawyer first opens the matter.
+ *
+ * Only call this when documents were uploaded (hasDocuments flag from client).
+ */
+export function triggerIntakeBriefing(
+  portal: Portal,
+  matterId: number,
+  _ownerKey: string,
+  row: Record<string, unknown>,
+): void {
+  void getMatterInsights(
+    portal,
+    matterId,
+    {
+      title: (row.title as string) ?? "",
+      matterType: (row.matterType ?? row.matter_type) as string | null,
+      status: (row.status as string) ?? "open",
+      notes: (row.notes as string) ?? null,
+      clientName: (row.clientName ?? row.client_name) as string | null,
+      plaintiff: (row.plaintiff as string) ?? null,
+      defendant: (row.defendant as string) ?? null,
+      charge: (row.charge as string) ?? null,
+      court: (row.court as string) ?? null,
+    },
+    true, // forceRefresh — generate fresh briefing from uploaded document text
+  ).catch((err) =>
+    logger.warn({ err, portal, matterId }, "Background intake briefing generation failed"),
+  );
+}

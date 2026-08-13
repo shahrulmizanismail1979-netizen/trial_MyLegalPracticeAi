@@ -17,7 +17,7 @@ import {
   computeDeadlines,
   DEADLINE_TRIGGERS,
 } from "../lib/litigationDeadlines";
-import { attachCaseIntelligence, triggerChecklistGeneration } from "../../lib/attachCaseIntelligence";
+import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "../../lib/attachCaseIntelligence";
 
 const router: IRouter = Router();
 
@@ -176,6 +176,9 @@ router.post("/", requireSubscription, async (req, res) => {
     row.title,
     (row as unknown as Record<string, unknown>).matterType as string | null,
   );
+  if (req.body?.hasDocuments === true) {
+    triggerIntakeBriefing("lit", row.id, String(accessCodeId), row as unknown as Record<string, unknown>);
+  }
   res.status(201).json(row);
 });
 

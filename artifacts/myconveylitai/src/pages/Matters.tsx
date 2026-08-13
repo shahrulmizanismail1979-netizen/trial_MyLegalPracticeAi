@@ -45,6 +45,7 @@ export function Matters() {
       if (form.notes.trim()) notesParts.push(form.notes.trim());
       const fileContext = extractedFiles.filter(f => f.text?.trim()).map(f => '=== ' + f.name + ' ===\n' + f.text.trim()).join('\n\n');
       if (fileContext) notesParts.push('--- Supporting Documents ---\n' + fileContext);
+      const hasDocuments = extractedFiles.some(f => !!f.text?.trim());
       const matter = await createMatter.mutateAsync({
         title: form.title.trim(),
         clientName: form.clientName.trim() || null,
@@ -53,8 +54,12 @@ export function Matters() {
         reference: generateFileRef(),
         status: 'open',
         notes: notesParts.join('\n') || null,
+        hasDocuments,
       } as MatterInput);
       toast({ title: 'Matter created', description: matter.reference ?? undefined });
+      if (hasDocuments) {
+        toast({ title: 'AI briefing in progress', description: 'An AI intake briefing is being generated from your uploaded documents. It will appear in the AI Insights tab.' });
+      }
       setOpen(false);
       setExtractedFiles([]);
       setForm({ title: '', clientName: '', counterparty: '', matterType: 'SPA', propertyAddress: '', notes: '' });
