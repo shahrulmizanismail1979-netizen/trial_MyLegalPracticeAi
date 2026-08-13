@@ -167,26 +167,52 @@ export async function generateAndSaveIntakeBriefing(
   if (existing) return;
 
   const prompt = buildIntakePrompt(portal, ctx);
-  let raw = "";
 
-  try {
-    const result = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 4096, responseMimeType: "application/json" },
-    });
-    raw = result.text ?? "";
-  } catch (err) {
-    logger.error({ err, portal, matterId }, "Gemini intake briefing generation failed");
-    return; // non-fatal — briefing is best-effort
+  /** Attempt the Gemini call and JSON repair, returning parsed data or null. */
+  async function attempt(): Promise<Omit<IntakeBriefing, "generatedAt"> | null> {
+    let raw = "";
+    try {
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { maxOutputTokens: 4096, responseMimeType: "application/json" },
+      });
+      raw = result.text ?? "";
+    } catch (err) {
+      logger.warn({ err, portal, matterId }, "Gemini intake briefing call failed");
+      return null;
+    }
+    if (!raw.trim()) return null;
+
+    // Strip markdown code fences that Gemini sometimes wraps around the JSON
+    let clean = raw.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
+    // Repair common Gemini JSON inconsistencies (missing commas):
+    // 1. Between string elements in arrays: "val1"\n  "val2" → "val1",\n  "val2"
+    clean = clean.replace(/"\n(\s*)"/g, (_m, ws: string) => `",\n${ws}"`);
+    // 2. Between object elements in arrays: }\n  { → },\n  {
+    clean = clean.replace(/\}\n(\s*)\{/g, (_m, ws: string) => `},\n${ws}{`);
+    // 3. Between object properties where a value is an array: ]\n  "key" → ],\n  "key"
+    clean = clean.replace(/\]\n(\s*)"/g, (_m, ws: string) => `],\n${ws}"`);
+
+    try {
+      return JSON.parse(clean) as Omit<IntakeBriefing, "generatedAt">;
+    } catch (err) {
+      logger.warn(
+        { err: (err as Error).message, rawLen: raw.length, portal, matterId },
+        "Failed to parse Gemini intake briefing JSON",
+      );
+      return null;
+    }
   }
 
-  let parsed: Omit<IntakeBriefing, "generatedAt">;
-  try {
-    const clean = raw.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-    parsed = JSON.parse(clean) as Omit<IntakeBriefing, "generatedAt">;
-  } catch (err) {
-    logger.warn({ err, raw: raw.slice(0, 200) }, "Failed to parse Gemini intake briefing JSON");
+  // Try up to twice — Gemini occasionally truncates or drops commas on first attempt.
+  let parsed = await attempt();
+  if (!parsed) {
+    logger.info({ portal, matterId }, "Retrying intake briefing generation after parse failure");
+    parsed = await attempt();
+  }
+  if (!parsed) {
+    logger.error({ portal, matterId }, "Gemini intake briefing generation failed after 2 attempts");
     return;
   }
 
