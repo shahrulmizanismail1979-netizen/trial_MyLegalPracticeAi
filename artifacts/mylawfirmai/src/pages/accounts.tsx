@@ -428,6 +428,7 @@ function ReportsTab() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [subTab, setSubTab] = useState<"pl"|"expenses"|"trust"|"cashflow">("pl");
+  const [xlsxExporting, setXlsxExporting] = useState(false);
 
   const { data: plData, isLoading: plLoading } = useQuery({
     queryKey: ["acc-pl", year],
@@ -463,6 +464,87 @@ function ReportsTab() {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
   };
 
+  const handleExportExcel = async () => {
+    if (xlsxExporting) return;
+    setXlsxExporting(true);
+    try {
+      const [plResp, expResp, trustResp] = await Promise.all([
+        apiJson<{ year: string; pl: PlRow[]; totalIncome: number; totalExpense: number; netProfit: number }>(`/accounts/reports/pl?year=${year}`),
+        apiJson<{ breakdown: ExpenseBreakdown[]; grandTotal: number }>(`/accounts/reports/expenses?year=${year}`),
+        apiJson<{ ledgers: ClientLedger[]; totalBalance: number }>("/accounts/reports/trust"),
+      ]);
+
+      const ExcelJS = (await import("exceljs")).default;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "MyLawFirmAI";
+
+      const HEADER_FILL = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF002147" } };
+      const HEADER_FONT = { bold: true, color: { argb: "FFFFFFFF" } };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const applyHeader = (sheet: any) => {
+        const row = sheet.getRow(1);
+        row.font = HEADER_FONT;
+        row.fill = HEADER_FILL;
+        row.alignment = { vertical: "middle" };
+      };
+
+      // Sheet 1: P&L by Month
+      const plSheet = workbook.addWorksheet(`P&L ${year}`, { views: [{ state: "frozen", ySplit: 1 }] });
+      plSheet.columns = [
+        { header: "Month",        width: 18 },
+        { header: "Income (RM)",  width: 18 },
+        { header: "Expense (RM)", width: 18 },
+        { header: "Net (RM)",     width: 16 },
+      ];
+      applyHeader(plSheet);
+      const fmtM = (m: string) => { const idx = parseInt(m.slice(5)) - 1; return (MONTHS[idx] ?? m) + " " + year; };
+      for (const row of plResp.pl) plSheet.addRow([fmtM(row.month), row.income, row.expense, row.net]);
+      const plTotalRow = plSheet.addRow(["TOTAL", plResp.totalIncome, plResp.totalExpense, plResp.netProfit]);
+      plTotalRow.font = { bold: true };
+
+      // Sheet 2: Expense Breakdown
+      const expSheet = workbook.addWorksheet("Expense Breakdown", { views: [{ state: "frozen", ySplit: 1 }] });
+      expSheet.columns = [
+        { header: "Category",   width: 32 },
+        { header: "Total (RM)", width: 18 },
+        { header: "% of Total", width: 14 },
+      ];
+      applyHeader(expSheet);
+      for (const row of expResp.breakdown) {
+        expSheet.addRow([
+          row.category.replace(/_/g, " ").replace(/\b\w/g, x => x.toUpperCase()),
+          row.total,
+          expResp.grandTotal > 0 ? parseFloat(((row.total / expResp.grandTotal) * 100).toFixed(1)) : 0,
+        ]);
+      }
+      const expTotalRow = expSheet.addRow(["GRAND TOTAL", expResp.grandTotal, 100]);
+      expTotalRow.font = { bold: true };
+
+      // Sheet 3: Trust Balances
+      const trustSheet = workbook.addWorksheet("Trust Balances", { views: [{ state: "frozen", ySplit: 1 }] });
+      trustSheet.columns = [
+        { header: "Client Name",  width: 32 },
+        { header: "Matter Ref",   width: 22 },
+        { header: "Balance (RM)", width: 18 },
+      ];
+      applyHeader(trustSheet);
+      for (const l of trustResp.ledgers) trustSheet.addRow([l.clientName, l.matterRef ?? "", l.balance]);
+      const trustTotalRow = trustSheet.addRow(["TOTAL TRUST", "", trustResp.totalBalance]);
+      trustTotalRow.font = { bold: true };
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `accounts-report-${year}.xlsx`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    } catch {
+      toast({ variant: "destructive", description: "Excel export failed." });
+    } finally {
+      setXlsxExporting(false);
+    }
+  };
+
   const downloadPL         = () => dlPdf(`/accounts/reports/pl/pdf?year=${year}`, `pl-report-${year}.pdf`);
   const downloadExpenses   = () => dlPdf(`/accounts/reports/expenses/pdf?year=${year}`, `expenses-${year}.pdf`);
   const downloadTrust      = () => dlPdf(`/accounts/reports/trust/pdf`, `trust-balances-${new Date().toISOString().slice(0,10)}.pdf`);
@@ -494,6 +576,10 @@ function ReportsTab() {
             <Download className="w-3.5 h-3.5" /> {t("acc.report.downloadPl")}
           </Button>
         )}
+        <Button size="sm" variant="outline" className="gap-1.5" disabled={xlsxExporting} onClick={handleExportExcel}>
+          {xlsxExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {xlsxExporting ? "Preparing…" : "Download Excel"}
+        </Button>
         {subTab === "expenses" && (
           <Button size="sm" variant="outline" className="gap-1.5" onClick={downloadExpenses}>
             <Download className="w-3.5 h-3.5" /> {t("acc.report.downloadPdf")}
