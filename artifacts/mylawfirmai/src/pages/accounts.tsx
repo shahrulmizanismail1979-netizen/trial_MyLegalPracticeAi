@@ -570,6 +570,11 @@ function ReportsTab() {
   const [expMonth, setExpMonth] = useState<number | "">(now.getMonth() + 1);
   const [subTab, setSubTab] = useState<"pl"|"expenses"|"trust"|"cashflow">("pl");
   const [xlsxExporting, setXlsxExporting] = useState(false);
+  const [xlsxDialogOpen, setXlsxDialogOpen] = useState(false);
+  const [xlsxFromYear,  setXlsxFromYear]  = useState(now.getFullYear());
+  const [xlsxFromMonth, setXlsxFromMonth] = useState(1);
+  const [xlsxToYear,    setXlsxToYear]    = useState(now.getFullYear());
+  const [xlsxToMonth,   setXlsxToMonth]   = useState(now.getMonth() + 1);
 
   const { data: plData, isLoading: plLoading } = useQuery({
     queryKey: ["acc-pl", year],
@@ -609,13 +614,14 @@ function ReportsTab() {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
   };
 
-  const handleExportExcel = async () => {
+  const handleExportExcel = async (fromYM: string, toYM: string) => {
     if (xlsxExporting) return;
     setXlsxExporting(true);
+    setXlsxDialogOpen(false);
     try {
       const [plResp, expResp, trustResp] = await Promise.all([
-        apiJson<{ year: string; pl: PlRow[]; totalIncome: number; totalExpense: number; netProfit: number }>(`/accounts/reports/pl?year=${year}`),
-        apiJson<{ breakdown: ExpenseBreakdown[]; grandTotal: number }>(`/accounts/reports/expenses?year=${year}`),
+        apiJson<{ pl: PlRow[]; totalIncome: number; totalExpense: number; netProfit: number }>(`/accounts/reports/pl?from=${fromYM}&to=${toYM}`),
+        apiJson<{ breakdown: ExpenseBreakdown[]; grandTotal: number }>(`/accounts/reports/expenses?from=${fromYM}&to=${toYM}`),
         apiJson<{ ledgers: ClientLedger[]; totalBalance: number }>("/accounts/reports/trust"),
       ]);
 
@@ -633,8 +639,10 @@ function ReportsTab() {
         row.alignment = { vertical: "middle" };
       };
 
+      const rangeLabel = fromYM === toYM ? fromYM : `${fromYM} to ${toYM}`;
+
       // Sheet 1: P&L by Month
-      const plSheet = workbook.addWorksheet(`P&L ${year}`, { views: [{ state: "frozen", ySplit: 1 }] });
+      const plSheet = workbook.addWorksheet(`P&L ${rangeLabel}`, { views: [{ state: "frozen", ySplit: 1 }] });
       plSheet.columns = [
         { header: "Month",        width: 18 },
         { header: "Income (RM)",  width: 18 },
@@ -642,7 +650,7 @@ function ReportsTab() {
         { header: "Net (RM)",     width: 16 },
       ];
       applyHeader(plSheet);
-      const fmtM = (m: string) => { const idx = parseInt(m.slice(5)) - 1; return (MONTHS[idx] ?? m) + " " + year; };
+      const fmtM = (m: string) => { const idx = parseInt(m.slice(5)) - 1; return (MONTHS[idx] ?? m) + " " + m.slice(0, 4); };
       for (const row of plResp.pl) plSheet.addRow([fmtM(row.month), row.income, row.expense, row.net]);
       const plTotalRow = plSheet.addRow(["TOTAL", plResp.totalIncome, plResp.totalExpense, plResp.netProfit]);
       plTotalRow.font = { bold: true };
@@ -681,7 +689,7 @@ function ReportsTab() {
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `accounts-report-${year}.xlsx`;
+      a.download = `accounts-report-${fromYM}_${toYM}.xlsx`;
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
     } catch {
       toast({ variant: "destructive", description: "Excel export failed." });
@@ -715,10 +723,10 @@ function ReportsTab() {
             {subTab === "expenses" && (
               <>
                 <Label className="text-xs">{t("acc.month")}</Label>
-                <Select value={String(expMonth)} onValueChange={v => setExpMonth(v === "" ? "" : parseInt(v))}>
+                <Select value={expMonth === "" ? "all" : String(expMonth)} onValueChange={v => setExpMonth(v === "all" ? "" : parseInt(v))}>
                   <SelectTrigger className="w-28 h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All months</SelectItem>
+                    <SelectItem value="all">All months</SelectItem>
                     {MONTHS.map((m, i) => <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -733,10 +741,54 @@ function ReportsTab() {
             <Download className="w-3.5 h-3.5" /> {t("acc.report.downloadPl")}
           </Button>
         )}
-        <Button size="sm" variant="outline" className="gap-1.5" disabled={xlsxExporting} onClick={handleExportExcel}>
-          {xlsxExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-          {xlsxExporting ? "Preparing…" : "Download Excel"}
-        </Button>
+        <Dialog open={xlsxDialogOpen} onOpenChange={setXlsxDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" className="gap-1.5" disabled={xlsxExporting}>
+              {xlsxExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {xlsxExporting ? "Preparing…" : "Download Excel"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Export Date Range</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">Choose the start and end month for the Excel export. P&amp;L and Expense Breakdown sheets will reflect only entries within this range. Trust Balances shows current account balances (a point-in-time snapshot, not date-filtered).</p>
+            <div className="grid grid-cols-2 gap-4 pt-1">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wide">Start Month</Label>
+                <Select value={String(xlsxFromMonth)} onValueChange={v => setXlsxFromMonth(parseInt(v))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{MONTHS.map((m, i) => <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+                <Input type="number" value={xlsxFromYear} onChange={e => setXlsxFromYear(parseInt(e.target.value))} className="h-8 text-sm mt-1" placeholder="Year" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold uppercase tracking-wide">End Month</Label>
+                <Select value={String(xlsxToMonth)} onValueChange={v => setXlsxToMonth(parseInt(v))}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{MONTHS.map((m, i) => <SelectItem key={i+1} value={String(i+1)}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+                <Input type="number" value={xlsxToYear} onChange={e => setXlsxToYear(parseInt(e.target.value))} className="h-8 text-sm mt-1" placeholder="Year" />
+              </div>
+            </div>
+            {(() => {
+              const fromYM = `${xlsxFromYear}-${String(xlsxFromMonth).padStart(2, "0")}`;
+              const toYM   = `${xlsxToYear}-${String(xlsxToMonth).padStart(2, "0")}`;
+              const invalid = fromYM > toYM;
+              return (
+                <>
+                  {invalid && <p className="text-xs text-destructive">Start month must be before or equal to end month.</p>}
+                  <p className="text-xs text-muted-foreground">File: <span className="font-mono">accounts-report-{fromYM}_{toYM}.xlsx</span></p>
+                  <Button
+                    className="w-full"
+                    disabled={invalid}
+                    onClick={() => handleExportExcel(fromYM, toYM)}
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5" /> Export Excel
+                  </Button>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
         {subTab === "expenses" && (
           <Button size="sm" variant="outline" className="gap-1.5" onClick={downloadExpenses}>
             <Download className="w-3.5 h-3.5" /> {t("acc.report.downloadPdf")}

@@ -204,9 +204,66 @@ const ClientEntryBody = z.object({
   reference:   z.string().max(100).optional(),
 });
 
+const BudgetUpsertBody = z.object({
+  year:     z.number().int().min(2000).max(2100),
+  month:    z.number().int().min(1).max(12),
+  category: z.string().min(1).max(80),
+  budget:   z.number().min(0),  // RM — 0 means "remove / no limit"
+});
+
 // ── Router ─────────────────────────────────────────────────────────────────────
 
 const router: IRouter = Router();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EXPENSE BUDGETS
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** GET /accounts/budgets?year=&month= — return all budgets for a month/year */
+router.get("/accounts/budgets", async (req, res): Promise<void> => {
+  if (await requireMgr(req, res) == null) return;
+  const now   = new Date();
+  const year  = parseInt(String(req.query.year  ?? now.getFullYear()), 10);
+  const month = parseInt(String(req.query.month ?? now.getMonth() + 1), 10);
+  if (Number.isNaN(year) || Number.isNaN(month)) {
+    res.status(400).json({ error: "Invalid year or month" });
+    return;
+  }
+  const rows = await db.execute(sql`
+    SELECT category, budget_sen FROM firm_accounts_budgets
+    WHERE year = ${year} AND month = ${month}
+  `);
+  const budgets: Record<string, number> = {};
+  for (const r of (rows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
+    budgets[r.category] = senToRm(parseInt(r.budget_sen, 10) || 0);
+  }
+  res.json({ year, month, budgets });
+});
+
+/** PUT /accounts/budgets — upsert a single category budget */
+router.put("/accounts/budgets", async (req, res): Promise<void> => {
+  const uid = await requireMgr(req, res);
+  if (uid == null) return;
+  const b = BudgetUpsertBody.safeParse(req.body);
+  if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
+  const { year, month, category, budget } = b.data;
+  const budgetSen = rmToSen(budget);
+
+  if (budgetSen === 0) {
+    await db.execute(sql`
+      DELETE FROM firm_accounts_budgets
+      WHERE year = ${year} AND month = ${month} AND category = ${category}
+    `);
+  } else {
+    await db.execute(sql`
+      INSERT INTO firm_accounts_budgets (year, month, category, budget_sen, created_by, updated_at)
+      VALUES (${year}, ${month}, ${category}, ${budgetSen}, ${uid}, now())
+      ON CONFLICT (year, month, category)
+      DO UPDATE SET budget_sen = EXCLUDED.budget_sen, updated_at = now()
+    `);
+  }
+  res.json({ year, month, category, budget });
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // OFFICE ACCOUNT
@@ -286,64 +343,6 @@ router.delete("/accounts/office/entries/:id", async (req, res): Promise<void> =>
 router.get("/accounts/office/categories", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   res.json({ income: OFFICE_INCOME_CATEGORIES, expense: OFFICE_EXPENSE_CATEGORIES });
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// EXPENSE BUDGETS
-// ══════════════════════════════════════════════════════════════════════════════
-
-const BudgetUpsertBody = z.object({
-  year:      z.number().int().min(2000).max(2100),
-  month:     z.number().int().min(1).max(12),
-  category:  z.string().min(1).max(80),
-  budget:    z.number().min(0),  // RM — 0 means "remove / no limit"
-});
-
-/** GET /accounts/budgets?year=&month= — return all budgets for a month/year */
-router.get("/accounts/budgets", async (req, res): Promise<void> => {
-  if (await requireMgr(req, res) == null) return;
-  const now   = new Date();
-  const year  = parseInt(String(req.query.year  ?? now.getFullYear()), 10);
-  const month = parseInt(String(req.query.month ?? now.getMonth() + 1), 10);
-  if (Number.isNaN(year) || Number.isNaN(month)) {
-    res.status(400).json({ error: "Invalid year or month" });
-    return;
-  }
-  const rows = await db.execute(sql`
-    SELECT category, budget_sen FROM firm_accounts_budgets
-    WHERE year = ${year} AND month = ${month}
-  `);
-  const budgets: Record<string, number> = {};
-  for (const r of (rows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
-    budgets[r.category] = senToRm(parseInt(r.budget_sen, 10) || 0);
-  }
-  res.json({ year, month, budgets });
-});
-
-/** PUT /accounts/budgets — upsert a single category budget */
-router.put("/accounts/budgets", async (req, res): Promise<void> => {
-  const uid = await requireMgr(req, res);
-  if (uid == null) return;
-  const b = BudgetUpsertBody.safeParse(req.body);
-  if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
-  const { year, month, category, budget } = b.data;
-  const budgetSen = rmToSen(budget);
-
-  if (budgetSen === 0) {
-    // Treat zero as "remove budget"
-    await db.execute(sql`
-      DELETE FROM firm_accounts_budgets
-      WHERE year = ${year} AND month = ${month} AND category = ${category}
-    `);
-  } else {
-    await db.execute(sql`
-      INSERT INTO firm_accounts_budgets (year, month, category, budget_sen, created_by, updated_at)
-      VALUES (${year}, ${month}, ${category}, ${budgetSen}, ${uid}, now())
-      ON CONFLICT (year, month, category)
-      DO UPDATE SET budget_sen = EXCLUDED.budget_sen, updated_at = now()
-    `);
-  }
-  res.json({ year, month, category, budget });
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -487,38 +486,72 @@ router.post("/accounts/client/ledgers/:id/entries", async (req, res): Promise<vo
 // REPORTS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** GET /accounts/reports/pl?year= — monthly P&L for the year */
+/**
+ * Generate all YYYY-MM keys between two YYYY-MM strings (inclusive).
+ */
+function monthsInRange(from: string, to: string): string[] {
+  const [fy, fm] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  const keys: string[] = [];
+  let y = fy, m = fm;
+  while (y < ty || (y === ty && m <= tm)) {
+    keys.push(`${y}-${String(m).padStart(2, "0")}`);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return keys;
+}
+
+/** Validate & normalise a YYYY-MM query param. Returns null if invalid. */
+function parseYM(raw: string | string[] | undefined): string | null {
+  const s = Array.isArray(raw) ? (raw[0] ?? "") : (raw ?? "");
+  return /^\d{4}-\d{2}$/.test(s) ? s : null;
+}
+
+/** GET /accounts/reports/pl?year=&from=YYYY-MM&to=YYYY-MM
+ *  `from`/`to` take priority; `year` is the fallback (full calendar year). */
 router.get("/accounts/reports/pl", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const year = String(req.query.year ?? new Date().getFullYear());
+
+  const fromParam = parseYM(req.query.from as string | undefined);
+  const toParam   = parseYM(req.query.to   as string | undefined);
+
+  let fromYM: string;
+  let toYM:   string;
+
+  if (fromParam && toParam && fromParam <= toParam) {
+    fromYM = fromParam;
+    toYM   = toParam;
+  } else {
+    const year = String(req.query.year ?? new Date().getFullYear());
+    fromYM = `${year}-01`;
+    toYM   = `${year}-12`;
+  }
+
   const rows = await db.execute(sql`
     SELECT
       SUBSTRING(entry_date, 1, 7) AS month,
       type,
       SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE entry_date LIKE ${year + "-%"}
+    WHERE entry_date >= ${fromYM + "-01"}
+      AND SUBSTRING(entry_date, 1, 7) <= ${toYM}
     GROUP BY month, type
     ORDER BY month
   `);
-  const byMonth: Record<string, { month: string; income: number; expense: number; net: number }> = {};
-  for (let m = 1; m <= 12; m++) {
-    const key = `${year}-${String(m).padStart(2, "0")}`;
-    byMonth[key] = { month: key, income: 0, expense: 0, net: 0 };
-  }
-  // SUM(amount) returns bigint (sen); accumulate in integer, then convert to RM.
+
+  const monthKeys = monthsInRange(fromYM, toYM);
   const bySen: Record<string, { income: number; expense: number }> = {};
-  for (let m = 1; m <= 12; m++) {
-    const key = `${year}-${String(m).padStart(2, "0")}`;
-    bySen[key] = { income: 0, expense: 0 };
-  }
+  for (const k of monthKeys) bySen[k] = { income: 0, expense: 0 };
+
   for (const r of (rows as unknown as { rows: { month: string; type: string; total: string }[] }).rows) {
     const slot = bySen[r.month];
     if (!slot) continue;
-    const amtSen = parseInt(r.total, 10) || 0;  // integer sen, no float
+    const amtSen = parseInt(r.total, 10) || 0;
     if (r.type === "income") slot.income += amtSen;
     else slot.expense += amtSen;
   }
+
   const pl = Object.entries(bySen).map(([month, v]) => ({
     month,
     income:  senToRm(v.income),
@@ -528,41 +561,62 @@ router.get("/accounts/reports/pl", async (req, res): Promise<void> => {
   const totalIncomeSen  = Object.values(bySen).reduce((s, v) => s + v.income, 0);
   const totalExpenseSen = Object.values(bySen).reduce((s, v) => s + v.expense, 0);
   res.json({
-    year, pl,
+    from: fromYM, to: toYM,
+    // keep `year` for backward compat when a full year is requested
+    year: fromYM.slice(0, 4),
+    pl,
     totalIncome:  senToRm(totalIncomeSen),
     totalExpense: senToRm(totalExpenseSen),
     netProfit:    senToRm(totalIncomeSen - totalExpenseSen),
   });
 });
 
-/** GET /accounts/reports/expenses?year=&month= — expense breakdown by category (with budgets) */
+/** GET /accounts/reports/expenses?year=&month=&from=YYYY-MM&to=YYYY-MM
+ *  `from`/`to` take priority; `year`+`month` (or just `year`) is the fallback. */
 router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const year  = String(req.query.year ?? new Date().getFullYear());
-  const month = req.query.month ? String(req.query.month).padStart(2, "0") : null;
-  const prefix = month ? `${year}-${month}` : year;
+
+  const fromParam = parseYM(req.query.from as string | undefined);
+  const toParam   = parseYM(req.query.to   as string | undefined);
+
+  let whereClause: ReturnType<typeof sql>;
+
+  if (fromParam && toParam && fromParam <= toParam) {
+    whereClause = sql`entry_date >= ${fromParam + "-01"} AND SUBSTRING(entry_date, 1, 7) <= ${toParam}`;
+  } else {
+    const year  = String(req.query.year ?? new Date().getFullYear());
+    const month = req.query.month ? String(req.query.month).padStart(2, "0") : null;
+    const prefix = month ? `${year}-${month}` : year;
+    whereClause = sql`entry_date LIKE ${prefix + "%"}`;
+  }
+
   const rows = await db.execute(sql`
     SELECT category, SUM(amount) AS total
     FROM firm_accounts_office_entries
     WHERE type = 'expense'
-      AND entry_date LIKE ${prefix + "%"}
+      AND ${whereClause}
     GROUP BY category
     ORDER BY total DESC
   `);
   const breakdown = (rows as unknown as { rows: { category: string; total: string }[] }).rows.map(r => ({
-    category: r.category,
-    total:    senToRm(parseInt(r.total, 10) || 0),  // DB returns sen → RM
-    budget:   null as number | null,
+    category:   r.category,
+    total:      senToRm(parseInt(r.total, 10) || 0),
+    budget:     null as number | null,
     overBudget: false,
   }));
 
   // Attach budgets when a single month is selected
-  if (month) {
-    const monthInt = parseInt(month, 10);
-    const yearInt  = parseInt(year, 10);
+  const singleMonth = fromParam && toParam && fromParam === toParam
+    ? fromParam                                          // "YYYY-MM" from range params
+    : (!fromParam && req.query.month)                   // legacy ?year=&month= form
+      ? `${req.query.year ?? new Date().getFullYear()}-${String(req.query.month).padStart(2, "0")}`
+      : null;
+
+  if (singleMonth) {
+    const [ymYear, ymMonth] = singleMonth.split("-").map(Number);
     const budgetRows = await db.execute(sql`
       SELECT category, budget_sen FROM firm_accounts_budgets
-      WHERE year = ${yearInt} AND month = ${monthInt}
+      WHERE year = ${ymYear} AND month = ${ymMonth}
     `);
     const budgetMap: Record<string, number> = {};
     for (const r of (budgetRows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
@@ -570,14 +624,14 @@ router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
     }
     for (const item of breakdown) {
       if (budgetMap[item.category] != null) {
-        item.budget    = budgetMap[item.category]!;
+        item.budget     = budgetMap[item.category]!;
         item.overBudget = item.total > item.budget;
       }
     }
   }
 
   const grandTotal = breakdown.reduce((s, v) => s + v.total, 0);
-  res.json({ prefix, breakdown, grandTotal });
+  res.json({ breakdown, grandTotal });
 });
 
 /** GET /accounts/reports/trust — all client ledger balances */
