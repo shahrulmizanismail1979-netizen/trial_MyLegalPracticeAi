@@ -24,6 +24,7 @@ import {
   useAiInsights,
   useRefreshAiInsights,
   useIntakeBriefing,
+  useGenerateIntakeBriefing,
   useChecklist,
   useAddChecklistItem,
   useUpdateChecklistItem,
@@ -417,9 +418,38 @@ function StageStepper({ matterId, currentStatus }: { matterId: number; currentSt
 }
 
 function IntakeBriefingPanel({ matterId }: { matterId: number }) {
-  const { data: briefing } = useIntakeBriefing(matterId);
+  const { data: briefing, isLoading } = useIntakeBriefing(matterId);
+  const generate = useGenerateIntakeBriefing();
   const [open, setOpen] = useState(false);
-  if (!briefing) return null;
+
+  if (isLoading) return null;
+
+  if (!briefing) {
+    return (
+      <Card className="border-indigo-500/20">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-indigo-400" />
+              <span className="text-sm font-semibold text-foreground">Intake Briefing</span>
+            </div>
+            <button
+              onClick={() => generate.mutate(matterId, { onSuccess: () => setOpen(true) })}
+              disabled={generate.isPending}
+              className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+            >
+              {generate.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {generate.isPending ? "Generating…" : "Generate Intake Briefing"}
+            </button>
+          </div>
+          {generate.isPending && (
+            <p className="text-xs text-muted-foreground/60 mt-2">Analysing matter details — this may take a moment…</p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-indigo-500/20">
       <CardContent className="p-5">

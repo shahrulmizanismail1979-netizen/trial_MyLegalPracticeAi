@@ -620,3 +620,14 @@ export function useIntakeBriefing(matterId: number | null) {
     retry: false,
   });
 }
+
+export function useGenerateIntakeBriefing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (matterId: number): Promise<IntakeBriefing> =>
+      api(`/${matterId}/intake-briefing/generate`, { method: "POST" }),
+    onSuccess: (data, matterId) => {
+      qc.setQueryData([...KEY, "intake-briefing", matterId], data);
+    },
+  });
+}

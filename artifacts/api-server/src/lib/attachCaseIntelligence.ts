@@ -140,6 +140,46 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
     res.json(briefing);
   });
 
+  // ── Generate intake briefing on-demand (for matters predating this feature) ──
+  router.post(`${P}/:id/intake-briefing/generate`, aiRateLimit, async (req: Request, res: Response) => {
+    const ownerKey = getOwnerKey(req, res);
+    if (!ownerKey) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    const matter = await getMatter(req, res, req.params.id as string);
+    if (!matter) return;
+
+    const matterId = matter.id as number;
+
+    const { rows: docs } = await pool
+      .query(
+        `SELECT title, content FROM ${portal}_saved_work WHERE matter_id = $1 ORDER BY created_at DESC LIMIT 8`,
+        [matterId],
+      )
+      .catch(() => ({ rows: [] as Array<{ title: string; content: string }> }));
+
+    await generateAndSaveIntakeBriefing(portal, matterId, {
+      title: (matter.title as string) ?? "",
+      matterType: (matter.matter_type ?? matter.matterType) as string | null,
+      status: matter.status as string | null,
+      notes: matter.notes as string | null,
+      clientName: (matter.client_name ?? matter.clientName) as string | null,
+      plaintiff: matter.plaintiff as string | null,
+      defendant: matter.defendant as string | null,
+      charge: matter.charge as string | null,
+      court: matter.court as string | null,
+      documents: docs.map((d) => ({ title: d.title, content: d.content })),
+    });
+
+    const briefing = await getIntakeBriefing(portal, matterId).catch(() => null);
+    if (!briefing) {
+      res.status(500).json({ error: "Failed to generate intake briefing" });
+      return;
+    }
+    res.json(briefing);
+  });
+
   // ── Stage history ────────────────────────────────────────────────────────────
   router.get(`${P}/:id/stage-history`, async (req: Request, res: Response) => {
     const ownerKey = getOwnerKey(req, res);
