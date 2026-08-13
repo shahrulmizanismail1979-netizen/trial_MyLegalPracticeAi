@@ -343,6 +343,7 @@ function AiInsightsPanel({ matterId }: { matterId: number }) {
   const handleRefresh = async () => {
     try {
       await refresh.mutateAsync(matterId);
+      toast({ title: "AI Insights refreshed" });
     } catch (e) {
       toast({
         title: "Could not refresh AI Insights",
