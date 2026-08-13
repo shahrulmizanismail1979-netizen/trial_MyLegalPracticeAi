@@ -263,8 +263,10 @@ export default function MattersPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">Matter title *</Label>
+              <Label htmlFor="matter-title" className="text-xs">Matter title *</Label>
               <Input
+                id="matter-title"
+                aria-required="true"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="e.g. Lim v Tan — Running Down Claim"
@@ -273,25 +275,25 @@ export default function MattersPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Client name</Label>
-                <Input value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} data-testid="input-client" />
+                <Label htmlFor="matter-client" className="text-xs">Client name</Label>
+                <Input id="matter-client" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} data-testid="input-client" />
               </div>
               <div>
-                <Label className="text-xs">Acting for</Label>
-                <Input value={form.actingFor} onChange={(e) => setForm({ ...form, actingFor: e.target.value })} placeholder="Plaintiff / Defendant" data-testid="input-acting" />
+                <Label htmlFor="matter-acting" className="text-xs">Acting for</Label>
+                <Input id="matter-acting" value={form.actingFor} onChange={(e) => setForm({ ...form, actingFor: e.target.value })} placeholder="Plaintiff / Defendant" data-testid="input-acting" />
               </div>
               <div>
-                <Label className="text-xs">Plaintiff</Label>
-                <Input value={form.plaintiff} onChange={(e) => setForm({ ...form, plaintiff: e.target.value })} data-testid="input-plaintiff" />
+                <Label htmlFor="matter-plaintiff" className="text-xs">Plaintiff</Label>
+                <Input id="matter-plaintiff" value={form.plaintiff} onChange={(e) => setForm({ ...form, plaintiff: e.target.value })} data-testid="input-plaintiff" />
               </div>
               <div>
-                <Label className="text-xs">Defendant</Label>
-                <Input value={form.defendant} onChange={(e) => setForm({ ...form, defendant: e.target.value })} data-testid="input-defendant" />
+                <Label htmlFor="matter-defendant" className="text-xs">Defendant</Label>
+                <Input id="matter-defendant" value={form.defendant} onChange={(e) => setForm({ ...form, defendant: e.target.value })} data-testid="input-defendant" />
               </div>
               <div>
-                <Label className="text-xs">Matter type</Label>
+                <Label htmlFor="matter-type" className="text-xs">Matter type</Label>
                 <Select value={form.matterType} onValueChange={(v) => setForm({ ...form, matterType: v })}>
-                  <SelectTrigger data-testid="select-type">
+                  <SelectTrigger id="matter-type" aria-label="Matter type" data-testid="select-type">
                     <SelectValue placeholder="Select…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -302,21 +304,21 @@ export default function MattersPage() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Claim amount (RM)</Label>
-                <Input value={form.claimAmount} onChange={(e) => setForm({ ...form, claimAmount: e.target.value })} inputMode="decimal" data-testid="input-claim" />
+                <Label htmlFor="matter-claim" className="text-xs">Claim amount (RM)</Label>
+                <Input id="matter-claim" value={form.claimAmount} onChange={(e) => setForm({ ...form, claimAmount: e.target.value })} inputMode="decimal" data-testid="input-claim" />
               </div>
               <div>
-                <Label className="text-xs">Court</Label>
-                <Input value={form.court} onChange={(e) => setForm({ ...form, court: e.target.value })} data-testid="input-court" />
+                <Label htmlFor="matter-court" className="text-xs">Court</Label>
+                <Input id="matter-court" value={form.court} onChange={(e) => setForm({ ...form, court: e.target.value })} data-testid="input-court" />
               </div>
               <div>
-                <Label className="text-xs">Case no.</Label>
-                <Input value={form.caseNo} onChange={(e) => setForm({ ...form, caseNo: e.target.value })} data-testid="input-caseno" />
+                <Label htmlFor="matter-caseno" className="text-xs">Case no.</Label>
+                <Input id="matter-caseno" value={form.caseNo} onChange={(e) => setForm({ ...form, caseNo: e.target.value })} data-testid="input-caseno" />
               </div>
             </div>
             <div>
-              <Label className="text-xs">Notes</Label>
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} data-testid="input-notes" />
+              <Label htmlFor="matter-notes" className="text-xs">Notes</Label>
+              <Textarea id="matter-notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} data-testid="input-notes" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Supporting Documents <span className="font-normal text-muted-foreground text-xs">(optional — AI will read these)</span></Label>
