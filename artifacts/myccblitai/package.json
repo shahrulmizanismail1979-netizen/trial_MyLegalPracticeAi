@@ -75,6 +75,7 @@
     "@workspace/draft-export": "workspace:*",
     "@workspace/paralegal-widget": "workspace:*",
     "@workspace/billing-ui": "workspace:*",
-    "@workspace/vault-ui": "workspace:*"
+    "@workspace/vault-ui": "workspace:*",
+    "@workspace/letters-ui": "workspace:*"
   }
 }

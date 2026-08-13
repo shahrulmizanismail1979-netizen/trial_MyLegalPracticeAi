@@ -23,6 +23,7 @@ import {
   X,
   Calculator,
   FolderLock,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,10 +80,12 @@ import {
 } from "@/hooks/use-matters";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
+import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/accident/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -92,7 +95,7 @@ function fmtDate(iso: string) {
   });
 }
 
-type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "vault" | "time" | "billing";
+type Tab = "overview" | "chronology" | "deadlines" | "checklist" | "documents" | "vault" | "time" | "billing" | "letters";
 
 const KIND_META: Record<string, { label: string; color: string }> = {
   filing: { label: "Filing", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
@@ -157,6 +160,7 @@ export default function MatterDetailPage() {
     { id: "vault", label: "Vault", icon: FolderLock },
     { id: "time", label: "Time", icon: Clock },
     { id: "billing", label: "Billing", icon: Calculator },
+    { id: "letters", label: "Drafts & Letters", icon: FileSignature },
   ];
 
   return (
@@ -221,6 +225,16 @@ export default function MatterDetailPage() {
             accent="#f59e0b"
             currency="RM"
             defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
+        {tab === "letters" && (
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#f59e0b"
+            showLetterWriter
+            matterTitle={matter.title || ''}
+            clientName={matter.clientName || ''}
           />
         )}
       </main>

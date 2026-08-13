@@ -4,7 +4,7 @@ import {
   ArrowLeft, Pencil, Trash2, Plus, Check, Clock, AlertTriangle, CircleCheck,
   FileText, CalendarClock, Building2, Users, Hash, Copy, Download, X, Loader2,
   ChevronDown, ChevronRight, Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw,
-  ListChecks, Phone, Mail, Timer, User,
+  ListChecks, Phone, Mail, Timer, User, FileSignature,
 } from 'lucide-react';
 import {
   useMatter,
@@ -39,6 +39,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
 import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
+import { DraftsPanel, type LettersRequest } from '@workspace/letters-ui';
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/convey/matters${path}`, {
@@ -52,10 +53,11 @@ const billingRequest: BillingRequest = (path, init) =>
   });
 
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 
 const CONVEY_STAGES = ['Instruction', 'SPA Execution', 'Financing', 'Stamping', 'Completion', 'Registration', 'Closed'];
 const STATUS_OPTIONS = ['open', 'closed'];
-type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'vault' | 'checklist' | 'team' | 'time' | 'billing';
+type Tab = 'overview' | 'progress' | 'timeline' | 'documents' | 'vault' | 'checklist' | 'team' | 'time' | 'billing' | 'drafts';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -67,6 +69,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'team', label: 'Team' },
   { id: 'time', label: 'Time' },
   { id: 'billing', label: 'Billing' },
+  { id: 'drafts', label: 'Drafts & Letters' },
 ];
 
 const inputCls = 'w-full bg-gold-950 border border-gold-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500';
@@ -767,6 +770,17 @@ export function MatterDetail() {
             accent="#d97706"
             currency="RM"
             defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
+
+        {activeTab === 'drafts' && (
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#d97706"
+            showLetterWriter
+            matterTitle={matter.title || ''}
+            clientName={matter.clientName || ''}
           />
         )}
       </div>

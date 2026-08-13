@@ -18,6 +18,7 @@ import { ensureSeatLimitSchema } from "./lib/seatLimits";
 import { ensureCaseEventsTable } from "./lib/caseEvents";
 import { ensureBillingTables } from "./lib/caseBilling";
 import { ensureDocumentTables } from "./lib/caseDocuments";
+import { ensureDraftTables } from "./lib/caseDrafts";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
 
 // ── Research background job worker ──────────────────────────────────────────
@@ -168,6 +169,7 @@ await ensureSeatLimitSchema();
 await ensureCaseEventsTable();
 await ensureBillingTables();
 await ensureDocumentTables();
+  await ensureDraftTables();
 await ensureCaseClientMatterTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work

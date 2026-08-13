@@ -56,11 +56,12 @@ import {
   AlertTriangle, CircleCheck, User, Hash, Clock, FileText, Copy,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   Phone, Mail, Timer, Building2, Users, ChevronDown, Download,
-  History, Link2, X, Loader2, Calculator, FolderLock,
+  History, Link2, X, Loader2, Calculator, FolderLock, FileSignature,
 } from "lucide-react";
 import { authHeaders } from "@/lib/auth";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
+import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/ccb/matters${path}`, {
@@ -68,12 +69,13 @@ const billingRequest: BillingRequest = (path, init) =>
     headers: { ...(init?.headers ?? {}), ...authHeaders() },
   });
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 const STATUS_OPTIONS = [...CCB_STAGES];
 const selectCls = "flex h-10 w-full items-center rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
-type Tab = "overview" | "timeline" | "chronology" | "documents" | "vault" | "checklist" | "team" | "time" | "billing";
+type Tab = "overview" | "timeline" | "chronology" | "documents" | "vault" | "checklist" | "team" | "time" | "billing" | "letters";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -85,6 +87,7 @@ const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
   { id: "billing", label: "Billing", icon: Calculator },
+  { id: "letters", label: "Drafts & Letters", icon: FileSignature },
 ];
 
 const EVENT_KIND_COLORS: Record<string, string> = {
@@ -1006,6 +1009,17 @@ export default function MatterDetailPage() {
             currency="RM"
             accent="#d99e1f"
             defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
+
+        {activeTab === "letters" && (
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#d99e1f"
+            showLetterWriter
+            matterTitle={matter.title ?? ""}
+            clientName={matter.clientName ?? ""}
           />
         )}
       </div>

@@ -15,6 +15,7 @@
     }
   },
   "references": [
+    { "path": "../../lib/letters-ui" },
     { "path": "../../lib/vault-ui" },
     {
       "path": "../../lib/api-client-react"

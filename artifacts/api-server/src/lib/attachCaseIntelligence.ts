@@ -33,6 +33,7 @@ import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./
 import { buildCaseBriefingRouter } from "./caseBriefing";
 import { attachBilling } from "./caseBilling";
 import { attachDocumentVault } from "./caseDocuments";
+import { attachDraftWorkspace } from "./caseDrafts";
 import { aiRateLimit } from "./aiRateLimit";
 import { logger } from "./logger";
 
@@ -258,6 +259,8 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
   attachBilling({ router, portal, pathPrefix: P, getOwnerKey });
 
   attachDocumentVault({ router, portal, pathPrefix: P, getOwnerKey });
+
+  attachDraftWorkspace({ router, portal, pathPrefix: P, getOwnerKey });
 }
 
 /**

@@ -31,10 +31,11 @@ import {
   CircleCheck, Building2, Users, Hash, Clock, FileText, Copy, Download, ChevronDown,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   User, Phone, Mail, Timer, ChevronRight, ArrowRight, History, Link2, X, Loader2,
-  Calculator, FolderLock,
+  Calculator, FolderLock, FileSignature,
 } from "lucide-react";
 import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
+import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -51,6 +52,7 @@ export const billingRequest: BillingRequest = (path, init) => {
 };
 
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 
 const CORP_STAGES = ["Instruction", "Due Diligence", "Advisory", "Opinion Delivered", "Closed"];
 const STATUS_OPTIONS = [...CORP_STAGES];
@@ -58,7 +60,7 @@ const CATEGORY_OPTIONS = ["filing", "compliance", "meeting", "closing", "hearing
 const inputCls =
   "w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary";
 
-type Tab = "overview" | "chronology" | "timeline" | "documents" | "vault" | "checklist" | "team" | "time" | "billing";
+type Tab = "overview" | "chronology" | "timeline" | "documents" | "vault" | "checklist" | "team" | "time" | "billing" | "letters";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -70,6 +72,7 @@ const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "team", label: "Team", icon: Users },
   { id: "time", label: "Time", icon: Timer },
   { id: "billing", label: "Billing", icon: Calculator },
+  { id: "letters", label: "Drafts & Letters", icon: FileSignature },
 ];
 
 const EVENT_KIND_META: Record<string, { label: string; color: string }> = {
@@ -1219,6 +1222,17 @@ export default function MatterDetailPage() {
             currency="RM"
             accent="#d4a017"
             defaultClientName={matter.clientName ?? undefined}
+          />
+        )}
+
+        {activeTab === "letters" && (
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#d4a017"
+            showLetterWriter
+            matterTitle={matter.title || ""}
+            clientName={matter.clientName || ""}
           />
         )}
       </div>

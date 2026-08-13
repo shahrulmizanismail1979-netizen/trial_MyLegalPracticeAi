@@ -76,6 +76,7 @@
     "wouter": "^3.3.5",
     "zod": "catalog:",
     "@workspace/billing-ui": "workspace:*",
-    "@workspace/vault-ui": "workspace:*"
+    "@workspace/vault-ui": "workspace:*",
+    "@workspace/letters-ui": "workspace:*"
   }
 }

@@ -39,6 +39,7 @@ import {
   Sparkles,
   Calculator,
   FolderLock,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,10 +67,12 @@ import { DraftExportButtons } from "@workspace/draft-export/react";
 import { useCrimListWorkflows } from "@workspace/api-client-react";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
+import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/crim/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 import {
   useMatter,
   useUpdateMatter,
@@ -1365,6 +1368,7 @@ export function MatterDetailPage() {
           <TabsTrigger value="time" className="gap-1.5"><Timer className="h-3.5 w-3.5" /> Time</TabsTrigger>
           <TabsTrigger value="billing" className="gap-1.5"><Calculator className="h-3.5 w-3.5" /> Billing</TabsTrigger>
           <TabsTrigger value="vault" className="gap-1.5"><FolderLock className="h-3.5 w-3.5" /> Vault</TabsTrigger>
+          <TabsTrigger value="letters" className="gap-1.5"><FileSignature className="h-3.5 w-3.5" /> Drafts &amp; Letters</TabsTrigger>
         </TabsList>
 
         {/* Overview tab */}
@@ -1687,6 +1691,18 @@ export function MatterDetailPage() {
             request={vaultRequest}
             matterId={matter.id}
             accent="#d4a017"
+          />
+        </TabsContent>
+
+        {/* Drafts & Letters tab */}
+        <TabsContent value="letters">
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#d4a017"
+            showLetterWriter
+            matterTitle={matter.title || ''}
+            clientName={matter.clientName || ''}
           />
         </TabsContent>
       </Tabs>

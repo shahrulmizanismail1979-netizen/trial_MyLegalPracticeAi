@@ -29,6 +29,15 @@
     },
     {
       "path": "./lib/draft-export"
+    },
+    {
+      "path": "./lib/billing-ui"
+    },
+    {
+      "path": "./lib/vault-ui"
+    },
+    {
+      "path": "./lib/letters-ui"
     }
   ]
 }

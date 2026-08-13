@@ -110,13 +110,16 @@ import {
   History,
   Calculator,
   FolderLock,
+  FileSignature,
 } from "lucide-react";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
+import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/sya/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
+const lettersRequest: LettersRequest = billingRequest;
 
 function fmtDate(iso: string, mode: string) {
   return new Date(iso).toLocaleDateString(mode === "bm" ? "ms-MY" : "en-MY", {
@@ -1210,6 +1213,7 @@ export default function MatterDetailPage() {
           <TabsTrigger value="time" className="gap-1.5"><Timer className="h-3.5 w-3.5" /> {t("Time", "Masa")}</TabsTrigger>
           <TabsTrigger value="billing" className="gap-1.5"><Calculator className="h-3.5 w-3.5" /> {t("Billing", "Pengebilan")}</TabsTrigger>
           <TabsTrigger value="vault" className="gap-1.5"><FolderLock className="h-3.5 w-3.5" /> {t("Vault", "Peti Simpanan", "الخزنة")}</TabsTrigger>
+          <TabsTrigger value="letters" className="gap-1.5"><FileSignature className="h-3.5 w-3.5" /> {t("Drafts & Letters", "Draf & Surat", "المسودات والرسائل")}</TabsTrigger>
         </TabsList>
 
         {/* Overview tab */}
@@ -1413,6 +1417,18 @@ export default function MatterDetailPage() {
             request={vaultRequest}
             matterId={matter.id}
             accent="#0f766e"
+          />
+        </TabsContent>
+
+        {/* Drafts & Letters tab */}
+        <TabsContent value="letters">
+          <DraftsPanel
+            request={lettersRequest}
+            matterId={matter.id}
+            accent="#0f766e"
+            showLetterWriter
+            matterTitle={matter.title || ""}
+            clientName={matter.clientName || ""}
           />
         </TabsContent>
       </Tabs>

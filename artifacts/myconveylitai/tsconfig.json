@@ -17,6 +17,7 @@
     }
   },
   "references": [
+    { "path": "../../lib/letters-ui" },
     { "path": "../../lib/vault-ui" },
     { "path": "../../lib/billing-ui" },
     {
