@@ -22,6 +22,7 @@ import VoicePage from "@/pages/voice";
 import InboxPage from "@/pages/inbox";
 import ActivityPage from "@/pages/activity";
 import HrPage from "@/pages/hr";
+import AccountsPage from "@/pages/accounts";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,7 @@ function Router() {
       <Route path="/manual" component={ManualPage} />
       <Route path="/task/:id" component={TaskDetailPage} />
       <Route path="/hr" component={HrPage} />
+      <Route path="/accounts" component={AccountsPage} />
       <Route component={NotFound} />
     </Switch>
   );

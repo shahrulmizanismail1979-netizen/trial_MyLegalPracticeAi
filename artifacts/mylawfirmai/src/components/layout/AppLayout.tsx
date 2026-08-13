@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Radar, AlertCircle, Inbox, User as UserIcon, BarChart2, CalendarDays, Target, BookOpen, Languages, FileText, Mic, Inbox as InboxIcon, Trophy, MessageCircle, History, Users } from "lucide-react";
+import { Radar, AlertCircle, Inbox, User as UserIcon, BarChart2, CalendarDays, Target, BookOpen, Languages, FileText, Mic, Inbox as InboxIcon, Trophy, MessageCircle, History, Users, Landmark } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useT, useLanguage, LANGUAGES, type Lang } from "@/lib/i18n";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
@@ -152,6 +152,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <Link href="/hr" className="flex items-center gap-3">
                           <Users className="w-4 h-4" />
                           <span>{t("nav.hr")}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  {isManager && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location === "/accounts"}>
+                        <Link href="/accounts" className="flex items-center gap-3">
+                          <Landmark className="w-4 h-4" />
+                          <span>{t("nav.accounts")}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

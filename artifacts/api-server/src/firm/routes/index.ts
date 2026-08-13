@@ -11,6 +11,7 @@ import ingestRouter from "./ingest";
 import storageRouter from "./storage";
 import recognitionRouter from "./recognition";
 import hrRouter from "./hr";
+import accountsRouter from "./accounts";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(ingestRouter);
 router.use(storageRouter);
 router.use(recognitionRouter);
 router.use(hrRouter);
+router.use(accountsRouter);
 
 export default router;
