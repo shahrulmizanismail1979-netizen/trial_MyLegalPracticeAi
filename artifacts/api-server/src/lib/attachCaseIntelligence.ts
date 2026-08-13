@@ -25,6 +25,7 @@ import type { IRouter, Request, Response } from "express";
 import { pool } from "@workspace/db";
 import { type Portal, PORTAL_STAGES, isValidStage } from "./caseStages";
 import { getMatterInsights, invalidateMatterInsights } from "./caseInsights";
+import { getIntakeBriefing, generateAndSaveIntakeBriefing } from "./caseIntakeBriefing";
 import { generateAndSaveChecklist, makeChecklistRouter } from "./caseChecklist";
 import { makeTimeRecordingRouter } from "./caseTimeRecording";
 import { buildCaseEventsRouter } from "./caseEvents";
@@ -119,6 +120,24 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
       logger.error({ err, portal, matterId }, "Failed to get case insights");
       res.status(500).json({ error: "Failed to generate case insights" });
     }
+  });
+
+  // ── Intake briefing (read-only snapshot from matter creation) ────────────────
+  router.get(`${P}/:id/intake-briefing`, async (req: Request, res: Response) => {
+    const ownerKey = getOwnerKey(req, res);
+    if (!ownerKey) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+    const matter = await getMatter(req, res, req.params.id as string);
+    if (!matter) return;
+
+    const briefing = await getIntakeBriefing(portal, matter.id as number).catch(() => null);
+    if (!briefing) {
+      res.status(404).json({ error: "No intake briefing available for this matter" });
+      return;
+    }
+    res.json(briefing);
   });
 
   // ── Stage history ────────────────────────────────────────────────────────────
@@ -281,12 +300,11 @@ export function triggerChecklistGeneration(
 }
 
 /**
- * Hook called after a matter is created with uploaded documents — fires AI
- * intake briefing generation in the background (non-blocking). The result is
- * stored in case_ai_insights so the AI Insights tab is pre-populated when
- * the lawyer first opens the matter.
- *
- * Only call this when documents were uploaded (hasDocuments flag from client).
+ * Hook called after a matter is created (with or without uploaded documents)
+ * — fires AI intake briefing generation in the background (non-blocking).
+ * The result is stored in the dedicated `case_intake_briefing` table as a
+ * read-only snapshot of the matter's opening state, independent of the
+ * rolling AI Insights cache.
  */
 export function triggerIntakeBriefing(
   portal: Portal,
@@ -294,22 +312,17 @@ export function triggerIntakeBriefing(
   _ownerKey: string,
   row: Record<string, unknown>,
 ): void {
-  void getMatterInsights(
-    portal,
-    matterId,
-    {
-      title: (row.title as string) ?? "",
-      matterType: (row.matterType ?? row.matter_type) as string | null,
-      status: (row.status as string) ?? "open",
-      notes: (row.notes as string) ?? null,
-      clientName: (row.clientName ?? row.client_name) as string | null,
-      plaintiff: (row.plaintiff as string) ?? null,
-      defendant: (row.defendant as string) ?? null,
-      charge: (row.charge as string) ?? null,
-      court: (row.court as string) ?? null,
-    },
-    true, // forceRefresh — generate fresh briefing from uploaded document text
-  ).catch((err) =>
+  void generateAndSaveIntakeBriefing(portal, matterId, {
+    title: (row.title as string) ?? "",
+    matterType: (row.matterType ?? row.matter_type) as string | null,
+    status: (row.status as string) ?? "open",
+    notes: (row.notes as string) ?? null,
+    clientName: (row.clientName ?? row.client_name) as string | null,
+    plaintiff: (row.plaintiff as string) ?? null,
+    defendant: (row.defendant as string) ?? null,
+    charge: (row.charge as string) ?? null,
+    court: (row.court as string) ?? null,
+  }).catch((err) =>
     logger.warn({ err, portal, matterId }, "Background intake briefing generation failed"),
   );
 }

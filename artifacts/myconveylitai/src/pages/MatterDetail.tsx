@@ -4,7 +4,7 @@ import {
   ArrowLeft, Pencil, Trash2, Plus, Check, Clock, AlertTriangle, CircleCheck,
   FileText, CalendarClock, Building2, Users, Hash, Copy, Download, X, Loader2,
   ChevronDown, ChevronRight, Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw,
-  ListChecks, Phone, Mail, Timer, User, FileSignature,
+  ListChecks, Phone, Mail, Timer, User, FileSignature, Scale, ClipboardList,
 } from 'lucide-react';
 import {
   useMatter,
@@ -18,6 +18,7 @@ import {
   useUpdateStage,
   useAiInsights,
   useRefreshAiInsights,
+  useIntakeBriefing,
   useChecklist,
   useAddChecklistItem,
   useUpdateChecklistItem,
@@ -41,7 +42,6 @@ import { useToast } from '@/hooks/use-toast';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
 import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
 import { DraftsPanel, type LettersRequest } from '@workspace/letters-ui';
-
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/convey/matters${path}`, {
     ...init,
@@ -171,7 +171,83 @@ function TransactionProgress({ matterId, currentStatus, matterType }: { matterId
   );
 }
 
-// ── AI Insights ───────────────────────────────────────────────────────────────
+function IntakeBriefingPanel({ matterId }: { matterId: number }) {
+  const { data: briefing } = useIntakeBriefing(matterId);
+  const [open, setOpen] = useState(false);
+  if (!briefing) return null;
+  return (
+    <div className="border border-indigo-500/20 rounded-xl bg-card">
+      <div className="p-5">
+        <button className="flex items-center justify-between w-full text-left" onClick={() => setOpen((o) => !o)}>
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-indigo-400" />
+            <span className="text-sm font-semibold text-slate-100">Intake Briefing</span>
+            <span className="text-[10px] text-slate-500 ml-1">— opening snapshot</span>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="mt-4 space-y-4">
+            {(briefing.parties.client || briefing.parties.opponent || briefing.parties.counsel || briefing.parties.others.length > 0) && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-2">Parties</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {briefing.parties.client && <div><span className="text-slate-400 text-xs">Client: </span>{briefing.parties.client}</div>}
+                  {briefing.parties.opponent && <div><span className="text-slate-400 text-xs">Opponent: </span>{briefing.parties.opponent}</div>}
+                  {briefing.parties.counsel && <div><span className="text-slate-400 text-xs">Counsel: </span>{briefing.parties.counsel}</div>}
+                  {briefing.parties.others.map((o, i) => <div key={i}><span className="text-slate-400 text-xs">Other: </span>{o}</div>)}
+                </div>
+              </div>
+            )}
+            {briefing.keyFacts.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-2">Key Facts</p>
+                <ul className="space-y-1">
+                  {briefing.keyFacts.map((f, i) => (
+                    <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {briefing.legalIssues.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-2">Legal Issues</p>
+                <ul className="space-y-1">
+                  {briefing.legalIssues.map((issue, i) => (
+                    <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                      <Scale className="h-3.5 w-3.5 text-indigo-400 mt-0.5 shrink-0" />{issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {briefing.initialActions.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold mb-2">Suggested Initial Actions</p>
+                <div className="space-y-2">
+                  {briefing.initialActions.map((a, i) => {
+                    const dot = a.priority === 'high' ? 'bg-red-400' : a.priority === 'medium' ? 'bg-amber-400' : 'bg-emerald-400';
+                    return (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${dot}`} />
+                        <p className="text-sm text-slate-200">{a.action}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <p className="text-[10px] text-slate-500 pt-1">
+              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 function AiInsightsCard({ matterId }: { matterId: number }) {
   const { data: insights, isLoading, isError, isFetching } = useAiInsights(matterId);
   const refresh = useRefreshAiInsights();
@@ -676,6 +752,7 @@ export function MatterDetail() {
                 </Link>
               </div>
             </div>
+            <IntakeBriefingPanel matterId={matter.id} />
             <AiInsightsCard matterId={matter.id} />
           </div>
         )}

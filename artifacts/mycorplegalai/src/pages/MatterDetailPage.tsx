@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import {
   useMatter, useUpdateMatter, useDeleteMatter,
   useAddDeadline, useUpdateDeadline, useDeleteDeadline,
-  useStageHistory, useUpdateStage, useAiInsights, useRefreshAiInsights,
+  useStageHistory, useUpdateStage, useAiInsights, useRefreshAiInsights, useIntakeBriefing,
   useChecklist, useAddChecklistItem, useUpdateChecklistItem, useDeleteChecklistItem,
   useTimeEntries, useLogTime, useDeleteTimeEntry,
   useClients, useCreateClient, useDeleteClient,
@@ -31,12 +31,11 @@ import {
   CircleCheck, Building2, Users, Hash, Clock, FileText, Copy, Download, ChevronDown,
   Sparkles, TrendingUp, TrendingDown, Minus, RefreshCw, ListChecks,
   User, Phone, Mail, Timer, ChevronRight, ArrowRight, History, Link2, X, Loader2,
-  Calculator, FolderLock, FileSignature,
+  Calculator, FolderLock, FileSignature, Scale, ClipboardList,
 } from "lucide-react";
 import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
-
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const billingRequest: BillingRequest = (path, init) => {
@@ -148,7 +147,83 @@ function StageStepper({ matterId, currentStatus }: { matterId: number; currentSt
   );
 }
 
-// ── AI Insights Card ──────────────────────────────────────────────────────────
+function IntakeBriefingPanel({ matterId }: { matterId: number }) {
+  const { data: briefing } = useIntakeBriefing(matterId);
+  const [open, setOpen] = useState(false);
+  if (!briefing) return null;
+  return (
+    <Card className="border-indigo-500/20">
+      <CardContent className="p-5">
+        <button className="flex items-center justify-between w-full text-left" onClick={() => setOpen((o) => !o)}>
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-indigo-400" />
+            <span className="text-sm font-semibold text-foreground">Intake Briefing</span>
+            <span className="text-[10px] text-muted-foreground/60 ml-1">— opening snapshot</span>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open && (
+          <div className="mt-4 space-y-4">
+            {(briefing.parties.client || briefing.parties.opponent || briefing.parties.counsel || briefing.parties.others.length > 0) && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Parties</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {briefing.parties.client && <div><span className="text-muted-foreground text-xs">Client: </span>{briefing.parties.client}</div>}
+                  {briefing.parties.opponent && <div><span className="text-muted-foreground text-xs">Opponent: </span>{briefing.parties.opponent}</div>}
+                  {briefing.parties.counsel && <div><span className="text-muted-foreground text-xs">Counsel: </span>{briefing.parties.counsel}</div>}
+                  {briefing.parties.others.map((o, i) => <div key={i}><span className="text-muted-foreground text-xs">Other: </span>{o}</div>)}
+                </div>
+              </div>
+            )}
+            {briefing.keyFacts.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Key Facts</p>
+                <ul className="space-y-1">
+                  {briefing.keyFacts.map((f, i) => (
+                    <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0" />{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {briefing.legalIssues.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Legal Issues</p>
+                <ul className="space-y-1">
+                  {briefing.legalIssues.map((issue, i) => (
+                    <li key={i} className="text-sm text-foreground/80 flex items-start gap-2">
+                      <Scale className="h-3.5 w-3.5 text-indigo-400 mt-0.5 shrink-0" />{issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {briefing.initialActions.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Suggested Initial Actions</p>
+                <div className="space-y-2">
+                  {briefing.initialActions.map((a, i) => {
+                    const dot = a.priority === "high" ? "bg-red-400" : a.priority === "medium" ? "bg-amber-400" : "bg-emerald-400";
+                    return (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${dot}`} />
+                        <p className="text-sm text-foreground">{a.action}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground/60 pt-1">
+              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 function AiInsightsCard({ matterId }: { matterId: number }) {
   const { data: insights, isLoading, isError, isFetching } = useAiInsights(matterId);
   const refresh = useRefreshAiInsights();
@@ -1102,6 +1177,7 @@ export default function MatterDetailPage() {
                 </div>
               </CardContent>
             </Card>
+            <IntakeBriefingPanel matterId={matter.id} />
             <AiInsightsCard matterId={matter.id} />
             <AiCaseReviewCard matterId={matter.id} />
           </div>

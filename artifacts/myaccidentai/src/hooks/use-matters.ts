@@ -404,6 +404,31 @@ export function useRefreshAiInsights() {
   });
 }
 
+// ── Intake briefing (read-only snapshot) ──────────────────────────────────────
+
+export interface IntakeBriefing {
+  parties: {
+    client: string | null;
+    opponent: string | null;
+    counsel: string | null;
+    others: string[];
+  };
+  keyFacts: string[];
+  legalIssues: string[];
+  initialActions: Array<{ action: string; priority: "high" | "medium" | "low" }>;
+  generatedAt: string;
+}
+
+export function useIntakeBriefing(matterId: number | null) {
+  return useQuery<IntakeBriefing>({
+    queryKey: [...KEY, "intake-briefing", matterId],
+    queryFn: () => api(`/${matterId}/intake-briefing`),
+    enabled: matterId != null,
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
 export function useUpdateStage() {
   const qc = useQueryClient();
   return useMutation({

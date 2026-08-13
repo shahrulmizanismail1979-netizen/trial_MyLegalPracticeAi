@@ -389,8 +389,18 @@ export function useRefreshInsights() {
   });
 }
 
-// ── Checklist hooks ───────────────────────────────────────────────────────────
-
+export interface IntakeBriefing {
+  parties: {
+    client: string | null;
+    opponent: string | null;
+    counsel: string | null;
+    others: string[];
+  };
+  keyFacts: string[];
+  legalIssues: string[];
+  initialActions: Array<{ action: string; priority: 'high' | 'medium' | 'low' }>;
+  generatedAt: string;
+}
 export function useChecklist(matterId: number | null) {
   return useQuery<ChecklistItem[]>({
     queryKey: [...KEY, 'checklist', matterId],
@@ -671,5 +681,15 @@ export function usePrepareMatter() {
         method: 'POST',
         body: JSON.stringify(step ? { step } : {}),
       }),
+  });
+}
+
+export function useIntakeBriefing(matterId: number | null) {
+  return useQuery<IntakeBriefing>({
+    queryKey: [...KEY, 'intake-briefing', matterId],
+    queryFn: () => api(`/${matterId}/intake-briefing`),
+    enabled: matterId != null,
+    staleTime: Infinity,
+    retry: false,
   });
 }

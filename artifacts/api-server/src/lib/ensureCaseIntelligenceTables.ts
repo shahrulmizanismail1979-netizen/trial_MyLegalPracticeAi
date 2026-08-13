@@ -76,6 +76,18 @@ CREATE TABLE IF NOT EXISTS case_stage_history (
   changed_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_case_stage_history_matter ON case_stage_history (portal, matter_id);
+
+CREATE TABLE IF NOT EXISTS case_intake_briefing (
+  id serial PRIMARY KEY,
+  portal text NOT NULL,
+  matter_id integer NOT NULL,
+  parties jsonb,
+  key_facts jsonb,
+  legal_issues jsonb,
+  initial_actions jsonb,
+  generated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_case_intake_briefing_unique ON case_intake_briefing (portal, matter_id);
 `;
 
 let ensured: Promise<void> | null = null;
