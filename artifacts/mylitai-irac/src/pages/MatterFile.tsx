@@ -394,7 +394,7 @@ export default function MatterFile() {
     return (
       <div className="p-10 text-center">
         <p className="text-muted-foreground mb-4">This matter could not be found.</p>
-        <Link href="/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to matters</Button></Link>
+        <Button asChild variant="outline" className="gap-2"><Link href="/matters"><ArrowLeft className="h-4 w-4" /> Back to matters</Link></Button>
       </div>
     );
   }
@@ -467,10 +467,8 @@ export default function MatterFile() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <Link href="/matters">
-        <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[hsl(var(--gold))] transition-colors mb-4">
-          <ArrowLeft className="h-4 w-4" /> All matters
-        </button>
+      <Link href="/matters" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[hsl(var(--gold))] transition-colors mb-4">
+        <ArrowLeft className="h-4 w-4" /> All matters
       </Link>
 
       <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
@@ -765,7 +763,7 @@ export default function MatterFile() {
               <h2 className="font-serif font-bold text-lg text-foreground">Deadlines</h2>
               {pendingDeadlines.length > 0 && <Badge variant="outline">{pendingDeadlines.length} pending</Badge>}
             </div>
-            <Link href="/diary"><Button variant="outline" size="sm" className="gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> Open Diary</Button></Link>
+            <Button asChild variant="outline" size="sm" className="gap-1.5"><Link href="/diary"><CalendarClock className="h-3.5 w-3.5" /> Open Diary</Link></Button>
           </div>
 
           {(matter.deadlines?.length ?? 0) === 0 ? (

@@ -1059,7 +1059,7 @@ export default function MatterDetailPage() {
       <AppLayout>
         <div className="p-8 text-center">
           <p className="text-muted-foreground mb-4">This matter could not be found.</p>
-          <Link href="/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to matters</Button></Link>
+          <Button asChild variant="outline" className="gap-2"><Link href="/matters"><ArrowLeft className="h-4 w-4" /> Back to matters</Link></Button>
         </div>
       </AppLayout>
     );
@@ -1126,10 +1126,8 @@ export default function MatterDetailPage() {
   return (
     <AppLayout>
       <div className="space-y-6 animate-in fade-in duration-500">
-        <Link href="/matters">
-          <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="h-4 w-4" /> All matters
-          </button>
+        <Link href="/matters" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft className="h-4 w-4" /> All matters
         </Link>
 
         {/* Header */}
@@ -1197,12 +1195,12 @@ export default function MatterDetailPage() {
                   <p className="text-xs text-muted-foreground">Launch AI tools pre-filled with this matter's context</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <Link href={`/tools/legal-opinion?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}>
-                    <Button size="sm" variant="outline" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Legal Opinion</Button>
-                  </Link>
-                  <Link href={`/tools/dd-report?matter=${matter.id}&ref=${encodeURIComponent(matter.reference ?? "")}`}>
-                    <Button size="sm" variant="outline" className="gap-1.5"><ArrowRight className="h-3.5 w-3.5" /> DD Report</Button>
-                  </Link>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link href={`/tools/legal-opinion?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}><FileText className="h-3.5 w-3.5" /> Legal Opinion</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link href={`/tools/dd-report?matter=${matter.id}&ref=${encodeURIComponent(matter.reference ?? "")}`}><ArrowRight className="h-3.5 w-3.5" /> DD Report</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

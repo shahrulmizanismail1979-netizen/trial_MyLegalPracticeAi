@@ -890,7 +890,7 @@ export default function MatterDetailPage() {
         <div className="p-10 text-center max-w-lg mx-auto">
           <h2 className="text-xl font-serif font-bold mb-2">Matter files require a subscriber access code</h2>
           <p className="text-muted-foreground mb-4">{error instanceof ApiError ? error.message : ""}</p>
-          <Link href="/workspace/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back</Button></Link>
+          <Button asChild variant="outline" className="gap-2"><Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /> Back</Link></Button>
         </div>
       </WorkspaceLayout>
     );
@@ -902,7 +902,7 @@ export default function MatterDetailPage() {
       <WorkspaceLayout>
         <div className="p-10 text-center">
           <p className="text-muted-foreground mb-4">This matter could not be found.</p>
-          <Link href="/workspace/matters"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" /> Back to matters</Button></Link>
+          <Button asChild variant="outline" className="gap-2"><Link href="/workspace/matters"><ArrowLeft className="h-4 w-4" /> Back to matters</Link></Button>
         </div>
       </WorkspaceLayout>
     );
@@ -960,10 +960,8 @@ export default function MatterDetailPage() {
   return (
     <WorkspaceLayout>
       <div className="p-6 md:p-10 max-w-5xl mx-auto space-y-6">
-        <Link href="/workspace/matters">
-          <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="h-4 w-4" /> All matters
-          </button>
+        <Link href="/workspace/matters" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft className="h-4 w-4" /> All matters
         </Link>
 
         {/* Header */}
@@ -1025,12 +1023,12 @@ export default function MatterDetailPage() {
                   <p className="text-xs text-muted-foreground">Launch AI tools pre-filled with matter context</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <Link href={`/workspace/tool/cause-paper-drafter?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}>
-                    <Button size="sm" variant="outline" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Cause Papers</Button>
-                  </Link>
-                  <Link href={`/workspace/tool/legal-opinion?matter=${matter.id}&ref=${encodeURIComponent(matter.reference ?? "")}`}>
-                    <Button size="sm" variant="outline" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Legal Opinion</Button>
-                  </Link>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link href={`/workspace/tool/cause-paper-drafter?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}><FileText className="h-3.5 w-3.5" /> Cause Papers</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link href={`/workspace/tool/legal-opinion?matter=${matter.id}&ref=${encodeURIComponent(matter.reference ?? "")}`}><Sparkles className="h-3.5 w-3.5" /> Legal Opinion</Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

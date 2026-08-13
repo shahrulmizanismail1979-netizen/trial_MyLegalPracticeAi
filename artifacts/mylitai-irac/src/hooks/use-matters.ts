@@ -31,7 +31,7 @@ export interface MatterDeadline {
 
 export type MatterDetail = Matter & { deadlines: MatterDeadline[] };
 
-export type MatterInput = Partial<Omit<Matter, 'id' | 'createdAt' | 'updatedAt'>> & { title?: string };
+export type MatterInput = Partial<Omit<Matter, 'id' | 'createdAt' | 'updatedAt'>> & { title?: string; hasDocuments?: boolean };
 
 export interface MatterWorkItem {
   id: number;
