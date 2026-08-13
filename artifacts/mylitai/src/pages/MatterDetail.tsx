@@ -280,6 +280,19 @@ function AIInsightsPanel({ matterId }: { matterId: number }) {
   const mountedAt = useRef(Date.now());
   const { data: insights, isLoading, error } = useAIInsights(matterId);
   const refresh = useRefreshInsights();
+  const { toast } = useToast();
+
+  function handleRefresh() {
+    refresh.mutate(matterId, {
+      onSuccess: () => toast({ title: 'AI insights refreshed' }),
+      onError: (e) =>
+        toast({
+          title: 'Could not refresh insights',
+          description: e instanceof Error ? e.message : 'Unknown error',
+          variant: 'destructive',
+        }),
+    });
+  }
 
   // While waiting for a background job that hasn't finished yet, show a
   // "generating" state instead of the error/empty state. We poll the endpoint
@@ -314,7 +327,7 @@ function AIInsightsPanel({ matterId }: { matterId: number }) {
             <span className="text-sm font-semibold">AI Case Insights</span>
           </div>
           <p className="text-sm text-muted-foreground mb-3">Could not load insights. Click below to try again.</p>
-          <Button size="sm" variant="outline" className="gap-2" onClick={() => refresh.mutate(matterId)} disabled={refresh.isPending}>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleRefresh} disabled={refresh.isPending}>
             <RefreshCw className={`h-3.5 w-3.5 ${refresh.isPending ? 'animate-spin' : ''}`} /> Generate insights
           </Button>
         </CardContent>
@@ -337,7 +350,7 @@ function AIInsightsPanel({ matterId }: { matterId: number }) {
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${risk.color}`}>
               <RiskIcon className="h-3.5 w-3.5" /> {risk.label}
             </span>
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => refresh.mutate(matterId)} disabled={refresh.isPending} title="Refresh insights">
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={handleRefresh} disabled={refresh.isPending} title="Refresh insights">
               <RefreshCw className={`h-3.5 w-3.5 ${refresh.isPending ? 'animate-spin' : ''}`} />
             </Button>
           </div>
