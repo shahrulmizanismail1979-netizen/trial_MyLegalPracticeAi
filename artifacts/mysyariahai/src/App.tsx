@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
@@ -48,6 +48,10 @@ const queryClient = new QueryClient();
 function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
   const { gate } = useGate();
+
+  // Public routes — accessible before authentication
+  const [path] = useLocation();
+  if (path === "/pricing") return <PricingPage />;
 
   if (isLoading) {
     return (

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Hero } from "@/components/hero";
 import { ReceptionChat } from "@/components/reception-chat";
 import { AppsGrid } from "@/components/apps-grid";
@@ -26,7 +27,32 @@ export default function Home() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).has("session_id");
 
-  if (!persona && !skipped && !isCheckoutReturn) {
+  // When an external portal sends visitors directly to /#pricing we must bypass
+  // the front door so they land on the pricing section, not the persona selector.
+  const isAnchorLink =
+    typeof window !== "undefined" && window.location.hash !== "";
+
+  // After the page renders, honour any URL hash by scrolling to the target
+  // element. This is needed because SPAs don't auto-scroll on initial paint.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    // Give React one more tick to finish painting before scrolling.
+    const id = hash.replace("#", "");
+    const scrollToAnchor = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    // Try immediately, then retry once after a short delay for lazy sections.
+    scrollToAnchor();
+    const timer = setTimeout(scrollToAnchor, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!persona && !skipped && !isCheckoutReturn && !isAnchorLink) {
     return <PersonaFrontDoor />;
   }
 
