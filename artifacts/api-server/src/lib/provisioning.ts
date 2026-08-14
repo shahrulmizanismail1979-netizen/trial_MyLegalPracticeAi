@@ -833,6 +833,74 @@ function customerEmailHtml(params: {
 }
 
 /**
+ * Best-effort delivery of an access code to a newly-provisioned subscriber.
+ * Sends an SMS (if phone is provided) and a customer email, then notifies the
+ * site owner — matching the same delivery flow that Stripe checkouts trigger.
+ * Never throws; all delivery failures are logged and recorded as activity
+ * entries so the admin can follow up manually.
+ */
+export function deliverAccessCode(params: {
+  name: string;
+  email: string;
+  phone?: string | null;
+  accessCode: string;
+  apps: string[];
+  tier?: string | null;
+  trial?: boolean;
+}): void {
+  const { name, email, phone, accessCode, apps, tier = null, trial = false } = params;
+  void (async () => {
+    if (phone) {
+      const smsResult = await sendSms(
+        phone,
+        accessCodeSmsBody({
+          accessCode,
+          trial,
+          licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
+        }),
+      );
+      if (smsResult === "failed") {
+        await db.insert(activityTable).values({
+          type: "sms_failed",
+          description: `FAILED to SMS access code ${accessCode} to ${phone} — code was emailed to ${email} instead`,
+          metadata: JSON.stringify({ accessCode, email, phone }),
+        });
+      } else if (smsResult === "not_configured") {
+        await db.insert(activityTable).values({
+          type: "sms_skipped",
+          description: `SMS not configured (Twilio secrets missing) — access code ${accessCode} for ${phone} was emailed to ${email} instead`,
+          metadata: JSON.stringify({ accessCode, email, phone }),
+        });
+      }
+    }
+    const sent = await sendEmail({
+      to: email,
+      subject: trial
+        ? "Your LAWYes access code (7-day free trial)"
+        : "Your LAWYes access code",
+      html: customerEmailHtml({ name, accessCode, apps, trial, tier }),
+    });
+    if (!sent) {
+      await db.insert(activityTable).values({
+        type: "email_failed",
+        description: `FAILED to email access code ${accessCode} to ${email} — send manually`,
+        metadata: JSON.stringify({ accessCode, email, phone: phone ?? null }),
+      });
+    }
+    const ownerEmail = await getOwnerEmail();
+    if (ownerEmail) {
+      await sendEmail({
+        to: ownerEmail,
+        subject: `Subscriber baharu: ${name} (${tier ?? "?"}${trial ? ", trial" : ""})`,
+        html: ownerEmailHtml({ name, email, accessCode, apps, tier, trial }),
+      });
+    }
+  })().catch((err) => {
+    logger.error({ err }, "Post-provisioning email dispatch failed");
+  });
+}
+
+/**
  * Re-send the standard customer access-code email (same template used during
  * provisioning). Subscriber details are looked up by access code when
  * available so the email content matches the original.

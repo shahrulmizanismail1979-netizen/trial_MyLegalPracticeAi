@@ -5,6 +5,7 @@ import {
   syncPortalAccessCodes,
   normalizeAppNames,
   generateAccessCode,
+  deliverAccessCode,
 } from "../../lib/provisioning";
 import {
   CreateSubscriberBody,
@@ -122,6 +123,17 @@ router.post("/subscribers", async (req, res): Promise<void> => {
   // Make the code usable on every portal in the plan right away.
   if (subscriber && subscriber.paymentStatus === "confirmed") {
     await syncPortalAccessCodes(subscriber);
+    // Deliver the access code automatically — same email/SMS flow as Stripe checkouts.
+    const trial = subscriber.notes?.toLowerCase().includes("free trial") ?? false;
+    deliverAccessCode({
+      name: subscriber.name ?? "Subscriber",
+      email: subscriber.email,
+      phone: subscriber.phone,
+      accessCode: subscriber.accessCode!,
+      apps: subscriber.apps ?? [],
+      tier: subscriber.tier,
+      trial,
+    });
   }
 
   res.status(201).json(GetSubscriberResponse.parse(subscriber));
@@ -160,6 +172,13 @@ router.patch("/subscribers/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  // Capture the pre-update status so we can detect a fresh confirmation
+  // transition below (idempotency: only deliver once, on the first confirm).
+  const [before] = await db
+    .select({ paymentStatus: subscribersTable.paymentStatus })
+    .from(subscribersTable)
+    .where(eq(subscribersTable.id, params.data.id));
+
   const [subscriber] = await db
     .update(subscribersTable)
     .set(parsed.data.apps ? { ...parsed.data, apps: normalizeAppNames(parsed.data.apps) } : parsed.data)
@@ -174,6 +193,23 @@ router.patch("/subscribers/:id", async (req, res): Promise<void> => {
   // Keep portal login tables in sync with any code/apps changes.
   if (subscriber.paymentStatus === "confirmed") {
     await syncPortalAccessCodes(subscriber);
+
+    // Deliver the access code automatically when the admin first confirms a
+    // manual subscriber — matching the same email/SMS flow as Stripe checkouts.
+    // The pre-update status check ensures we only fire once per confirmation,
+    // not on every subsequent edit to a confirmed subscriber.
+    if (before?.paymentStatus !== "confirmed" && subscriber.accessCode) {
+      const trial = subscriber.notes?.toLowerCase().includes("free trial") ?? false;
+      deliverAccessCode({
+        name: subscriber.name ?? "Subscriber",
+        email: subscriber.email,
+        phone: subscriber.phone,
+        accessCode: subscriber.accessCode,
+        apps: subscriber.apps ?? [],
+        tier: subscriber.tier,
+        trial,
+      });
+    }
   }
 
   res.json(UpdateSubscriberResponse.parse(subscriber));
