@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import { 
   Users, 
   CheckCircle2, 
@@ -29,6 +30,9 @@ import {
   MessageSquareX,
   Check,
   Send,
+  ShoppingCart,
+  Plus,
+  UserCheck,
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -45,6 +49,43 @@ export default function AdminDashboard() {
             <p className="text-muted-foreground mt-1">Platform performance at a glance.</p>
           </div>
         </div>
+
+        {/* ── Purchase Management Quick Actions ───────────────────────────────── */}
+        <Card className="border-primary/30 bg-primary/5 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4 text-primary" />
+              Purchase Management
+            </CardTitle>
+            <CardDescription>
+              <strong>All purchases are processed here.</strong> Portal apps do not have their own
+              checkout — every subscription, manual payment, and access code must be created from
+              this admin dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="sm" className="gap-2">
+                <Link href="/admin/subscribers">
+                  <Plus className="h-4 w-4" />
+                  Record New Purchase
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="gap-2">
+                <Link href="/admin/subscribers">
+                  <UserCheck className="h-4 w-4" />
+                  Manage Subscribers
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="gap-2">
+                <Link href="/admin/vouchers">
+                  <Ticket className="h-4 w-4" />
+                  Vouchers &amp; Promo Codes
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

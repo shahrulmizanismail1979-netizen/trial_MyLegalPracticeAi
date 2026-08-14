@@ -1,154 +1,71 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { api } from "@/lib/api";
-import { useLanguage } from "@/lib/language-context";
+import { ExternalLink, ShoppingCart, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/language-context";
 
-interface PackageDef {
-  tier: string;
-  name: string;
-  nameBm: string;
-  priceMyr: number;
-  lookupKey: string | null;
-  tagline: string;
-  taglineBm: string;
-  features: string[];
-  featuresBm: string[];
-}
-
-const TIER_ORDER = ["starter", "professional", "premium", "firm"];
-
+/**
+ * All subscriptions are purchased centrally on the LAWYes landing page.
+ * This page exists only to redirect there.
+ */
 export default function PricingPage() {
-  const { user, refresh } = useAuth();
   const { mode } = useLanguage();
-  const { toast } = useToast();
   const isBm = mode === "bm";
 
-  const [packages, setPackages] = useState<PackageDef[]>([]);
-  const [currency, setCurrency] = useState("MYR");
-  const [loading, setLoading] = useState(true);
-  const [busyTier, setBusyTier] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.billing
-      .packages()
-      .then((data) => {
-        setPackages(data.packages || []);
-        setCurrency(data.currency || "MYR");
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-    refresh();
-  }, [refresh]);
-
-  const currentRank = user ? TIER_ORDER.indexOf(user.tier) : -1;
-
-  const handleSubscribe = async (_tier: string) => {
-    // Purchases are handled centrally on the AI Web Books landing page.
-    window.location.href = "/#pricing";
-  };
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground">
-          {isBm ? "Pelan & Harga" : "Plans & Pricing"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          {isBm
-            ? "Pilih pelan yang sesuai dengan amalan anda. Tukar atau batal bila-bila masa."
-            : "Choose the plan that fits your practice. Change or cancel anytime."}
-        </p>
-      </div>
-
-      {loading ? (
-        <p className="text-center text-muted-foreground">Loading...</p>
-      ) : (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {packages.map((pkg) => {
-            const rank = TIER_ORDER.indexOf(pkg.tier);
-            const isCurrent = user?.tier === pkg.tier;
-            const isDowngrade = currentRank >= 0 && rank < currentRank;
-            const featured = pkg.tier === "premium";
-            const features = isBm ? pkg.featuresBm : pkg.features;
-            return (
-              <Card
-                key={pkg.tier}
-                className={`flex flex-col ${featured ? "border-secondary shadow-lg shadow-secondary/10" : "border-border/50"}`}
-                data-testid={`card-plan-${pkg.tier}`}
-              >
-                <CardHeader className="pb-3">
-                  {featured && (
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-secondary mb-1">
-                      {isBm ? "Paling Popular" : "Most Popular"}
-                    </span>
-                  )}
-                  <h2 className="text-lg font-serif font-bold text-foreground">
-                    {isBm ? pkg.nameBm : pkg.name}
-                  </h2>
-                  <p className="text-xs text-muted-foreground min-h-[2.5rem]">
-                    {isBm ? pkg.taglineBm : pkg.tagline}
-                  </p>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold text-foreground">
-                      {pkg.priceMyr === 0 ? (isBm ? "Percuma" : "Free") : `${currency} ${pkg.priceMyr}`}
-                    </span>
-                    {pkg.priceMyr > 0 && (
-                      <span className="text-xs text-muted-foreground">/{isBm ? "bulan" : "mo"}</span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-1">
-                  <ul className="space-y-2 flex-1">
-                    {features.map((f, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/80">
-                        <svg className="w-3.5 h-3.5 text-secondary mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-5">
-                    {isCurrent ? (
-                      <Button disabled variant="outline" className="w-full" data-testid={`button-current-${pkg.tier}`}>
-                        {isBm ? "Pelan Semasa" : "Current Plan"}
-                      </Button>
-                    ) : pkg.tier === "starter" ? (
-                      <Button disabled variant="outline" className="w-full">
-                        {isBm ? "Asas Percuma" : "Free Tier"}
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                        disabled={busyTier !== null}
-                        onClick={() => handleSubscribe(pkg.tier)}
-                        data-testid={`button-subscribe-${pkg.tier}`}
-                      >
-                        {busyTier === pkg.tier
-                          ? isBm ? "Memproses..." : "Processing..."
-                          : isDowngrade
-                            ? isBm ? "Tukar Pelan" : "Switch Plan"
-                            : isBm ? "Langgan" : "Subscribe"}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <span className="font-serif text-lg font-bold text-secondary">MySyariahAI</span>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard">
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {isBm ? "Kembali" : "Back"}
+            </Link>
+          </Button>
         </div>
-      )}
+      </header>
 
-      {user?.accountType === "code" && (
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          {isBm
-            ? "Akaun kod akses anda sudah mempunyai akses penuh."
-            : "Your access-code account already has full access."}
-        </p>
-      )}
+      {/* Redirect card */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="h-20 w-20 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
+              <ShoppingCart className="h-9 w-9 text-secondary" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-serif font-bold text-foreground">
+              {isBm ? "Langgan di LAWYes" : "Subscribe at LAWYes"}
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {isBm
+                ? "Semua pembelian pelan dan pengurusan langganan dikendalikan secara berpusat di portal LAWYes."
+                : "All plan purchases and subscription management are handled centrally at the LAWYes portal — your single point for all LAWYes products."}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Button asChild size="lg" className="w-full gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+              <a href="/#pricing">
+                <ExternalLink className="h-4 w-4" />
+                {isBm ? "Pergi ke LAWYes untuk Membeli" : "Go to LAWYes to Purchase"}
+              </a>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/dashboard">{isBm ? "Kembali ke MySyariahAI" : "Back to MySyariahAI"}</Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            {isBm ? "Sudah ada kod akses?" : "Already have an access code?"}{" "}
+            <Link href="/login" className="text-secondary underline">
+              {isBm ? "Log masuk di sini" : "Sign in here"}
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,186 +1,71 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { Check, Scale, Sparkles, Loader2, ArrowLeft } from "lucide-react";
-import {
-  PURCHASABLE_TIERS,
-  TIER_DEFINITIONS,
-  CURRENCIES,
-  DEFAULT_CURRENCY,
-  formatPrice,
-  type BillingInterval,
-  type CurrencyCode,
-  type PurchasableTier,
-} from "@workspace/entitlements";
+import { ExternalLink, ShoppingCart, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 
+/**
+ * All subscriptions are purchased centrally on the LAWYes landing page.
+ * This page exists only to redirect there.
+ */
 export function PricingPage() {
-  const [interval, setInterval] = useState<BillingInterval>("month");
-  const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
-  const [pendingTier, setPendingTier] = useState<PurchasableTier | null>(null);
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-
-  const handleCheckout = async (tier: PurchasableTier) => {
-    setPendingTier(tier);
-    try {
-      // Purchases are handled centrally on the AI Web Books landing page.
-      window.location.href = "/#pricing";
-      return;
-    } catch {
-      toast({
-        title: "Checkout failed",
-        description: "Something went wrong starting checkout. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setPendingTier(null);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <Scale className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-bold">
-              Mycrim<span className="text-primary">Ai</span>
-            </span>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <Link href="/">
+            <span className="font-serif text-lg font-bold text-primary cursor-pointer">MyCrimAI</span>
           </Link>
           <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Sign in</Link>
+            <Link href="/">
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Link>
           </Button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="mb-10 text-center">
-          <h1 className="font-serif text-4xl font-bold tracking-tight">
-            Choose your plan
-          </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            AI-powered Malaysian criminal law practice — from core research to
-            realistic voice oral-practice with the judge, witness and opposing
-            counsel.
-          </p>
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <div className="inline-flex rounded-lg border border-border bg-card/50 p-1">
-              <button
-                type="button"
-                onClick={() => setInterval("month")}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                  interval === "month"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="button-interval-month"
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => setInterval("year")}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                  interval === "year"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="button-interval-year"
-              >
-                Annual <span className="text-xs opacity-80">(2 months free)</span>
-              </button>
+      {/* Redirect card */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="h-20 w-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <ShoppingCart className="h-9 w-9 text-primary" />
             </div>
-
-            <Select
-              value={currency}
-              onValueChange={(v) => setCurrency(v as CurrencyCode)}
-            >
-              <SelectTrigger className="w-[130px]" data-testid="select-currency">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.symbol} {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
-        </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-          {PURCHASABLE_TIERS.map((tierId) => {
-            const def = TIER_DEFINITIONS[tierId];
-            const price = formatPrice(tierId, interval, currency);
-            return (
-              <Card
-                key={tierId}
-                className={`relative flex flex-col ${
-                  def.popular ? "border-primary shadow-lg shadow-primary/10" : "border-border/50"
-                }`}
-                data-testid={`card-tier-${tierId}`}
-              >
-                {def.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Sparkles className="mr-1 h-3 w-3" /> Most popular
-                  </Badge>
-                )}
-                <CardHeader>
-                  <CardTitle className="font-serif text-xl">{def.name}</CardTitle>
-                  <CardDescription>{def.tagline}</CardDescription>
-                  <div className="pt-2">
-                    <span className="text-3xl font-bold">{price}</span>
-                    <span className="text-sm text-muted-foreground">
-                      /{interval === "year" ? "year" : "month"}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  <ul className="mb-6 flex-1 space-y-2 text-sm">
-                    {def.highlights.map((h) => (
-                      <li key={h} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <span className="text-muted-foreground">{h}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="w-full"
-                    variant={def.popular ? "default" : "outline"}
-                    onClick={() => handleCheckout(tierId)}
-                    disabled={pendingTier !== null}
-                    data-testid={`button-subscribe-${tierId}`}
-                  >
-                    {pendingTier === tierId ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      `Get ${def.name}`
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-serif font-bold text-foreground">
+              Subscribe at LAWYes
+            </h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              All plan purchases and subscription management are handled centrally
+              at the <strong>LAWYes</strong> portal — your single point for all
+              LAWYes products.
+            </p>
+          </div>
 
-        <div className="mt-10 text-center">
-          <Button asChild variant="ghost" size="sm" onClick={() => setLocation("/")}>
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to home
+          <div className="space-y-3">
+            <Button
+              asChild
+              size="lg"
+              className="w-full gap-2"
+            >
+              <a href="/#pricing">
+                <ExternalLink className="h-4 w-4" />
+                Go to LAWYes to Purchase
+              </a>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/">Back to MyCrimAI</Link>
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Already have an access code?{" "}
+            <Link href="/login" className="text-primary underline">
+              Sign in here
             </Link>
-          </Button>
+          </p>
         </div>
       </div>
     </div>

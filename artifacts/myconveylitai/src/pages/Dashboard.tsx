@@ -141,7 +141,7 @@ export function Dashboard() {
         title: `${TIER_LABELS[need]} plan required`,
         description: `Upgrade to ${TIER_LABELS[need]} to use this tool.`,
       });
-      navigate('/pricing');
+      window.location.href = '/#pricing';
       return;
     }
     setAiMode(mode);
@@ -244,7 +244,7 @@ export function Dashboard() {
 
             {!isFirm ? (
               <button
-                onClick={() => navigate('/pricing')}
+                onClick={() => { window.location.href = '/#pricing'; }}
                 data-testid="button-upgrade"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold bg-amber-500 text-slate-900 hover:bg-amber-400 transition-all active:scale-95"
                 title="Upgrade your plan"
