@@ -7,7 +7,7 @@ export function Footer() {
             <img
               src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
               alt="LAWYes"
-              className="h-16 w-auto mb-3"
+              className="h-24 w-auto mb-3"
             />
             <p className="text-sm text-muted-foreground mb-1">
               by Prof. Madya Dr. Shahrul Mizan Ismail

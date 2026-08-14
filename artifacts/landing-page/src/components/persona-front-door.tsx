@@ -132,7 +132,7 @@ export function PersonaFrontDoor() {
             <img
               src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
               alt="LAWYes — Your Legal Work, Solved."
-              className="h-28 w-auto"
+              className="h-40 md:h-52 w-auto"
             />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
