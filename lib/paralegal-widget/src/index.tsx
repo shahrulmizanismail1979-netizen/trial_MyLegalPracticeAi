@@ -11,6 +11,8 @@
  * it looks consistent regardless of each portal's Tailwind theme.
  */
 import { useEffect, useRef, useState } from "react";
+// @ts-ignore — static asset; bundled by each portal's Vite
+import amaniAvatarSrc from "./amani-avatar.jpg";
 
 export interface ParalegalWidgetProps {
   /** Product name shown in the header, e.g. "MyLitAI". */
@@ -133,47 +135,59 @@ const S = {
   } as React.CSSProperties,
 };
 
-/** Inline SVG avatar: professional paralegal bust with animated speaking rings. */
+/** Photo avatar — professional AI-generated portrait with animated speaking rings. */
 function Avatar({ size, speaking }: { size: number; speaking: boolean }) {
   return (
-    <span style={{ position: "relative", width: size, height: size, display: "inline-block" }}>
+    <span
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+        display: "inline-block",
+        borderRadius: "50%",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}
+    >
       {speaking && (
-        <span
-          style={{
-            position: "absolute",
-            inset: -4,
-            borderRadius: "50%",
-            border: "2px solid rgba(255,255,255,0.7)",
-            animation: "vp-pulse 1.1s ease-out infinite",
-          }}
-        />
+        <>
+          <span
+            style={{
+              position: "absolute",
+              inset: -5,
+              borderRadius: "50%",
+              border: "2.5px solid rgba(255,255,255,0.75)",
+              animation: "vp-pulse 1.1s ease-out infinite",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              inset: -10,
+              borderRadius: "50%",
+              border: "2px solid rgba(255,255,255,0.35)",
+              animation: "vp-pulse 1.1s ease-out 0.35s infinite",
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          />
+        </>
       )}
-      <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden>
-        <defs>
-          <linearGradient id="vp-skin" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#e8b98a" />
-            <stop offset="1" stopColor="#d9a06b" />
-          </linearGradient>
-        </defs>
-        <circle cx="32" cy="32" r="31" fill="#20242c" stroke="rgba(255,255,255,0.35)" />
-        {/* hair back */}
-        <path d="M14 34c0-14 8-22 18-22s18 8 18 22v10H14V34z" fill="#2d2620" />
-        {/* face */}
-        <circle cx="32" cy="28" r="11" fill="url(#vp-skin)" />
-        {/* hair front */}
-        <path d="M21 26c0-8 5-13 11-13s11 5 11 13c-2-5-5-7-11-7s-9 2-11 7z" fill="#3a3129" />
-        {/* blazer */}
-        <path d="M14 52c2-8 9-12 18-12s16 4 18 12v3H14v-3z" fill="#1f3a5f" />
-        {/* collar */}
-        <path d="M28 41l4 6 4-6-4-2-4 2z" fill="#f5f2ea" />
-        {/* smile */}
-        <path d="M28 32c1.5 1.6 6.5 1.6 8 0" stroke="#8a5a34" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-        <circle cx="27.5" cy="26.5" r="1.3" fill="#3b2a1c" />
-        <circle cx="36.5" cy="26.5" r="1.3" fill="#3b2a1c" />
-        {/* scales-of-justice pin */}
-        <circle cx="43" cy="47" r="3.2" fill="#c9a24b" />
-      </svg>
-      <style>{`@keyframes vp-pulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.45);opacity:0}}`}</style>
+      <img
+        src={amaniAvatarSrc}
+        alt="Amani"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          objectFit: "cover",
+          objectPosition: "center 15%",
+          display: "block",
+        }}
+      />
+      <style>{`@keyframes vp-pulse{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.5);opacity:0}}`}</style>
     </span>
   );
 }
