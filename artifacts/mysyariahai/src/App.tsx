@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
@@ -46,12 +46,20 @@ import NotFound from "@/pages/not-found";
 const queryClient = new QueryClient();
 
 function AuthGate() {
+  return (
+    <Switch>
+      {/* Public routes — accessible before authentication */}
+      <Route path="/pricing" component={PricingPage} />
+      <Route>
+        <AuthenticatedApp />
+      </Route>
+    </Switch>
+  );
+}
+
+function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth();
   const { gate } = useGate();
-
-  // Public routes — accessible before authentication
-  const [path] = useLocation();
-  if (path === "/pricing") return <PricingPage />;
 
   if (isLoading) {
     return (
@@ -107,7 +115,6 @@ function AuthGate() {
         <Route path="/matters" component={MattersPage} />
         <Route path="/matters/:id" component={MatterDetailPage} />
         <Route path="/billing" component={BillingPage} />
-        <Route path="/pricing" component={PricingPage} />
         <Route path="/account" component={AccountPage} />
         <Route component={NotFound} />
       </Switch>
