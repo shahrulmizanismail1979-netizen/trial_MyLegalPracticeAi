@@ -77,6 +77,16 @@ export default function CaseLaw() {
     navigator.clipboard.writeText(detail?.citation ?? detail?.caseName ?? "").then(() => { setToast("Citation copied!"); setTimeout(() => setToast(""), 2500); });
   };
 
+  const copyHeadnote = (h: Headnote) => {
+    const citationRef = detail?.citation ?? detail?.caseName ?? "";
+    const parts = [citationRef, `headnote ${h.number}`];
+    if (h.paragraphRef) parts.push(h.paragraphRef);
+    const text = `${h.text} (${parts.join(", ")})`;
+    navigator.clipboard.writeText(text).then(() => {
+      setToast(`Headnote ${h.number} copied!`); setTimeout(() => setToast(""), 2500);
+    });
+  };
+
   const loadMatters = useCallback(async () => {
     setMattersLoading(true);
     try { const r = await fetch(MATTERS_URL, FETCH_INIT); const d = await r.json(); setMatters((Array.isArray(d) ? d : d.matters ?? d.items ?? []).slice(0, 60)); }
@@ -149,9 +159,16 @@ export default function CaseLaw() {
                 <section>
                   <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2"><span className="h-px flex-1 bg-border" /> HEADNOTES <span className="h-px flex-1 bg-border" /></h2>
                   <div className="space-y-4">{detail.headnotes.map(h => (
-                    <div key={h.number} className="flex gap-4 border-l-2 border-primary/30 pl-4 py-1">
+                    <div key={h.number} className="group flex gap-4 border-l-2 border-primary/30 pl-4 py-1">
                       <span className="text-primary font-bold font-mono text-sm shrink-0 w-5 mt-0.5">{h.number}.</span>
-                      <p className="text-sm leading-relaxed font-serif">{h.text}</p>
+                      <p className="text-sm leading-relaxed font-serif flex-1">{h.text}</p>
+                      <button
+                        onClick={() => copyHeadnote(h)}
+                        title={`Copy headnote ${h.number} citation`}
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}</div>
                 </section>
