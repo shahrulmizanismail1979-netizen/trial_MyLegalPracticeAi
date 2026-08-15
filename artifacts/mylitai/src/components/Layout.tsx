@@ -21,7 +21,8 @@ import {
   Landmark,
   Layers,
   ShieldCheck,
-  Compass
+  Compass,
+  LayoutDashboard
 } from 'lucide-react';
 import { Button } from './ui';
 import { AITutor } from './AITutor';
@@ -37,6 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage();
   const [location] = useLocation();
   const navItems = [
+    { name: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
     { name: t('nav.practiceHub'), path: '/app/practice', icon: Compass, highlight: true },
     { name: t('nav.aiChambers'), path: '/app/chambers', icon: Briefcase, highlight: true },
     { name: t('nav.oralAdvocacy'), path: '/app/oral-practice', icon: Mic, highlight: true },

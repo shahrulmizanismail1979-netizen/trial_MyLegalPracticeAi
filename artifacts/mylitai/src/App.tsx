@@ -23,6 +23,7 @@ import Costs from "@/pages/Costs";
 import Terminology from "@/pages/Terminology";
 import Chambers from "@/pages/Chambers";
 import OralPractice from "@/pages/OralPractice";
+import Dashboard from "@/pages/Dashboard";
 import Matters from "@/pages/Matters";
 import MatterDetail from "@/pages/MatterDetail";
 import Diary from "@/pages/Diary";
@@ -91,7 +92,8 @@ function Router() {
       </Route>
 
       {/* Protected App Routes */}
-      <Route path="/app"><Redirect to="/app/matters" /></Route>
+      <Route path="/app"><Redirect to="/app/dashboard" /></Route>
+      <Route path="/app/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/app/practice"><ProtectedRoute component={PracticeHub} /></Route>
       <Route path="/app/practice/:matterId"><ProtectedRoute component={PracticeMatter} /></Route>
       <Route path="/app/theory"><ProtectedRoute component={Theory} /></Route>
