@@ -41,6 +41,14 @@ export const litBundleDocuments = pgTable("lit_bundle_documents", {
   docDate: text("doc_date"),
   pageCount: integer("page_count").notNull().default(1),
   sortOrder: integer("sort_order").notNull().default(0),
+  // Provenance: 'manual' (typed entry), 'upload' (stored file), 'saved-work'
+  // (linked cause paper generated in the app).
+  source: text("source").notNull().default("manual"),
+  objectPath: text("object_path"),
+  fileName: text("file_name"),
+  contentType: text("content_type"),
+  sizeBytes: integer("size_bytes"),
+  savedWorkId: integer("saved_work_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

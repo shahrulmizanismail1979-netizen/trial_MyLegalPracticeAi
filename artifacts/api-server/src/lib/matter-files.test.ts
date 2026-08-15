@@ -325,14 +325,39 @@ portalSuite("ccb", "/api/ccb", () => ccb.tokenA, () => ccb.tokenB);
 portalSuite("convey", "/api/convey", () => convey.tokenA, () => convey.tokenB);
 
 describe("ccb static/master code", () => {
-  it("gets 403 (no per-subscriber access code to own matters)", async () => {
+  // Master/static sessions are mapped onto a synthetic inactive access-code
+  // row (see ccb/routes/matterAuth.ts) so they can own matter files without
+  // seeing any real subscriber's data.
+  it("owns its own isolated matter files via the synthetic tenant row", async () => {
     const master = `Bearer ${ccb.masterToken}`;
     const list = await request(app).get("/api/ccb/matters").set("Authorization", master);
-    expect(list.status).toBe(403);
+    expect(list.status).toBe(200);
+    // The synthetic tenant must never surface a real subscriber's matters:
+    // every matter it sees belongs to the synthetic row, none to codes A/B.
+    const masterMatters = Array.isArray(list.body)
+      ? (list.body as { title: string }[])
+      : [];
+    for (const m of masterMatters) {
+      expect(m.title).not.toContain(RUN_ID);
+    }
     const work = await request(app)
       .post("/api/ccb/saved-work")
       .set("Authorization", master)
-      .send({ kind: "draft", title: "x" });
-    expect(work.status).toBe(403);
+      .send({ kind: "draft", title: `master-work-${RUN_ID}` });
+    expect(work.status).toBe(201);
+    // The master's own list contains the row it just filed (owned by the
+    // synthetic tenant; per-subscriber isolation is covered by portalSuite).
+    const masterWork = await request(app)
+      .get("/api/ccb/saved-work")
+      .set("Authorization", master);
+    expect(masterWork.status).toBe(200);
+    const titles = (masterWork.body as { title: string }[]).map((w) => w.title);
+    expect(titles).toContain(`master-work-${RUN_ID}`);
+    // Clean up the master's saved work row.
+    if (work.body?.id) {
+      await request(app)
+        .delete(`/api/ccb/saved-work/${work.body.id}`)
+        .set("Authorization", master);
+    }
   });
 });

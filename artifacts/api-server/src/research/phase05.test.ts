@@ -484,9 +484,65 @@ afterAll(async () => {
     .where(inArray(researchExtractionRuns.containerId, trackedContainerIds));
 
   if (trackedJobIds.length > 0) {
-    await db
-      .delete(researchJobs)
-      .where(inArray(researchJobs.id, trackedJobIds));
+    // Parallel workers may have processed this file's queued jobs and created
+    // segmentation runs referencing them (research_segmentation_runs.job_id),
+    // possibly under containers outside trackedContainerIds — clear runs by
+    // jobId (children first) before deleting the jobs, and retry on races.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const strayRuns = await db
+          .select({ id: researchSegmentationRuns.id })
+          .from(researchSegmentationRuns)
+          .where(inArray(researchSegmentationRuns.jobId, trackedJobIds));
+        const strayRunIds = strayRuns.map((r) => r.id);
+        if (strayRunIds.length > 0) {
+          const strayCandidates = await db
+            .select({ id: researchCaseCandidates.id })
+            .from(researchCaseCandidates)
+            .where(inArray(researchCaseCandidates.runId, strayRunIds));
+          const strayCandidateIds = strayCandidates.map((c) => c.id);
+          if (strayCandidateIds.length > 0) {
+            await db
+              .delete(researchCrossFileSpanSegments)
+              .where(inArray(researchCrossFileSpanSegments.candidateId, strayCandidateIds));
+            await db
+              .delete(researchCrossFileRelationships)
+              .where(inArray(researchCrossFileRelationships.sourceCandidateId, strayCandidateIds));
+            await db
+              .delete(researchCrossFileRelationships)
+              .where(inArray(researchCrossFileRelationships.targetCandidateId, strayCandidateIds));
+            await db
+              .delete(researchCandidateCoherenceChecks)
+              .where(inArray(researchCandidateCoherenceChecks.candidateId, strayCandidateIds));
+            await db
+              .delete(researchCandidateReviewActions)
+              .where(inArray(researchCandidateReviewActions.candidateId, strayCandidateIds));
+            await db
+              .delete(researchCaseCandidateBoundaries)
+              .where(inArray(researchCaseCandidateBoundaries.candidateId, strayCandidateIds));
+            await db
+              .delete(researchCaseCandidates)
+              .where(inArray(researchCaseCandidates.id, strayCandidateIds));
+          }
+          await db
+            .delete(researchCaseBoundaries)
+            .where(inArray(researchCaseBoundaries.runId, strayRunIds));
+          await db
+            .delete(researchBoundarySignals)
+            .where(inArray(researchBoundarySignals.runId, strayRunIds));
+          await db
+            .delete(researchSegmentationRuns)
+            .where(inArray(researchSegmentationRuns.id, strayRunIds));
+        }
+        await db
+          .delete(researchJobs)
+          .where(inArray(researchJobs.id, trackedJobIds));
+        break;
+      } catch (err) {
+        if (attempt === 4) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
   }
 
   // In-flight jobs from parallel workers can repopulate container-referencing

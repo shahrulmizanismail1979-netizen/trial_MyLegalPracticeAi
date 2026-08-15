@@ -51,15 +51,26 @@ const ensureTable = db
     logger.error({ err }, "Failed to ensure lit_pending_uploads table"),
   );
 
-async function registerPendingUpload(
+export async function registerPendingUpload(
   objectPath: string,
   accessCodeId: number,
 ): Promise<void> {
   await ensureTable;
-  // Opportunistically prune expired rows so the table stays small.
-  await db
+  // Opportunistically prune expired rows so the table stays small — and
+  // best-effort delete the abandoned storage objects behind them so the
+  // bucket doesn't accumulate orphans from uploads never finalized.
+  const expired = await db
     .delete(litPendingUploads)
-    .where(lt(litPendingUploads.expiresAt, new Date()));
+    .where(lt(litPendingUploads.expiresAt, new Date()))
+    .returning({ objectPath: litPendingUploads.objectPath });
+  for (const row of expired) {
+    try {
+      const file = await objectStorage.getObjectEntityFile(row.objectPath);
+      await file.delete({ ignoreNotFound: true });
+    } catch {
+      /* never uploaded or already gone — nothing to clean */
+    }
+  }
   await db
     .insert(litPendingUploads)
     .values({
@@ -78,7 +89,7 @@ async function registerPendingUpload(
 
 // Atomically consumes the pending-upload row for this path IF it belongs to
 // the caller and has not expired. Returns true when the caller owns it.
-async function consumePendingUpload(
+export async function consumePendingUpload(
   objectPath: string,
   accessCodeId: number,
 ): Promise<boolean> {

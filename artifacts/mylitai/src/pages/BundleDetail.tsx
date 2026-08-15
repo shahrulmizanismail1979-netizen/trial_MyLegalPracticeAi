@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useParams } from 'wouter';
 import {
   useBundle,
@@ -8,6 +8,10 @@ import {
   useDeleteDocument,
   useReorderDocuments,
   useDeleteBundle,
+  useUploadBundleDocument,
+  useLinkableWork,
+  useLinkSavedWork,
+  bundleDocumentDownloadUrl,
   BUNDLE_DOC_TYPE_LABEL,
   type DocInput,
 } from '@/hooks/use-bundles';
@@ -33,6 +37,10 @@ import {
   Layers,
   Hash,
   Scale,
+  Upload,
+  Download,
+  Link2,
+  Sparkles,
 } from 'lucide-react';
 
 const EMPTY_DOC: DocInput = { title: '', section: '', docType: 'pleading', docDate: '', pageCount: 1 };
@@ -47,10 +55,14 @@ export default function BundleDetail() {
   const deleteDoc = useDeleteDocument();
   const reorder = useReorderDocuments();
   const deleteBundle = useDeleteBundle();
+  const uploadDoc = useUploadBundleDocument();
+  const linkWork = useLinkSavedWork();
+  const { data: linkable } = useLinkableWork(Number.isNaN(id) ? null : id);
   const { toast } = useToast();
 
   const [doc, setDoc] = useState<DocInput>(EMPTY_DOC);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const setD = (k: keyof DocInput, v: string | number) => setDoc((d) => ({ ...d, [k]: v }));
 
@@ -94,6 +106,40 @@ export default function BundleDetail() {
 
   const removeDoc = async (docId: number) => {
     await deleteDoc.mutateAsync({ bundleId: bundle.id, id: docId });
+  };
+
+  const onFileChosen = async (file: File | undefined) => {
+    if (!file) return;
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.pdf') && !lower.endsWith('.docx')) {
+      toast({ title: 'Unsupported file', description: 'Only PDF and DOCX files can be added to a bundle.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await uploadDoc.mutateAsync({
+        bundleId: bundle.id,
+        file,
+        section: doc.section || undefined,
+        docType: doc.docType || 'pleading',
+        docDate: doc.docDate || undefined,
+      });
+      toast({ title: 'Document uploaded', description: `${file.name} added to the bundle.` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Please try again.';
+      toast({ title: msg.includes('subscription') ? 'Premium feature' : 'Upload failed', description: msg, variant: 'destructive' });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const linkItem = async (savedWorkId: number) => {
+    try {
+      await linkWork.mutateAsync({ bundleId: bundle.id, savedWorkId });
+      toast({ title: 'Linked to bundle', description: 'The cause paper now appears in the index.' });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Please try again.';
+      toast({ title: msg.includes('subscription') ? 'Premium feature' : 'Could not link', description: msg, variant: 'destructive' });
+    }
   };
 
   const buildIndexText = () => {
@@ -183,6 +229,55 @@ export default function BundleDetail() {
             <Button className="w-full gap-2" onClick={addDocument} disabled={addDoc.isPending}>
               <Plus className="h-4 w-4" /> {addDoc.isPending ? 'Adding…' : 'Add to bundle'}
             </Button>
+
+            <div className="pt-2 border-t border-border/60 space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={(e) => onFileChosen(e.target.files?.[0])}
+              />
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadDoc.isPending}
+              >
+                <Upload className="h-4 w-4" /> {uploadDoc.isPending ? 'Uploading…' : 'Upload pleading (PDF / DOCX)'}
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Uploaded files are stored with the bundle — the title, type, section and date above are applied to the upload.
+              </p>
+            </div>
+
+            {(linkable?.items?.length ?? 0) > 0 && (
+              <div className="pt-2 border-t border-border/60 space-y-2">
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Cause papers from {linkable?.matterScoped ? 'this matter' : 'your saved work'}
+                </h4>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {linkable!.items.map((w) => (
+                    <div key={w.id} className="flex items-center gap-2 rounded-md border border-border/60 px-2.5 py-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-foreground truncate">{w.title}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">{w.kind}{w.matter ? ` · ${w.matter}` : ''}</div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1 text-primary shrink-0"
+                        onClick={() => linkItem(w.id)}
+                        disabled={linkWork.isPending}
+                      >
+                        <Link2 className="h-3.5 w-3.5" /> Link
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -216,11 +311,26 @@ export default function BundleDetail() {
                   <div key={it.id} className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50 hover:bg-background/40 group">
                     <span className="w-8 font-mono text-sm font-bold text-primary">{it.tab}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm text-foreground truncate">{it.title}</div>
+                      <div className="text-sm text-foreground truncate flex items-center gap-1.5">
+                        <span className="truncate">{it.title}</span>
+                        {it.hasFile && (
+                          <a
+                            href={bundleDocumentDownloadUrl(bundle.id, it.id)}
+                            className="text-primary hover:text-primary/80 shrink-0"
+                            title={`Download ${it.fileName ?? 'file'}`}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {it.source === 'saved-work' && (
+                          <Badge variant="outline" className="shrink-0 text-[9px] px-1.5 py-0">Cause paper</Badge>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
                         <span>{BUNDLE_DOC_TYPE_LABEL[it.docType] ?? it.docType}</span>
                         {it.section && <span>· {it.section}</span>}
                         {it.docDate && <span>· {it.docDate}</span>}
+                        {it.fileName && <span>· {it.fileName}</span>}
                       </div>
                     </div>
                     <Input
