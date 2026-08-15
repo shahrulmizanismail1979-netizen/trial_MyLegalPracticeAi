@@ -79,8 +79,34 @@ export default function CaseLawPage() {
     catch { setDetail(null); } finally { setDetailLoading(false); }
   }, []);
 
+  const writeToClipboard = useCallback(async (text: string): Promise<void> => {
+    // Try the modern async Clipboard API first (requires secure context + user gesture).
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch {
+        // Fall through to execCommand fallback.
+      }
+    }
+    // Legacy fallback: create an off-screen textarea, select its content, and copy.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (!ok) throw new Error("execCommand copy failed");
+  }, []);
+
   const copy = () => {
-    navigator.clipboard.writeText(detail?.citation ?? detail?.caseName ?? "").then(() => { setToast("Citation copied!"); setTimeout(() => setToast(""), 2500); });
+    const text = detail?.citation ?? detail?.caseName ?? "";
+    writeToClipboard(text)
+      .then(() => { setToast("Citation copied!"); setTimeout(() => setToast(""), 2500); })
+      .catch(() => { setToast("Copy failed — please copy manually."); setTimeout(() => setToast(""), 3000); });
   };
 
   const copyHeadnote = (h: Headnote) => {
@@ -88,9 +114,9 @@ export default function CaseLawPage() {
     const parts = [citationRef, `headnote ${h.number}`];
     if (h.paragraphRef) parts.push(h.paragraphRef);
     const text = `${h.text} (${parts.join(", ")})`;
-    navigator.clipboard.writeText(text).then(() => {
-      setToast(`Headnote ${h.number} copied!`); setTimeout(() => setToast(""), 2500);
-    });
+    writeToClipboard(text)
+      .then(() => { setToast(`Headnote ${h.number} copied!`); setTimeout(() => setToast(""), 2500); })
+      .catch(() => { setToast("Copy failed — please copy manually."); setTimeout(() => setToast(""), 3000); });
   };
 
   const loadMatters = useCallback(async () => {
