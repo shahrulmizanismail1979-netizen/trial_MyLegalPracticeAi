@@ -27,6 +27,10 @@ import { Button } from './ui';
 import { AITutor } from './AITutor';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { ParalegalWidget } from '@workspace/paralegal-widget';
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/lit/paralegal${path.replace(/^\/paralegal/, '')}`, { ...init, credentials: 'include' });
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
@@ -154,6 +158,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <AITutor isOpen={isAITutorOpen} onClose={() => setIsAITutorOpen(false)} />
+      <ParalegalWidget portalName="MyLitAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }
