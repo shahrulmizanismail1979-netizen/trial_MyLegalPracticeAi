@@ -12,20 +12,38 @@ import { verifyMatterOwnership } from "./caseOwnership";
 import type { Portal } from "./caseStages";
 
 /**
- * Look up the rate card rate for an exact activity-type × lawyer-level combination.
- * Returns null if no exact match exists; the caller then falls back to the firm
- * default_hourly_rate at billing time. Partial matches are intentionally not
- * performed — a Senior Partner entry must not silently receive an Associate rate.
+ * Look up the rate card rate for an activity-type × lawyer-level combination,
+ * with an optional named-lawyer refinement.
+ *
+ * Priority:
+ *   1. Exact match on (activity, level, lawyerName) when lawyerName is provided.
+ *   2. Level-only fallback: (activity, level) with no named-lawyer row (lawyer_name IS NULL).
+ *
+ * Returns null when neither match exists; the caller then falls back to the
+ * firm's default_hourly_rate at billing time.
  */
 async function lookupRateCard(
   portal: Portal,
   ownerKey: string,
   activityType: string,
   lawyerLevel: string,
+  lawyerName?: string | null,
 ): Promise<number | null> {
+  // Step 1 — named-lawyer exact match (only when a name is provided).
+  if (lawyerName && lawyerName.trim()) {
+    const { rows } = await pool.query(
+      `SELECT rate_usd FROM case_rate_cards
+       WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
+         AND lawyer_level = $4 AND lawyer_name = $5`,
+      [portal, ownerKey, activityType, lawyerLevel, lawyerName.trim()],
+    );
+    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+  }
+  // Step 2 — level-only fallback (lawyer_name IS NULL means a seniority-level rate).
   const { rows } = await pool.query(
     `SELECT rate_usd FROM case_rate_cards
-     WHERE portal = $1 AND owner_key = $2 AND activity_type = $3 AND lawyer_level = $4`,
+     WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
+       AND lawyer_level = $4 AND lawyer_name IS NULL`,
     [portal, ownerKey, activityType, lawyerLevel],
   );
   if (rows[0]) return parseFloat(rows[0].rate_usd as string);
@@ -83,7 +101,7 @@ export function makeTimeRecordingRouter(
       return;
     }
 
-    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level } = req.body ?? {};
+    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name } = req.body ?? {};
     if (!description || typeof description !== "string" || !description.trim()) {
       res.status(400).json({ error: "description is required" });
       return;
@@ -98,21 +116,23 @@ export function makeTimeRecordingRouter(
         ? entry_date
         : new Date().toISOString().slice(0, 10);
 
-    // Resolve rate: explicit rate_usd > rate card lookup > null (uses default_hourly_rate at billing time)
+    const activityTypeStr = typeof activity_type === "string" && activity_type.trim() ? activity_type.trim().slice(0, 200) : null;
+    const lawyerLevelStr = typeof lawyer_level === "string" && lawyer_level.trim() ? lawyer_level.trim().slice(0, 200) : null;
+    const lawyerNameStr = typeof lawyer_name === "string" && lawyer_name.trim() ? lawyer_name.trim().slice(0, 200) : null;
+
+    // Resolve rate: explicit rate_usd > named-lawyer rate card > level-only rate card > null (uses default_hourly_rate at billing time)
     let rateVal: number | null =
       rate_usd !== undefined && rate_usd !== null && rate_usd !== ""
         ? parseFloat(String(rate_usd))
         : null;
-    if ((rateVal === null || Number.isNaN(rateVal)) && activity_type && lawyer_level) {
-      rateVal = await lookupRateCard(portal, ownerKey, String(activity_type), String(lawyer_level));
+    if ((rateVal === null || Number.isNaN(rateVal)) && activityTypeStr && lawyerLevelStr) {
+      rateVal = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr);
     }
-    const activityTypeStr = typeof activity_type === "string" && activity_type.trim() ? activity_type.trim().slice(0, 200) : null;
-    const lawyerLevelStr = typeof lawyer_level === "string" && lawyer_level.trim() ? lawyer_level.trim().slice(0, 200) : null;
 
     const { rows } = await pool.query(
       `INSERT INTO case_time_entries
-         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [
         portal,
         matterId,
@@ -123,6 +143,7 @@ export function makeTimeRecordingRouter(
         dateStr,
         activityTypeStr,
         lawyerLevelStr,
+        lawyerNameStr,
       ],
     );
     res.status(201).json(rows[0]);

@@ -117,16 +117,27 @@ export async function ensureBillingTables(): Promise<void> {
       owner_key text NOT NULL,
       activity_type text NOT NULL,
       lawyer_level text NOT NULL,
+      lawyer_name text,
       rate_usd numeric(10,2) NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now(),
-      UNIQUE (portal, owner_key, activity_type, lawyer_level)
+      updated_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_case_rate_cards_owner ON case_rate_cards (portal, owner_key);
 
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS invoice_id integer;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS activity_type text;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
+    ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_name text;
+
+    -- Add lawyer_name to existing rate-card tables, drop the old unique constraint
+    -- (if it exists from earlier schema), and replace with an expression-based index
+    -- that treats NULL lawyer_name as '' so (activity, level, '') and (activity, level, NULL)
+    -- are correctly de-duplicated.
+    ALTER TABLE case_rate_cards ADD COLUMN IF NOT EXISTS lawyer_name text;
+    ALTER TABLE case_rate_cards
+      DROP CONSTRAINT IF EXISTS case_rate_cards_portal_owner_key_activity_type_lawyer_level_key;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_case_rate_cards_unique
+      ON case_rate_cards (portal, owner_key, activity_type, lawyer_level, COALESCE(lawyer_name, ''));
   `);
   logger.info("Billing tables ensured");
 }
@@ -162,7 +173,8 @@ async function getSettings(portal: Portal, ownerKey: string) {
 
 async function getRateCards(portal: Portal, ownerKey: string) {
   const { rows } = await pool.query(
-    `SELECT * FROM case_rate_cards WHERE portal = $1 AND owner_key = $2 ORDER BY activity_type, lawyer_level`,
+    `SELECT * FROM case_rate_cards WHERE portal = $1 AND owner_key = $2
+     ORDER BY activity_type, lawyer_level, COALESCE(lawyer_name, '')`,
     [portal, ownerKey],
   );
   return rows;
@@ -269,7 +281,7 @@ export function attachBilling(opts: {
   router.post(`${P}/billing/rate-cards`, async (req, res) => {
     const ownerKey = auth(req, res);
     if (!ownerKey) return;
-    const { activityType, lawyerLevel, rateUsd } = req.body ?? {};
+    const { activityType, lawyerLevel, lawyerName, rateUsd } = req.body ?? {};
     if (!activityType || typeof activityType !== "string" || !activityType.trim()) {
       res.status(400).json({ error: "activityType is required" });
       return;
@@ -283,13 +295,22 @@ export function attachBilling(opts: {
       res.status(400).json({ error: "rateUsd must be greater than zero" });
       return;
     }
+    const lawyerNameStr =
+      typeof lawyerName === "string" && lawyerName.trim() ? lawyerName.trim().slice(0, MAX_TEXT) : null;
     const { rows } = await pool.query(
-      `INSERT INTO case_rate_cards (portal, owner_key, activity_type, lawyer_level, rate_usd)
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (portal, owner_key, activity_type, lawyer_level)
+      `INSERT INTO case_rate_cards (portal, owner_key, activity_type, lawyer_level, lawyer_name, rate_usd)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (portal, owner_key, activity_type, lawyer_level, COALESCE(lawyer_name, ''))
        DO UPDATE SET rate_usd = EXCLUDED.rate_usd, updated_at = now()
        RETURNING *`,
-      [portal, ownerKey, activityType.trim().slice(0, MAX_TEXT), lawyerLevel.trim().slice(0, MAX_TEXT), money(rate)],
+      [
+        portal,
+        ownerKey,
+        activityType.trim().slice(0, MAX_TEXT),
+        lawyerLevel.trim().slice(0, MAX_TEXT),
+        lawyerNameStr,
+        money(rate),
+      ],
     );
     res.status(201).json(rows[0]);
   });
@@ -674,7 +695,7 @@ export function attachBilling(opts: {
     const [{ rows: time }, { rows: fees }, { rows: invoices }, settings, rateCards] = await Promise.all([
       pool.query(
         `SELECT id, description, minutes, rate_usd AS rate, entry_date, invoice_id,
-                activity_type, lawyer_level
+                activity_type, lawyer_level, lawyer_name
          FROM case_time_entries WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
          ORDER BY entry_date DESC, id DESC`,
         [portal, matterId, ownerKey],
