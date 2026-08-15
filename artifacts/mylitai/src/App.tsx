@@ -13,7 +13,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Admin from "@/pages/Admin";
-import Dashboard from "@/pages/Dashboard";
 import Theory from "@/pages/Theory";
 import Workflows from "@/pages/Workflows";
 import PracticeHub from "@/pages/PracticeHub";
