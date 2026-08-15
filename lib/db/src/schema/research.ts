@@ -2298,6 +2298,10 @@ export const driveAssets = pgTable(
     inventoryRunId: integer("inventory_run_id").references(
       () => driveInventoryRuns.id,
     ),
+    /** FK to research_upload_batch_items — set when this asset is sent to the pipeline. */
+    sourceBatchItemId: integer("source_batch_item_id"),
+    /** Pipeline error detail when processingStatus = FAILED. */
+    pipelineError: text("pipeline_error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

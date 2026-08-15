@@ -63,6 +63,28 @@ export type InventoryRun = {
   createdAt: string;
 };
 
+export type DriveProcessingStatus =
+  | "PENDING"
+  | "RIGHTS_PENDING"
+  | "RIGHTS_APPROVED"
+  | "RIGHTS_REJECTED"
+  | "INGESTION_QUEUED"
+  | "INGESTION_RUNNING"
+  | "INGESTION_COMPLETE"
+  | "EXTRACTION_QUEUED"
+  | "EXTRACTION_RUNNING"
+  | "EXTRACTION_COMPLETE"
+  | "SEGMENTATION_QUEUED"
+  | "SEGMENTATION_RUNNING"
+  | "SEGMENTATION_COMPLETE"
+  | "REVIEW_QUEUED"
+  | "REVIEW_IN_PROGRESS"
+  | "REVIEW_COMPLETE"
+  | "PUBLICATION_QUEUED"
+  | "PUBLISHED"
+  | "FAILED"
+  | "CANCELLED";
+
 export type DriveAsset = {
   id: number;
   driveFileId: string;
@@ -88,13 +110,27 @@ export type DriveAsset = {
     | "NEEDS_OFFICIAL_SOURCE"
     | "RIGHTS_REVIEW_REQUIRED"
     | "APPROVED";
-  processingStatus: string;
+  processingStatus: DriveProcessingStatus;
+  pipelineError: string | null;
   errorStatus: string | null;
+  sourceBatchItemId: number | null;
   parentFolderId: string | null;
   inventoryRunId: number | null;
   createdAt: string;
   updatedAt: string;
 };
+
+export type PipelineRunStatus = {
+  running: boolean;
+  startedAt: string | null;
+  total: number;
+  queued: number;
+  skipped: number;
+  failed: number;
+  completed: number;
+  currentAssetId: number | null;
+  errors: { assetId: number; message: string }[];
+} | null;
 
 export type DriveAssetsPage = {
   total: number;
@@ -196,6 +232,22 @@ export const assetsApi = {
       method: "PATCH",
       body: JSON.stringify({ rightsStatus }),
     }),
+};
+
+// ── Drive Pipeline ────────────────────────────────────────────────────────────
+
+export const pipelineApi = {
+  start: () =>
+    apiFetch<{ started: boolean; status: PipelineRunStatus }>("/drive/pipeline/start", {
+      method: "POST",
+    }),
+  status: () => apiFetch<PipelineRunStatus>("/drive/pipeline/status"),
+  sync: () => apiFetch<{ updated: number }>("/drive/pipeline/sync", { method: "POST" }),
+  ingestAsset: (id: number) =>
+    apiFetch<{ queued: boolean; skipped: boolean; reason?: string; errorMessage?: string }>(
+      `/drive/assets/${id}/ingest`,
+      { method: "POST" },
+    ),
 };
 
 // ── Queue ─────────────────────────────────────────────────────────────────────

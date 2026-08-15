@@ -17,6 +17,12 @@ import {
 import { and, asc, count, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import { getAllFolderChildren, DRIVE_FOLDER_MIME } from "../research/drive/driveClient";
 import { classifyDriveFile, rightsStatusForClassification } from "../research/drive/classify";
+import {
+  startBulkPipeline,
+  getPipelineRunStatus,
+  syncPipelineStatuses,
+  ingestDriveAsset,
+} from "../research/drive/ingestBridge";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_PASSWORD: string | null =
@@ -257,6 +263,52 @@ router.patch("/drive/assets/:id/rights", requireAdminSession, async (req: Reques
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
+});
+
+// ── Drive Pipeline ────────────────────────────────────────────────────────────
+
+router.post("/drive/pipeline/start", requireAdminSession, async (_req: Request, res: Response) => {
+  const result = await startBulkPipeline();
+  if (!result.started) {
+    res.status(409).json({ error: result.reason });
+    return;
+  }
+  res.status(202).json({ started: true, status: getPipelineRunStatus() });
+});
+
+router.get("/drive/pipeline/status", requireAdminSession, (_req: Request, res: Response) => {
+  res.json(getPipelineRunStatus() ?? null);
+});
+
+router.post("/drive/pipeline/sync", requireAdminSession, async (_req: Request, res: Response) => {
+  const updated = await syncPipelineStatuses();
+  res.json({ updated });
+});
+
+/** Re-queue a single failed or pending asset. */
+router.post("/drive/assets/:id/ingest", requireAdminSession, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  // Allow re-ingesting PENDING or FAILED assets
+  const [asset] = await db.select({ processingStatus: driveAssets.processingStatus })
+    .from(driveAssets).where(eq(driveAssets.id, id));
+  if (!asset) { res.status(404).json({ error: "Not found" }); return; }
+
+  if (!["PENDING", "FAILED"].includes(asset.processingStatus)) {
+    res.status(409).json({ error: `Asset is ${asset.processingStatus} — only PENDING or FAILED assets can be re-ingested` });
+    return;
+  }
+
+  // Reset to PENDING so ingestDriveAsset will pick it up
+  if (asset.processingStatus === "FAILED") {
+    await db.update(driveAssets)
+      .set({ processingStatus: "PENDING", pipelineError: null, sourceBatchItemId: null, updatedAt: new Date() })
+      .where(eq(driveAssets.id, id));
+  }
+
+  const result = await ingestDriveAsset(id);
+  res.json(result);
 });
 
 // ── Processing Queue (research jobs) ─────────────────────────────────────────

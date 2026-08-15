@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   assetsApi,
   inventoryApi,
+  pipelineApi,
   type DriveAsset,
   type DriveAssetsPage,
+  type DriveProcessingStatus,
   type InventoryRun,
+  type PipelineRunStatus,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +18,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Zap,
+  RotateCcw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,8 +38,40 @@ const RIGHTS_LABELS: Record<string, { label: string; cls: string }> = {
   RESTRICTED_REFERENCE_ONLY: { label: "Restricted", cls: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
 };
 
+const PIPELINE_LABELS: Record<DriveProcessingStatus, { label: string; cls: string }> = {
+  PENDING:              { label: "Pending",         cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+  RIGHTS_PENDING:       { label: "Rights ⏳",       cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
+  RIGHTS_APPROVED:      { label: "Rights ✓",        cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  RIGHTS_REJECTED:      { label: "Rights ✗",        cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  INGESTION_QUEUED:     { label: "Queued",           cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  INGESTION_RUNNING:    { label: "Ingesting…",       cls: "bg-blue-200 text-blue-800 dark:bg-blue-800/40 dark:text-blue-200" },
+  INGESTION_COMPLETE:   { label: "Ingested",         cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+  EXTRACTION_QUEUED:    { label: "Extract Queued",   cls: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
+  EXTRACTION_RUNNING:   { label: "Extracting…",      cls: "bg-violet-200 text-violet-800 dark:bg-violet-800/40 dark:text-violet-200" },
+  EXTRACTION_COMPLETE:  { label: "Extracted",        cls: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300" },
+  SEGMENTATION_QUEUED:  { label: "Segment Queued",   cls: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
+  SEGMENTATION_RUNNING: { label: "Segmenting…",      cls: "bg-indigo-200 text-indigo-800 dark:bg-indigo-800/40 dark:text-indigo-200" },
+  SEGMENTATION_COMPLETE:{ label: "Segmented",        cls: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" },
+  REVIEW_QUEUED:        { label: "Review Queued",    cls: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" },
+  REVIEW_IN_PROGRESS:   { label: "In Review",        cls: "bg-cyan-200 text-cyan-800 dark:bg-cyan-800/40 dark:text-cyan-200" },
+  REVIEW_COMPLETE:      { label: "Reviewed",         cls: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300" },
+  PUBLICATION_QUEUED:   { label: "Publishing…",      cls: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" },
+  PUBLISHED:            { label: "Published ✓",      cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  FAILED:               { label: "Failed ✗",         cls: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
+  CANCELLED:            { label: "Cancelled",        cls: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" },
+};
+
 function Badge({ map, value }: { map: Record<string, { label: string; cls: string }>; value: string }) {
   const entry = map[value] ?? { label: value, cls: "bg-slate-100 text-slate-700" };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${entry.cls}`}>
+      {entry.label}
+    </span>
+  );
+}
+
+function PipelineBadge({ status }: { status: DriveProcessingStatus }) {
+  const entry = PIPELINE_LABELS[status] ?? { label: status, cls: "bg-slate-100 text-slate-700" };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${entry.cls}`}>
       {entry.label}
@@ -50,17 +87,32 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${s[i]}`;
 }
 
+function isPipelineActive(status: DriveProcessingStatus): boolean {
+  return [
+    "INGESTION_QUEUED", "INGESTION_RUNNING", "INGESTION_COMPLETE",
+    "EXTRACTION_QUEUED", "EXTRACTION_RUNNING", "EXTRACTION_COMPLETE",
+    "SEGMENTATION_QUEUED", "SEGMENTATION_RUNNING", "SEGMENTATION_COMPLETE",
+    "REVIEW_QUEUED", "REVIEW_IN_PROGRESS", "REVIEW_COMPLETE",
+    "PUBLICATION_QUEUED",
+  ].includes(status);
+}
+
 export default function DriveInventoryPage() {
   const { toast } = useToast();
   const [page, setPage] = useState<DriveAssetsPage | null>(null);
-  const [run, setRun] = useState<InventoryRun | null>(null);
+  const [inventoryRun, setInventoryRun] = useState<InventoryRun | null>(null);
+  const [pipelineRun, setPipelineRun] = useState<PipelineRunStatus>(null);
   const [loading, setLoading] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const [startingInventory, setStartingInventory] = useState(false);
+  const [startingPipeline, setStartingPipeline] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [ingestingId, setIngestingId] = useState<number | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
   const [rightsFilter, setRightsFilter] = useState("");
   const [classFilter, setClassFilter] = useState("");
+  const [pipelineFilter, setPipelineFilter] = useState("");
   const [offset, setOffset] = useState(0);
   const LIMIT = 50;
 
@@ -73,42 +125,96 @@ export default function DriveInventoryPage() {
         search: search || undefined,
         rightsStatus: rightsFilter || undefined,
         sourceClassification: classFilter || undefined,
+        processingStatus: pipelineFilter || undefined,
       })
       .then(setPage)
       .catch((e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }))
       .finally(() => setLoading(false));
-  }, [offset, search, rightsFilter, classFilter]);
+  }, [offset, search, rightsFilter, classFilter, pipelineFilter]);
 
-  const loadRun = () => {
-    inventoryApi.status().then(setRun).catch(() => null);
+  const loadInventoryRun = () => {
+    inventoryApi.status().then(setInventoryRun).catch(() => null);
+  };
+
+  const loadPipelineRun = () => {
+    pipelineApi.status().then(setPipelineRun).catch(() => null);
   };
 
   useEffect(() => {
     loadAssets();
-    loadRun();
+    loadInventoryRun();
+    loadPipelineRun();
   }, [loadAssets]);
 
-  // Poll while running
+  // Poll while either run is active
   useEffect(() => {
-    if (run?.status !== "RUNNING") return;
+    const anyActive = inventoryRun?.status === "RUNNING" || pipelineRun?.running;
+    if (!anyActive) return;
     const id = setInterval(() => {
-      loadRun();
+      loadInventoryRun();
+      loadPipelineRun();
       loadAssets();
-    }, 5000);
+    }, 4000);
     return () => clearInterval(id);
-  }, [run?.status, loadAssets]);
+  }, [inventoryRun?.status, pipelineRun?.running, loadAssets]);
 
   const startInventory = async () => {
-    setStarting(true);
+    setStartingInventory(true);
     try {
       const r = await inventoryApi.start();
-      toast({ title: "Inventory started", description: `Run #${r.runId} is now crawling Google Drive.` });
-      loadRun();
+      toast({ title: "Inventory started", description: `Run #${r.runId} is crawling Google Drive.` });
+      loadInventoryRun();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      toast({ title: "Could not start inventory", description: msg, variant: "destructive" });
+      toast({ title: "Could not start inventory", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     } finally {
-      setStarting(false);
+      setStartingInventory(false);
+    }
+  };
+
+  const startPipeline = async () => {
+    setStartingPipeline(true);
+    try {
+      const r = await pipelineApi.start();
+      if (!r.started) {
+        toast({ title: "Pipeline not started", description: "No APPROVED + PENDING assets found, or a run is already active." });
+      } else {
+        toast({ title: "Pipeline started", description: "Downloading and ingesting approved Drive assets into the research pipeline." });
+        loadPipelineRun();
+      }
+    } catch (e: unknown) {
+      toast({ title: "Pipeline error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setStartingPipeline(false);
+    }
+  };
+
+  const syncStatuses = async () => {
+    setSyncing(true);
+    try {
+      const r = await pipelineApi.sync();
+      toast({ title: "Status synced", description: `Updated ${r.updated} asset${r.updated !== 1 ? "s" : ""}.` });
+      loadAssets();
+    } catch (e: unknown) {
+      toast({ title: "Sync failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const ingestSingle = async (asset: DriveAsset) => {
+    setIngestingId(asset.id);
+    try {
+      const r = await pipelineApi.ingestAsset(asset.id);
+      if (r.queued) {
+        toast({ title: "Queued", description: `"${asset.name}" sent to the pipeline.` });
+      } else {
+        toast({ title: "Skipped", description: r.reason ?? r.errorMessage ?? "Already processed.", variant: "destructive" });
+      }
+      loadAssets();
+    } catch (e: unknown) {
+      toast({ title: "Ingest failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setIngestingId(null);
     }
   };
 
@@ -116,6 +222,7 @@ export default function DriveInventoryPage() {
     setSearch("");
     setRightsFilter("");
     setClassFilter("");
+    setPipelineFilter("");
     setOffset(0);
   };
 
@@ -126,42 +233,86 @@ export default function DriveInventoryPage() {
         <div>
           <h1 className="text-2xl font-bold">Drive Inventory</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Google Drive assets discovered in the root contribution folder
+            Google Drive assets · inventory → pipeline → research database
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { loadAssets(); loadRun(); }} disabled={loading}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => { loadAssets(); loadInventoryRun(); loadPipelineRun(); }} disabled={loading}>
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
           </Button>
+          <Button variant="outline" size="sm" onClick={syncStatuses} disabled={syncing}>
+            <RotateCcw size={14} className={syncing ? "animate-spin" : ""} />
+            Sync Status
+          </Button>
           <Button
+            variant="outline"
             size="sm"
             onClick={startInventory}
-            disabled={starting || run?.status === "RUNNING"}
+            disabled={startingInventory || inventoryRun?.status === "RUNNING"}
           >
             <Play size={14} />
-            {run?.status === "RUNNING" ? "Running…" : "Start Inventory"}
+            {inventoryRun?.status === "RUNNING" ? "Scanning…" : "Scan Drive"}
+          </Button>
+          <Button
+            size="sm"
+            onClick={startPipeline}
+            disabled={startingPipeline || pipelineRun?.running}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Zap size={14} />
+            {pipelineRun?.running ? `Processing ${pipelineRun.completed}/${pipelineRun.total}…` : "Run Pipeline"}
           </Button>
         </div>
       </div>
 
-      {/* Current run status */}
-      {run && (
+      {/* Inventory run status */}
+      {inventoryRun && (
         <div className={`rounded-xl border px-4 py-3 text-sm flex flex-wrap gap-x-6 gap-y-1 ${
-          run.status === "RUNNING"
+          inventoryRun.status === "RUNNING"
             ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300"
-            : run.status === "COMPLETED"
+            : inventoryRun.status === "COMPLETED"
               ? "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300"
               : "border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20 text-red-800 dark:text-red-300"
         }`}>
           <span className="font-semibold">
-            {run.status === "RUNNING" && "⟳ "}
-            Run #{run.id}: {run.status}
+            {inventoryRun.status === "RUNNING" && "⟳ "}
+            Inventory Run #{inventoryRun.id}: {inventoryRun.status}
           </span>
-          <span>{run.totalItems.toLocaleString()} files</span>
-          <span>{run.totalFolders.toLocaleString()} folders</span>
-          <span>{formatBytes(run.totalBytes)}</span>
-          {run.errorMessage && <span className="text-red-600 dark:text-red-400">Error: {run.errorMessage}</span>}
+          <span>{inventoryRun.totalItems.toLocaleString()} files</span>
+          <span>{inventoryRun.totalFolders.toLocaleString()} folders</span>
+          <span>{formatBytes(inventoryRun.totalBytes)}</span>
+          {inventoryRun.errorMessage && <span className="text-red-600 dark:text-red-400">Error: {inventoryRun.errorMessage}</span>}
+        </div>
+      )}
+
+      {/* Pipeline run status */}
+      {pipelineRun && (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${
+          pipelineRun.running
+            ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300"
+            : pipelineRun.failed > 0
+              ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300"
+              : "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300"
+        }`}>
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <span className="font-semibold">
+              {pipelineRun.running && "⟳ "}
+              Pipeline: {pipelineRun.running ? "Running" : "Finished"}
+            </span>
+            <span>{pipelineRun.queued.toLocaleString()} queued</span>
+            <span>{pipelineRun.skipped.toLocaleString()} skipped</span>
+            <span>{pipelineRun.failed.toLocaleString()} failed</span>
+            <span>{pipelineRun.completed}/{pipelineRun.total} processed</span>
+          </div>
+          {pipelineRun.errors.length > 0 && (
+            <div className="mt-2 text-xs text-red-700 dark:text-red-400 space-y-0.5">
+              {pipelineRun.errors.slice(0, 3).map((e) => (
+                <div key={e.assetId}>Asset #{e.assetId}: {e.message.slice(0, 120)}</div>
+              ))}
+              {pipelineRun.errors.length > 3 && <div>…and {pipelineRun.errors.length - 3} more errors</div>}
+            </div>
+          )}
         </div>
       )}
 
@@ -199,7 +350,28 @@ export default function DriveInventoryPage() {
           <option value="COMMERCIAL_PUBLISHER_REPORT">Publisher Report</option>
           <option value="UNKNOWN_SOURCE">Unknown</option>
         </select>
-        {(search || rightsFilter || classFilter) && (
+        <select
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          value={pipelineFilter}
+          onChange={(e) => { setPipelineFilter(e.target.value); setOffset(0); }}
+        >
+          <option value="">All Pipeline States</option>
+          <option value="PENDING">Pending</option>
+          <option value="INGESTION_QUEUED">Queued</option>
+          <option value="INGESTION_RUNNING">Ingesting</option>
+          <option value="INGESTION_COMPLETE">Ingested</option>
+          <option value="EXTRACTION_QUEUED">Extract Queued</option>
+          <option value="EXTRACTION_COMPLETE">Extracted</option>
+          <option value="SEGMENTATION_QUEUED">Segment Queued</option>
+          <option value="SEGMENTATION_COMPLETE">Segmented</option>
+          <option value="REVIEW_QUEUED">Review Queued</option>
+          <option value="REVIEW_IN_PROGRESS">In Review</option>
+          <option value="REVIEW_COMPLETE">Reviewed</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="FAILED">Failed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        {(search || rightsFilter || classFilter || pipelineFilter) && (
           <Button variant="ghost" size="sm" onClick={resetFilters}>
             Clear filters
           </Button>
@@ -215,15 +387,17 @@ export default function DriveInventoryPage() {
                 <th className="px-4 py-3 font-medium">File Name</th>
                 <th className="px-4 py-3 font-medium">Folder Path</th>
                 <th className="px-4 py-3 font-medium">Source</th>
-                <th className="px-4 py-3 font-medium">Rights Status</th>
+                <th className="px-4 py-3 font-medium">Rights</th>
+                <th className="px-4 py-3 font-medium">Pipeline</th>
                 <th className="px-4 py-3 font-medium">Size</th>
                 <th className="px-4 py-3 font-medium">Modified</th>
+                <th className="px-4 py-3 font-medium w-10"></th>
               </tr>
             </thead>
             <tbody>
               {loading && !page && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                     <RefreshCw size={18} className="animate-spin inline mr-2" />
                     Loading…
                   </td>
@@ -231,18 +405,23 @@ export default function DriveInventoryPage() {
               )}
               {page?.assets.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                     <FolderOpen size={32} className="mx-auto mb-2 opacity-30" />
-                    No assets found. Start an inventory to discover Drive files.
+                    No assets found. Start a Drive scan to discover files.
                   </td>
                 </tr>
               )}
               {page?.assets.map((asset) => (
                 <tr key={asset.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-medium truncate max-w-[240px]" title={asset.name}>
+                  <td className="px-4 py-3 font-medium truncate max-w-[220px]" title={asset.name}>
                     {asset.name}
+                    {asset.pipelineError && (
+                      <div className="text-xs text-red-500 mt-0.5 truncate" title={asset.pipelineError}>
+                        {asset.pipelineError.slice(0, 60)}
+                      </div>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={asset.folderPath ?? ""}>
+                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[180px]" title={asset.folderPath ?? ""}>
                     {asset.folderPath || "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -251,11 +430,36 @@ export default function DriveInventoryPage() {
                   <td className="px-4 py-3">
                     <Badge map={RIGHTS_LABELS} value={asset.rightsStatus} />
                   </td>
+                  <td className="px-4 py-3">
+                    <PipelineBadge status={asset.processingStatus} />
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground tabular-nums">
                     {formatBytes(asset.size ?? 0)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {asset.modifiedTime ? new Date(asset.modifiedTime).toLocaleDateString() : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {/* Re-ingest button for PENDING or FAILED approved assets */}
+                    {asset.rightsStatus === "APPROVED" && (asset.processingStatus === "PENDING" || asset.processingStatus === "FAILED") && (
+                      <button
+                        title={asset.processingStatus === "FAILED" ? "Retry ingestion" : "Send to pipeline"}
+                        disabled={ingestingId === asset.id}
+                        onClick={() => ingestSingle(asset)}
+                        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40"
+                      >
+                        {ingestingId === asset.id
+                          ? <RefreshCw size={13} className="animate-spin" />
+                          : asset.processingStatus === "FAILED"
+                            ? <RotateCcw size={13} />
+                            : <Zap size={13} />
+                        }
+                      </button>
+                    )}
+                    {/* In-flight spinner */}
+                    {isPipelineActive(asset.processingStatus) && (
+                      <RefreshCw size={13} className="animate-spin text-blue-500" />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -272,21 +476,11 @@ export default function DriveInventoryPage() {
             {page.total.toLocaleString()}
           </span>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - LIMIT))}
-            >
+            <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>
               <ChevronLeft size={14} />
               Previous
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={offset + LIMIT >= page.total}
-              onClick={() => setOffset(offset + LIMIT)}
-            >
+            <Button variant="outline" size="sm" disabled={offset + LIMIT >= page.total} onClick={() => setOffset(offset + LIMIT)}>
               Next
               <ChevronRight size={14} />
             </Button>
