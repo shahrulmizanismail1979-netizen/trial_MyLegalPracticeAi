@@ -11,6 +11,8 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { consumeSse } from "@/lib/sse";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 const API_BASE = "/api/sya";
 
@@ -207,6 +209,16 @@ export default function CaseWorkspacePage() {
             <h2 className="font-semibold">{t("Case Facts", "Fakta Kes")}</h2>
           </CardHeader>
           <CardContent className="space-y-3">
+            <MatterPicker onSelect={(m: Matter) => {
+              // scenario ← formatted summary
+              setScenario(buildMatterSummary(m));
+              // parties ← plaintiff + defendant (or clientName)
+              const pp: string[] = [];
+              if (m.plaintiff) pp.push(`Plaintif: ${m.plaintiff}`);
+              if (m.defendant) pp.push(`Defendan: ${m.defendant}`);
+              if (pp.length === 0 && m.clientName) pp.push(m.clientName);
+              setParties(pp.join("; "));
+            }} />
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Area of Law", "Bidang Undang-Undang")}</label>
               <Select value={area} onValueChange={setArea}>

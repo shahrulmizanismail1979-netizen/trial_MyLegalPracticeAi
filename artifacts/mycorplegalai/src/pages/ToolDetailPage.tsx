@@ -11,6 +11,8 @@ import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier"
 import { useTts } from "@/lib/tts";
 import { FileUploadDropzone, buildContextFromFiles } from "@/components/FileUploadDropzone";
 import { SaveToMatterPanel } from "@/components/SaveToMatterPanel";
+import { MatterPicker } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 const TIER_LABELS: Record<string, string> = {
   firm: "Firm",
@@ -89,6 +91,57 @@ export default function ToolDetailPage() {
 
   const updateField = (fieldId: string, value: string) => {
     setFormValues((prev) => ({ ...prev, [fieldId]: value }));
+  };
+
+  /** Pre-fill form fields from a selected matter. */
+  const handleMatterSelect = (matter: Matter) => {
+    const updates: Record<string, string> = {};
+
+    // Build a formatted summary for any leading textarea
+    const summary = [
+      matter.title && `Matter: ${matter.title}`,
+      matter.clientName && `Client: ${matter.clientName}`,
+      matter.counterparty && `Counterparty: ${matter.counterparty}`,
+      matter.matterType && `Type: ${matter.matterType}`,
+      matter.reference && `Ref: ${matter.reference}`,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    let firstTextareaFilled = false;
+
+    for (const field of tool.formFields) {
+      if (field.type === "files" || field.type === "select") continue;
+
+      const lc = (field.label + " " + field.id).toLowerCase();
+
+      // client / company name
+      if (/client|company/.test(lc) && matter.clientName) {
+        updates[field.id] = matter.clientName;
+        continue;
+      }
+
+      // counterparty / opposing party
+      if (/counterparty|opposing party|opponent/.test(lc) && matter.counterparty) {
+        updates[field.id] = matter.counterparty;
+        continue;
+      }
+
+      // matter title / reference / file ref
+      if (/\bmatter\b|reference|file ref|suit|case no/.test(lc)) {
+        updates[field.id] = matter.reference ?? matter.title;
+        continue;
+      }
+
+      // first textarea → summary (only if not already matched above)
+      if (field.type === "textarea" && !firstTextareaFilled) {
+        firstTextareaFilled = true;
+        updates[field.id] = summary;
+        continue;
+      }
+    }
+
+    setFormValues((prev) => ({ ...prev, ...updates }));
   };
 
   const isFormValid = tool.isValid
@@ -209,6 +262,9 @@ export default function ToolDetailPage() {
               <Sparkles className="w-4 h-4 text-primary" />
               Input Details
             </h3>
+
+            {/* Matter picker — pre-fills form fields from an existing case file */}
+            <MatterPicker onSelect={handleMatterSelect} />
 
             {tool.formFields.map((field) => (
               <div key={field.id} className="space-y-1.5">

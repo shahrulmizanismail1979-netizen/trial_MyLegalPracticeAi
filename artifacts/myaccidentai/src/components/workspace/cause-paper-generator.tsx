@@ -5,6 +5,8 @@ import { FileText, Copy, Download, Sparkles, Folder, Check } from "lucide-react"
 import { templates, defaultCase, type CaseDetails, type TemplateDef } from "./templates";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker } from "@/components/MatterPicker";
+import { type Matter } from "@/hooks/use-matters";
 
 type Props = { initialTemplateId?: string };
 
@@ -13,6 +15,7 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
   const [details, setDetails] = useState<CaseDetails>(defaultCase);
   const [filterCat, setFilterCat] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [loadedMatterTitle, setLoadedMatterTitle] = useState<string | undefined>(undefined);
 
   const categories = useMemo(() => Array.from(new Set(templates.map(t => t.category))), []);
   const visibleTemplates = useMemo(
@@ -42,17 +45,46 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const handleMatterSelect = (matter: Matter) => {
+    setLoadedMatterTitle(matter.title);
+    setDetails(prev => ({
+      ...prev,
+      // Plaintiff / client name
+      plaintiffName: matter.plaintiff || matter.clientName || prev.plaintiffName,
+      // Defendant name
+      defendantName: matter.defendant || prev.defendantName,
+      // Case / suit number
+      suitNo: matter.caseNo || prev.suitNo,
+      // Court
+      court: matter.court ? matter.court.toUpperCase() : prev.court,
+      // Injuries / description from notes
+      injuriesSummary: matter.notes || prev.injuriesSummary,
+      // Claim amount as special damages hint
+      specialDamages: matter.claimAmount || prev.specialDamages,
+    }));
+  };
+
+  const handleMatterClear = () => {
+    setLoadedMatterTitle(undefined);
+    setDetails(defaultCase);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-xl p-5">
         <div className="flex items-start gap-3">
           <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1">
             <h3 className="font-serif font-bold text-base">AI Cause Paper Generator</h3>
             <p className="text-sm text-muted-foreground mt-1">
               Pilih jenis dokumen, isi butiran kes anda, dan dapatkan cause paper dalam format Mahkamah Malaysia. Salin atau muat turun sebagai fail teks untuk diedit dalam Word.
             </p>
           </div>
+          <MatterPicker
+            onSelect={handleMatterSelect}
+            selectedTitle={loadedMatterTitle}
+            onClear={handleMatterClear}
+          />
         </div>
       </div>
 

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 interface Message {
   id?: number;
@@ -373,7 +375,15 @@ export default function AICounselPage() {
                 ))}
               </div>
 
-              <div className="mt-4 md:hidden">
+              <div className="mt-4">
+                <MatterPicker onSelect={(m: Matter) => {
+                  // Pre-fill the conversation title with the matter title
+                  setNewTitle(m.title);
+                  // Pre-fill the input box with the formatted context summary
+                  setInput(buildMatterSummary(m));
+                }} />
+              </div>
+              <div className="mt-2 md:hidden">
                 <Input
                   placeholder={mode === "bm" ? "Tajuk perbualan baru..." : "New conversation title..."}
                   value={newTitle}

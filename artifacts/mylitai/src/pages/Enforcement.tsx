@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useMatters } from '@/hooks/use-matters';
+import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
 import {
   useEnforcementMethods,
   debtorLabel,
@@ -275,6 +276,16 @@ export default function Enforcement() {
             <p className="text-sm text-muted-foreground">
               Describe the judgment and what you know about the debtor. The advisor recommends a prioritised, sequenced enforcement strategy grounded in Orders 45–52 ROC 2012.
             </p>
+            <MatterPicker
+              onSelect={(m) => {
+                const summary = buildMatterSummary(m);
+                setAdv((prev) => ({
+                  ...prev,
+                  judgmentSum: m.claimAmount ? `RM ${m.claimAmount}` : prev.judgmentSum,
+                  additionalDetails: summary || prev.additionalDetails,
+                }));
+              }}
+            />
             <div className="grid sm:grid-cols-3 gap-3">
               <div>
                 <Label>Debtor type</Label>
@@ -321,6 +332,19 @@ export default function Enforcement() {
             <p className="text-sm text-muted-foreground">
               Draft an Order 59 Bill of Costs for taxation — Part I (work done), Part II (taxation), Part III (disbursements). Anything left blank becomes a placeholder.
             </p>
+            <MatterPicker
+              onSelect={(m) => {
+                const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')
+                  || m.clientName
+                  || '';
+                setBoc((prev) => ({
+                  ...prev,
+                  court: m.court || prev.court,
+                  suitNo: m.suitNo || prev.suitNo,
+                  parties: parties || prev.parties,
+                }));
+              }}
+            />
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label>Court / registry</Label>

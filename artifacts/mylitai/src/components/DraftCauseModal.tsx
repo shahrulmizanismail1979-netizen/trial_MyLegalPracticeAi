@@ -7,6 +7,7 @@ import { ExportButtons } from '@/components/ExportButtons';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useToast } from '@/hooks/use-toast';
 import { SaveToMatterPanel, type PracticeMatterRef } from '@/components/SaveToMatterPanel';
+import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LegalForm = Record<string, any>;
@@ -151,6 +152,21 @@ export function DraftCauseModal({ form, onClose, practiceMatter, linkedMatterId 
                 </div>
               </div>
               <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="pb-1">
+                  <MatterPicker
+                    onSelect={(m) => {
+                      const summary = buildMatterSummary(m);
+                      const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')
+                        || m.clientName
+                        || '';
+                      setFormData((p) => ({
+                        ...p,
+                        clientName: parties || p.clientName,
+                        caseDetails: summary || p.caseDetails,
+                      }));
+                    }}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="ph-clientName" className="text-foreground font-semibold">Parties Involved</Label>
                   <Input id="ph-clientName" required value={formData.clientName}

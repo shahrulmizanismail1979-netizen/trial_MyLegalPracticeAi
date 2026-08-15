@@ -9,6 +9,8 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 export function AiSentencingPage() {
   const [input, setInput] = useState("");
@@ -74,6 +76,18 @@ Mitigating: First offender, provocation by deceased, intoxication, young age, so
                 <CardDescription>Provide the offence, accused's background, and relevant circumstances</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <MatterPicker
+                  onSelect={(matter: Matter) => {
+                    const lines: string[] = [];
+                    if (matter.charge) lines.push(`Offence: ${matter.charge}`);
+                    if (matter.accusedName) lines.push(`Accused: ${matter.accusedName}`);
+                    if (matter.stage) lines.push(`Stage: ${matter.stage}`);
+                    if (matter.notes) lines.push(`Facts: ${matter.notes}`);
+                    if (matter.court) lines.push(`Court: ${matter.court}`);
+                    if (matter.caseNo) lines.push(`Case No: ${matter.caseNo}`);
+                    setInput(lines.join("\n"));
+                  }}
+                />
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

@@ -33,6 +33,7 @@ import {
   type AffidavitType,
   type AffidavitField,
 } from '@/hooks/use-affidavits';
+import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
 
 // ─── SSE streaming utility ────────────────────────────────────────────────────
 async function streamFromEndpoint(
@@ -315,6 +316,20 @@ export default function Affidavits() {
             <p className="text-xs text-muted-foreground">
               {draftFor.basis}. Fill in what you have — anything left blank becomes a [PLACEHOLDER] in the draft.
             </p>
+            <MatterPicker
+              onSelect={(m) => {
+                const summary = buildMatterSummary(m);
+                const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')
+                  || m.clientName
+                  || '';
+                setForm((prev) => ({
+                  ...prev,
+                  facts: summary || (prev.facts ?? ''),
+                  parties: parties || (prev.parties ?? ''),
+                  deponentName: m.clientName || (prev.deponentName ?? ''),
+                }));
+              }}
+            />
             {fields.map((field) => (
               <div key={field.key}>
                 <Label>{field.label}</Label>

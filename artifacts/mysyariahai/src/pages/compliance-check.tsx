@@ -18,6 +18,8 @@ import {
 
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import ExportActions from "@/components/export-actions";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 const API_BASE = "/api/sya";
 
@@ -174,6 +176,21 @@ function ComplianceCheckPageInner() {
           <Card>
             <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-foreground">{t("Transaction Details", "Butiran Transaksi")}</h2></CardHeader>
             <CardContent className="space-y-3">
+              <MatterPicker onSelect={(m: Matter) => {
+                // description ← title + matterType
+                const descParts: string[] = [];
+                if (m.title) descParts.push(m.title);
+                if (m.matterType) descParts.push(m.matterType);
+                setDescription(descParts.join(" — "));
+                // partiesInvolved ← clientName + plaintiff + defendant
+                const partyParts: string[] = [];
+                if (m.clientName) partyParts.push(m.clientName);
+                if (m.plaintiff) partyParts.push(`Plaintif: ${m.plaintiff}`);
+                if (m.defendant) partyParts.push(`Defendan: ${m.defendant}`);
+                setPartiesInvolved(partyParts.join("; "));
+                // contractTerms ← notes
+                if (m.notes) setContractTerms(m.notes);
+              }} />
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">{t("Transaction Type", "Jenis Transaksi")}</label>
                 <Select value={transactionType} onValueChange={setTransactionType}>

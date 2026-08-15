@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useMatters, useAddDeadlinesBulk } from '@/hooks/use-matters';
+import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
 import {
   useRecoveryPathways,
   debtorLabel,
@@ -413,6 +414,21 @@ export default function BankingRecovery() {
             <p className="text-xs text-muted-foreground">
               {draftFor.track.shortName} · {draftFor.paper.basis}. Fill in what you have — anything left blank becomes a [PLACEHOLDER] in the draft.
             </p>
+            <MatterPicker
+              onSelect={(m) => {
+                const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')
+                  || m.clientName
+                  || '';
+                const summary = buildMatterSummary(m);
+                setForm((prev) => ({
+                  ...prev,
+                  court: m.court || prev.court,
+                  parties: parties || prev.parties,
+                  facts: summary || prev.facts,
+                  amount: m.claimAmount ? `RM ${m.claimAmount}` : prev.amount,
+                }));
+              }}
+            />
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label>Court / registry</Label>

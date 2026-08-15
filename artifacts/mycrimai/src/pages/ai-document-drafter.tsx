@@ -10,6 +10,7 @@ import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 const DOCUMENT_TYPES = [
   { value: "Bail Application (Permohonan Jaminan)", label: "Bail Application" },
@@ -67,6 +68,10 @@ export function AiDocumentDrafterPage() {
               <CardDescription>Select the type and provide case details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <MatterPicker
+                onSelect={(matter) => setCaseDetails(matterToCaseDetails(matter))}
+              />
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Document Type</label>
                 <Select value={documentType} onValueChange={setDocumentType}>

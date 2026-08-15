@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import ExportActions from "@/components/export-actions";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 function formatAnalyzerText(result: AnalysisResult, t: (en: string, bm: string) => string): string {
   const lines: string[] = [];
@@ -227,6 +229,10 @@ export default function AnalyzerPage() {
 
       <Card className="border-secondary/20">
         <CardContent className="p-4 space-y-3">
+          <MatterPicker onSelect={(m: Matter) => {
+            // situation ← formatted summary
+            setSituation(buildMatterSummary(m));
+          }} />
           <label className="text-sm font-medium text-foreground">
             {t("Describe your case or legal situation", "Huraikan kes atau situasi undang-undang anda")}
           </label>

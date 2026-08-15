@@ -9,6 +9,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 export function AiAppealGroundsPage() {
   const [judgment, setJudgment] = useState("");
@@ -79,6 +80,12 @@ The investigating officer admitted under cross-examination that the chain of cus
                 <CardDescription>Paste the grounds of decision or summarize the key findings and rulings</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <MatterPicker
+                  onSelect={(matter) => {
+                    if (matter.notes) setAdditionalContext(matter.notes);
+                    else setAdditionalContext(matterToCaseDetails(matter));
+                  }}
+                />
                 <Textarea
                   value={judgment}
                   onChange={(e) => setJudgment(e.target.value)}

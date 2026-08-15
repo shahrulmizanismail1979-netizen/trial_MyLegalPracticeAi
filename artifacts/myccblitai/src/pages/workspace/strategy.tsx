@@ -16,6 +16,8 @@ import { apiUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { DraftExportButtons } from "@workspace/draft-export/react";
+import { MatterPicker } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 export default function StrategyPage() {
   const [, setLocation] = useLocation();
@@ -195,6 +197,29 @@ export default function StrategyPage() {
     });
   };
 
+  const handleMatterSelect = (matter: Matter) => {
+    const parties =
+      matter.clientName && matter.counterparty
+        ? `${matter.clientName} vs ${matter.counterparty}`
+        : matter.clientName ?? "";
+    const summary = [
+      matter.clientName ? `Client: ${matter.clientName}` : "",
+      matter.counterparty ? `Counterparty: ${matter.counterparty}` : "",
+      matter.title ? `Matter: ${matter.title}` : "",
+      matter.matterType ? `Type: ${matter.matterType}` : "",
+      matter.reference ? `Ref: ${matter.reference}` : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    setInputs(prev => ({
+      ...prev,
+      partiesInvolved: parties || prev.partiesInvolved,
+      keyFacts: summary || prev.keyFacts,
+      caseType: matter.matterType ?? prev.caseType,
+    }));
+  };
+
   const steps = [
     { id: 1, title: "Case Profile" },
     { id: 2, title: "Facts & Evidence" },
@@ -237,6 +262,7 @@ export default function StrategyPage() {
           {step === 1 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="p-6 md:p-8 flex-1 flex flex-col">
               <h2 className="text-2xl font-serif font-semibold mb-6 text-primary">Step 1: Case Profile</h2>
+              <MatterPicker onSelect={handleMatterSelect} />
               <div className="space-y-6 flex-1">
                 <div className="space-y-2">
                   <Label htmlFor="caseType">Case Type</Label>

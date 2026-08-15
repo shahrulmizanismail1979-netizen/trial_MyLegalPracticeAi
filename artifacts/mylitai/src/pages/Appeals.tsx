@@ -32,6 +32,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useMatters, useAddDeadlinesBulk } from '@/hooks/use-matters';
+import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
 import {
   useAppealPathways,
   appealTimelineToDeadlines,
@@ -457,6 +458,20 @@ export default function Appeals() {
             <p className="text-xs text-muted-foreground">
               {draftFor.pathway.shortName} · {draftFor.paper.basis}. Fill in what you have — anything left blank becomes a [PLACEHOLDER] in the draft.
             </p>
+            <MatterPicker
+              onSelect={(m) => {
+                const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')
+                  || m.clientName
+                  || '';
+                const summary = buildMatterSummary(m);
+                setForm((prev) => ({
+                  ...prev,
+                  court: m.court || prev.court,
+                  parties: parties || prev.parties,
+                  grounds: summary || prev.grounds,
+                }));
+              }}
+            />
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <Label>Appellate court / registry</Label>

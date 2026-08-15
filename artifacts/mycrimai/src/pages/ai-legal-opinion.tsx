@@ -11,6 +11,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 const OPINION_TYPES = [
   { value: "advisory", label: "Client Advisory Opinion" },
@@ -89,6 +90,13 @@ ${specificQuestions ? `SPECIFIC QUESTIONS TO ADDRESS:\n${specificQuestions}` : "
             <CardDescription>Provide the facts and context for the legal opinion</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <MatterPicker
+              onSelect={(matter) => {
+                if (matter.caseNo) setClientName(matter.caseNo);
+                setFacts(matterToCaseDetails(matter));
+              }}
+            />
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Opinion Type</label>

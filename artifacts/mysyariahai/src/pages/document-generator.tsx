@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 const API_BASE = "/api/sya";
 
@@ -283,6 +285,39 @@ function DocumentGeneratorPageInner() {
             <Card>
               <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-foreground">{t("Case Details", "Butiran Kes")}</h2></CardHeader>
               <CardContent className="space-y-3">
+                <MatterPicker onSelect={(m: Matter) => {
+                  // Map matter fields into field values by common label keys
+                  const updates: Record<string, string> = {};
+                  // Plaintiff Name fields
+                  if (m.plaintiff) {
+                    updates["Plaintiff Name (Wife)"] = m.plaintiff;
+                    updates["Plaintiff Name"] = m.plaintiff;
+                  }
+                  // Defendant Name fields
+                  if (m.defendant) {
+                    updates["Defendant Name (Husband)"] = m.defendant;
+                    updates["Defendant Name"] = m.defendant;
+                  }
+                  // Applicant → clientName
+                  if (m.clientName) {
+                    updates["Applicant Name (Wife)"] = m.clientName;
+                    updates["Applicant Name"] = m.clientName;
+                    updates["Accused Name & IC"] = m.clientName;
+                    updates["Appellant Name"] = m.clientName;
+                    updates["Principal (Muwakkil) Name & IC"] = m.clientName;
+                    updates["Testator (Pewasiat) Name & IC"] = m.clientName;
+                    updates["Deceased (Si Mati) Name & IC"] = m.clientName;
+                    updates["Donor (Pemberi Hibah) Name & IC"] = m.clientName;
+                    updates["Party 1 Name"] = m.clientName;
+                  }
+                  // Case Number
+                  if (m.caseNo) {
+                    updates["Case Number"] = m.caseNo;
+                    updates["Case / Decision Appealed"] = m.caseNo;
+                    updates["Charge & Case Number"] = m.caseNo;
+                  }
+                  setFieldValues(prev => ({ ...prev, ...updates }));
+                }} />
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">{t("Document Language", "Bahasa Dokumen")}</label>
                   <Select value={docLanguage} onValueChange={setDocLanguage}>

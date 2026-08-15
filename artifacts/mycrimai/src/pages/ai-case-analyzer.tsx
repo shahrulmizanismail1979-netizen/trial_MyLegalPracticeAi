@@ -9,6 +9,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 const EXAMPLE_FACTS = `On 15 March 2024, the accused, a 28-year-old male Malaysian citizen, was arrested at a roadblock in Petaling Jaya, Selangor. A search of his vehicle uncovered 50 grams of methamphetamine hidden in a modified compartment in the car boot. The accused claimed the car belonged to his friend and he was unaware of the drugs. He has no prior criminal record. The arresting officer noted that the accused appeared nervous and attempted to flee before being apprehended. A mobile phone found on the accused contained text messages discussing drug pricing.`;
 
@@ -48,6 +49,9 @@ export function AiCaseAnalyzerPage() {
               <CardDescription>Enter the facts of your case. Include dates, location, parties involved, and key events.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <MatterPicker
+                onSelect={(matter) => setFacts(matterToCaseDetails(matter))}
+              />
               <Textarea
                 value={facts}
                 onChange={(e) => setFacts(e.target.value)}

@@ -14,6 +14,7 @@ import { useElevenVoice } from "@/lib/use-eleven-voice";
 import { useEntitlements } from "@/lib/entitlements";
 import { Sparkles } from "lucide-react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 interface Message {
   role: "user" | "assistant";
@@ -144,6 +145,10 @@ export function AiWitnessPracticePage() {
               <CardDescription>Configure your practice session</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              <MatterPicker
+                onSelect={(matter) => setCaseScenario(matterToCaseDetails(matter))}
+              />
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Examination Type</label>
                 <Select value={examinationType} onValueChange={setExaminationType}>

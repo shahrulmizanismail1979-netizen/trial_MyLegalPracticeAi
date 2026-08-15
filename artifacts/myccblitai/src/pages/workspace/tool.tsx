@@ -16,6 +16,8 @@ import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { apiUrl } from "@/lib/api";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, mapMatterToFormValues } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 export default function ToolPage() {
   const [, params] = useRoute("/workspace/tool/:toolId");
@@ -197,6 +199,12 @@ export default function ToolPage() {
     setInputs(initialInputs);
   };
 
+  const handleMatterSelect = (matter: Matter) => {
+    if (!tool) return;
+    const mapped = mapMatterToFormValues(matter, tool.fields);
+    setInputs(prev => ({ ...prev, ...mapped }));
+  };
+
   const handleLoadSample = () => {
     if (!tool) return;
     const sample = (tool as unknown as { example?: Record<string, string> }).example;
@@ -294,6 +302,7 @@ export default function ToolPage() {
               </div>
             )}
             <div className="p-4 overflow-y-auto flex-1">
+              <MatterPicker onSelect={handleMatterSelect} />
               <form id="tool-form" onSubmit={handleSubmit} className="space-y-5">
                 {tool.fields.map(field => (
                   <div key={field.name} className="space-y-2">

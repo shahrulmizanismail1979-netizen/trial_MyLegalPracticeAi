@@ -10,6 +10,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 const STRATEGY_ROLES = [
   { value: "defence", label: "Defence Counsel" },
@@ -85,6 +86,12 @@ ${concerns ? `SPECIFIC CONCERNS / OBJECTIVES:\n${concerns}` : ""}`;
             <CardDescription>Provide your case details for a comprehensive strategy plan</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <MatterPicker
+              onSelect={(matter) => {
+                setCaseDetails(matterToCaseDetails(matter));
+              }}
+            />
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Role</label>
               <Select value={role} onValueChange={setRole}>

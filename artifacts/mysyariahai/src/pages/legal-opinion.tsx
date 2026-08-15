@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
+import type { Matter } from "@/hooks/use-matters";
 
 const API_BASE = "/api/sya";
 
@@ -116,6 +118,12 @@ function LegalOpinionPageInner() {
           <Card>
             <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-foreground">{t("Opinion Parameters", "Parameter Pendapat")}</h2></CardHeader>
             <CardContent className="space-y-4">
+              <MatterPicker onSelect={(m: Matter) => {
+                // scenario ← full formatted summary (clientName, parties, court, matterType, notes)
+                setScenario(buildMatterSummary(m));
+                // clientPosition ← caseNo reference if available
+                if (m.caseNo) setClientPosition(`No. Kes: ${m.caseNo}`);
+              }} />
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">{t("Area of Law", "Bidang Undang-Undang")}</label>
                 <Select value={area} onValueChange={setArea}>

@@ -10,6 +10,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToChargeRef } from "@/components/MatterPicker";
 
 export function AiCrossExaminationPage() {
   const [witnessStatement, setWitnessStatement] = useState("");
@@ -49,6 +50,10 @@ export function AiCrossExaminationPage() {
               <CardDescription>Provide the witness statement and context for targeted questions</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <MatterPicker
+                onSelect={(matter) => setCaseContext(matterToChargeRef(matter))}
+              />
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Witness Role (Optional)</label>
                 <Input

@@ -9,6 +9,7 @@ import { VoiceControls } from "@/components/ai/voice-controls";
 import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { MatterPicker, matterToChargeRef } from "@/components/MatterPicker";
 
 const EXAMPLE_CHARGE = `PERTUDUHAN
 
@@ -50,6 +51,9 @@ export function AiChargeAnalyzerPage() {
               <CardDescription>Paste the charge (pertuduhan) text — in English or Bahasa Malaysia</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <MatterPicker
+                onSelect={(matter) => setChargeSheet(matterToChargeRef(matter))}
+              />
               <Textarea
                 value={chargeSheet}
                 onChange={(e) => setChargeSheet(e.target.value)}

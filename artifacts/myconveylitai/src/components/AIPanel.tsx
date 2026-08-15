@@ -10,6 +10,8 @@ import {
   FileSignature, Handshake, ShieldCheck, Building,
   Download, FileDown, Lock,
 } from 'lucide-react';
+import { MatterPicker } from '@/components/MatterPicker';
+import { type Matter } from '@/lib/matters';
 import { useLocation } from 'wouter';
 import { downloadDocx, downloadAndOpenInGoogleDocs } from '@/lib/exportDocx';
 import { exportTxt, exportMarkdown, exportPdf } from '@workspace/draft-export';
@@ -881,6 +883,125 @@ export function AIPanel() {
   const [grnResult, setGrnResult] = useState('');
   const grnMutation = useDraftGuarantee();
 
+  // ── Matter picker ──────────────────────────────────────────────────────────
+  const [pickedMatter, setPickedMatter] = useState<Matter | null>(null);
+
+  // When a matter is picked (or the tool changes), pre-fill the active tool's fields.
+  useEffect(() => {
+    if (!pickedMatter) return;
+    const m = pickedMatter;
+    const client = m.clientName ?? '';
+    const counterpartyVal = m.counterparty ?? '';
+    const parties = [client, counterpartyVal].filter(Boolean).join(' / ');
+    const matterDesc = [m.title, m.matterType].filter(Boolean).join(' — ');
+    const ref = m.reference ?? '';
+
+    switch (aiMode) {
+      case 'risk':
+        if (!riskScenario) setRiskScenario(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'checklist':
+        if (!checklistDetails) setChecklistDetails(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'deadlines':
+        if (!deadlinesExtra) setDeadlinesExtra(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'reviewer':
+        if (!reviewContext) setReviewContext(
+          `${matterDesc}${parties ? ` — Parties: ${parties}` : ''}${ref ? ` [${ref}]` : ''}`
+        );
+        break;
+      case 'comparator':
+        if (!compareContext) setCompareContext(
+          `${matterDesc}${parties ? ` — Parties: ${parties}` : ''}${ref ? ` [${ref}]` : ''}`
+        );
+        break;
+      case 'advice':
+        if (!adviceClient) setAdviceClient(client);
+        if (!adviceFacts) setAdviceFacts(
+          `Matter: ${matterDesc}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'duediligence':
+        if (!ddProperty) setDdProperty(
+          `${matterDesc}${counterpartyVal ? `\nVendor/Counterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'opinion':
+        if (!opinionFacts) setOpinionFacts(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'requisition':
+        if (!reqVendor) setReqVendor(counterpartyVal);
+        break;
+      case 'quotation':
+        if (!quoteClient) setQuoteClient(client);
+        break;
+      case 'taxcompliance':
+        if (!tcDetails) setTcDetails(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        if (!tcParties) setTcParties(parties);
+        break;
+      case 'completion':
+        if (!compAdjust) setCompAdjust(
+          `Matter: ${matterDesc}${parties ? `\nParties: ${parties}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'compliance':
+        if (!compChkTxn) setCompChkTxn(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'corpresolution':
+        if (!crCompany) setCrCompany(client);
+        if (!crTxDetails) setCrTxDetails(
+          `Matter: ${matterDesc}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'corpdd':
+        if (!cddCompany) setCddCompany(client);
+        if (!cddConcerns) setCddConcerns(
+          `${matterDesc}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'jvagreement':
+        if (!jvParties) setJvParties(parties || client);
+        if (!jvProperty) setJvProperty(matterDesc);
+        break;
+      case 'guarantee':
+        if (!grnDebtor) setGrnDebtor(client);
+        break;
+      case 'tenancy':
+        if (!tenPropDetails) setTenPropDetails(matterDesc);
+        if (!tenTerms) setTenTerms(
+          `Landlord/Tenant parties: ${parties}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'poa':
+        if (!poaDonor) setPoaDonor(client);
+        break;
+      case 'caveat':
+        if (!cavSituation) setCavSituation(
+          `Matter: ${matterDesc}\nClient: ${client}${counterpartyVal ? `\nCounterparty: ${counterpartyVal}` : ''}${ref ? `\nRef: ${ref}` : ''}`
+        );
+        break;
+      case 'simulator':
+        if (!simScenario) setSimScenario(matterDesc);
+        break;
+      default:
+        break;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedMatter, aiMode]);
+
   // ── Sync initial drafter type ──────────────────────────────────────────────
   useEffect(() => {
     if (drafterInitialType) {
@@ -1479,6 +1600,7 @@ export function AIPanel() {
             const totalMatches = filteredCategories.reduce((n, c) => n + c.options.length, 0);
             return (
               <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
                 <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                   <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-300 leading-relaxed">Pick a clause or document, then refine it for the party you're acting for, the tone you want and the length. Drafts include statutory citations and a Drafter's Notes block.</p>
@@ -1616,6 +1738,7 @@ export function AIPanel() {
           {/* ── RISK SCANNER ── */}
           {aiMode === 'risk' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Describe the transaction in detail. The AI will identify red flags, legal risks, and protective actions under Malaysian law.</p>
@@ -1646,6 +1769,7 @@ export function AIPanel() {
           {/* ── CHECKLIST ── */}
           {aiMode === 'checklist' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <CheckSquare className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Select the transaction type to generate a comprehensive step-by-step practitioner checklist with statutory references.</p>
@@ -1676,6 +1800,7 @@ export function AIPanel() {
           {/* ── DEADLINES ── */}
           {aiMode === 'deadlines' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Calendar className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Enter the transaction type and key date (e.g. SPA signing date). The AI will calculate every applicable statutory deadline.</p>
@@ -1716,6 +1841,7 @@ export function AIPanel() {
           {/* ── SPA / CONTRACT REVIEWER ── */}
           {aiMode === 'reviewer' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <FileSearch className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Paste any SPA clause or contract provision for a detailed clause-by-clause legal review with red flags, compliance notes, and recommended amendments.</p>
@@ -1771,6 +1897,7 @@ export function AIPanel() {
           {/* ── CLAUSE COMPARATOR ── */}
           {aiMode === 'comparator' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <GitCompare className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Compare two versions of a legal clause side-by-side. The AI will analyse differences, party impacts, and recommend a merged version.</p>
@@ -1816,6 +1943,7 @@ export function AIPanel() {
           {/* ── LAND TITLE INTERPRETER ── */}
           {aiMode === 'title' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Paste the land search result or title details. The AI will decode the title type, restrictions, charges, caveats, and provide practical advice.</p>
@@ -1866,6 +1994,7 @@ export function AIPanel() {
           {/* ── FEE QUOTATION ── */}
           {aiMode === 'quotation' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Receipt className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a complete professional fee quotation letter based on the Solicitors' Remuneration Order 2005, including stamp duty calculations and all disbursements.</p>
@@ -1920,6 +2049,7 @@ export function AIPanel() {
           {/* ── CLIENT ADVICE LETTER ── */}
           {aiMode === 'advice' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Mail className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a formal client advice letter with legal analysis, risk assessment, and practical recommendations under Malaysian conveyancing law.</p>
@@ -1964,6 +2094,7 @@ export function AIPanel() {
           {/* ── DUE DILIGENCE REPORT ── */}
           {aiMode === 'duediligence' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <ClipboardCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a comprehensive property due diligence report covering title, planning, physical, legal, and financial aspects with NLC references.</p>
@@ -2001,6 +2132,7 @@ export function AIPanel() {
           {/* ── LEGAL OPINION ── */}
           {aiMode === 'opinion' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Scale className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Draft a formal legal opinion with statutory analysis, case law citations, risk assessment, and practical recommendations.</p>
@@ -2041,6 +2173,7 @@ export function AIPanel() {
           {/* ── REQUISITION LETTER ── */}
           {aiMode === 'requisition' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <FileQuestion className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a formal requisition on title letter to the vendor's solicitors, covering all issues discovered on the title search.</p>
@@ -2081,6 +2214,7 @@ export function AIPanel() {
           {/* ── COMPLETION STATEMENT ── */}
           {aiMode === 'completion' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Calculator className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a complete completion statement (completion account) with all financial items, stamp duty, legal fees, and disbursements calculated.</p>
@@ -2124,6 +2258,7 @@ export function AIPanel() {
           {/* ── CASE LAW RESEARCH ── */}
           {aiMode === 'caseresearch' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Research Malaysian case law on any conveyancing topic. Get leading cases, ratios, and practical applications with full citations.</p>
@@ -2174,6 +2309,7 @@ export function AIPanel() {
           {/* ── STAMP DUTY CALCULATOR ── */}
           {aiMode === 'stampduty' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Stamp className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Calculate exact stamp duty on transfer instruments under the Stamp Act 1949, including exemptions for first-time homebuyers.</p>
@@ -2217,6 +2353,7 @@ export function AIPanel() {
           {/* ── RPGT ADVISOR ── */}
           {aiMode === 'rpgt' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <TrendingDown className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Analyze Real Property Gains Tax liability under the RPGT Act 1976, including exemptions and holding period calculations.</p>
@@ -2261,6 +2398,7 @@ export function AIPanel() {
           {/* ── TENANCY AGREEMENT DRAFTER ── */}
           {aiMode === 'tenancy' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Home className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Draft a comprehensive tenancy agreement compliant with Malaysian law including standard and special conditions.</p>
@@ -2295,6 +2433,7 @@ export function AIPanel() {
           {/* ── POWER OF ATTORNEY DRAFTER ── */}
           {aiMode === 'poa' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Gavel className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Draft a Power of Attorney compliant with the Powers of Attorney Act 1949, for land dealings or specific transactions.</p>
@@ -2334,6 +2473,7 @@ export function AIPanel() {
           {/* ── CAVEAT ADVISOR ── */}
           {aiMode === 'caveat' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <AlertOctagon className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Get expert advice on private caveats, registrar's caveats, and lien-holder's caveats under the NLC, including entry, removal, and court applications.</p>
@@ -2368,6 +2508,7 @@ export function AIPanel() {
           {/* ── LAND SEARCH ANALYZER ── */}
           {aiMode === 'landsearch' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Search className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Paste your official land search results for a comprehensive analysis of encumbrances, restrictions, charges, and caveats.</p>
@@ -2397,6 +2538,7 @@ export function AIPanel() {
           {/* ── DEVELOPER CLAIM ADVISOR ── */}
           {aiMode === 'devclaim' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <HardHat className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Get advice on LAD claims, defect liability claims, and other developer-related claims under the Housing Development Act 1966.</p>
@@ -2439,6 +2581,7 @@ export function AIPanel() {
           {/* ── BANKRUPTCY SEARCH ADVISOR ── */}
           {aiMode === 'bankruptcy' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <UserX className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Interpret bankruptcy search and winding-up search results. Get advice on implications for conveyancing transactions.</p>
@@ -2468,6 +2611,7 @@ export function AIPanel() {
           {/* ── FOREIGN PURCHASE ADVISOR ── */}
           {aiMode === 'foreignpurchase' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Globe className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Get advice on EPU approval, state authority consent, minimum price thresholds, and restrictions for foreign property purchases in Malaysia.</p>
@@ -2514,6 +2658,7 @@ export function AIPanel() {
           {/* ── LOAN DOC REVIEWER ── */}
           {aiMode === 'loandoc' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <FileCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Review loan facility agreements, letter of offers, and financing documents for key terms, risks, and compliance issues.</p>
@@ -2560,6 +2705,7 @@ export function AIPanel() {
           {/* ── TAX COMPLIANCE ── */}
           {aiMode === 'taxcompliance' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Landmark className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Get comprehensive LHDN tax compliance advice for property transactions including withholding tax, RPGT obligations, stamp duty, and filing requirements.</p>
@@ -2593,6 +2739,7 @@ export function AIPanel() {
           {/* ── STRATA MANAGEMENT ADVISOR ── */}
           {aiMode === 'strata' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Building2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Get legal advice on strata management issues under the Strata Management Act 2013 and Strata Titles Act 1985, including MC/JMB disputes.</p>
@@ -2640,6 +2787,7 @@ export function AIPanel() {
           {/* ── QUIZ GENERATOR ── */}
           {aiMode === 'quiz' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Brain className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate MCQ quizzes on any Malaysian conveyancing topic. Questions include scenario-based problems with detailed explanations citing Malaysian legislation and case law.</p>
@@ -2679,6 +2827,7 @@ export function AIPanel() {
           {/* ── TRANSACTION SIMULATOR ── */}
           {aiMode === 'simulator' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <PlayCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Simulate a complete property transaction step-by-step. Walk through every stage from due diligence to post-completion with realistic Malaysian details.</p>
@@ -2730,6 +2879,7 @@ export function AIPanel() {
           {/* ── CLAUSE LIBRARY ── */}
           {aiMode === 'clauselib' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Library className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Access a comprehensive clause library with standard clauses, variations, annotations, and case law references for Malaysian conveyancing agreements.</p>
@@ -2759,6 +2909,7 @@ export function AIPanel() {
           {/* ── DOCUMENT ANALYZER ── */}
           {aiMode === 'docanalyzer' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <FileText className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Paste any legal document text for comprehensive analysis — risk assessment, missing clauses, non-compliance issues, and recommendations.</p>
@@ -2797,6 +2948,7 @@ export function AIPanel() {
           {/* ── COMPLIANCE CHECKER ── */}
           {aiMode === 'compliance' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <CheckSquare className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Run a full compliance audit on any transaction — AML/CFT, regulatory, professional conduct, documentation, and timeline compliance checks.</p>
@@ -2832,6 +2984,7 @@ export function AIPanel() {
           {/* ── TIMELINE GENERATOR ── */}
           {aiMode === 'timeline' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Timer className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate a detailed transaction timeline with milestones, deadlines, responsible parties, and critical path analysis for any property transaction type.</p>
@@ -2875,6 +3028,7 @@ export function AIPanel() {
           {/* ── MOCK EXAM GENERATOR ── */}
           {aiMode === 'mockexam' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <GraduationCap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate complete mock examination papers in UKM format with scenario-based problem questions and detailed suggested answers with marking schemes.</p>
@@ -2915,6 +3069,7 @@ export function AIPanel() {
           {/* ── CASE LAW ANALYZER ── */}
           {aiMode === 'caseanalyzer' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Microscope className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Deep-dive analysis of any Malaysian property law case — facts, ratio decidendi, legal principles established, impact on practice, and exam notes.</p>
@@ -2949,6 +3104,7 @@ export function AIPanel() {
           {/* ── CORPORATE RESOLUTION ── */}
           {aiMode === 'corpresolution' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <FileSignature className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Generate Companies Act 2016-compliant Board / Member resolutions for property transactions. Covers s.61 common seal, s.66 execution and s.223 substantial property transaction approvals.</p>
@@ -3010,6 +3166,7 @@ export function AIPanel() {
           {/* ── CORPORATE PROPERTY DD ── */}
           {aiMode === 'corpdd' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Building className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Combined corporate + property due diligence — SSM searches, capacity & power, encumbrances at SSM and Land Office level, plus stamp duty / RPGT / FIC and Bursa flags.</p>
@@ -3053,6 +3210,7 @@ export function AIPanel() {
           {/* ── JV / JDA DRAFTER ── */}
           {aiMode === 'jvagreement' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <Handshake className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Draft a Malaysian Joint Venture / Joint Development Agreement — covers entitlement model, JVCo / SPV model, HDA licensing, RPGT, intra-group reliefs and POA + Trust Deed mechanics.</p>
@@ -3112,6 +3270,7 @@ export function AIPanel() {
           {/* ── GUARANTEE DRAFTER ── */}
           {aiMode === 'guarantee' && (
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+              <MatterPicker selectedMatter={pickedMatter} onSelect={setPickedMatter} onClear={() => setPickedMatter(null)} />
               <div className="mb-4 p-3 bg-amber-500/8 border border-amber-500/20 rounded-xl flex gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed">Draft personal / corporate / joint & several guarantees for property-secured facilities. Includes Etridge-style independent advice safeguards and s.123 CA 2016 financial assistance checks.</p>

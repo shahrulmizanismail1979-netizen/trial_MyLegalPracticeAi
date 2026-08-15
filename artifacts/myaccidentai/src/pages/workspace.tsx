@@ -12,6 +12,8 @@ import {
   FileEdit, Map, Gavel, Users, Clock, ArrowRight, BookMarked,
   CheckSquare, Library, Info, ExternalLink, Folder, Briefcase, Sparkles, AlertTriangle
 } from "lucide-react";
+import { MatterPicker } from "@/components/MatterPicker";
+import { type Matter } from "@/hooks/use-matters";
 import {
   theoryTopics, caseLaws, workflows, sampleDocs,
   glossaryTerms, statuteReferences, checklistData,
@@ -42,10 +44,28 @@ function matchesTokens(tokens: string[], haystack: string): boolean {
 
 type Tab = "my-cases" | "theory" | "cases" | "workflows" | "documents" | "glossary" | "calculator" | "assistant" | "statutes" | "checklists" | "applications" | "generator" | "analyzer" | "drafter";
 
+/** Build a readable matter summary for AI fact-input textareas */
+function buildMatterSummary(m: Matter): string {
+  const lines: string[] = [];
+  if (m.title) lines.push(`Matter: ${m.title}`);
+  const client = m.clientName || m.plaintiff;
+  if (client) lines.push(`Client / Plaintiff: ${client}`);
+  if (m.defendant) lines.push(`Defendant: ${m.defendant}`);
+  if (m.matterType) lines.push(`Matter type: ${m.matterType}`);
+  if (m.court) lines.push(`Court: ${m.court}`);
+  if (m.caseNo) lines.push(`Case / Suit No.: ${m.caseNo}`);
+  if (m.fileRef) lines.push(`File ref: ${m.fileRef}`);
+  if (m.claimAmount) lines.push(`Claim amount: ${m.claimAmount}`);
+  if (m.actingFor) lines.push(`Acting for: ${m.actingFor}`);
+  if (m.notes) lines.push(`\nBackground / facts:\n${m.notes}`);
+  return lines.join("\n");
+}
+
 export default function Workspace() {
   const [activeTab, setActiveTab] = useState<Tab>("my-cases");
   const [searchQuery, setSearchQuery] = useState("");
   const [generatorTemplateId, setGeneratorTemplateId] = useState<string | undefined>(undefined);
+  const [pickedMatter, setPickedMatter] = useState<Matter | null>(null);
 
   const openGenerator = (templateId?: string) => {
     setGeneratorTemplateId(templateId);
@@ -178,6 +198,23 @@ export default function Workspace() {
         </header>
 
         <div className="p-8">
+          {/* Matter picker banner — shown above AI tool tabs only */}
+          {(activeTab === "assistant" || activeTab === "analyzer" || activeTab === "drafter" || activeTab === "calculator") && (
+            <div className="mb-5 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Pre-fill from:</span>
+              <MatterPicker
+                onSelect={(m) => setPickedMatter(m)}
+                selectedTitle={pickedMatter?.title}
+                onClear={() => setPickedMatter(null)}
+              />
+              {pickedMatter && (
+                <span className="text-xs text-muted-foreground">
+                  — fields pre-filled from <strong>{pickedMatter.title}</strong>. You can still edit before generating.
+                </span>
+              )}
+            </div>
+          )}
+
           {activeTab === "my-cases" && <MyCases />}
           {activeTab === "theory" && <TheoryTab search={searchQuery} />}
           {activeTab === "cases" && <CasesTab search={searchQuery} />}
@@ -188,10 +225,10 @@ export default function Workspace() {
           {activeTab === "generator" && <CausePaperGenerator initialTemplateId={generatorTemplateId} />}
           {activeTab === "checklists" && <ChecklistsTab />}
           {activeTab === "glossary" && <GlossaryTab search={searchQuery} />}
-          {activeTab === "calculator" && <CalculatorTab />}
-          {activeTab === "assistant" && <AssistantTab />}
-          {activeTab === "analyzer" && <CaseAnalyzerTab />}
-          {activeTab === "drafter" && <AiDrafterTab />}
+          {activeTab === "calculator" && <CalculatorTab matter={pickedMatter} />}
+          {activeTab === "assistant" && <AssistantTab matter={pickedMatter} />}
+          {activeTab === "analyzer" && <CaseAnalyzerTab matter={pickedMatter} />}
+          {activeTab === "drafter" && <AiDrafterTab matter={pickedMatter} />}
         </div>
       </main>
       <ParalegalWidget portalName="MyAccidentAI" request={paralegalRequest} accent="#8a6d2f" />
@@ -724,8 +761,10 @@ function ApplicationsTab({ search }: { search: string }) {
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
-function AssistantTab() {
-  const [input, setInput] = useState("");
+function AssistantTab({ matter }: { matter?: Matter | null }) {
+  const [input, setInput] = useState(() =>
+    matter ? buildMatterSummary(matter) + "\n\nPlease advise on the key legal issues and recommended next steps." : ""
+  );
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -912,8 +951,8 @@ function AssistantTab() {
   );
 }
 
-function CaseAnalyzerTab() {
-  const [facts, setFacts] = useState("");
+function CaseAnalyzerTab({ matter }: { matter?: Matter | null }) {
+  const [facts, setFacts] = useState(() => matter ? buildMatterSummary(matter) : "");
   const [analysis, setAnalysis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1022,9 +1061,9 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
   );
 }
 
-function AiDrafterTab() {
+function AiDrafterTab({ matter }: { matter?: Matter | null }) {
   const [mode, setMode] = useState<"demand-letter" | "submissions">("demand-letter");
-  const [facts, setFacts] = useState("");
+  const [facts, setFacts] = useState(() => matter ? buildMatterSummary(matter) : "");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

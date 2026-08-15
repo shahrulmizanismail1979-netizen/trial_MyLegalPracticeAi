@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { type Matter } from "@/hooks/use-matters";
 
 type CalcMode = "general" | "dependency" | "earnings" | "comprehensive";
 
@@ -54,7 +55,7 @@ function SectionHeader({ title, expanded, onToggle }: { title: string; expanded:
   );
 }
 
-export function CalculatorTab() {
+export function CalculatorTab({ matter }: { matter?: Matter | null }) {
   const [mode, setMode] = useState<CalcMode>("comprehensive");
   const [contribNeg, setContribNeg] = useState("0");
 
@@ -150,6 +151,20 @@ export function CalculatorTab() {
           </Button>
         </div>
       </div>
+
+      {matter && (
+        <div className="mb-5 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 text-xs text-muted-foreground space-y-0.5">
+          <p className="font-semibold text-foreground text-sm">{matter.title}</p>
+          {(matter.clientName || matter.plaintiff) && (
+            <p>Client / Plaintiff: {matter.clientName || matter.plaintiff}</p>
+          )}
+          {matter.defendant && <p>Defendant: {matter.defendant}</p>}
+          {matter.caseNo && <p>Case No.: {matter.caseNo}</p>}
+          {matter.claimAmount && (
+            <p>Claim amount on file: <strong>{matter.claimAmount}</strong> — enter figures in the fields below.</p>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {modes.map(m => (
