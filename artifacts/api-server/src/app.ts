@@ -268,7 +268,7 @@ for (const prefix of LIT_HEAVY_PREFIXES) {
 }
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.SESSION_SECRET ?? "dev-cookie-secret"));
 
 // Resolve the publishable key from the incoming request host so the same
 // server can serve multiple Clerk custom domains. Falls back to

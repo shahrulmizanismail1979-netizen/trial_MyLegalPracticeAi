@@ -1,8 +1,10 @@
 import {
   pgTable,
+  pgEnum,
   serial,
   text,
   integer,
+  bigint,
   doublePrecision,
   boolean,
   timestamp,
@@ -2178,3 +2180,138 @@ export const researchDeletionManifests = pgTable(
 
 export type ResearchDeletionManifest =
   typeof researchDeletionManifests.$inferSelect;
+
+// ── Google Drive Asset Inventory ──────────────────────────────────────────────
+
+export const driveInventoryStatusEnum = pgEnum("drive_inventory_status", [
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+]);
+
+export const driveSourceClassificationEnum = pgEnum(
+  "drive_source_classification",
+  [
+    "OFFICIAL_JUDGMENT",
+    "COURT_AUTHORISED_COPY",
+    "EXPRESSLY_LICENSED_SOURCE",
+    "COMMERCIAL_PUBLISHER_REPORT",
+    "UNKNOWN_SOURCE",
+  ],
+);
+
+export const driveRightsStatusEnum = pgEnum("drive_rights_status", [
+  "RESTRICTED_REFERENCE_ONLY",
+  "NEEDS_OFFICIAL_SOURCE",
+  "RIGHTS_REVIEW_REQUIRED",
+  "APPROVED",
+]);
+
+export const driveProcessingStatusEnum = pgEnum("drive_processing_status", [
+  "PENDING",
+  "RIGHTS_PENDING",
+  "RIGHTS_APPROVED",
+  "RIGHTS_REJECTED",
+  "INGESTION_QUEUED",
+  "INGESTION_RUNNING",
+  "INGESTION_COMPLETE",
+  "EXTRACTION_QUEUED",
+  "EXTRACTION_RUNNING",
+  "EXTRACTION_COMPLETE",
+  "SEGMENTATION_QUEUED",
+  "SEGMENTATION_RUNNING",
+  "SEGMENTATION_COMPLETE",
+  "REVIEW_QUEUED",
+  "REVIEW_IN_PROGRESS",
+  "REVIEW_COMPLETE",
+  "PUBLICATION_QUEUED",
+  "PUBLISHED",
+  "FAILED",
+  "CANCELLED",
+]);
+
+/**
+ * One row per Drive inventory crawl. Records progress and final stats for
+ * each full recursive walk of the root Drive folder.
+ */
+export const driveInventoryRuns = pgTable("drive_inventory_runs", {
+  id: serial("id").primaryKey(),
+  rootFolderId: text("root_folder_id").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  status: driveInventoryStatusEnum("status").default("RUNNING").notNull(),
+  totalItems: integer("total_items").default(0).notNull(),
+  totalFolders: integer("total_folders").default(0).notNull(),
+  totalBytes: bigint("total_bytes", { mode: "number" }).default(0).notNull(),
+  errorMessage: text("error_message"),
+  actorId: text("actor_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/**
+ * One row per Drive file discovered during an inventory run.
+ * Upserted on conflict(driveFileId) so re-running inventory refreshes metadata
+ * without creating duplicate rows. Rights decisions (rightsStatus) are
+ * preserved across re-runs — only metadata columns are overwritten.
+ */
+export const driveAssets = pgTable(
+  "drive_assets",
+  {
+    id: serial("id").primaryKey(),
+    driveFileId: text("drive_file_id").notNull().unique(),
+    name: text("name").notNull(),
+    mimeType: text("mime_type"),
+    size: bigint("size", { mode: "number" }),
+    createdTime: timestamp("created_time", { withTimezone: true }),
+    modifiedTime: timestamp("modified_time", { withTimezone: true }),
+    /** Full slash-separated ancestor folder names, e.g. "Contributor A / 2024 / Jan" */
+    folderPath: text("folder_path"),
+    /** Case citation or subject extracted from folder/file naming convention */
+    intakeSubject: text("intake_subject"),
+    /** Top-level contributor folder name */
+    contributorFolder: text("contributor_folder"),
+    /** Date subfolder name if present, e.g. "2024" or "Jan 2024" */
+    dateFolder: text("date_folder"),
+    md5Checksum: text("md5_checksum"),
+    inventoryTimestamp: timestamp("inventory_timestamp", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+    sourceClassification: driveSourceClassificationEnum(
+      "source_classification",
+    )
+      .default("UNKNOWN_SOURCE")
+      .notNull(),
+    rightsStatus: driveRightsStatusEnum("rights_status")
+      .default("RIGHTS_REVIEW_REQUIRED")
+      .notNull(),
+    processingStatus: driveProcessingStatusEnum("processing_status")
+      .default("PENDING")
+      .notNull(),
+    errorStatus: text("error_status"),
+    parentFolderId: text("parent_folder_id"),
+    inventoryRunId: integer("inventory_run_id").references(
+      () => driveInventoryRuns.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("drive_assets_rights_status_idx").on(t.rightsStatus),
+    index("drive_assets_processing_status_idx").on(t.processingStatus),
+    index("drive_assets_source_classification_idx").on(t.sourceClassification),
+    index("drive_assets_inventory_run_id_idx").on(t.inventoryRunId),
+  ],
+);
+
+export type DriveInventoryRun = typeof driveInventoryRuns.$inferSelect;
+export type DriveAsset = typeof driveAssets.$inferSelect;

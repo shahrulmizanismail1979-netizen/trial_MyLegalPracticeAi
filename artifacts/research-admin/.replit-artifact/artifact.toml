@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/research-admin/"
+title = "Case Law Research Admin"
+description = "Staff-only administration portal for the Independent Malaysian Case Law Intelligence Repository. Provides Drive inventory management, source classification, rights review, processing queue monitoring, editorial review, duplicate management, publication control, and an audit log. Integrates with the existing API server research pipeline."
+version = "1.0.0"
+id = "artifacts/research-admin"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/research-admin/" ]
+localPort = 25208
+
+[services.development]
+run = "pnpm --filter @workspace/research-admin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/research-admin", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/research-admin/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25208"
+BASE_PATH = "/research-admin/"
