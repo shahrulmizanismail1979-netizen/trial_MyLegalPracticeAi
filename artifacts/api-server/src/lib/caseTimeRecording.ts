@@ -11,6 +11,27 @@ import { pool } from "@workspace/db";
 import { verifyMatterOwnership } from "./caseOwnership";
 import type { Portal } from "./caseStages";
 
+/**
+ * Look up the rate card rate for an exact activity-type × lawyer-level combination.
+ * Returns null if no exact match exists; the caller then falls back to the firm
+ * default_hourly_rate at billing time. Partial matches are intentionally not
+ * performed — a Senior Partner entry must not silently receive an Associate rate.
+ */
+async function lookupRateCard(
+  portal: Portal,
+  ownerKey: string,
+  activityType: string,
+  lawyerLevel: string,
+): Promise<number | null> {
+  const { rows } = await pool.query(
+    `SELECT rate_usd FROM case_rate_cards
+     WHERE portal = $1 AND owner_key = $2 AND activity_type = $3 AND lawyer_level = $4`,
+    [portal, ownerKey, activityType, lawyerLevel],
+  );
+  if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+  return null;
+}
+
 export function makeTimeRecordingRouter(
   portal: Portal,
   getOwnerKey: (req: Request, res: Response) => string | null,
@@ -29,7 +50,8 @@ export function makeTimeRecordingRouter(
       return;
     }
     const { rows } = await pool.query(
-      `SELECT id, description, minutes, rate_usd, entry_date, created_at
+      `SELECT id, description, minutes, rate_usd, entry_date, created_at,
+              activity_type, lawyer_level
        FROM case_time_entries
        WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
        ORDER BY entry_date DESC, id DESC`,
@@ -61,7 +83,7 @@ export function makeTimeRecordingRouter(
       return;
     }
 
-    const { description, minutes, rate_usd, entry_date } = req.body ?? {};
+    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level } = req.body ?? {};
     if (!description || typeof description !== "string" || !description.trim()) {
       res.status(400).json({ error: "description is required" });
       return;
@@ -75,13 +97,22 @@ export function makeTimeRecordingRouter(
       typeof entry_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(entry_date)
         ? entry_date
         : new Date().toISOString().slice(0, 10);
-    const rateVal =
+
+    // Resolve rate: explicit rate_usd > rate card lookup > null (uses default_hourly_rate at billing time)
+    let rateVal: number | null =
       rate_usd !== undefined && rate_usd !== null && rate_usd !== ""
         ? parseFloat(String(rate_usd))
         : null;
+    if ((rateVal === null || Number.isNaN(rateVal)) && activity_type && lawyer_level) {
+      rateVal = await lookupRateCard(portal, ownerKey, String(activity_type), String(lawyer_level));
+    }
+    const activityTypeStr = typeof activity_type === "string" && activity_type.trim() ? activity_type.trim().slice(0, 200) : null;
+    const lawyerLevelStr = typeof lawyer_level === "string" && lawyer_level.trim() ? lawyer_level.trim().slice(0, 200) : null;
+
     const { rows } = await pool.query(
-      `INSERT INTO case_time_entries (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      `INSERT INTO case_time_entries
+         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
         portal,
         matterId,
@@ -90,6 +121,8 @@ export function makeTimeRecordingRouter(
         mins,
         rateVal !== null && !Number.isNaN(rateVal) ? rateVal : null,
         dateStr,
+        activityTypeStr,
+        lawyerLevelStr,
       ],
     );
     res.status(201).json(rows[0]);

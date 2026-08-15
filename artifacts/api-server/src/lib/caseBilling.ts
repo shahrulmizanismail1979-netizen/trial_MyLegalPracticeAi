@@ -111,7 +111,22 @@ export async function ensureBillingTables(): Promise<void> {
       UNIQUE (portal, owner_key)
     );
 
+    CREATE TABLE IF NOT EXISTS case_rate_cards (
+      id serial PRIMARY KEY,
+      portal text NOT NULL,
+      owner_key text NOT NULL,
+      activity_type text NOT NULL,
+      lawyer_level text NOT NULL,
+      rate_usd numeric(10,2) NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (portal, owner_key, activity_type, lawyer_level)
+    );
+    CREATE INDEX IF NOT EXISTS idx_case_rate_cards_owner ON case_rate_cards (portal, owner_key);
+
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS invoice_id integer;
+    ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS activity_type text;
+    ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
   `);
   logger.info("Billing tables ensured");
 }
@@ -143,6 +158,14 @@ async function getSettings(portal: Portal, ownerKey: string) {
     [portal, ownerKey],
   );
   return rows[0];
+}
+
+async function getRateCards(portal: Portal, ownerKey: string) {
+  const { rows } = await pool.query(
+    `SELECT * FROM case_rate_cards WHERE portal = $1 AND owner_key = $2 ORDER BY activity_type, lawyer_level`,
+    [portal, ownerKey],
+  );
+  return rows;
 }
 
 async function computeStatus(
@@ -228,7 +251,92 @@ export function attachBilling(opts: {
   router.get(`${P}/billing/settings`, async (req, res) => {
     const ownerKey = auth(req, res);
     if (!ownerKey) return;
-    res.json(await getSettings(portal, ownerKey));
+    const [settings, rateCards] = await Promise.all([
+      getSettings(portal, ownerKey),
+      getRateCards(portal, ownerKey),
+    ]);
+    res.json({ ...settings, rateCards });
+  });
+
+  // ── Rate card CRUD ─────────────────────────────────────────────────────────
+
+  router.get(`${P}/billing/rate-cards`, async (req, res) => {
+    const ownerKey = auth(req, res);
+    if (!ownerKey) return;
+    res.json(await getRateCards(portal, ownerKey));
+  });
+
+  router.post(`${P}/billing/rate-cards`, async (req, res) => {
+    const ownerKey = auth(req, res);
+    if (!ownerKey) return;
+    const { activityType, lawyerLevel, rateUsd } = req.body ?? {};
+    if (!activityType || typeof activityType !== "string" || !activityType.trim()) {
+      res.status(400).json({ error: "activityType is required" });
+      return;
+    }
+    if (!lawyerLevel || typeof lawyerLevel !== "string" || !lawyerLevel.trim()) {
+      res.status(400).json({ error: "lawyerLevel is required" });
+      return;
+    }
+    const rate = num(rateUsd);
+    if (rate <= 0) {
+      res.status(400).json({ error: "rateUsd must be greater than zero" });
+      return;
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO case_rate_cards (portal, owner_key, activity_type, lawyer_level, rate_usd)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (portal, owner_key, activity_type, lawyer_level)
+       DO UPDATE SET rate_usd = EXCLUDED.rate_usd, updated_at = now()
+       RETURNING *`,
+      [portal, ownerKey, activityType.trim().slice(0, MAX_TEXT), lawyerLevel.trim().slice(0, MAX_TEXT), money(rate)],
+    );
+    res.status(201).json(rows[0]);
+  });
+
+  router.put(`${P}/billing/rate-cards/:cardId`, async (req, res) => {
+    const ownerKey = auth(req, res);
+    if (!ownerKey) return;
+    const cardId = parseInt((req.params as Record<string, string>).cardId ?? "0", 10);
+    if (Number.isNaN(cardId) || cardId <= 0) {
+      res.status(400).json({ error: "Invalid rate card id" });
+      return;
+    }
+    const { rateUsd } = req.body ?? {};
+    const rate = num(rateUsd);
+    if (rate <= 0) {
+      res.status(400).json({ error: "rateUsd must be greater than zero" });
+      return;
+    }
+    const { rows } = await pool.query(
+      `UPDATE case_rate_cards SET rate_usd = $3, updated_at = now()
+       WHERE id = $1 AND portal = $2 AND owner_key = $4 RETURNING *`,
+      [cardId, portal, money(rate), ownerKey],
+    );
+    if (!rows[0]) {
+      res.status(404).json({ error: "Rate card entry not found" });
+      return;
+    }
+    res.json(rows[0]);
+  });
+
+  router.delete(`${P}/billing/rate-cards/:cardId`, async (req, res) => {
+    const ownerKey = auth(req, res);
+    if (!ownerKey) return;
+    const cardId = parseInt((req.params as Record<string, string>).cardId ?? "0", 10);
+    if (Number.isNaN(cardId) || cardId <= 0) {
+      res.status(400).json({ error: "Invalid rate card id" });
+      return;
+    }
+    const { rows } = await pool.query(
+      `DELETE FROM case_rate_cards WHERE id = $1 AND portal = $2 AND owner_key = $3 RETURNING id`,
+      [cardId, portal, ownerKey],
+    );
+    if (!rows[0]) {
+      res.status(404).json({ error: "Rate card entry not found" });
+      return;
+    }
+    res.json({ success: true });
   });
 
   router.put(`${P}/billing/settings`, async (req, res) => {
@@ -563,9 +671,10 @@ export function attachBilling(opts: {
     if (!ownerKey) return;
     const matterId = await ownedMatterId(req, res, ownerKey);
     if (!matterId) return;
-    const [{ rows: time }, { rows: fees }, { rows: invoices }, settings] = await Promise.all([
+    const [{ rows: time }, { rows: fees }, { rows: invoices }, settings, rateCards] = await Promise.all([
       pool.query(
-        `SELECT id, description, minutes, rate_usd AS rate, entry_date, invoice_id
+        `SELECT id, description, minutes, rate_usd AS rate, entry_date, invoice_id,
+                activity_type, lawyer_level
          FROM case_time_entries WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
          ORDER BY entry_date DESC, id DESC`,
         [portal, matterId, ownerKey],
@@ -581,6 +690,7 @@ export function attachBilling(opts: {
         [portal, matterId, ownerKey],
       ),
       getSettings(portal, ownerKey),
+      getRateCards(portal, ownerKey),
     ]);
     const defaultRate = num(settings.default_hourly_rate);
     let unbilledTime = 0;
@@ -603,7 +713,8 @@ export function attachBilling(opts: {
       timeEntries: time,
       feeItems: fees,
       invoices,
-      settings,
+      settings: { ...settings, rateCards },
+      rateCards,
       unbilled: {
         time: unbilledTime.toFixed(2),
         fees: unbilledFees.toFixed(2),
@@ -710,7 +821,7 @@ export function attachBilling(opts: {
 
       if (includeTime) {
         const { rows: time } = await client.query(
-          `SELECT id, description, minutes, rate_usd AS rate, entry_date
+          `SELECT id, description, minutes, rate_usd AS rate, entry_date, activity_type, lawyer_level
            FROM case_time_entries
            WHERE portal = $1 AND matter_id = $2 AND owner_key = $3 AND invoice_id IS NULL
            ORDER BY entry_date, id FOR UPDATE`,
@@ -719,8 +830,12 @@ export function attachBilling(opts: {
         for (const t of time) {
           const rate = t.rate != null ? num(t.rate) : defaultRate;
           const hours = num(t.minutes) / 60;
+          const meta: string[] = [];
+          if (t.activity_type) meta.push(String(t.activity_type));
+          if (t.lawyer_level) meta.push(String(t.lawyer_level));
+          meta.push(`${num(t.minutes)} min`);
           lines.push({
-            description: `${String(t.entry_date).slice(0, 10)} — ${t.description} (${num(t.minutes)} min)`,
+            description: `${String(t.entry_date).slice(0, 10)} — ${t.description} (${meta.join(", ")})`,
             quantity: Math.round(hours * 100) / 100,
             unitAmount: rate,
             amount: Math.round(hours * rate * 100) / 100,

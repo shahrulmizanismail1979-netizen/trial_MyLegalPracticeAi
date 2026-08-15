@@ -1,5 +1,5 @@
 /**
- * Shared time & billing UI for all practice portals (Task #192).
+ * Shared time & billing UI for all practice portals (Task #192 / Task #272).
  *
  * Exports:
  *   <BillingTab request={...} matterId={n} accent="#8a6d2f" />  — matter billing tab
@@ -26,6 +26,8 @@ interface TimeEntry {
   rate: string | null;
   entry_date: string;
   invoice_id: number | null;
+  activity_type: string | null;
+  lawyer_level: string | null;
 }
 interface FeeItem {
   id: number;
@@ -53,6 +55,12 @@ export interface Invoice {
   lines?: Array<{ id: number; description: string; quantity: string; unit_amount: string; amount: string }>;
   payments?: Array<{ id: number; paid_date: string; amount: string; method: string | null; reference: string | null }>;
 }
+export interface RateCard {
+  id: number;
+  activity_type: string;
+  lawyer_level: string;
+  rate_usd: string;
+}
 interface Settings {
   firm_name: string | null;
   firm_address: string | null;
@@ -61,12 +69,14 @@ interface Settings {
   default_hourly_rate: string | null;
   tax_percent: string;
   invoice_prefix: string;
+  rateCards?: RateCard[];
 }
 interface MatterBilling {
   timeEntries: TimeEntry[];
   feeItems: FeeItem[];
   invoices: Invoice[];
   settings: Settings;
+  rateCards: RateCard[];
   unbilled: { time: string; fees: string; disbursements: string; total: string };
 }
 
@@ -358,6 +368,249 @@ function InvoiceActions({
   );
 }
 
+// ── Rate card management panel ────────────────────────────────────────────────
+
+function RateCardPanel({
+  rateCards,
+  request,
+  accent,
+  currency,
+  onChanged,
+}: {
+  rateCards: RateCard[];
+  request: BillingRequest;
+  accent: string;
+  currency: string;
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [addActivity, setAddActivity] = useState("");
+  const [addLevel, setAddLevel] = useState("");
+  const [addRate, setAddRate] = useState("");
+  const [customActivity, setCustomActivity] = useState(false);
+  const [customLevel, setCustomLevel] = useState(false);
+
+  const activityOptions = [
+    "Court Hearing",
+    "Trial",
+    "Client Meeting",
+    "Legal Research",
+    "Document Drafting",
+    "Negotiation",
+    "Mediation",
+    "Case Management",
+    "Deposition",
+    "Other",
+  ];
+  const levelOptions = [
+    "Senior Partner",
+    "Partner",
+    "Senior Associate",
+    "Associate",
+    "Junior Associate",
+    "Paralegal",
+    "Other",
+  ];
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await fn();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const activityVal = customActivity ? addActivity : addActivity;
+  const levelVal = customLevel ? addLevel : addLevel;
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
+        Rate card — activity × lawyer level
+      </div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
+        Set rates by activity type and lawyer level. When a time entry matches both, that rate is auto-filled. You can still override the rate on any individual entry.
+      </div>
+
+      {/* Add row */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+        {customActivity ? (
+          <input
+            style={{ ...S.input, flex: "1 1 150px" }}
+            placeholder="Activity type"
+            value={addActivity}
+            onChange={(e) => setAddActivity(e.target.value)}
+          />
+        ) : (
+          <select
+            style={{ ...S.input, flex: "1 1 150px" }}
+            value={addActivity}
+            onChange={(e) => {
+              if (e.target.value === "__custom__") { setCustomActivity(true); setAddActivity(""); }
+              else setAddActivity(e.target.value);
+            }}
+          >
+            <option value="">Activity type…</option>
+            {activityOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+            <option value="__custom__">Custom…</option>
+          </select>
+        )}
+        {customLevel ? (
+          <input
+            style={{ ...S.input, flex: "1 1 140px" }}
+            placeholder="Lawyer level"
+            value={addLevel}
+            onChange={(e) => setAddLevel(e.target.value)}
+          />
+        ) : (
+          <select
+            style={{ ...S.input, flex: "1 1 140px" }}
+            value={addLevel}
+            onChange={(e) => {
+              if (e.target.value === "__custom__") { setCustomLevel(true); setAddLevel(""); }
+              else setAddLevel(e.target.value);
+            }}
+          >
+            <option value="">Lawyer level…</option>
+            {levelOptions.map((l) => <option key={l} value={l}>{l}</option>)}
+            <option value="__custom__">Custom…</option>
+          </select>
+        )}
+        <input
+          style={{ ...S.input, width: 130 }}
+          placeholder={`Rate (${currency}/hr)`}
+          inputMode="decimal"
+          value={addRate}
+          onChange={(e) => setAddRate(e.target.value)}
+        />
+        <Btn
+          small
+          accent={accent}
+          disabled={busy || !activityVal.trim() || !levelVal.trim() || n(addRate) <= 0}
+          onClick={() =>
+            run(async () => {
+              await request(`/billing/rate-cards`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activityType: activityVal.trim(), lawyerLevel: levelVal.trim(), rateUsd: n(addRate) }),
+              }).then(jsonOrThrow);
+              setAddActivity(""); setAddLevel(""); setAddRate("");
+              setCustomActivity(false); setCustomLevel(false);
+            })
+          }
+        >
+          Add / update
+        </Btn>
+      </div>
+      {error && <div style={S.err}>{error}</div>}
+
+      {rateCards.length === 0 ? (
+        <div style={{ fontSize: 12, color: "#6b7280" }}>No rate card entries yet.</div>
+      ) : (
+        <table style={{ ...S.table, fontSize: 12 }}>
+          <thead>
+            <tr>
+              <th style={S.th}>Activity type</th>
+              <th style={S.th}>Lawyer level</th>
+              <th style={S.th}>Rate/hr</th>
+              <th style={S.th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rateCards.map((rc) => (
+              <RateCardRow key={rc.id} rc={rc} request={request} accent={accent} currency={currency} busy={busy} onChanged={() => void run(async () => { onChanged(); })} />
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function RateCardRow({
+  rc,
+  request,
+  accent,
+  currency,
+  busy,
+  onChanged,
+}: {
+  rc: RateCard;
+  request: BillingRequest;
+  accent: string;
+  currency: string;
+  busy: boolean;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editRate, setEditRate] = useState(rc.rate_usd);
+  const [localBusy, setLocalBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setLocalBusy(true);
+    setError(null);
+    try {
+      await fn();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setLocalBusy(false);
+    }
+  };
+
+  return (
+    <tr>
+      <td style={S.td}>{rc.activity_type}</td>
+      <td style={S.td}>{rc.lawyer_level}</td>
+      <td style={S.td}>
+        {editing ? (
+          <input
+            style={{ ...S.input, width: 100 }}
+            value={editRate}
+            onChange={(e) => setEditRate(e.target.value)}
+            inputMode="decimal"
+          />
+        ) : (
+          fmtMoney(rc.rate_usd, currency)
+        )}
+        {error && <div style={{ ...S.err, margin: 0 }}>{error}</div>}
+      </td>
+      <td style={{ ...S.td, whiteSpace: "nowrap" as const }}>
+        {editing ? (
+          <div style={{ display: "flex", gap: 4 }}>
+            <Btn small accent={accent} disabled={localBusy || n(editRate) <= 0}
+              onClick={() => run(async () => {
+                await request(`/billing/rate-cards/${rc.id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ rateUsd: n(editRate) }),
+                }).then(jsonOrThrow);
+                setEditing(false);
+              })}>Save</Btn>
+            <Btn small kind="ghost" accent={accent} disabled={localBusy} onClick={() => { setEditing(false); setEditRate(rc.rate_usd); }}>Cancel</Btn>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 4 }}>
+            <Btn small kind="ghost" accent={accent} disabled={busy || localBusy} onClick={() => setEditing(true)}>Edit</Btn>
+            <Btn small kind="danger" disabled={busy || localBusy}
+              onClick={() => run(() =>
+                request(`/billing/rate-cards/${rc.id}`, { method: "DELETE" }).then(jsonOrThrow)
+              )}>Delete</Btn>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 // ── BillingTab (matter-level) ─────────────────────────────────────────────────
 
 export function BillingTab({
@@ -376,6 +629,10 @@ export function BillingTab({
   const [tMin, setTMin] = useState("");
   const [tRate, setTRate] = useState("");
   const [tDate, setTDate] = useState(today());
+  const [tActivity, setTActivity] = useState("");
+  const [tLevel, setTLevel] = useState("");
+  const [tCustomActivity, setTCustomActivity] = useState(false);
+  const [tCustomLevel, setTCustomLevel] = useState(false);
   // add-fee form
   const [fDesc, setFDesc] = useState("");
   const [fAmt, setFAmt] = useState("");
@@ -417,6 +674,49 @@ export function BillingTab({
     }
   };
 
+  // Auto-fill rate from rate card only when both activity AND level have an exact match.
+  // Partial matches (activity-only or level-only) are intentionally skipped so a
+  // Senior Partner entry never silently receives an Associate rate.
+  const rateCards = data?.rateCards ?? [];
+
+  const autoRate = useMemo(() => {
+    if (!tActivity || !tLevel || rateCards.length === 0) return null;
+    const exact = rateCards.find((rc) => rc.activity_type === tActivity && rc.lawyer_level === tLevel);
+    return exact ? exact.rate_usd : null;
+  }, [tActivity, tLevel, rateCards]);
+
+  // When auto-rate changes, pre-fill rate field (only if user hasn't manually typed)
+  const [rateAutoFilled, setRateAutoFilled] = useState(false);
+  useEffect(() => {
+    if (autoRate !== null) {
+      setTRate(n(autoRate).toFixed(2));
+      setRateAutoFilled(true);
+    } else if (rateAutoFilled) {
+      setTRate("");
+      setRateAutoFilled(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRate]);
+
+  const activityOptions = [
+    "Court Hearing", "Trial", "Client Meeting", "Legal Research",
+    "Document Drafting", "Negotiation", "Mediation", "Case Management", "Deposition", "Other",
+  ];
+  const levelOptions = [
+    "Senior Partner", "Partner", "Senior Associate",
+    "Associate", "Junior Associate", "Paralegal", "Other",
+  ];
+
+  // Merge rate card activities/levels into options so firm-defined values appear
+  const allActivities = useMemo(() => {
+    const extras = rateCards.map((r) => r.activity_type).filter((a) => !activityOptions.includes(a));
+    return [...new Set([...activityOptions, ...extras])];
+  }, [rateCards]);
+  const allLevels = useMemo(() => {
+    const extras = rateCards.map((r) => r.lawyer_level).filter((l) => !levelOptions.includes(l));
+    return [...new Set([...levelOptions, ...extras])];
+  }, [rateCards]);
+
   if (loading) return <div style={{ padding: 20, color: "#6b7280", fontSize: 14 }}>Loading billing…</div>;
   if (!data) return <div style={{ padding: 20, ...S.err }}>{error ?? "Failed to load billing"}</div>;
 
@@ -424,8 +724,6 @@ export function BillingTab({
   const unbilledFees = data.feeItems.filter((f) => f.invoice_id == null);
 
   // Effective rate = the entry's own rate, else the firm's default hourly rate.
-  // Line amount = rate × hours. Kept in sync with the server's computation in
-  // caseBilling.ts so the per-line amount and the summary always agree.
   const defaultRate = n(data.settings?.default_hourly_rate);
   const lineAmount = (t: TimeEntry) => {
     const rate = t.rate != null && String(t.rate).trim() !== "" ? n(t.rate) : defaultRate;
@@ -446,22 +744,76 @@ export function BillingTab({
       {/* Time entries */}
       <div style={S.card}>
         <h3 style={S.h}>Time entries</h3>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
           <input style={{ ...S.input, width: 130 }} type="date" value={tDate} onChange={(e) => setTDate(e.target.value)} />
           <input
             style={{ ...S.input, flex: "1 1 200px" }}
-            placeholder="Activity, e.g. Drafting affidavit"
+            placeholder="Description, e.g. Drafting affidavit"
             value={tDesc}
             onChange={(e) => setTDesc(e.target.value)}
           />
           <input style={{ ...S.input, width: 90 }} placeholder="Minutes" inputMode="numeric" value={tMin} onChange={(e) => setTMin(e.target.value)} />
-          <input
-            style={{ ...S.input, width: 130 }}
-            placeholder={`Rate/${currency}/hr (optional)`}
-            inputMode="decimal"
-            value={tRate}
-            onChange={(e) => setTRate(e.target.value)}
-          />
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+          {/* Activity type */}
+          {tCustomActivity ? (
+            <input
+              style={{ ...S.input, flex: "1 1 140px" }}
+              placeholder="Activity type"
+              value={tActivity}
+              onChange={(e) => setTActivity(e.target.value)}
+            />
+          ) : (
+            <select
+              style={{ ...S.input, flex: "1 1 140px" }}
+              value={tActivity}
+              onChange={(e) => {
+                if (e.target.value === "__custom__") { setTCustomActivity(true); setTActivity(""); }
+                else setTActivity(e.target.value);
+              }}
+            >
+              <option value="">Activity type (optional)</option>
+              {allActivities.map((a) => <option key={a} value={a}>{a}</option>)}
+              <option value="__custom__">Custom…</option>
+            </select>
+          )}
+          {/* Lawyer level */}
+          {tCustomLevel ? (
+            <input
+              style={{ ...S.input, flex: "1 1 130px" }}
+              placeholder="Lawyer level"
+              value={tLevel}
+              onChange={(e) => setTLevel(e.target.value)}
+            />
+          ) : (
+            <select
+              style={{ ...S.input, flex: "1 1 130px" }}
+              value={tLevel}
+              onChange={(e) => {
+                if (e.target.value === "__custom__") { setTCustomLevel(true); setTLevel(""); }
+                else setTLevel(e.target.value);
+              }}
+            >
+              <option value="">Lawyer level (optional)</option>
+              {allLevels.map((l) => <option key={l} value={l}>{l}</option>)}
+              <option value="__custom__">Custom…</option>
+            </select>
+          )}
+          <div style={{ position: "relative" as const }}>
+            <input
+              style={{ ...S.input, width: 130, paddingRight: autoRate !== null ? 24 : undefined }}
+              placeholder={`Rate/${currency}/hr (optional)`}
+              inputMode="decimal"
+              value={tRate}
+              onChange={(e) => { setTRate(e.target.value); setRateAutoFilled(false); }}
+            />
+            {autoRate !== null && (
+              <span style={{ position: "absolute" as const, right: 7, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: accent, fontWeight: 700 }} title="Auto-filled from rate card">★</span>
+            )}
+          </div>
+          {autoRate !== null && (
+            <span style={{ fontSize: 11, color: "#6b7280" }}>Rate card: {fmtMoney(autoRate, currency)}/hr</span>
+          )}
           <Btn
             accent={accent}
             disabled={busy || !tDesc.trim() || n(tMin) <= 0}
@@ -475,10 +827,12 @@ export function BillingTab({
                     minutes: Math.round(n(tMin)),
                     rate_usd: tRate.trim() ? n(tRate) : undefined,
                     entry_date: tDate,
+                    activity_type: tActivity.trim() || undefined,
+                    lawyer_level: tLevel.trim() || undefined,
                   }),
                 }).then(jsonOrThrow);
-                setTDesc("");
-                setTMin("");
+                setTDesc(""); setTMin(""); setTRate(""); setTActivity(""); setTLevel("");
+                setRateAutoFilled(false);
               })
             }
           >
@@ -493,6 +847,8 @@ export function BillingTab({
               <tr>
                 <th style={S.th}>Date</th>
                 <th style={S.th}>Activity</th>
+                <th style={S.th}>Lawyer level</th>
+                <th style={S.th}>Description</th>
                 <th style={S.th}>Minutes</th>
                 <th style={S.th}>Rate/hr</th>
                 <th style={S.th}>Amount</th>
@@ -504,6 +860,8 @@ export function BillingTab({
               {data.timeEntries.map((t) => (
                 <tr key={t.id}>
                   <td style={S.td}>{d10(t.entry_date)}</td>
+                  <td style={S.td}>{t.activity_type ?? <span style={{ color: "#9ca3af" }}>—</span>}</td>
+                  <td style={S.td}>{t.lawyer_level ?? <span style={{ color: "#9ca3af" }}>—</span>}</td>
                   <td style={S.td}>{t.description}</td>
                   <td style={S.td}>{t.minutes}</td>
                   <td style={S.td}>{t.rate != null && String(t.rate).trim() !== "" ? fmtMoney(t.rate, currency) : `default${defaultRate > 0 ? " (" + fmtMoney(defaultRate, currency) + ")" : ""}`}</td>
@@ -553,8 +911,7 @@ export function BillingTab({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ description: fDesc.trim(), amount: n(fAmt), kind: fKind }),
                 }).then(jsonOrThrow);
-                setFDesc("");
-                setFAmt("");
+                setFDesc(""); setFAmt("");
               })
             }
           >
@@ -827,8 +1184,19 @@ export function BillingPage({
               {saved && <span style={{ color: "#15803d", fontSize: 13 }}>Saved ✓</span>}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
-              The default hourly rate is used for time entries logged without a rate.
+              The default hourly rate is used for time entries that don't match a rate card entry.
             </div>
+
+            {/* Rate card section */}
+            {settings && (
+              <RateCardPanel
+                rateCards={settings.rateCards ?? []}
+                request={request}
+                accent={accent}
+                currency={currency}
+                onChanged={() => void reload()}
+              />
+            )}
           </div>
         )}
       </div>
