@@ -1,0 +1,944 @@
+MASTER REPLIT EXECUTION PROMPT
+INDEPENDENT MALAYSIAN CASE LAW INTELLIGENCE REPOSITORY
+
+ROOT GOOGLE DRIVE FOLDER:
+
+https://drive.google.com/drive/folders/1Rm5yiE4DsXEG1mVwbcTL8ehneCCRAtbx
+
+PRIMARY OBJECTIVE
+
+Inspect my existing website and implement a complete, operational pipeline that converts properly authorised judicial decisions into an independent Malaysian case-law repository.
+
+The repository must generate its own comprehensive case reports exclusively from the actual words and reasoning of the court. It must not reproduce, paraphrase, reconstruct or rely upon LexisNexis, MLJ, MLJU, CLJ or any other publisher’s headnotes, catchwords, abstracts, summaries, classifications, annotations, editorial tables or other value-added material.
+
+Do not merely give me a plan, sample code, mock-up or explanation. Inspect the current repository, database and application, implement the feature, test it, correct all failures and integrate it into the existing website without disrupting working functions.
+
+VERIFIED CHARACTERISTICS OF THE DRIVE CORPUS
+
+This instruction is based on an actual inspection of the folder.
+
+The root folder contains five principal collections:
+
+1. Criminal (Aizad)
+2. Corporate (Amer)
+3. Civil Procedure (Caroline)
+4. Banking (Fazly)
+5. Accident (Fikri)
+
+The corpus presently contains at least:
+
+* 1,261 Drive items;
+* 1,257 PDF files;
+* three ZIP files;
+* approximately 2.98 GB of material;
+* multiple date-based subfolders;
+* individually named cases;
+* numbered PDF bundles;
+* LexisNexis/MLJ/MLJU documents;
+* CLJ documents;
+* duplicate reported and unreported versions;
+* PDFs containing many cases;
+* one known zero-byte PDF; and
+* inconsistent filenames and extensions.
+
+Some folders returned exactly 200 items during inspection. Therefore, there may be additional files beyond the initial listing limit. Implement proper Google Drive pagination and never assume that 100 or 200 results represent the entire folder.
+
+One inspected Lexis bundle, “Files 2531 2550.pdf”, contains 48 separate documents despite the filename suggesting a different range. It includes a search-results index, repeated Lexis footers, multiple versions of the same decisions, case summaries, catchwords and judgment text.
+
+The CLJ files use a materially different layout. They may begin with an abstract, subject classifications, factual summaries, holdings, cases and legislation referred to, before reaching “JUDGMENT” or “GROUNDS OF JUDGMENT”.
+
+Do not assume that one PDF equals one judgment.
+
+SYSTEM OPERATING MODES
+
+Create two strictly separated operating modes.
+
+MODE A: OFFICIAL-SOURCE MODE
+This must be the default and active mode.
+
+MODE B: AUTHORISED PUBLISHER-DOCUMENT MODE
+This must remain disabled unless documentary evidence of appropriate processing and reuse permission has been recorded and approved in the system.
+
+Access to a Google Drive file is not, by itself, proof of permission to use that file for AI processing, database construction or publication.
+
+MODE A: DEFAULT OFFICIAL-SOURCE WORKFLOW
+
+For publisher-derived files in the existing Drive folder:
+
+* record only permitted Drive metadata;
+* classify the file as RESTRICTED_REFERENCE_ONLY;
+* do not send its contents to any AI model;
+* do not create embeddings from it;
+* do not index its substantive contents;
+* do not display it publicly;
+* do not convert it into a case report;
+* do not remove the publisher’s notices and treat the remainder as unrestricted;
+* do not store its contents in the production case-law database; and
+* do not use the publisher’s editorial content to guide the new report.
+
+Instead:
+
+1. Create a case-source replacement workflow.
+2. Where a case name, case number or neutral citation is independently available, locate or request the corresponding official judgment.
+3. Prefer the Malaysian Judiciary’s eJudgment portal or another authorised court source.
+4. If automated retrieval is not expressly permitted or technically available, provide an administrator interface to upload the official judgment manually.
+5. Link the official judgment to the original Drive inventory record without copying the restricted report into the production corpus.
+6. Mark items without an official judgment as NEEDS_OFFICIAL_SOURCE.
+7. Do not publish a case merely because a commercial report exists in Drive.
+
+MODE B: AUTHORISED PUBLISHER-DOCUMENT WORKFLOW
+
+Mode B may operate only where the rights-clearance record expressly confirms all required permissions, including as applicable:
+
+* AI processing;
+* systematic processing;
+* extraction of judicial text;
+* storage;
+* creation of derivative editorial reports;
+* database inclusion;
+* commercial use; and
+* public display.
+
+The rights record must contain:
+
+* publisher or rights holder;
+* document or collection covered;
+* permitted activities;
+* prohibited activities;
+* effective date;
+* expiry date;
+* evidence-document reference;
+* approving administrator;
+* date of approval; and
+* review notes.
+
+Absence, uncertainty or expiry of permission must cause the system to fail closed and return the item to RESTRICTED_REFERENCE_ONLY.
+
+Even in Mode B, publisher editorial content must never be supplied to the report-generating AI. Mode B permits only a deterministic, non-generative isolation process before the judicial text enters the AI environment.
+
+GOOGLE DRIVE CONNECTION
+
+Implement read-only recursive access to the specified root folder.
+
+Preferred access architecture:
+
+* a dedicated Google service account or dedicated Google Workspace account shared only with this folder; or
+* secure Google OAuth using the minimum practical read-only scope.
+
+Requirements:
+
+* never expose credentials in frontend code;
+* store secrets only in Replit Secrets or the existing secure secrets manager;
+* never print access tokens in logs;
+* never modify, rename, delete or reorganise the source Drive files;
+* support nested folders;
+* support shared folders;
+* use Drive API pagination with nextPageToken;
+* support interrupted and resumable inventory operations;
+* record the full folder path;
+* preserve contributor and date-folder information as intake metadata;
+* do not treat contributor names as public case metadata;
+* do not download all 2.98 GB simultaneously; and
+* do not hold the entire corpus in memory.
+
+Record for every Drive item:
+
+* Drive file ID;
+* title;
+* MIME type;
+* size;
+* created time;
+* modified time;
+* folder path;
+* intake subject;
+* contributor folder;
+* date folder;
+* checksum where available;
+* inventory timestamp;
+* source classification;
+* rights status;
+* processing status; and
+* error status.
+
+Handle ZIP files separately. Do not automatically extract ZIP files until their contents, sizes, file types and rights status have been inspected.
+
+Immediately flag:
+
+* zero-byte files;
+* corrupted PDFs;
+* password-protected files;
+* MIME-extension mismatches;
+* files larger than the configured safe-processing limit;
+* duplicate files;
+* partial uploads; and
+* unsupported formats.
+
+PROCESSING QUEUE
+
+Implement a persistent background-processing queue. Every item must have one of these statuses:
+
+* INVENTORY_PENDING
+* INVENTORIED
+* DUPLICATE_SUSPECTED
+* CORRUPTED
+* ZERO_BYTE
+* UNSUPPORTED
+* RESTRICTED_REFERENCE_ONLY
+* RIGHTS_REVIEW_REQUIRED
+* NEEDS_OFFICIAL_SOURCE
+* OFFICIAL_SOURCE_FOUND
+* READY_FOR_EXTRACTION
+* SPLITTING
+* EXTRACTION_REVIEW_REQUIRED
+* CLEAN_JUDGMENT_READY
+* REPORT_GENERATING
+* REPORT_VERIFICATION_FAILED
+* LEGAL_REVIEW_REQUIRED
+* APPROVED
+* PUBLISHED
+* SUPERSEDED
+* WITHDRAWN
+
+Each job must be idempotent. Retrying a failed job must not create duplicate cases, duplicate reports or duplicate embeddings.
+
+Store checkpoints so processing can resume after a timeout, deployment, restart or API failure.
+
+SOURCE CLASSIFICATION
+
+Classify each eligible source as:
+
+1. OFFICIAL_JUDGMENT
+2. COURT_AUTHORISED_COPY
+3. EXPRESSLY_LICENSED_SOURCE
+4. COMMERCIAL_PUBLISHER_REPORT
+5. UNKNOWN_SOURCE
+
+Recognise indicators including:
+
+* LexisNexis;
+* Malayan Law Journal;
+* MLJ;
+* MLJU;
+* CaseAnalysis;
+* Lexis download job numbers;
+* About LexisNexis;
+* Current Law Journal;
+* CLJ;
+* publisher copyright notices;
+* case summary;
+* abstract;
+* catchwords;
+* headnotes;
+* editorial holdings;
+* cases referred to;
+* legislation referred to; and
+* publisher-specific page markers.
+
+A reported citation appearing in a filename is not sufficient to classify a document as an official judgment.
+
+MULTI-DOCUMENT PDF SPLITTING
+
+The system must determine whether each authorised PDF contains:
+
+* one judgment;
+* several separate judgments;
+* several versions of the same judgment;
+* a search-results index followed by documents;
+* an editorial report followed by judgment text; or
+* incomplete fragments.
+
+For an authorised multi-document PDF:
+
+1. Detect document boundaries.
+2. Split the PDF into logical document records.
+3. Preserve the original Drive file ID and original page range.
+4. Create a separate candidate record for each apparent judgment.
+5. Detect when several records represent the same judicial decision.
+6. Keep one canonical judgment while preserving source aliases and provenance.
+7. Never merge different cases merely because they appear in the same PDF.
+8. Never treat a result-list entry as a judgment.
+
+Use multiple boundary signals, including:
+
+* “Document (1)” or “Documents (n)” markers;
+* numbered result indexes;
+* repeated case titles;
+* court names;
+* case numbers;
+* coram;
+* judgment dates;
+* judicial author names;
+* “JUDGMENT”;
+* “GROUNDS OF JUDGMENT”;
+* “ALASAN PENGHAKIMAN”;
+* official paragraph numbering;
+* abrupt page-number resets;
+* repeated publisher footers; and
+* substantial changes in document structure.
+
+Do not rely on only one heading because the word “judgment” may also occur inside editorial summaries.
+
+PUBLISHER-CONTENT FIREWALL
+
+Where Mode B is properly authorised, create four physical and logical content zones:
+
+ZONE 1: SOURCE CONTAINER
+The original authorised file, privately retained according to the rights record.
+
+ZONE 2: EXCLUDED PUBLISHER MATERIAL
+All editorial material, headers, footers, formatting and publisher-generated content.
+
+ZONE 3: CLEAN JUDICIAL TEXT
+Only the words forming part of the judgment or reasons delivered by the court.
+
+ZONE 4: INDEPENDENT PLATFORM REPORT
+New analysis generated only from Zone 3.
+
+Zone 2 must never be included in:
+
+* an LLM prompt;
+* embeddings;
+* semantic search;
+* report generation;
+* fine-tuning;
+* retrieval-augmented generation;
+* public display; or
+* user exports.
+
+The report-generating service must accept only CLEAN_JUDGMENT_TEXT IDs. It must be technically impossible to pass a raw Drive file or excluded-content field directly into the reporting model.
+
+LEXIS/MLJ/MLJU CLEANING RULES
+
+Where properly authorised, detect and exclude:
+
+* Lexis navigation text;
+* privacy and terms links;
+* Lexis copyright notices;
+* date and time of download;
+* job number;
+* search terms;
+* search type;
+* client or matter;
+* result-list pages;
+* “CaseAnalysis”;
+* “Case Summary”;
+* catchwords;
+* editorial “Held” sections;
+* editorial procedural histories;
+* publisher-created tables;
+* cases-referred-to lists;
+* legislation-referred-to lists;
+* counsel information unless it appears within the authentic judgment;
+* editor-created footnotes;
+* reporter pagination;
+* “[citation] at [page]” insertions created by the reporter;
+* repeated case-title headers;
+* “Page X of Y”;
+* Lexis footers; and
+* subscription or download information.
+
+The start of the clean judicial text must be established using multiple signals such as:
+
+* judicial author name followed by a colon;
+* “JUDGMENT”;
+* “GROUNDS OF JUDGMENT”;
+* “ALASAN PENGHAKIMAN”;
+* the court’s own introductory language;
+* official paragraph numbering; and
+* comparison with an independently obtained official judgment.
+
+Older decisions may not contain a “JUDGMENT” heading. In those cases, require reliable identification of the judicial author and beginning of the reasons. If confidence is insufficient, send the item for human review.
+
+CLJ CLEANING RULES
+
+Where properly authorised, exclude:
+
+* CLJ citation headers;
+* A-to-I margin markers;
+* “Current Law Journal” headers;
+* “Abstract”;
+* subject classifications;
+* editorial questions;
+* editorial factual summaries;
+* editorial holdings;
+* paragraph-reference headnotes;
+* cases referred to;
+* legislation referred to;
+* counsel lists unless contained in the authentic court text;
+* CLJ page numbers;
+* running case-name headers;
+* editorial notes; and
+* all content preceding the reliably identified commencement of the court’s reasons.
+
+Do not assume that text is judicial merely because it is written in narrative form.
+
+BOUNDARY CONFIDENCE
+
+Calculate a judicial-text boundary confidence score.
+
+* 0.98 to 1.00: may proceed automatically.
+* 0.90 to 0.9799: mandatory extraction review.
+* Below 0.90: stop and require manual isolation or an official replacement judgment.
+
+Display the proposed first and last judicial paragraphs to the reviewer.
+
+PARAGRAPH PROVENANCE
+
+Preserve official paragraph numbers exactly.
+
+Where no official paragraph numbers exist, create internal identifiers:
+
+P0001, P0002, P0003
+
+Each internal paragraph record must preserve:
+
+* source document;
+* source page;
+* character start and end;
+* paragraph hash;
+* opinion author;
+* paragraph text; and
+* whether the number is official or platform-generated.
+
+Never describe platform-generated paragraph numbers as official court numbering.
+
+DE-DUPLICATION
+
+The corpus contains multiple copies and multiple reporter versions of the same decisions.
+
+Detect duplicates using:
+
+* normalised party names;
+* case number;
+* neutral citation;
+* court;
+* judgment date;
+* judges;
+* official citation;
+* clean-text SHA-256 hash;
+* first and last judicial paragraphs;
+* MinHash or SimHash similarity; and
+* substantially identical paragraph sequences.
+
+Normalise party-name variations without destroying the original style. Account for:
+
+* “v” and “versus”;
+* “& Anor” and “and another”;
+* “& Ors” and “and others”;
+* initials;
+* honorifics;
+* punctuation;
+* spacing;
+* capitalisation; and
+* party-role descriptions.
+
+Do not merge cases solely because their party names are similar.
+
+Select one canonical judgment record. Preserve all independently verified citations and source aliases in a separate table.
+
+INDEPENDENT CASE REPORT ENGINE
+
+Generate the report from clean judicial text only.
+
+The model must never see:
+
+* headnotes;
+* catchwords;
+* abstracts;
+* editorial summaries;
+* editorial holdings;
+* editorial factual narratives; or
+* publisher classifications.
+
+Use an evidence-first process:
+
+1. Identify relevant judicial paragraphs.
+2. Extract propositions with supporting paragraph IDs.
+3. Draft each report section from those supported propositions.
+4. Run an independent verification pass.
+5. Reject or qualify any unsupported statement.
+6. Submit the completed report for human legal review.
+
+Generate the following sections where supported:
+
+1. Case identity
+2. Court and jurisdiction
+3. Coram
+4. Judgment date
+5. Case number
+6. Neutral citation
+7. Independently verified reported citations
+8. Nature of proceedings
+9. Procedural history
+10. Material facts
+11. Issues before the court
+12. Appellant’s or applicant’s submissions
+13. Respondent’s submissions
+14. Court’s analysis of each issue
+15. Holding on each issue
+16. Ratio decidendi
+17. Obiter dicta
+18. Legal tests applied
+19. Statutory provisions interpreted
+20. Authorities applied
+21. Authorities followed
+22. Authorities distinguished
+23. Authorities doubted or declined
+24. Evidential findings
+25. Burden and standard of proof
+26. Orders and remedies
+27. Costs
+28. Majority opinion
+29. Concurring opinion
+30. Dissenting opinion
+31. Independent subject terms
+32. Judgment-based legal propositions
+33. Practitioner significance
+34. Academic significance
+35. Limitations and unresolved questions
+36. Concise case digest
+37. Case timeline
+38. Issue-holding table
+39. Verification table
+40. Source and provenance statement
+
+If the judgment does not support a section, state:
+
+“Not stated or not determinable from the judgment.”
+
+Do not fill gaps by speculation.
+
+FACT, SUBMISSION AND FINDING SEPARATION
+
+The report must distinguish:
+
+* an alleged fact;
+* an agreed fact;
+* a party’s evidence;
+* a party’s submission;
+* the lower court’s finding;
+* the appellate court’s account;
+* the appellate court’s own finding; and
+* the final operative order.
+
+Never present a party’s allegation as a judicial finding.
+
+Never present a dissenting view as the court’s majority holding.
+
+Never combine different judges’ reasoning into one institutional ratio unless the judgment supports that treatment.
+
+RATIO DECIDENDI CONTROL
+
+For every proposed ratio, store:
+
+* legal issue;
+* material facts;
+* legal rule;
+* application of the rule;
+* outcome;
+* opinion author;
+* supporting paragraphs;
+* necessity to the outcome; and
+* confidence level.
+
+If the classification is uncertain, label it:
+
+“Proposed ratio requiring editorial confirmation.”
+
+Do not describe every legal statement made by the judge as ratio decidendi.
+
+SUBSEQUENT TREATMENT
+
+Do not declare a judgment:
+
+* followed;
+* applied;
+* distinguished;
+* doubted;
+* overruled;
+* reversed; or
+* still good law
+
+unless that treatment is supported by a later authorised judicial decision in the repository and has been editorially verified.
+
+Where treatment has not been checked, display:
+
+“Subsequent judicial treatment has not yet been independently verified.”
+
+REPORT EVIDENCE SCHEMA
+
+Every material report claim must be stored in structured form:
+
+{
+"claim_id": "unique identifier",
+"section": "report section",
+"claim_text": "independently drafted proposition",
+"claim_type": "fact | submission | finding | holding | ratio | obiter | order",
+"opinion_author": "judge or court",
+"supporting_paragraph_ids": ["paragraph identifiers"],
+"support_strength": "direct | inferential | contextual",
+"verification_status": "verified | qualified | rejected | review_required",
+"review_notes": "reason for the status"
+}
+
+A claim without supporting evidence must not be published.
+
+SIMILARITY AND CONTAMINATION CHECK
+
+In authorised Mode B, run a local, non-generative contamination test between the proposed independent report and the excluded publisher material.
+
+Block publication if the report contains suspicious verbatim sequences from excluded editorial material.
+
+Allow exemptions only for:
+
+* party names;
+* judge names;
+* court names;
+* case numbers;
+* citations;
+* statute titles;
+* conventional legal phrases;
+* text appearing in the clean judicial judgment itself; and
+* necessary short quotations from the judgment.
+
+The strongest safeguard is that excluded publisher material must never be supplied to the generative model.
+
+WEBSITE INTEGRATION
+
+Preserve the existing application’s:
+
+* authentication;
+* user roles;
+* navigation;
+* case-management features;
+* firm-management features;
+* database;
+* visual language;
+* current APIs; and
+* working deployments.
+
+Add an administrative Case Repository area containing:
+
+* Drive Inventory;
+* Rights Review;
+* Source Replacement;
+* Processing Queue;
+* Duplicate Review;
+* Extraction Review;
+* Case Report Review;
+* Publication Management;
+* Error Dashboard; and
+* Audit Log.
+
+Create an original public case page containing:
+
+* case title;
+* court;
+* judges;
+* decision date;
+* case number;
+* neutral citation;
+* independently verified citations;
+* report status;
+* concise digest;
+* material facts;
+* procedural history;
+* issues;
+* issue-by-issue holdings;
+* ratio;
+* obiter;
+* statutes and authorities;
+* orders;
+* practitioner note;
+* academic note;
+* case timeline;
+* issue-holding table;
+* paragraph-level verification;
+* clean judgment reader where publication is authorised;
+* official-source link;
+* save case;
+* private note;
+* copy citation; and
+* report an error.
+
+Selecting a claim must reveal the supporting judicial paragraphs beside it.
+
+Do not copy the LexisNexis or CLJ interface, branding, colour scheme, taxonomy, iconography or page layout.
+
+SEARCH
+
+Index only authorised clean judgment text and independently created reports.
+
+Support:
+
+* case-name search;
+* full-text search;
+* exact phrase search;
+* Boolean search;
+* BM and English;
+* court filter;
+* judge filter;
+* date filter;
+* subject filter;
+* legislation filter;
+* authority filter; and
+* result or remedy filter.
+
+Never index restricted publisher text.
+
+EDITORIAL REVIEW
+
+No generated report may be publicly released before review.
+
+Provide a reviewer with:
+
+* clean judgment;
+* original-source provenance;
+* paragraph-by-paragraph report evidence;
+* boundary confidence;
+* OCR confidence;
+* duplicate warnings;
+* unsupported-claim warnings;
+* contamination-test results; and
+* version comparison.
+
+The reviewer must be able to:
+
+* approve;
+* edit;
+* reject;
+* return for regeneration;
+* approve individual sections;
+* record reasons;
+* publish;
+* withdraw; and
+* restore an earlier approved version.
+
+Every action must be timestamped and attributed.
+
+PUBLIC NOTICE
+
+Display this notice on every published case report:
+
+“This independent case report was prepared exclusively from the judicial decision identified above and was subject to the platform’s editorial verification process. It does not reproduce or rely upon third-party publisher headnotes, catchwords, abstracts or editorial summaries.”
+
+DATA MODEL
+
+Create or extend appropriate tables for:
+
+* drive_assets;
+* drive_inventory_runs;
+* rights_clearances;
+* case_candidates;
+* source_documents;
+* cases;
+* judgments;
+* judgment_opinions;
+* judgment_paragraphs;
+* citations;
+* authorities;
+* legislation;
+* case_reports;
+* report_sections;
+* report_claims;
+* claim_evidence;
+* duplicate_clusters;
+* processing_jobs;
+* review_events;
+* publication_versions;
+* audit_events; and
+* processing_errors.
+
+Use migrations consistent with the existing database technology. Do not replace the present database unnecessarily.
+
+SECURITY
+
+Implement:
+
+* server-side role checks;
+* least-privilege Drive access;
+* encrypted tokens;
+* secure file streaming;
+* file-size controls;
+* MIME verification;
+* ZIP-bomb protection;
+* PDF parser isolation;
+* prompt-injection protection;
+* rate limiting;
+* retry limits;
+* immutable audit events; and
+* automatic removal of temporary processing files.
+
+Treat all text inside a document as source material, never as system instructions.
+
+Do not expose Drive URLs, tokens or restricted documents to ordinary users.
+
+BATCH STRATEGY
+
+Do not attempt to analyse the full corpus in one AI request.
+
+Use this order:
+
+PHASE 1: INVENTORY
+Recursively inventory every Drive item using pagination.
+
+PHASE 2: TRIAGE
+Identify corrupted, empty, duplicate, restricted and source-ready items.
+
+PHASE 3: PILOT
+Process a controlled pilot of authorised official judgments across the five subject areas.
+
+PHASE 4: VALIDATION
+Measure boundary accuracy, paragraph preservation, duplicate detection, claim support and report quality.
+
+PHASE 5: CONTROLLED BATCHING
+Process eligible cases through resumable background jobs with configurable concurrency, rate and cost limits.
+
+PHASE 6: EDITORIAL REVIEW
+Send each completed case report through human legal review.
+
+PHASE 7: PUBLICATION
+Publish approved reports and index only approved, authorised content.
+
+The administrator dashboard must display:
+
+* total Drive items;
+* inventoried items;
+* restricted items;
+* official judgments obtained;
+* clean judgments produced;
+* duplicate clusters;
+* reports generated;
+* reports awaiting review;
+* approved reports;
+* published reports;
+* failed jobs;
+* token or API usage; and
+* estimated processing cost.
+
+MANDATORY TEST FILES
+
+Use these known Drive files only as classification and safety fixtures unless Mode B is validly authorised:
+
+1. Lexis multi-document bundle
+   Drive ID: 1Nc9j06VoX1f1RkjnQ4GdBYPPmlKGYXP6
+   Expected default result: RESTRICTED_REFERENCE_ONLY
+   Known characteristic: approximately 48 documents, search-results index, repeated Lexis material and multiple case versions.
+
+2. Individual MLJ report
+   Drive ID: 1xmg5Ds-_cps5Iv2Qg1sBGWPOnX1A9Y7h
+   Expected default result: RESTRICTED_REFERENCE_ONLY
+   Known characteristic: publisher case summary followed by judicial reasons.
+
+3. MLJU document
+   Drive ID: 1HoaB9Lp4Jic4MEc2Wdmmw4lyOK0Hklzr
+   Expected default result: RESTRICTED_REFERENCE_ONLY pending official-source replacement or rights approval.
+
+4. CLJ report
+   Drive ID: 1get4HpgfIFufYaYGDqfPLqgsT97LLUb0
+   Expected default result: RESTRICTED_REFERENCE_ONLY
+   Known characteristic: abstract, editorial subject classification and summary before the grounds of judgment.
+
+5. Known zero-byte PDF
+   The inventory must locate it, mark it ZERO_BYTE and exclude it from all further processing.
+
+TESTING REQUIREMENTS
+
+Test at least:
+
+* recursive Drive pagination;
+* more than 200 files in a folder;
+* public and private folder access;
+* expired Drive credentials;
+* missing permissions;
+* zero-byte PDF;
+* corrupted PDF;
+* scanned PDF;
+* searchable PDF;
+* ZIP input;
+* MIME mismatch;
+* one-case PDF;
+* multi-case PDF;
+* duplicate reported and unreported versions;
+* BM judgment;
+* English judgment;
+* majority and dissent;
+* absent paragraph numbers;
+* incomplete judgment;
+* failed OCR;
+* uncertain judgment boundary;
+* unsupported report proposition;
+* attempted raw-file submission to the LLM;
+* attempted publication of restricted content;
+* prompt injection inside a document;
+* interrupted batch job;
+* safe retry;
+* version rollback;
+* search indexing; and
+* regression of existing website functions.
+
+NON-NEGOTIABLE ACCEPTANCE CRITERIA
+
+The implementation is complete only when:
+
+1. Every accessible Drive item is inventoried using full pagination.
+2. No restricted publisher content reaches the generative model.
+3. No restricted publisher content is embedded, indexed or displayed.
+4. Every processed PDF is correctly classified as single-case, multi-case, duplicate, invalid or review-required.
+5. Every clean judgment has paragraph-level provenance.
+6. Every material report claim links to supporting judicial paragraphs.
+7. Facts, submissions, findings, holdings, ratio, obiter and orders remain distinct.
+8. Duplicate decisions are not published as separate cases.
+9. Human legal review works.
+10. Approved reports appear correctly on the website.
+11. Search contains only authorised clean judgment text and original platform reports.
+12. Existing case-management and firm-management functions continue to work.
+13. There are no placeholder buttons, dead links or unfinished screens.
+14. All relevant automated tests pass.
+15. Failures are visible, recoverable and auditable.
+
+EXECUTION DISCIPLINE
+
+First inspect the entire existing application and identify:
+
+* framework;
+* database;
+* authentication;
+* present user roles;
+* storage;
+* AI provider;
+* background-job capability;
+* search implementation;
+* current case repository;
+* existing migrations;
+* environment variables; and
+* deployment constraints.
+
+Reuse the existing architecture wherever sound. Do not rewrite the whole application merely because a new implementation would be easier.
+
+Implement the work in testable stages. Run tests after every stage. Correct failures before continuing.
+
+If a required external credential is missing, complete every component that does not depend on that credential, then state the exact secret and permission required. Do not leave unrelated work unfinished.
+
+Do not claim completion unless the implemented system satisfies the acceptance criteria.
+
+FINAL COMPLETION REPORT
+
+When implementation is complete, provide:
+
+1. concise architecture summary;
+2. files added and changed;
+3. database migrations;
+4. environment variables required;
+5. Drive inventory totals;
+6. source-classification totals;
+7. rights-gate implementation;
+8. publisher-firewall implementation;
+9. multi-document splitting results;
+10. duplicate-detection results;
+11. reports successfully generated;
+12. test results;
+13. unresolved failures;
+14. items requiring legal review;
+15. estimated ongoing processing cost; and
+16. exact administrator instructions for running, pausing, resuming and reviewing the corpus pipeline.
