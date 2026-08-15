@@ -58,6 +58,11 @@ ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS activity_type text;
 ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
 ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_name text;
 ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_source text;
+-- NOTE: we intentionally do NOT back-fill rate_source for historic rows.
+-- Before rate_source was tracked, both rate-card-derived and manually-entered
+-- entries wrote only rate_usd; there is no reliable discriminator between them.
+-- The UI shows a neutral "legacy rate" badge for any row where rate_source IS NULL
+-- and rate_usd IS NOT NULL, so old entries are displayed correctly without mutation.
 
 CREATE TABLE IF NOT EXISTS case_clients (
   id serial PRIMARY KEY,

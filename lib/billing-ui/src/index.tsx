@@ -1031,7 +1031,23 @@ export function BillingTab({
                         manual rate
                       </span>
                     )}
-                    {(t.rate_source == null || (t.rate_source !== "named" && t.rate_source !== "level" && t.rate_source !== "manual")) && (
+                    {t.rate_source === "default" && (
+                      <span
+                        title="No rate card matched — firm default rate applied"
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#6b7280", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                      >
+                        firm default
+                      </span>
+                    )}
+                    {t.rate_source == null && t.rate != null && n(t.rate) > 0 && (
+                      <span
+                        title="Rate logged before rate-source tracking was introduced"
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#9ca3af", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                      >
+                        legacy rate
+                      </span>
+                    )}
+                    {t.rate_source == null && (t.rate == null || n(t.rate) === 0) && (
                       <span
                         title="No rate card matched — firm default rate applied"
                         style={{ display: "block", fontSize: 10, marginTop: 2, color: "#6b7280", fontWeight: 600, whiteSpace: "nowrap" as const }}
