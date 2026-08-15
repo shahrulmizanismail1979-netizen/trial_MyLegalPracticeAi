@@ -49,6 +49,8 @@ export default function CaseLawPage() {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [court, setCourt] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [offset, setOffset] = useState(0);
   const LIMIT = 20;
 
@@ -68,12 +70,14 @@ export default function CaseLawPage() {
   const [toast, setToast] = useState("");
 
   /* search */
-  const doSearch = useCallback(async (q: string, ct: string, off: number) => {
+  const doSearch = useCallback(async (q: string, ct: string, df: string, dt: string, off: number) => {
     setLoading(true); setErr("");
     try {
       const p = new URLSearchParams();
       if (q) p.set("q", q);
       if (ct) p.set("court", ct);
+      if (df) p.set("dateFrom", df);
+      if (dt) p.set("dateTo", dt);
       p.set("limit", String(LIMIT));
       p.set("offset", String(off));
       const r = await fetch(`/api/cases/search?${p}`, FETCH_INIT);
@@ -84,10 +88,10 @@ export default function CaseLawPage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { doSearch("", "", 0); }, [doSearch]);
+  useEffect(() => { doSearch("", "", "", "", 0); }, [doSearch]);
 
-  const handleSearch = () => { setOffset(0); setSelectedId(null); setDetail(null); setSubmitted(query); doSearch(query, court, 0); };
-  const handlePage = (o: number) => { setOffset(o); doSearch(submitted, court, o); };
+  const handleSearch = () => { setOffset(0); setSelectedId(null); setDetail(null); setSubmitted(query); doSearch(query, court, dateFrom, dateTo, 0); };
+  const handlePage = (o: number) => { setOffset(o); doSearch(submitted, court, dateFrom, dateTo, o); };
 
   /* detail */
   const openCase = useCallback(async (id: number) => {
@@ -297,12 +301,22 @@ export default function CaseLawPage() {
         </div>
 
         {/* Filter row */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <input value={court} onChange={e => setCourt(e.target.value)}
             placeholder="Filter by court…"
             className="px-3 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 w-48 placeholder:text-muted-foreground" />
-          {(court || submitted) && (
-            <button onClick={() => { setCourt(""); setQuery(""); setSubmitted(""); setOffset(0); doSearch("", "", 0); }}
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">From</label>
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setOffset(0); }}
+              className="px-2 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+          </div>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">To</label>
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setOffset(0); }}
+              className="px-2 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+          </div>
+          {(court || submitted || dateFrom || dateTo) && (
+            <button onClick={() => { setCourt(""); setQuery(""); setSubmitted(""); setDateFrom(""); setDateTo(""); setOffset(0); doSearch("", "", "", "", 0); }}
               className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted transition-colors">
               Clear
             </button>
