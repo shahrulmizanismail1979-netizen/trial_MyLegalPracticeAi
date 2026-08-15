@@ -23,6 +23,10 @@ export type RateCardSource = "named" | "level";
 interface RateCardMatch {
   rate: number;
   source: RateCardSource;
+  /** The id of the case_rate_cards row that was matched. Stored on the time
+   *  entry so that propagation can target exactly the right entries when the
+   *  card is later updated or deleted. */
+  cardId: number;
 }
 
 /**
@@ -54,44 +58,44 @@ async function lookupRateCard(
   // Step 1 — named-lawyer + practice-area exact match.
   if (hasName && hasArea) {
     const { rows } = await pool.query(
-      `SELECT rate_usd FROM case_rate_cards
+      `SELECT id, rate_usd FROM case_rate_cards
        WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
          AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area = $6`,
       [portal, ownerKey, activityType, lawyerLevel, name, area],
     );
-    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named" };
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named", cardId: rows[0].id as number };
   }
 
   // Step 2 — named-lawyer match (any practice area).
   if (hasName) {
     const { rows } = await pool.query(
-      `SELECT rate_usd FROM case_rate_cards
+      `SELECT id, rate_usd FROM case_rate_cards
        WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
          AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area IS NULL`,
       [portal, ownerKey, activityType, lawyerLevel, name],
     );
-    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named" };
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named", cardId: rows[0].id as number };
   }
 
   // Step 3 — practice-area match with no named-lawyer row.
   if (hasArea) {
     const { rows } = await pool.query(
-      `SELECT rate_usd FROM case_rate_cards
+      `SELECT id, rate_usd FROM case_rate_cards
        WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
          AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area = $5`,
       [portal, ownerKey, activityType, lawyerLevel, area],
     );
-    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level" };
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level", cardId: rows[0].id as number };
   }
 
   // Step 4 — level-only fallback (no name, no area).
   const { rows } = await pool.query(
-    `SELECT rate_usd FROM case_rate_cards
+    `SELECT id, rate_usd FROM case_rate_cards
      WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
        AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area IS NULL`,
     [portal, ownerKey, activityType, lawyerLevel],
   );
-  if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level" };
+  if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level", cardId: rows[0].id as number };
   return null;
 }
 
@@ -114,7 +118,7 @@ export function makeTimeRecordingRouter(
     }
     const { rows } = await pool.query(
       `SELECT id, description, minutes, rate_usd, entry_date, created_at,
-              activity_type, lawyer_level, lawyer_name, rate_source
+              activity_type, lawyer_level, lawyer_name, rate_source, rate_card_id
        FROM case_time_entries
        WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
        ORDER BY entry_date DESC, id DESC`,
@@ -174,6 +178,7 @@ export function makeTimeRecordingRouter(
     //   'default' — no rate card matched; billing will use the firm's default_hourly_rate
     let rateVal: number | null = null;
     let rateSource: "manual" | "named" | "level" | "default" = "default";
+    let rateCardId: number | null = null;
 
     const explicitRate =
       rate_usd !== undefined && rate_usd !== null && rate_usd !== ""
@@ -183,18 +188,21 @@ export function makeTimeRecordingRouter(
     if (explicitRate !== null && !Number.isNaN(explicitRate)) {
       rateVal = explicitRate;
       rateSource = "manual";
+      // rate_card_id stays null — manual rates are not tied to any card
     } else if (activityTypeStr && lawyerLevelStr) {
       const match = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
       if (match) {
         rateVal = match.rate;
         rateSource = match.source;
+        rateCardId = match.cardId;
       }
     }
 
     const { rows } = await pool.query(
       `INSERT INTO case_time_entries
-         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name, rate_source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date,
+          activity_type, lawyer_level, lawyer_name, rate_source, rate_card_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         portal,
         matterId,
@@ -207,6 +215,7 @@ export function makeTimeRecordingRouter(
         lawyerLevelStr,
         lawyerNameStr,
         rateSource,
+        rateCardId,
       ],
     );
     res.status(201).json(rows[0]);

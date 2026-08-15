@@ -129,6 +129,10 @@ export async function ensureBillingTables(): Promise<void> {
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_name text;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_source text;
+    -- rate_card_id records exactly which rate-card row resolved this entry so
+    -- propagation can be keyed precisely on card identity rather than
+    -- re-matching all lookup dimensions (Task #294).
+    ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_card_id integer;
 
     -- Add lawyer_name to existing rate-card tables, drop the old unique constraint
     -- (if it exists from earlier schema), and replace with an expression-based index
@@ -187,6 +191,57 @@ async function getRateCards(portal: Portal, ownerKey: string) {
     [portal, ownerKey],
   );
   return rows;
+}
+
+type RateCardRow = {
+  id: number;
+  activity_type: string;
+  lawyer_level: string;
+  lawyer_name: string | null;
+  rate_usd: string | number;
+};
+
+/**
+ * After a rate-card update (PUT or POST-upsert), refresh rate_usd on all
+ * unbilled time entries that were resolved specifically from this card
+ * (matched by rate_card_id).  Manual entries are never touched because they
+ * never carry a rate_card_id.
+ */
+async function propagateRateCardUpdate(
+  portal: Portal,
+  ownerKey: string,
+  card: RateCardRow,
+): Promise<void> {
+  const newRate = typeof card.rate_usd === "number" ? card.rate_usd : parseFloat(String(card.rate_usd));
+  if (!Number.isFinite(newRate) || newRate <= 0) return;
+
+  const source = card.lawyer_name ? "named" : "level";
+  await pool.query(
+    `UPDATE case_time_entries
+     SET rate_usd = $1, rate_source = $2
+     WHERE portal = $3 AND owner_key = $4 AND invoice_id IS NULL
+       AND rate_card_id = $5`,
+    [newRate.toFixed(2), source, portal, ownerKey, card.id],
+  );
+}
+
+/**
+ * After a rate-card delete, nullify rate_usd on all unbilled time entries
+ * that were resolved specifically from this card (matched by rate_card_id).
+ * Billed entries (invoice_id IS NOT NULL) and manual entries are untouched.
+ */
+async function propagateRateCardDelete(
+  portal: Portal,
+  ownerKey: string,
+  card: Pick<RateCardRow, "id">,
+): Promise<void> {
+  await pool.query(
+    `UPDATE case_time_entries
+     SET rate_usd = NULL, rate_source = 'default', rate_card_id = NULL
+     WHERE portal = $1 AND owner_key = $2 AND invoice_id IS NULL
+       AND rate_card_id = $3`,
+    [portal, ownerKey, card.id],
+  );
 }
 
 async function computeStatus(
@@ -326,6 +381,9 @@ export function attachBilling(opts: {
         money(rate),
       ],
     );
+    // Propagate updated rate to matching unbilled time entries (covers the
+    // ON CONFLICT upsert path where an existing card's rate changed).
+    await propagateRateCardUpdate(portal, ownerKey, rows[0] as RateCardRow);
     res.status(201).json(rows[0]);
   });
 
@@ -352,6 +410,8 @@ export function attachBilling(opts: {
       res.status(404).json({ error: "Rate card entry not found" });
       return;
     }
+    // Propagate updated rate to all matching unbilled time entries.
+    await propagateRateCardUpdate(portal, ownerKey, rows[0] as RateCardRow);
     res.json(rows[0]);
   });
 
@@ -364,13 +424,15 @@ export function attachBilling(opts: {
       return;
     }
     const { rows } = await pool.query(
-      `DELETE FROM case_rate_cards WHERE id = $1 AND portal = $2 AND owner_key = $3 RETURNING id`,
+      `DELETE FROM case_rate_cards WHERE id = $1 AND portal = $2 AND owner_key = $3 RETURNING *`,
       [cardId, portal, ownerKey],
     );
     if (!rows[0]) {
       res.status(404).json({ error: "Rate card entry not found" });
       return;
     }
+    // Nullify rate_usd on matching unbilled time entries.
+    await propagateRateCardDelete(portal, ownerKey, rows[0] as RateCardRow);
     res.json({ success: true });
   });
 

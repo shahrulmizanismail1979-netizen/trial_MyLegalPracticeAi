@@ -63,6 +63,9 @@ ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_source text;
 -- entries wrote only rate_usd; there is no reliable discriminator between them.
 -- The UI shows a neutral "legacy rate" badge for any row where rate_source IS NULL
 -- and rate_usd IS NOT NULL, so old entries are displayed correctly without mutation.
+-- rate_card_id records which rate-card row resolved this entry; propagation keys on it
+-- so updates/deletes only touch entries tied to the changed card.
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_card_id integer;
 
 CREATE TABLE IF NOT EXISTS case_clients (
   id serial PRIMARY KEY,

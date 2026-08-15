@@ -32,6 +32,7 @@ const { default: app } = await import("../../app");
 const { db, crimAccessCodesTable } = await import("@workspace/db");
 const { pool } = await import("@workspace/db");
 const { eq, inArray } = await import("drizzle-orm");
+const { ensureBillingTables } = await import("../../lib/caseBilling");
 
 const RUN_ID = crypto.randomUUID();
 
@@ -64,6 +65,10 @@ let testMatterId: number;
 const timeEntryIds: number[] = [];
 
 beforeAll(async () => {
+  // Ensure billing schema (including rate_card_id on case_time_entries) exists
+  // before any route touches those columns.  Tests import app.ts directly so
+  // the index.ts startup path (which normally runs this) does not execute.
+  await ensureBillingTables();
   sess = await createLoggedInAgent();
   codeIds.push(sess.codeId);
 });
@@ -221,5 +226,256 @@ describe("MyCrimAI rate-card auto-fill", () => {
     const levelOnlyRate = 300;
     const namedLawyerRate = 500;
     expect(namedLawyerRate).toBeGreaterThan(levelOnlyRate);
+  });
+});
+
+// ── Propagation tests ─────────────────────────────────────────────────────────
+
+describe("Rate-card propagation to unbilled time entries", () => {
+  let matterId2: number;
+  /**
+   * Two level cards for the same activity+level but different practice areas:
+   *   generalCardId  — no practice_area (broadest fallback, step 4)
+   *   areaCardId     — practice_area = "corporate" (step 3)
+   * A named card (Siti) sits alongside both.
+   */
+  let generalCardId: number;
+  let areaCardId: number;
+  let namedCardId: number;
+
+  it("creates a second matter for propagation tests", async () => {
+    const res = await sess.agent
+      .post("/api/crim/matters")
+      .send({ title: `Propagation Test ${RUN_ID}`, stage: "trial", charge: "s.302 PC" });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    matterId2 = res.body.id as number;
+    expect(matterId2).toBeGreaterThan(0);
+  });
+
+  it("creates general level card (drafting / partner / 400)", async () => {
+    const res = await sess.agent
+      .post("/api/crim/matters/billing/rate-cards")
+      .send({ activityType: "drafting", lawyerLevel: "partner", rateUsd: 400 });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    generalCardId = res.body.id as number;
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(400, 1);
+  });
+
+  it("creates area-specific level card (drafting / partner / corporate / 550)", async () => {
+    const res = await sess.agent
+      .post("/api/crim/matters/billing/rate-cards")
+      .send({ activityType: "drafting", lawyerLevel: "partner", practiceArea: "corporate", rateUsd: 550 });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    areaCardId = res.body.id as number;
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(550, 1);
+  });
+
+  it("creates named card (drafting / partner / Siti / 700)", async () => {
+    const res = await sess.agent
+      .post("/api/crim/matters/billing/rate-cards")
+      .send({ activityType: "drafting", lawyerLevel: "partner", lawyerName: "Siti", rateUsd: 700 });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    namedCardId = res.body.id as number;
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(700, 1);
+  });
+
+  // ── Seed: log one entry per card tier ──────────────────────────────────
+
+  it("entry without name/area resolves to general level card (400)", async () => {
+    const entry = await logTimeEntry(matterId2, `General level entry ${RUN_ID}`, 45, "drafting", "partner");
+    expect(parseFloat(entry.rate_usd as string)).toBeCloseTo(400, 1);
+    expect(entry.rate_source).toBe("level");
+    expect(entry.rate_card_id).toBe(generalCardId);
+  });
+
+  it("entry with practice_area='corporate' resolves to area card (550), not general", async () => {
+    const body: Record<string, unknown> = {
+      description: `Area level entry ${RUN_ID}`,
+      minutes: 30,
+      activity_type: "drafting",
+      lawyer_level: "partner",
+      practice_area: "corporate",
+    };
+    const res = await sess.agent
+      .post(`/api/crim/matters/${matterId2}/time-entries`)
+      .send(body);
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    timeEntryIds.push(res.body.id as number);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(550, 1);
+    expect(res.body.rate_source).toBe("level");
+    // Must be keyed to the area card, not the general one
+    expect(res.body.rate_card_id).toBe(areaCardId);
+  });
+
+  it("entry for Siti resolves to named card (700)", async () => {
+    const entry = await logTimeEntry(matterId2, `Named entry Siti ${RUN_ID}`, 60, "drafting", "partner", "Siti");
+    expect(parseFloat(entry.rate_usd as string)).toBeCloseTo(700, 1);
+    expect(entry.rate_source).toBe("named");
+    expect(entry.rate_card_id).toBe(namedCardId);
+  });
+
+  it("entry for unknown lawyer falls back to general level card (400) — named precedes level only for known names", async () => {
+    const entry = await logTimeEntry(matterId2, `Fallback level entry ${RUN_ID}`, 20, "drafting", "partner", "UnknownLawyer");
+    // No named card for UnknownLawyer → falls through to general level (step 4)
+    expect(parseFloat(entry.rate_usd as string)).toBeCloseTo(400, 1);
+    expect(entry.rate_source).toBe("level");
+    expect(entry.rate_card_id).toBe(generalCardId);
+  });
+
+  it("manual-rate entry has no rate_card_id", async () => {
+    const body: Record<string, unknown> = {
+      description: `Manual rate entry ${RUN_ID}`,
+      minutes: 20,
+      activity_type: "drafting",
+      lawyer_level: "partner",
+      rate_usd: 999,
+    };
+    const res = await sess.agent
+      .post(`/api/crim/matters/${matterId2}/time-entries`)
+      .send(body);
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    timeEntryIds.push(res.body.id as number);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(999, 1);
+    expect(res.body.rate_source).toBe("manual");
+    expect(res.body.rate_card_id).toBeNull();
+  });
+
+  // ── PUT: general level card update propagates only to its own entries ──
+
+  it("PUT general card to 450 → general-level entries update; area and named entries unchanged", async () => {
+    const put = await sess.agent
+      .put(`/api/crim/matters/billing/rate-cards/${generalCardId}`)
+      .send({ rateUsd: 450 });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+
+    const get = await sess.agent.get(`/api/crim/matters/${matterId2}/time-entries`);
+    expect(get.status).toBe(200);
+    const entries: Array<Record<string, unknown>> = get.body.entries ?? get.body;
+
+    // Both entries keyed to generalCardId should update
+    const generalEntry = entries.find((e) => (e.description as string).includes("General level entry"));
+    expect(generalEntry).toBeTruthy();
+    expect(parseFloat(generalEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+
+    const fallbackEntry = entries.find((e) => (e.description as string).includes("Fallback level entry"));
+    expect(fallbackEntry).toBeTruthy();
+    expect(parseFloat(fallbackEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+
+    // Area-card entry must NOT change
+    const areaEntry = entries.find((e) => (e.description as string).includes("Area level entry"));
+    expect(areaEntry).toBeTruthy();
+    expect(parseFloat(areaEntry!.rate_usd as string)).toBeCloseTo(550, 1);
+
+    // Named entry must NOT change
+    const namedEntry = entries.find((e) => (e.description as string).includes("Named entry Siti"));
+    expect(namedEntry).toBeTruthy();
+    expect(parseFloat(namedEntry!.rate_usd as string)).toBeCloseTo(700, 1);
+
+    // Manual entry must NOT change
+    const manualEntry = entries.find((e) => (e.description as string).includes("Manual rate entry"));
+    expect(manualEntry).toBeTruthy();
+    expect(parseFloat(manualEntry!.rate_usd as string)).toBeCloseTo(999, 1);
+  });
+
+  // ── PUT: named card update propagates only to its own entries ──────────
+
+  it("PUT named card (Siti) to 800 → named entry updates; general and area entries unchanged", async () => {
+    const put = await sess.agent
+      .put(`/api/crim/matters/billing/rate-cards/${namedCardId}`)
+      .send({ rateUsd: 800 });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+
+    const get = await sess.agent.get(`/api/crim/matters/${matterId2}/time-entries`);
+    const entries: Array<Record<string, unknown>> = get.body.entries ?? get.body;
+
+    const namedEntry = entries.find((e) => (e.description as string).includes("Named entry Siti"));
+    expect(namedEntry).toBeTruthy();
+    expect(parseFloat(namedEntry!.rate_usd as string)).toBeCloseTo(800, 1);
+
+    // General-level entries still at 450 (from previous test)
+    const generalEntry = entries.find((e) => (e.description as string).includes("General level entry"));
+    expect(parseFloat(generalEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+
+    const fallbackEntry = entries.find((e) => (e.description as string).includes("Fallback level entry"));
+    expect(parseFloat(fallbackEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+
+    // Area entry still at 550
+    const areaEntry = entries.find((e) => (e.description as string).includes("Area level entry"));
+    expect(parseFloat(areaEntry!.rate_usd as string)).toBeCloseTo(550, 1);
+  });
+
+  // ── DELETE propagation ───────────────────────────────────────────────────
+
+  it("DELETE named card → named entry nullified; other entries untouched", async () => {
+    const del = await sess.agent.delete(`/api/crim/matters/billing/rate-cards/${namedCardId}`);
+    expect(del.status, JSON.stringify(del.body)).toBe(200);
+    expect(del.body.success).toBe(true);
+
+    const get = await sess.agent.get(`/api/crim/matters/${matterId2}/time-entries`);
+    const entries: Array<Record<string, unknown>> = get.body.entries ?? get.body;
+
+    const namedEntry = entries.find((e) => (e.description as string).includes("Named entry Siti"));
+    expect(namedEntry).toBeTruthy();
+    expect(namedEntry!.rate_usd).toBeNull();
+    expect(namedEntry!.rate_source).toBe("default");
+    expect(namedEntry!.rate_card_id).toBeNull();
+
+    // General-level entries unchanged (keyed to generalCardId, not namedCardId)
+    const generalEntry = entries.find((e) => (e.description as string).includes("General level entry"));
+    expect(parseFloat(generalEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+    expect(generalEntry!.rate_card_id).toBe(generalCardId);
+
+    // Area entry unchanged
+    const areaEntry = entries.find((e) => (e.description as string).includes("Area level entry"));
+    expect(parseFloat(areaEntry!.rate_usd as string)).toBeCloseTo(550, 1);
+    expect(areaEntry!.rate_card_id).toBe(areaCardId);
+
+    // Manual entry unchanged
+    const manualEntry = entries.find((e) => (e.description as string).includes("Manual rate entry"));
+    expect(parseFloat(manualEntry!.rate_usd as string)).toBeCloseTo(999, 1);
+  });
+
+  it("DELETE area card → area entry nullified; general entries untouched", async () => {
+    const del = await sess.agent.delete(`/api/crim/matters/billing/rate-cards/${areaCardId}`);
+    expect(del.status, JSON.stringify(del.body)).toBe(200);
+
+    const get = await sess.agent.get(`/api/crim/matters/${matterId2}/time-entries`);
+    const entries: Array<Record<string, unknown>> = get.body.entries ?? get.body;
+
+    const areaEntry = entries.find((e) => (e.description as string).includes("Area level entry"));
+    expect(areaEntry).toBeTruthy();
+    expect(areaEntry!.rate_usd).toBeNull();
+    expect(areaEntry!.rate_source).toBe("default");
+
+    // General-level entries still intact (keyed to generalCardId)
+    const generalEntry = entries.find((e) => (e.description as string).includes("General level entry"));
+    expect(parseFloat(generalEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+    expect(generalEntry!.rate_card_id).toBe(generalCardId);
+
+    const fallbackEntry = entries.find((e) => (e.description as string).includes("Fallback level entry"));
+    expect(parseFloat(fallbackEntry!.rate_usd as string)).toBeCloseTo(450, 1);
+    expect(fallbackEntry!.rate_card_id).toBe(generalCardId);
+  });
+
+  it("DELETE general card → general entries nullified; manual entry untouched", async () => {
+    const del = await sess.agent.delete(`/api/crim/matters/billing/rate-cards/${generalCardId}`);
+    expect(del.status, JSON.stringify(del.body)).toBe(200);
+
+    const get = await sess.agent.get(`/api/crim/matters/${matterId2}/time-entries`);
+    const entries: Array<Record<string, unknown>> = get.body.entries ?? get.body;
+
+    const generalEntry = entries.find((e) => (e.description as string).includes("General level entry"));
+    expect(generalEntry!.rate_usd).toBeNull();
+    expect(generalEntry!.rate_source).toBe("default");
+
+    const fallbackEntry = entries.find((e) => (e.description as string).includes("Fallback level entry"));
+    expect(fallbackEntry!.rate_usd).toBeNull();
+    expect(fallbackEntry!.rate_source).toBe("default");
+
+    // Manual entry always untouched
+    const manualEntry = entries.find((e) => (e.description as string).includes("Manual rate entry"));
+    expect(parseFloat(manualEntry!.rate_usd as string)).toBeCloseTo(999, 1);
+    expect(manualEntry!.rate_source).toBe("manual");
+    expect(manualEntry!.rate_card_id).toBeNull();
   });
 });
