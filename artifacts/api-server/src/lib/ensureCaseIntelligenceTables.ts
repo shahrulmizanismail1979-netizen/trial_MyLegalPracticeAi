@@ -50,6 +50,14 @@ CREATE TABLE IF NOT EXISTS case_time_entries (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_case_time_entries_matter ON case_time_entries (portal, matter_id);
+-- Additive columns added over time via ALTER TABLE so existing rows get NULL defaults.
+-- These must be listed here (not only in ensureBillingTables) so test setups that call
+-- ensureCaseIntelligenceTables without ensureBillingTables also have the columns.
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS invoice_id integer;
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS activity_type text;
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_name text;
+ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_source text;
 
 CREATE TABLE IF NOT EXISTS case_clients (
   id serial PRIMARY KEY,

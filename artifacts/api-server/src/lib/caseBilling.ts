@@ -128,6 +128,7 @@ export async function ensureBillingTables(): Promise<void> {
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS activity_type text;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_level text;
     ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS lawyer_name text;
+    ALTER TABLE case_time_entries ADD COLUMN IF NOT EXISTS rate_source text;
 
     -- Add lawyer_name to existing rate-card tables, drop the old unique constraint
     -- (if it exists from earlier schema), and replace with an expression-based index
@@ -708,7 +709,7 @@ export function attachBilling(opts: {
     const [{ rows: time }, { rows: fees }, { rows: invoices }, settings, rateCards] = await Promise.all([
       pool.query(
         `SELECT id, description, minutes, rate_usd AS rate, entry_date, invoice_id,
-                activity_type, lawyer_level, lawyer_name
+                activity_type, lawyer_level, lawyer_name, rate_source
          FROM case_time_entries WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
          ORDER BY entry_date DESC, id DESC`,
         [portal, matterId, ownerKey],

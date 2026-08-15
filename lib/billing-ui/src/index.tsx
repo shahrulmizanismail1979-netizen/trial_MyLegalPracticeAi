@@ -29,6 +29,8 @@ interface TimeEntry {
   activity_type: string | null;
   lawyer_level: string | null;
   lawyer_name: string | null;
+  /** Persisted at POST time: which rule tier actually provided the rate. */
+  rate_source: "named" | "level" | "manual" | "default" | null;
 }
 interface FeeItem {
   id: number;
@@ -956,7 +958,11 @@ export function BillingTab({
                   body: JSON.stringify({
                     description: tDesc.trim(),
                     minutes: Math.round(n(tMin)),
-                    rate_usd: tRate.trim() ? n(tRate) : undefined,
+                    // Only send rate_usd when the user manually typed it.
+                    // Auto-filled values are omitted so the server does its own
+                    // rate-card lookup and persists the correct rate_source
+                    // ('named' or 'level') rather than 'manual'.
+                    rate_usd: !rateAutoFilled && tRate.trim() ? n(tRate) : undefined,
                     entry_date: tDate,
                     activity_type: tActivity.trim() || undefined,
                     lawyer_level: tLevel.trim() || undefined,
@@ -999,7 +1005,33 @@ export function BillingTab({
                   <td style={S.td}>{t.lawyer_name ?? <span style={{ color: "#9ca3af" }}>—</span>}</td>
                   <td style={S.td}>{t.description}</td>
                   <td style={S.td}>{t.minutes}</td>
-                  <td style={S.td}>{t.rate != null && String(t.rate).trim() !== "" ? fmtMoney(t.rate, currency) : `default${defaultRate > 0 ? " (" + fmtMoney(defaultRate, currency) + ")" : ""}`}</td>
+                  <td style={S.td}>
+                    {t.rate != null && String(t.rate).trim() !== "" ? fmtMoney(t.rate, currency) : `default${defaultRate > 0 ? " (" + fmtMoney(defaultRate, currency) + ")" : ""}`}
+                    {t.rate_source === "named" && (
+                      <span
+                        title={`Named-lawyer rule matched${t.lawyer_name ? ` for ${t.lawyer_name}` : ""}`}
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#7c3aed", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                      >
+                        {t.lawyer_name ? `${t.lawyer_name} — custom rate` : "custom rate"}
+                      </span>
+                    )}
+                    {t.rate_source === "level" && (
+                      <span
+                        title={`Level rate applied${t.lawyer_level ? ` for ${t.lawyer_level}` : ""}${t.lawyer_name ? ` (no named rule for ${t.lawyer_name})` : ""}`}
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#2563eb", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                      >
+                        {t.lawyer_level ? `${t.lawyer_level} — level rate` : "level rate"}
+                      </span>
+                    )}
+                    {t.rate_source === "manual" && (
+                      <span
+                        title="Rate entered manually"
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#059669", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                      >
+                        manual rate
+                      </span>
+                    )}
+                  </td>
                   <td style={S.td}>{fmtMoney(lineAmount(t), currency)}</td>
                   <td style={S.td}>{t.invoice_id != null ? <StatusBadge status="issued" /> : <span style={{ color: "#6b7280", fontSize: 12 }}>Unbilled</span>}</td>
                   <td style={S.td}>

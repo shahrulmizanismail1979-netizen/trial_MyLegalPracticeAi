@@ -12,14 +12,28 @@ import { verifyMatterOwnership } from "./caseOwnership";
 import type { Portal } from "./caseStages";
 
 /**
+ * Rate card lookup result: the matched rate and which rule tier was used.
+ *
+ * source values:
+ *   'named' — a row with a matching lawyer_name was found (steps 1 or 2)
+ *   'level' — only a level/area-only row matched (steps 3 or 4), even if a
+ *              lawyer_name was supplied but had no matching named rule
+ */
+export type RateCardSource = "named" | "level";
+interface RateCardMatch {
+  rate: number;
+  source: RateCardSource;
+}
+
+/**
  * Look up the rate card rate for an activity-type × lawyer-level combination,
  * with optional named-lawyer and practice-area refinements.
  *
  * Fallback chain (most-specific first):
- *   1. activity + level + name + area  (all four match)
- *   2. activity + level + name          (name match, any area)
- *   3. activity + level + area          (area match, no named-lawyer row)
- *   4. activity + level                 (no name, no area — the broadest fallback)
+ *   1. activity + level + name + area  (all four match)  → source: 'named'
+ *   2. activity + level + name          (name match, any area) → source: 'named'
+ *   3. activity + level + area          (area match, no named-lawyer row) → source: 'level'
+ *   4. activity + level                 (no name, no area — broadest fallback) → source: 'level'
  *
  * Returns null when no match exists; the caller then falls back to the
  * firm's default_hourly_rate at billing time.
@@ -31,7 +45,7 @@ async function lookupRateCard(
   lawyerLevel: string,
   lawyerName?: string | null,
   practiceArea?: string | null,
-): Promise<number | null> {
+): Promise<RateCardMatch | null> {
   const hasName = !!(lawyerName && lawyerName.trim());
   const hasArea = !!(practiceArea && practiceArea.trim());
   const name = hasName ? lawyerName!.trim() : null;
@@ -45,7 +59,7 @@ async function lookupRateCard(
          AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area = $6`,
       [portal, ownerKey, activityType, lawyerLevel, name, area],
     );
-    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named" };
   }
 
   // Step 2 — named-lawyer match (any practice area).
@@ -56,7 +70,7 @@ async function lookupRateCard(
          AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area IS NULL`,
       [portal, ownerKey, activityType, lawyerLevel, name],
     );
-    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "named" };
   }
 
   // Step 3 — practice-area match with no named-lawyer row.
@@ -67,7 +81,7 @@ async function lookupRateCard(
          AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area = $5`,
       [portal, ownerKey, activityType, lawyerLevel, area],
     );
-    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+    if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level" };
   }
 
   // Step 4 — level-only fallback (no name, no area).
@@ -77,7 +91,7 @@ async function lookupRateCard(
        AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area IS NULL`,
     [portal, ownerKey, activityType, lawyerLevel],
   );
-  if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+  if (rows[0]) return { rate: parseFloat(rows[0].rate_usd as string), source: "level" };
   return null;
 }
 
@@ -100,7 +114,7 @@ export function makeTimeRecordingRouter(
     }
     const { rows } = await pool.query(
       `SELECT id, description, minutes, rate_usd, entry_date, created_at,
-              activity_type, lawyer_level
+              activity_type, lawyer_level, lawyer_name, rate_source
        FROM case_time_entries
        WHERE portal = $1 AND matter_id = $2 AND owner_key = $3
        ORDER BY entry_date DESC, id DESC`,
@@ -152,19 +166,35 @@ export function makeTimeRecordingRouter(
     const lawyerNameStr = typeof lawyer_name === "string" && lawyer_name.trim() ? lawyer_name.trim().slice(0, 200) : null;
     const practiceAreaStr = typeof practice_area === "string" && practice_area.trim() ? practice_area.trim().slice(0, 200) : null;
 
-    // Resolve rate: explicit rate_usd > rate card lookup (activity + level + name + area) > null (uses default_hourly_rate at billing time)
-    let rateVal: number | null =
+    // Resolve rate and record its provenance.
+    // rate_source values:
+    //   'manual'  — caller supplied an explicit rate_usd
+    //   'named'   — rate card matched a named-lawyer rule
+    //   'level'   — rate card matched a level/area-only rule (even if a name was supplied)
+    //   'default' — no rate card matched; billing will use the firm's default_hourly_rate
+    let rateVal: number | null = null;
+    let rateSource: "manual" | "named" | "level" | "default" = "default";
+
+    const explicitRate =
       rate_usd !== undefined && rate_usd !== null && rate_usd !== ""
         ? parseFloat(String(rate_usd))
         : null;
-    if ((rateVal === null || Number.isNaN(rateVal)) && activityTypeStr && lawyerLevelStr) {
-      rateVal = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
+
+    if (explicitRate !== null && !Number.isNaN(explicitRate)) {
+      rateVal = explicitRate;
+      rateSource = "manual";
+    } else if (activityTypeStr && lawyerLevelStr) {
+      const match = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
+      if (match) {
+        rateVal = match.rate;
+        rateSource = match.source;
+      }
     }
 
     const { rows } = await pool.query(
       `INSERT INTO case_time_entries
-         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+         (portal, matter_id, owner_key, description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name, rate_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
         portal,
         matterId,
@@ -176,6 +206,7 @@ export function makeTimeRecordingRouter(
         activityTypeStr,
         lawyerLevelStr,
         lawyerNameStr,
+        rateSource,
       ],
     );
     res.status(201).json(rows[0]);
