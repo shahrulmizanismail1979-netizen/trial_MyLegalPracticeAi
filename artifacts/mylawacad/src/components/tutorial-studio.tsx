@@ -251,7 +251,7 @@ export function Tutorial({ storageKey, title, steps, buttonLabel = "Tour" }: Pro
         ref={triggerRef}
         type="button"
         onClick={reopen}
-        className="fixed bottom-6 right-6 z-[150] inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 text-black font-bold text-xs uppercase tracking-widest shadow-[0_10px_30px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_15px_40px_-5px_rgba(251,191,36,0.7)] hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+        className="fixed bottom-24 right-5 z-[150] inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 text-black font-bold text-xs uppercase tracking-widest shadow-[0_10px_30px_-5px_rgba(251,191,36,0.5)] hover:shadow-[0_15px_40px_-5px_rgba(251,191,36,0.7)] hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         aria-label={`Open ${title} tutorial`}
         data-testid="tutorial-trigger"
       >
