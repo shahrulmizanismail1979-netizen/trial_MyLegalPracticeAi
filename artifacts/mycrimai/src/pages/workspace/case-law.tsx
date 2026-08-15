@@ -36,6 +36,7 @@ export default function CaseLawPage() {
   const [court, setCourt] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState<"relevance" | "date_desc" | "date_asc">("relevance");
   const [offset, setOffset] = useState(0);
   const LIMIT = 20;
 
@@ -54,7 +55,7 @@ export default function CaseLawPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [toast, setToast] = useState("");
 
-  const doSearch = useCallback(async (q: string, ct: string, df: string, dt: string, off: number) => {
+  const doSearch = useCallback(async (q: string, ct: string, df: string, dt: string, off: number, srt: string = "relevance") => {
     setLoading(true); setErr("");
     try {
       const p = new URLSearchParams();
@@ -63,6 +64,7 @@ export default function CaseLawPage() {
       if (df) p.set("dateFrom", df);
       if (dt) p.set("dateTo", dt);
       p.set("limit", String(LIMIT)); p.set("offset", String(off));
+      if (srt !== "relevance") { p.set("sort", "date"); p.set("dir", srt === "date_asc" ? "asc" : "desc"); }
       const r = await fetch(`/api/cases/search?${p}`, FETCH_INIT);
       if (!r.ok) throw new Error(r.status === 401 ? "Sign in to access case law." : "Search failed.");
       const d = await r.json();
@@ -71,10 +73,10 @@ export default function CaseLawPage() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { doSearch("", "", "", "", 0); }, [doSearch]);
+  useEffect(() => { doSearch("", "", "", "", 0, "relevance"); }, [doSearch]);
 
-  const handleSearch = () => { setOffset(0); setSelectedId(null); setDetail(null); setSubmitted(query); doSearch(query, court, dateFrom, dateTo, 0); };
-  const handlePage = (o: number) => { setOffset(o); doSearch(submitted, court, dateFrom, dateTo, o); };
+  const handleSearch = () => { setOffset(0); setSelectedId(null); setDetail(null); setSubmitted(query); doSearch(query, court, dateFrom, dateTo, 0, sort); };
+  const handlePage = (o: number) => { setOffset(o); doSearch(submitted, court, dateFrom, dateTo, o, sort); };
 
   const openCase = useCallback(async (id: number) => {
     setSelectedId(id); setDetail(null); setDetailLoading(true); setShowMatter(false);
@@ -270,8 +272,14 @@ export default function CaseLawPage() {
             <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setOffset(0); }}
               className="px-2 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
           </div>
-          {(court || submitted || dateFrom || dateTo) && (
-            <button onClick={() => { setCourt(""); setQuery(""); setSubmitted(""); setDateFrom(""); setDateTo(""); setOffset(0); doSearch("", "", "", "", 0); }}
+          <select value={sort} onChange={e => { const v = e.target.value as "relevance"|"date_desc"|"date_asc"; setSort(v); setOffset(0); doSearch(submitted, court, dateFrom, dateTo, 0, v); }}
+            className="px-3 py-2 bg-card border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary/50">
+            <option value="relevance">Relevance</option>
+            <option value="date_desc">Newest first</option>
+            <option value="date_asc">Oldest first</option>
+          </select>
+          {(court || submitted || dateFrom || dateTo || sort !== "relevance") && (
+            <button onClick={() => { setCourt(""); setQuery(""); setSubmitted(""); setDateFrom(""); setDateTo(""); setSort("relevance"); setOffset(0); doSearch("", "", "", "", 0, "relevance"); }}
               className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-muted transition-colors">Clear</button>
           )}
         </div>

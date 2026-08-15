@@ -217,6 +217,84 @@ async function enrichForSearch(ids: number[]): Promise<SearchResultItem[]> {
 }
 
 /**
+ * Full-text search with date-ordered results, incorporating all visibility gates.
+ * Used when `q` is provided and `sort=date`.
+ * Queries the complete approved FTS result set (not capped to 200) and paginates by date.
+ */
+async function ftsSearchApprovedByDate(opts: {
+  q: string;
+  court?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  limit: number;
+  offset: number;
+  dir: "asc" | "desc";
+  dictionary: "english" | "simple";
+}): Promise<{ total: number; ids: number[] }> {
+  const dict = opts.dictionary === "simple" ? "simple" : "english";
+  const tsCol = opts.dictionary === "simple" ? "document_ms" : "document";
+  const direction = opts.dir === "asc" ? sql`ASC` : sql`DESC`;
+
+  const courtFilter = opts.court
+    ? sql`AND si.court ILIKE ${`%${opts.court}%`}`
+    : sql``;
+  const dateFromFilter = opts.dateFrom
+    ? sql`AND si.decision_date >= ${opts.dateFrom}`
+    : sql``;
+  const dateToFilter = opts.dateTo
+    ? sql`AND si.decision_date <= ${opts.dateTo}`
+    : sql``;
+
+  const [countResult, rowsResult] = await Promise.all([
+    db.execute(sql`
+      SELECT COUNT(DISTINCT rvj.id)::int AS total
+      FROM research_search_index si
+      JOIN research_verified_judgments rvj ON rvj.id = si.judgment_id
+      JOIN research_source_containers rsc ON rsc.id = rvj.container_id
+      JOIN research_headnotes rh ON rh.judgment_id = rvj.id
+      WHERE si.${sql.raw(tsCol)} @@ websearch_to_tsquery(${dict}, ${opts.q})
+        AND rh.status = 'accepted'
+        AND rsc.processing_state = 'SEARCHABLE'
+        AND rsc.rights_status IN (
+          'OFFICIAL_COURT_SOURCE',
+          'PUBLIC_OR_OPEN_LICENCE_SOURCE',
+          'USER_OWNED_OR_AUTHORISED'
+        )
+        ${courtFilter}
+        ${dateFromFilter}
+        ${dateToFilter}
+    `),
+    db.execute(sql`
+      SELECT id FROM (
+        SELECT DISTINCT ON (rvj.id) rvj.id, si.decision_date
+        FROM research_search_index si
+        JOIN research_verified_judgments rvj ON rvj.id = si.judgment_id
+        JOIN research_source_containers rsc ON rsc.id = rvj.container_id
+        JOIN research_headnotes rh ON rh.judgment_id = rvj.id
+        WHERE si.${sql.raw(tsCol)} @@ websearch_to_tsquery(${dict}, ${opts.q})
+          AND rh.status = 'accepted'
+          AND rsc.processing_state = 'SEARCHABLE'
+          AND rsc.rights_status IN (
+            'OFFICIAL_COURT_SOURCE',
+            'PUBLIC_OR_OPEN_LICENCE_SOURCE',
+            'USER_OWNED_OR_AUTHORISED'
+          )
+          ${courtFilter}
+          ${dateFromFilter}
+          ${dateToFilter}
+        ORDER BY rvj.id, si.decision_date DESC NULLS LAST
+      ) sub
+      ORDER BY decision_date ${direction} NULLS LAST
+      LIMIT ${opts.limit} OFFSET ${opts.offset}
+    `),
+  ]);
+
+  const total = (countResult.rows[0] as { total: number } | undefined)?.total ?? 0;
+  const ids = (rowsResult.rows as Array<{ id: number }>).map((r) => r.id);
+  return { total, ids };
+}
+
+/**
  * Browse approved+headnoted judgments without FTS.
  * Used when no `q` is provided.
  */
@@ -226,6 +304,7 @@ async function browseApproved(opts: {
   dateTo?: Date;
   limit: number;
   offset: number;
+  dir?: "asc" | "desc";
 }): Promise<{ total: number; ids: number[] }> {
   const courtFilter = opts.court
     ? sql`AND si.court ILIKE ${`%${opts.court}%`}`
@@ -236,6 +315,8 @@ async function browseApproved(opts: {
   const dateToFilter = opts.dateTo
     ? sql`AND si.decision_date <= ${opts.dateTo}`
     : sql``;
+
+  const direction = opts.dir === "asc" ? sql`ASC` : sql`DESC`;
 
   const [countResult, rowsResult] = await Promise.all([
     db.execute(sql`
@@ -256,22 +337,25 @@ async function browseApproved(opts: {
         ${dateToFilter}
     `),
     db.execute(sql`
-      SELECT DISTINCT ON (rvj.id) rvj.id, si.decision_date
-      FROM research_verified_judgments rvj
-      JOIN research_source_containers rsc ON rsc.id = rvj.container_id
-      JOIN research_search_index si ON si.judgment_id = rvj.id
-      JOIN research_headnotes rh ON rh.judgment_id = rvj.id
-      WHERE rh.status = 'accepted'
-        AND rsc.processing_state = 'SEARCHABLE'
-        AND rsc.rights_status IN (
-          'OFFICIAL_COURT_SOURCE',
-          'PUBLIC_OR_OPEN_LICENCE_SOURCE',
-          'USER_OWNED_OR_AUTHORISED'
-        )
-        ${courtFilter}
-        ${dateFromFilter}
-        ${dateToFilter}
-      ORDER BY rvj.id, si.decision_date DESC NULLS LAST
+      SELECT id FROM (
+        SELECT DISTINCT ON (rvj.id) rvj.id, si.decision_date
+        FROM research_verified_judgments rvj
+        JOIN research_source_containers rsc ON rsc.id = rvj.container_id
+        JOIN research_search_index si ON si.judgment_id = rvj.id
+        JOIN research_headnotes rh ON rh.judgment_id = rvj.id
+        WHERE rh.status = 'accepted'
+          AND rsc.processing_state = 'SEARCHABLE'
+          AND rsc.rights_status IN (
+            'OFFICIAL_COURT_SOURCE',
+            'PUBLIC_OR_OPEN_LICENCE_SOURCE',
+            'USER_OWNED_OR_AUTHORISED'
+          )
+          ${courtFilter}
+          ${dateFromFilter}
+          ${dateToFilter}
+        ORDER BY rvj.id, si.decision_date DESC NULLS LAST
+      ) sub
+      ORDER BY decision_date ${direction} NULLS LAST
       LIMIT ${opts.limit + opts.offset}
     `),
   ]);
@@ -345,6 +429,7 @@ const SearchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
   offset: z.coerce.number().int().min(0).default(0),
   sort: z.enum(["relevance", "date"]).default("relevance"),
+  dir: z.enum(["asc", "desc"]).default("desc"),
   lang: z.enum(["en", "ms"]).default("en"),
 });
 
@@ -361,42 +446,51 @@ router.get("/search", async (req, res) => {
     return;
   }
 
-  const { q, court, dateFrom, dateTo, limit, offset, sort, lang } = parsed.data;
+  const { q, court, dateFrom, dateTo, limit, offset, sort, dir, lang } = parsed.data;
 
-  const dateFromDate =
-    dateFrom ? new Date(dateFrom) : undefined;
-  const dateToDate =
-    dateTo ? new Date(dateTo) : undefined;
+  const dateFromDate = dateFrom ? new Date(dateFrom) : undefined;
+  const dateToDate = dateTo ? new Date(dateTo) : undefined;
 
   let total = 0;
   let judgmentIds: number[] = [];
 
   if (q) {
-    // FTS path — over-fetch then rights-filter
-    const ftsResults = await ftSearch(q, {
-      court,
-      dateFrom:
-        dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
-      dateTo:
-        dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
-      dictionary: lang === "ms" ? "simple" : "english",
-      limit: 200, // over-fetch so rights-filter has enough candidates
-    });
+    if (sort === "date") {
+      // Date-sort path: query the full approved FTS corpus in SQL with date ordering,
+      // so results beyond the top-200 relevance window are included correctly.
+      const { total: t, ids } = await ftsSearchApprovedByDate({
+        q,
+        court,
+        dateFrom: dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
+        dateTo: dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
+        limit,
+        offset,
+        dir,
+        dictionary: lang === "ms" ? "simple" : "english",
+      });
+      total = t;
+      judgmentIds = ids;
+    } else {
+      // Relevance path — over-fetch then rights-filter
+      const ftsResults = await ftSearch(q, {
+        court,
+        dateFrom:
+          dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
+        dateTo:
+          dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
+        dictionary: lang === "ms" ? "simple" : "english",
+        limit: 200, // over-fetch so rights-filter has enough candidates
+      });
 
-    if (ftsResults.length > 0) {
-      const candidateIds = ftsResults.map((r) => r.judgmentId);
-      const approvedSet = new Set(await getApprovedIds(candidateIds));
-      const filtered = ftsResults.filter((r) => approvedSet.has(r.judgmentId));
-      // sort=date reorders approved results by date DESC (descending)
-      let finalList = filtered;
-      if (sort === "date") {
-        // We'll sort below by the search index decisionDate — for now, pass all
-        finalList = filtered;
+      if (ftsResults.length > 0) {
+        const candidateIds = ftsResults.map((r) => r.judgmentId);
+        const approvedSet = new Set(await getApprovedIds(candidateIds));
+        const filtered = ftsResults.filter((r) => approvedSet.has(r.judgmentId));
+        total = filtered.length;
+        judgmentIds = filtered
+          .slice(offset, offset + limit)
+          .map((r) => r.judgmentId);
       }
-      total = finalList.length;
-      judgmentIds = finalList
-        .slice(offset, offset + limit)
-        .map((r) => r.judgmentId);
     }
   } else {
     // Browse path
@@ -408,6 +502,7 @@ router.get("/search", async (req, res) => {
         dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
       limit,
       offset,
+      dir: sort === "date" ? dir : undefined,
     });
     total = t;
     judgmentIds = ids;
