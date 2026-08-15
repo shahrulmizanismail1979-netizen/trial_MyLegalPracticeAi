@@ -242,6 +242,30 @@ app.use("/api/firm", express.urlencoded({ extended: true, limit: "30mb" }));
 // handwriting images as JSON; raise their limits the same way.
 app.use("/api/sya/voice", express.json({ limit: "30mb" }));
 app.use("/api/acad/studio", express.json({ limit: "30mb" }));
+// MyLitAI drafters accept long case facts plus extracted text from uploaded
+// supporting documents (agreements, demand letters, prior orders) inlined into
+// the request body, and saved-work stores generated drafts. The default ~100kb
+// limit rejects realistic payloads on those endpoints. Raise the limit ONLY for
+// those heavy litigation routes — every other /api/lit route (notably the
+// unauthenticated auth endpoints) keeps the default ~100kb limit so they are
+// not turned into a large-payload DoS surface. These prefix-scoped parsers run
+// before the global one below and short-circuit it for matching requests.
+const litHeavyJson = express.json({ limit: "30mb" });
+const LIT_HEAVY_PREFIXES = [
+  "/api/lit/forms",            // POST /:id/draft
+  "/api/lit/ai",              // POST /draft-document(-sync), briefs, analysis
+  "/api/lit/gemini",
+  "/api/lit/irac",            // POST /draft
+  "/api/lit/banking-recovery", // POST /draft
+  "/api/lit/enforcement",     // POST /draft-document
+  "/api/lit/appeals",         // POST /draft
+  "/api/lit/affidavits",      // POST /draft
+  "/api/lit/saved-work",      // stores generated draft content
+  "/api/lit/exports",         // docx/pdf export of generated content
+];
+for (const prefix of LIT_HEAVY_PREFIXES) {
+  app.use(prefix, litHeavyJson);
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

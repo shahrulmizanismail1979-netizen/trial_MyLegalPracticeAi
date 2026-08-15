@@ -273,6 +273,37 @@ export function attachBilling(opts: {
        ORDER BY created_at DESC LIMIT 500`,
       [portal, ownerKey],
     );
+    // Unbilled work-in-progress across ALL of this owner's matters: time
+    // entries and fee/disbursement items that have not yet been placed on an
+    // invoice. This unifies the read path so the portal-level billing view
+    // reflects amounts entered in each matter's Billing tab, not just invoices.
+    const settings = await getSettings(portal, ownerKey);
+    const defaultRate = num(settings.default_hourly_rate);
+    const [wipTimeRes, wipFeesRes] = await Promise.all([
+      pool.query(
+        `SELECT minutes, rate_usd AS rate FROM case_time_entries
+         WHERE portal = $1 AND owner_key = $2 AND invoice_id IS NULL`,
+        [portal, ownerKey],
+      ),
+      pool.query(
+        `SELECT kind, amount FROM case_fee_items
+         WHERE portal = $1 AND owner_key = $2 AND invoice_id IS NULL`,
+        [portal, ownerKey],
+      ),
+    ]);
+    let wipTime = 0;
+    let wipFees = 0;
+    let wipDisb = 0;
+    for (const t of wipTimeRes.rows) {
+      const rate = t.rate != null ? num(t.rate) : defaultRate;
+      wipTime += (num(t.minutes) / 60) * rate;
+    }
+    for (const f of wipFeesRes.rows) {
+      if (f.kind === "disbursement") wipDisb += num(f.amount);
+      else wipFees += num(f.amount);
+    }
+    const wipTotal = wipTime + wipFees + wipDisb;
+
     const now = Date.now();
     let outstanding = 0;
     const aging = { current: 0, d30: 0, d60: 0, d90: 0 };
@@ -299,6 +330,13 @@ export function attachBilling(opts: {
           overdue1to30: aging.d30.toFixed(2),
           overdue31to60: aging.d60.toFixed(2),
           overdue60plus: aging.d90.toFixed(2),
+        },
+        // Unbilled work-in-progress across all matters (not yet invoiced).
+        unbilled: {
+          time: wipTime.toFixed(2),
+          fees: wipFees.toFixed(2),
+          disbursements: wipDisb.toFixed(2),
+          total: wipTotal.toFixed(2),
         },
       },
     });

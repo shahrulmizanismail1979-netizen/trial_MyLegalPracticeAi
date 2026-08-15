@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileType2, ExternalLink, Download, Copy, Check, Loader2, FileCode2, Printer } from 'lucide-react';
 import { exportMarkdown, exportPdf } from '@workspace/draft-export';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   title: string;
@@ -12,6 +13,7 @@ export function ExportButtons({ title, content, showText = true }: Props) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [gdocsCopied, setGdocsCopied] = useState(false);
+  const { toast } = useToast();
 
   const downloadDocx = async () => {
     if (busy) return;
@@ -50,14 +52,31 @@ export function ExportButtons({ title, content, showText = true }: Props) {
   };
 
   const openInGoogleDocs = async () => {
+    // Google Docs' create URL cannot pre-fill body text, so we copy the draft to
+    // the clipboard first and open a blank doc for the user to paste into.
+    let copiedOk = false;
     try {
       await navigator.clipboard.writeText(content);
+      copiedOk = true;
       setGdocsCopied(true);
       setTimeout(() => setGdocsCopied(false), 4000);
     } catch {
-      // ignore
+      copiedOk = false;
     }
     window.open('https://docs.google.com/document/u/0/create', '_blank', 'noopener,noreferrer');
+    if (copiedOk) {
+      toast({
+        title: 'Draft copied to clipboard',
+        description: 'A new Google Doc is opening — press Ctrl/Cmd+V to paste the draft in.',
+      });
+    } else {
+      toast({
+        title: 'Copy the draft manually',
+        description:
+          'We could not access your clipboard. Use the “Copy” button, then paste into the new Google Doc with Ctrl/Cmd+V.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const copy = async () => {

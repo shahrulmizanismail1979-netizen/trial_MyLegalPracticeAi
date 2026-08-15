@@ -118,6 +118,11 @@ export async function requirePractitioner(
     }
   }
   res.locals["ccbAccessCodeId"] = resolvedAccessCodeId;
+  // Expose the (normalized) code so matter-file routes can map master/static
+  // sessions onto a synthetic per-code tenant row. Left null for DB-backed
+  // subscribers, which already have a real access-code id above.
+  res.locals["ccbStaticCode"] =
+    code && STATIC_CODES.includes(code) ? code : null;
   next();
 }
 

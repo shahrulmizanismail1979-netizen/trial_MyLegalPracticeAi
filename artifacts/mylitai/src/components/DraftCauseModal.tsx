@@ -34,6 +34,11 @@ function useStreamingDraft() {
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         if (response.status === 429) emitRateLimit(0);
+        if (response.status === 413) {
+          throw new Error(
+            'The details or uploaded documents are too large to process. Please shorten the facts or remove some attachments and try again.',
+          );
+        }
         throw new Error(errData.error || `Server error: ${response.status}`);
       }
       const rl = readRateLimitRemaining(response);
@@ -64,7 +69,7 @@ function useStreamingDraft() {
       }
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        setError('Failed to generate draft. Please try again.');
+        setError(err.message || 'Failed to generate draft. Please try again.');
       }
       setIsStreaming(false);
     }

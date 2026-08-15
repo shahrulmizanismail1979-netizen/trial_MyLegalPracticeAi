@@ -20,6 +20,14 @@ MANDATORY FORMAT RULES:
 - Exhibits marked as Exhibit "A", "B", "C", etc.
 - Signature blocks and attestation clauses as per applicable Rules
 
+PLAIN-TEXT OUTPUT RULES (STRICT):
+- Output the document as clean, court-style plain text. Do NOT use Markdown formatting.
+- NEVER output horizontal rules or divider lines of any kind (e.g. "---", "***", "===", or repeated dashes/asterisks/underscores such as "- - - - -"). Use a single blank line to separate sections instead.
+- Do NOT use Markdown emphasis: no "*" or "_" for bold/italics, and no "**". Where emphasis is genuinely required, use ALL CAPS as is conventional in Malaysian pleadings.
+- Do NOT wrap text in backticks or code fences.
+- Section headings must be plain UPPERCASE lines (e.g. "STATEMENT OF CLAIM"), not "#"-prefixed Markdown headings.
+- Numbered paragraphs use the plain "1." / "2." convention; bullet lists, where unavoidable, use a single "-" followed by one space and real content (never a line consisting only of dashes).
+
 CONTENT REQUIREMENTS:
 - Every required legal element for the specific document type must be included
 - Cite the exact applicable legislation, rules and subrules (e.g., "pursuant to Order 83 Rule 3(1) ROC 2012")

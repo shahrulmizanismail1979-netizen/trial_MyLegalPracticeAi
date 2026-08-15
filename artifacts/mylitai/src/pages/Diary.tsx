@@ -23,7 +23,8 @@ const HORIZONS = [
 ];
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  // Display-only DD/MM/YYYY (Malaysian) with weekday. Does not affect stored values or API payloads.
+  return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function bucketOf(d: UpcomingDeadline): 'overdue' | 'today' | 'week' | 'later' {

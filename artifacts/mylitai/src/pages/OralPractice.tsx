@@ -171,6 +171,15 @@ function OralPracticeInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // True only when the user explicitly presses the stop button. Web Speech
+  // still fires `onend` after a stretch of silence even in continuous mode, so
+  // we use this flag to auto-restart recognition (keep listening) unless the
+  // user actually asked to stop.
+  const manualStopRef = useRef(false);
+  // Transcript captured from previous recognition sessions in this listening
+  // run. Because a fresh recognition instance resets `e.results`, we prepend
+  // this so an auto-restart after silence doesn't lose what was already said.
+  const committedTranscriptRef = useRef('');
 
   const cfg = scenario ? SCENARIOS[scenario] : null;
 
@@ -181,6 +190,7 @@ function OralPracticeInner() {
   useEffect(() => {
     return () => {
       audioRef.current?.pause();
+      manualStopRef.current = true;
       try {
         recognitionRef.current?.stop();
       } catch {
@@ -224,6 +234,8 @@ function OralPracticeInner() {
 
   const toggleListening = () => {
     if (listening) {
+      // Explicit stop: mark it so onend doesn't auto-restart, then stop.
+      manualStopRef.current = true;
       try {
         recognitionRef.current?.stop();
       } catch {
@@ -242,21 +254,68 @@ function OralPracticeInner() {
       });
       return;
     }
-    const rec = new SR();
-    rec.lang = 'en-GB';
-    rec.interimResults = true;
-    rec.continuous = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      let t = '';
-      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-      setInput(t);
+
+    // Start a fresh listening run: reset the manual-stop flag and seed the
+    // committed transcript from whatever is already in the input box.
+    manualStopRef.current = false;
+    committedTranscriptRef.current = input;
+
+    const buildRecogniser = () => {
+      const rec = new SR();
+      rec.lang = 'en-GB';
+      rec.interimResults = true;
+      // Continuous mode keeps the mic open through natural pauses instead of
+      // cutting out after ~2-3s of silence. It stops only on manual stop.
+      rec.continuous = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onresult = (e: any) => {
+        let sessionText = '';
+        for (let i = 0; i < e.results.length; i++) {
+          sessionText += e.results[i][0].transcript;
+        }
+        const prefix = committedTranscriptRef.current;
+        const joined = prefix && sessionText ? `${prefix} ${sessionText}` : prefix + sessionText;
+        setInput(joined);
+      };
+      rec.onend = () => {
+        // The browser ended recognition. If the user did not press stop (e.g.
+        // it timed out on silence), commit what we have and restart so the mic
+        // stays live until the user actually stops.
+        if (manualStopRef.current) {
+          setListening(false);
+          return;
+        }
+        setInput((current) => {
+          committedTranscriptRef.current = current;
+          return current;
+        });
+        try {
+          const next = buildRecogniser();
+          next.start();
+          recognitionRef.current = next;
+        } catch {
+          setListening(false);
+        }
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onerror = (e: any) => {
+        // "no-speech"/"aborted" are benign silence timeouts — let onend restart.
+        // Any other error (e.g. not-allowed) genuinely ends the session.
+        if (e && (e.error === 'no-speech' || e.error === 'aborted')) return;
+        manualStopRef.current = true;
+        setListening(false);
+      };
+      return rec;
     };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    rec.start();
-    recognitionRef.current = rec;
-    setListening(true);
+
+    try {
+      const rec = buildRecogniser();
+      rec.start();
+      recognitionRef.current = rec;
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
   };
 
   const startSession = () => {
@@ -283,6 +342,7 @@ function OralPracticeInner() {
     const text = input.trim();
     if (!text || busy || !scenario) return;
     if (listening) {
+      manualStopRef.current = true;
       try {
         recognitionRef.current?.stop();
       } catch {
@@ -290,6 +350,7 @@ function OralPracticeInner() {
       }
       setListening(false);
     }
+    committedTranscriptRef.current = '';
     setInput('');
     const history = turns.map((t) => ({ speaker: t.speaker, text: t.text }));
     setTurns((prev) => [...prev, { speaker: 'you', text }, { speaker: 'them', text: '' }]);

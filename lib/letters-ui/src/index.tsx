@@ -83,6 +83,10 @@ const inp: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
 };
+// The native dropdown list renders on the OS's default (light) surface, so
+// options must carry an explicit readable colour. Without this they inherit the
+// portal's near-white foreground and become invisible on dark themes (MyCrimAI).
+const optStyle: React.CSSProperties = { background: "#ffffff", color: "#111827" };
 const btn = (accent: string, secondary = false): React.CSSProperties => ({
   padding: "6px 14px",
   borderRadius: 7,
@@ -237,7 +241,7 @@ export function LetterWriter({
               data-testid="select-letter-type"
             >
               {letterTypes.map((t) => (
-                <option key={t.id} value={t.id}>
+                <option key={t.id} value={t.id} style={optStyle}>
                   {t.label}
                 </option>
               ))}
@@ -253,8 +257,8 @@ export function LetterWriter({
               style={inp}
               data-testid="select-language"
             >
-              <option value="en">English</option>
-              <option value="bm">Bahasa Malaysia</option>
+              <option value="en" style={optStyle}>English</option>
+              <option value="bm" style={optStyle}>Bahasa Malaysia</option>
             </select>
           </div>
         </div>
@@ -510,9 +514,9 @@ export function DraftsPanel({
               onChange={(e) => setFilter(e.target.value as "" | "draft" | "letter")}
               style={{ ...inp, width: "auto" }}
             >
-              <option value="">All types</option>
-              <option value="draft">Drafts only</option>
-              <option value="letter">Letters only</option>
+              <option value="" style={optStyle}>All types</option>
+              <option value="draft" style={optStyle}>Drafts only</option>
+              <option value="letter" style={optStyle}>Letters only</option>
             </select>
             <button onClick={reload} style={{ ...inp, cursor: "pointer", width: "auto" }}>
               ↻ Refresh

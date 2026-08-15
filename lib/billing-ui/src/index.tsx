@@ -74,7 +74,14 @@ const n = (v: unknown) => {
   const x = typeof v === "number" ? v : parseFloat(String(v ?? ""));
   return Number.isFinite(x) ? x : 0;
 };
-const d10 = (v: string | null | undefined) => (v ? String(v).slice(0, 10) : "—");
+// Display dates as DD/MM/YYYY (Malaysian convention). Does NOT change stored
+// values or API payloads — this is display-only formatting of an ISO date.
+const d10 = (v: string | null | undefined) => {
+  if (!v) return "—";
+  const iso = String(v).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+};
 const today = () => new Date().toISOString().slice(0, 10);
 
 function fmtMoney(v: unknown, currency = "RM") {
@@ -416,6 +423,15 @@ export function BillingTab({
   const unbilledTime = data.timeEntries.filter((t) => t.invoice_id == null);
   const unbilledFees = data.feeItems.filter((f) => f.invoice_id == null);
 
+  // Effective rate = the entry's own rate, else the firm's default hourly rate.
+  // Line amount = rate × hours. Kept in sync with the server's computation in
+  // caseBilling.ts so the per-line amount and the summary always agree.
+  const defaultRate = n(data.settings?.default_hourly_rate);
+  const lineAmount = (t: TimeEntry) => {
+    const rate = t.rate != null && String(t.rate).trim() !== "" ? n(t.rate) : defaultRate;
+    return (n(t.minutes) / 60) * rate;
+  };
+
   return (
     <div>
       {error && <div style={S.err}>{error}</div>}
@@ -424,7 +440,7 @@ export function BillingTab({
         <SummaryCard label="Unbilled time" value={fmtMoney(data.unbilled.time, currency)} />
         <SummaryCard label="Unbilled fees" value={fmtMoney(data.unbilled.fees, currency)} />
         <SummaryCard label="Disbursements" value={fmtMoney(data.unbilled.disbursements, currency)} />
-        <SummaryCard label="Total unbilled" value={fmtMoney(data.unbilled.total, currency)} accent={accent} />
+        <SummaryCard label="Total fees" value={fmtMoney(data.unbilled.total, currency)} accent={accent} />
       </div>
 
       {/* Time entries */}
@@ -479,6 +495,7 @@ export function BillingTab({
                 <th style={S.th}>Activity</th>
                 <th style={S.th}>Minutes</th>
                 <th style={S.th}>Rate/hr</th>
+                <th style={S.th}>Amount</th>
                 <th style={S.th}>Status</th>
                 <th style={S.th}></th>
               </tr>
@@ -489,7 +506,8 @@ export function BillingTab({
                   <td style={S.td}>{d10(t.entry_date)}</td>
                   <td style={S.td}>{t.description}</td>
                   <td style={S.td}>{t.minutes}</td>
-                  <td style={S.td}>{t.rate != null ? fmtMoney(t.rate, currency) : "default"}</td>
+                  <td style={S.td}>{t.rate != null && String(t.rate).trim() !== "" ? fmtMoney(t.rate, currency) : `default${defaultRate > 0 ? " (" + fmtMoney(defaultRate, currency) + ")" : ""}`}</td>
+                  <td style={S.td}>{fmtMoney(lineAmount(t), currency)}</td>
                   <td style={S.td}>{t.invoice_id != null ? <StatusBadge status="issued" /> : <span style={{ color: "#6b7280", fontSize: 12 }}>Unbilled</span>}</td>
                   <td style={S.td}>
                     {t.invoice_id == null && (

@@ -77,8 +77,12 @@ export function SaveToMatterPanel({
         notes: `File Ref: ${fileRef}\nPractice area: ${practiceMatter.areaName} — ${practiceMatter.name}\nOpened from Your Online LA drafting.`,
       });
       await fileDraft(matter.id, matter.title);
-    } catch {
-      toast({ title: 'Could not create matter', description: 'Please try again.', variant: 'destructive' });
+    } catch (err) {
+      toast({
+        title: 'Could not create matter',
+        description: err instanceof Error && err.message ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -88,8 +92,12 @@ export function SaveToMatterPanel({
     const m = (matters ?? []).find(x => x.id === id) ?? (linkedMatter && linkedMatter.id === id ? linkedMatter : null);
     try {
       await fileDraft(id, m?.title ?? `Matter #${id}`);
-    } catch {
-      toast({ title: 'Could not save to matter', description: 'Please try again.', variant: 'destructive' });
+    } catch (err) {
+      toast({
+        title: 'Could not save to matter',
+        description: err instanceof Error && err.message ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 

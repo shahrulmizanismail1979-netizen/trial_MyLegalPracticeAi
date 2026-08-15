@@ -11,12 +11,38 @@ import { logger } from "../../lib/logger";
 
 const router = Router();
 
+// A line that is nothing but repeated rule characters (dashes, asterisks,
+// underscores, equals, box-drawing) — optionally spaced out like "- - - - -".
+// The AI sometimes emits these as visual dividers; Word renders them as noise,
+// so we drop them and rely on blank lines for separation instead.
+function isHorizontalRule(line: string): boolean {
+  const stripped = line.replace(/\s+/g, "");
+  return stripped.length >= 3 && /^[-*_=─—–]+$/.test(stripped);
+}
+
+// Remove stray Markdown emphasis markers that survive as literal characters
+// (e.g. a lone "**" or "*" the model failed to close). parseInline handles
+// well-formed pairs; this cleans up the leftovers so no raw asterisks appear.
+function stripStrayEmphasis(text: string): string {
+  return text
+    // collapse any run of 2+ asterisks/underscores into nothing
+    .replace(/\*{2,}/g, "")
+    .replace(/_{2,}/g, "");
+}
+
 function buildParagraphs(content: string): Paragraph[] {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
   const paragraphs: Paragraph[] = [];
 
   for (const rawLine of lines) {
     const line = rawLine.replace(/\s+$/, "");
+
+    // Drop horizontal-rule / divider lines entirely — emit a blank line so the
+    // surrounding sections stay visually separated without the dash strand.
+    if (isHorizontalRule(line.trim())) {
+      paragraphs.push(new Paragraph({ children: [new TextRun("")] }));
+      continue;
+    }
 
     if (line.trim() === "") {
       paragraphs.push(new Paragraph({ children: [new TextRun("")] }));
@@ -98,10 +124,12 @@ function parseInline(text: string): TextRun[] {
     } else if (/^`[^`]+`$/.test(tok)) {
       runs.push(new TextRun({ text: tok.slice(1, -1), font: "Courier New" }));
     } else {
-      runs.push(new TextRun(tok));
+      // Plain text: scrub any leftover unmatched emphasis markers so raw
+      // asterisks/underscores never leak into the Word document.
+      runs.push(new TextRun(stripStrayEmphasis(tok)));
     }
   }
-  return runs.length > 0 ? runs : [new TextRun(text)];
+  return runs.length > 0 ? runs : [new TextRun(stripStrayEmphasis(text))];
 }
 
 function safeFilename(name: string): string {

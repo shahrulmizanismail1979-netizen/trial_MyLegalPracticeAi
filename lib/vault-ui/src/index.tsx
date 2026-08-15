@@ -84,6 +84,9 @@ const inputStyle: React.CSSProperties = {
   background: "transparent",
   color: "inherit",
 };
+// Native <option> lists render on the OS's default (light) surface; give them an
+// explicit readable colour so they aren't invisible on dark themes (MyCrimAI).
+const optStyle: React.CSSProperties = { background: "#ffffff", color: "#111827" };
 
 export function DocumentsPanel({
   request,
@@ -285,7 +288,7 @@ export function DocumentsPanel({
             data-testid="select-upload-category"
           >
             {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
+              <option key={v} value={v} style={optStyle}>
                 {l}
               </option>
             ))}
@@ -307,9 +310,9 @@ export function DocumentsPanel({
       {showFilters && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <select value={category} onChange={(e) => setCategory(e.target.value)} style={inputStyle} data-testid="select-filter-category">
-            <option value="">All categories</option>
+            <option value="" style={optStyle}>All categories</option>
             {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
+              <option key={v} value={v} style={optStyle}>
                 {l}
               </option>
             ))}

@@ -245,6 +245,7 @@ export function AiToolsPanel() {
 
   const handleToolChange = (toolId: ToolId) => {
     if (activeTool !== toolId) {
+      tts.stop();
       setActiveTool(toolId);
       clearMessages();
       setInput("");
@@ -268,7 +269,7 @@ export function AiToolsPanel() {
     >
       {/* Toggle Button (desktop only) */}
       <button
-        onClick={() => setPanelOpen(!panelOpen)}
+        onClick={() => { if (panelOpen) tts.stop(); setPanelOpen(!panelOpen); }}
         className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-16 bg-card border border-border border-r-0 rounded-l-md items-center justify-center text-muted-foreground hover:text-primary z-30 shadow-md"
       >
         {panelOpen ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -285,7 +286,7 @@ export function AiToolsPanel() {
             </span>
             {/* Close (mobile only) */}
             <button
-              onClick={() => setPanelOpen(false)}
+              onClick={() => { tts.stop(); setPanelOpen(false); }}
               className="md:hidden text-muted-foreground hover:text-primary p-1 -mr-1"
               aria-label="Close AI assistants"
             >
@@ -438,7 +439,7 @@ export function AiToolsPanel() {
                 </button>
                 {messages.length > 0 && (
                   <button
-                    onClick={() => { clearMessages(); setInput(""); }}
+                    onClick={() => { tts.stop(); clearMessages(); setInput(""); }}
                     className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ml-auto"
                   >
                     <Trash2 className="w-3 h-3" />

@@ -1432,6 +1432,16 @@ export function AIPanel() {
                     </div>
                   </div>
                 )}
+                {!chatMutation.isPending && chatHistory.filter(m => m.role === 'model').length > 1 && (
+                  <SaveToMatterPanel
+                    title="AI Consultation Note"
+                    kind="chat"
+                    content={chatHistory
+                      .filter(m => m.role === 'model' || m.role === 'user')
+                      .map(m => `${m.role === 'user' ? 'Q' : 'A'}: ${m.content}`)
+                      .join('\n\n')}
+                  />
+                )}
                 <div ref={chatEndRef} />
               </div>
               <div className="p-4 bg-gold-900 border-t border-gold-800 shrink-0">
@@ -1795,7 +1805,10 @@ export function AIPanel() {
                 {submitBtn(compareMutation.isPending, 'Compare Clauses', GitCompare, !compareA.trim() || !compareB.trim())}
               </form>
               {compareResult && (
-                <OutputBlock title="Clause Comparison" content={compareResult} onCopy={() => copyText(compareResult)} />
+                <>
+                  <OutputBlock title="Clause Comparison" content={compareResult} onCopy={() => copyText(compareResult)} />
+                  <SaveToMatterPanel title="Clause Comparison" kind="analysis" content={compareResult} />
+                </>
               )}
             </div>
           )}
@@ -1842,7 +1855,10 @@ export function AIPanel() {
                 {submitBtn(titleMutation.isPending, 'Interpret Title', MapPin, !titleDetails.trim())}
               </form>
               {titleResult && (
-                <OutputBlock title="Title Interpretation" content={titleResult} onCopy={() => copyText(titleResult)} />
+                <>
+                  <OutputBlock title="Title Interpretation" content={titleResult} onCopy={() => copyText(titleResult)} />
+                  <SaveToMatterPanel title="Title Interpretation" kind="analysis" content={titleResult} />
+                </>
               )}
             </div>
           )}
@@ -1893,7 +1909,10 @@ export function AIPanel() {
                 {submitBtn(quoteMutation.isPending, 'Generate Quotation', Receipt, !quoteTxType || !quotePrice)}
               </form>
               {quoteResult && (
-                <OutputBlock title="Fee Quotation Letter" content={quoteResult} onCopy={() => copyText(quoteResult)} />
+                <>
+                  <OutputBlock title="Fee Quotation Letter" content={quoteResult} onCopy={() => copyText(quoteResult)} />
+                  <SaveToMatterPanel title="Fee Quotation Letter" kind="letter" content={quoteResult} />
+                </>
               )}
             </div>
           )}
@@ -1934,7 +1953,10 @@ export function AIPanel() {
                 {submitBtn(adviceMutation.isPending, 'Generate Advice Letter', Mail, !adviceClient.trim() || !adviceFacts.trim())}
               </form>
               {adviceResult && (
-                <OutputBlock title="Client Advice Letter" content={adviceResult} onCopy={() => copyText(adviceResult)} />
+                <>
+                  <OutputBlock title="Client Advice Letter" content={adviceResult} onCopy={() => copyText(adviceResult)} />
+                  <SaveToMatterPanel title="Client Advice Letter" kind="letter" content={adviceResult} />
+                </>
               )}
             </div>
           )}
@@ -1968,7 +1990,10 @@ export function AIPanel() {
                 {submitBtn(ddMutation.isPending, 'Generate DD Report', ClipboardCheck, !ddProperty.trim())}
               </form>
               {ddResult && (
-                <OutputBlock title="Due Diligence Report" content={ddResult} onCopy={() => copyText(ddResult)} />
+                <>
+                  <OutputBlock title="Due Diligence Report" content={ddResult} onCopy={() => copyText(ddResult)} />
+                  <SaveToMatterPanel title="Due Diligence Report" kind="report" content={ddResult} />
+                </>
               )}
             </div>
           )}
@@ -2005,7 +2030,10 @@ export function AIPanel() {
                 {submitBtn(opinionMutation.isPending, 'Generate Legal Opinion', Scale, !opinionIssue.trim() || !opinionFacts.trim())}
               </form>
               {opinionResult && (
-                <OutputBlock title="Legal Opinion" content={opinionResult} onCopy={() => copyText(opinionResult)} />
+                <>
+                  <OutputBlock title="Legal Opinion" content={opinionResult} onCopy={() => copyText(opinionResult)} />
+                  <SaveToMatterPanel title="Legal Opinion" kind="opinion" content={opinionResult} />
+                </>
               )}
             </div>
           )}
@@ -2042,7 +2070,10 @@ export function AIPanel() {
                 {submitBtn(reqMutation.isPending, 'Generate Requisition', FileQuestion, !reqTitle.trim() || !reqIssues.trim())}
               </form>
               {reqResult && (
-                <OutputBlock title="Requisition Letter" content={reqResult} onCopy={() => copyText(reqResult)} />
+                <>
+                  <OutputBlock title="Requisition Letter" content={reqResult} onCopy={() => copyText(reqResult)} />
+                  <SaveToMatterPanel title="Requisition Letter" kind="letter" content={reqResult} />
+                </>
               )}
             </div>
           )}
@@ -2082,7 +2113,10 @@ export function AIPanel() {
                 {submitBtn(compMutation.isPending, 'Generate Statement', Calculator, !compPrice.trim() || !compTxType)}
               </form>
               {compResult && (
-                <OutputBlock title="Completion Statement" content={compResult} onCopy={() => copyText(compResult)} />
+                <>
+                  <OutputBlock title="Completion Statement" content={compResult} onCopy={() => copyText(compResult)} />
+                  <SaveToMatterPanel title="Completion Statement" kind="statement" content={compResult} />
+                </>
               )}
             </div>
           )}
@@ -2129,7 +2163,10 @@ export function AIPanel() {
                 {submitBtn(caseMutation.isPending, 'Research Case Law', BookOpen, !caseTopic.trim())}
               </form>
               {caseResult && (
-                <OutputBlock title="Case Law Research" content={caseResult} onCopy={() => copyText(caseResult)} />
+                <>
+                  <OutputBlock title="Case Law Research" content={caseResult} onCopy={() => copyText(caseResult)} />
+                  <SaveToMatterPanel title="Case Law Research" kind="research" content={caseResult} />
+                </>
               )}
             </div>
           )}
@@ -2168,7 +2205,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(sdMutation.isPending, 'Calculate Stamp Duty', Stamp, !sdPrice.trim())}
               </form>
-              {sdResult && <OutputBlock title="Stamp Duty Calculation" content={sdResult} onCopy={() => copyText(sdResult)} />}
+              {sdResult && (
+                <>
+                  <OutputBlock title="Stamp Duty Calculation" content={sdResult} onCopy={() => copyText(sdResult)} />
+                  <SaveToMatterPanel title="Stamp Duty Calculation" kind="calculation" content={sdResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2207,7 +2249,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(rpgtMutation.isPending, 'Analyze RPGT', TrendingDown, !rpgtAcqPrice.trim() || !rpgtDispPrice.trim())}
               </form>
-              {rpgtResult && <OutputBlock title="RPGT Analysis" content={rpgtResult} onCopy={() => copyText(rpgtResult)} />}
+              {rpgtResult && (
+                <>
+                  <OutputBlock title="RPGT Analysis" content={rpgtResult} onCopy={() => copyText(rpgtResult)} />
+                  <SaveToMatterPanel title="RPGT Analysis" kind="calculation" content={rpgtResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2236,7 +2283,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(tenMutation.isPending, 'Draft Tenancy Agreement', Home, !tenPropDetails.trim() || !tenTerms.trim())}
               </form>
-              {tenResult && <OutputBlock title="Tenancy Agreement Draft" content={tenResult} onCopy={() => copyText(tenResult)} />}
+              {tenResult && (
+                <>
+                  <OutputBlock title="Tenancy Agreement Draft" content={tenResult} onCopy={() => copyText(tenResult)} />
+                  <SaveToMatterPanel title="Tenancy Agreement Draft" kind="draft" content={tenResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2270,7 +2322,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(poaMutation.isPending, 'Draft Power of Attorney', Gavel, !poaDonor.trim() || !poaDonee.trim() || !poaPowers.trim())}
               </form>
-              {poaResult && <OutputBlock title="Power of Attorney Draft" content={poaResult} onCopy={() => copyText(poaResult)} />}
+              {poaResult && (
+                <>
+                  <OutputBlock title="Power of Attorney Draft" content={poaResult} onCopy={() => copyText(poaResult)} />
+                  <SaveToMatterPanel title="Power of Attorney Draft" kind="draft" content={poaResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2299,7 +2356,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(cavMutation.isPending, 'Get Caveat Advice', AlertOctagon, !cavSituation.trim())}
               </form>
-              {cavResult && <OutputBlock title="Caveat Advice" content={cavResult} onCopy={() => copyText(cavResult)} />}
+              {cavResult && (
+                <>
+                  <OutputBlock title="Caveat Advice" content={cavResult} onCopy={() => copyText(cavResult)} />
+                  <SaveToMatterPanel title="Caveat Advice" kind="advice" content={cavResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2323,7 +2385,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(lsMutation.isPending, 'Analyze Land Search', Search, !lsResults.trim())}
               </form>
-              {lsResult && <OutputBlock title="Land Search Analysis" content={lsResult} onCopy={() => copyText(lsResult)} />}
+              {lsResult && (
+                <>
+                  <OutputBlock title="Land Search Analysis" content={lsResult} onCopy={() => copyText(lsResult)} />
+                  <SaveToMatterPanel title="Land Search Analysis" kind="analysis" content={lsResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2360,7 +2427,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(dcMutation.isPending, 'Get Developer Claim Advice', HardHat, !dcType || !dcDetails.trim())}
               </form>
-              {dcResult && <OutputBlock title="Developer Claim Advice" content={dcResult} onCopy={() => copyText(dcResult)} />}
+              {dcResult && (
+                <>
+                  <OutputBlock title="Developer Claim Advice" content={dcResult} onCopy={() => copyText(dcResult)} />
+                  <SaveToMatterPanel title="Developer Claim Advice" kind="advice" content={dcResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2384,7 +2456,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(bsMutation.isPending, 'Interpret Search', UserX, !bsResults.trim())}
               </form>
-              {bsResult && <OutputBlock title="Bankruptcy Search Advice" content={bsResult} onCopy={() => copyText(bsResult)} />}
+              {bsResult && (
+                <>
+                  <OutputBlock title="Bankruptcy Search Advice" content={bsResult} onCopy={() => copyText(bsResult)} />
+                  <SaveToMatterPanel title="Bankruptcy Search Advice" kind="advice" content={bsResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2425,7 +2502,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(fpMutation.isPending, 'Get Foreign Purchase Advice', Globe, !fpNationality.trim() || !fpPropType.trim() || !fpState)}
               </form>
-              {fpResult && <OutputBlock title="Foreign Purchase Advice" content={fpResult} onCopy={() => copyText(fpResult)} />}
+              {fpResult && (
+                <>
+                  <OutputBlock title="Foreign Purchase Advice" content={fpResult} onCopy={() => copyText(fpResult)} />
+                  <SaveToMatterPanel title="Foreign Purchase Advice" kind="advice" content={fpResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2466,7 +2548,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(ldMutation.isPending, 'Review Loan Document', FileCheck, !ldText.trim())}
               </form>
-              {ldResult && <OutputBlock title="Loan Document Review" content={ldResult} onCopy={() => copyText(ldResult)} />}
+              {ldResult && (
+                <>
+                  <OutputBlock title="Loan Document Review" content={ldResult} onCopy={() => copyText(ldResult)} />
+                  <SaveToMatterPanel title="Loan Document Review" kind="analysis" content={ldResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2494,7 +2581,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(tcMutation.isPending, 'Get Tax Compliance Advice', Landmark, !tcDetails.trim())}
               </form>
-              {tcResult && <OutputBlock title="Tax Compliance Advice" content={tcResult} onCopy={() => copyText(tcResult)} />}
+              {tcResult && (
+                <>
+                  <OutputBlock title="Tax Compliance Advice" content={tcResult} onCopy={() => copyText(tcResult)} />
+                  <SaveToMatterPanel title="Tax Compliance Advice" kind="advice" content={tcResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2536,7 +2628,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(strMutation.isPending, 'Get Strata Advice', Building2, !strIssue.trim())}
               </form>
-              {strResult && <OutputBlock title="Strata Management Advice" content={strResult} onCopy={() => copyText(strResult)} />}
+              {strResult && (
+                <>
+                  <OutputBlock title="Strata Management Advice" content={strResult} onCopy={() => copyText(strResult)} />
+                  <SaveToMatterPanel title="Strata Management Advice" kind="advice" content={strResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2570,7 +2667,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(quizMutation.isPending, 'Generate Quiz', Brain, !quizTopic.trim())}
               </form>
-              {quizResult && <OutputBlock title="Generated Quiz" content={quizResult} onCopy={() => copyText(quizResult)} />}
+              {quizResult && (
+                <>
+                  <OutputBlock title="Generated Quiz" content={quizResult} onCopy={() => copyText(quizResult)} />
+                  <SaveToMatterPanel title="Generated Quiz" kind="quiz" content={quizResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2616,7 +2718,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(simMutation.isPending, 'Run Simulation', PlayCircle, !simScenario.trim())}
               </form>
-              {simResult && <OutputBlock title="Transaction Simulation" content={simResult} onCopy={() => copyText(simResult)} />}
+              {simResult && (
+                <>
+                  <OutputBlock title="Transaction Simulation" content={simResult} onCopy={() => copyText(simResult)} />
+                  <SaveToMatterPanel title="Transaction Simulation" kind="analysis" content={simResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2640,7 +2747,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(clauseMutation.isPending, 'Search Clause Library', Library, !clauseType.trim())}
               </form>
-              {clauseResult && <OutputBlock title="Clause Library Results" content={clauseResult} onCopy={() => copyText(clauseResult)} />}
+              {clauseResult && (
+                <>
+                  <OutputBlock title="Clause Library Results" content={clauseResult} onCopy={() => copyText(clauseResult)} />
+                  <SaveToMatterPanel title="Clause Library Results" kind="draft" content={clauseResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2673,7 +2785,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(docMutation.isPending, 'Analyze Document', FileText, !docText.trim())}
               </form>
-              {docResult && <OutputBlock title="Document Analysis" content={docResult} onCopy={() => copyText(docResult)} />}
+              {docResult && (
+                <>
+                  <OutputBlock title="Document Analysis" content={docResult} onCopy={() => copyText(docResult)} />
+                  <SaveToMatterPanel title="Document Analysis" kind="analysis" content={docResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2703,7 +2820,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(compChkMutation.isPending, 'Run Compliance Check', CheckSquare, !compChkTxn.trim())}
               </form>
-              {compChkResult && <OutputBlock title="Compliance Audit Report" content={compChkResult} onCopy={() => copyText(compChkResult)} />}
+              {compChkResult && (
+                <>
+                  <OutputBlock title="Compliance Audit Report" content={compChkResult} onCopy={() => copyText(compChkResult)} />
+                  <SaveToMatterPanel title="Compliance Audit Report" kind="report" content={compChkResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2741,7 +2863,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(tlMutation.isPending, 'Generate Timeline', Timer, !tlType.trim())}
               </form>
-              {tlResult && <OutputBlock title="Transaction Timeline" content={tlResult} onCopy={() => copyText(tlResult)} />}
+              {tlResult && (
+                <>
+                  <OutputBlock title="Transaction Timeline" content={tlResult} onCopy={() => copyText(tlResult)} />
+                  <SaveToMatterPanel title="Transaction Timeline" kind="deadlines" content={tlResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2776,7 +2903,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(examMutation.isPending, 'Generate Exam Paper', GraduationCap, !examSubject.trim())}
               </form>
-              {examResult && <OutputBlock title="Mock Examination Paper" content={examResult} onCopy={() => copyText(examResult)} />}
+              {examResult && (
+                <>
+                  <OutputBlock title="Mock Examination Paper" content={examResult} onCopy={() => copyText(examResult)} />
+                  <SaveToMatterPanel title="Mock Examination Paper" kind="exam" content={examResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2805,7 +2937,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(caMutation.isPending, 'Analyze Case', Microscope, !caName.trim())}
               </form>
-              {caResult && <OutputBlock title="Case Law Analysis" content={caResult} onCopy={() => copyText(caResult)} />}
+              {caResult && (
+                <>
+                  <OutputBlock title="Case Law Analysis" content={caResult} onCopy={() => copyText(caResult)} />
+                  <SaveToMatterPanel title="Case Law Analysis" kind="analysis" content={caResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2861,7 +2998,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(crMutation.isPending, 'Generate Resolution', FileSignature, !crCompany.trim() || !crResType.trim() || !crTxDetails.trim())}
               </form>
-              {crResult && <OutputBlock title="Corporate Resolution" content={crResult} onCopy={() => copyText(crResult)} />}
+              {crResult && (
+                <>
+                  <OutputBlock title="Corporate Resolution" content={crResult} onCopy={() => copyText(crResult)} />
+                  <SaveToMatterPanel title="Corporate Resolution" kind="draft" content={crResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2899,7 +3041,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(cddMutation.isPending, 'Generate DD Report', Building, !cddCompany.trim() || !cddProperty.trim())}
               </form>
-              {cddResult && <OutputBlock title="Corporate Property DD Report" content={cddResult} onCopy={() => copyText(cddResult)} />}
+              {cddResult && (
+                <>
+                  <OutputBlock title="Corporate Property DD Report" content={cddResult} onCopy={() => copyText(cddResult)} />
+                  <SaveToMatterPanel title="Corporate Property DD Report" kind="report" content={cddResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -2953,7 +3100,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(jvMutation.isPending, 'Draft JV / JDA', Handshake, !jvParties.trim() || !jvProperty.trim() || !jvStructure.trim())}
               </form>
-              {jvResult && <OutputBlock title="JV / JDA Draft" content={jvResult} onCopy={() => copyText(jvResult)} />}
+              {jvResult && (
+                <>
+                  <OutputBlock title="JV / JDA Draft" content={jvResult} onCopy={() => copyText(jvResult)} />
+                  <SaveToMatterPanel title="JV / JDA Draft" kind="draft" content={jvResult} />
+                </>
+              )}
             </div>
           )}
 
@@ -3014,7 +3166,12 @@ export function AIPanel() {
                 </div>
                 {submitBtn(grnMutation.isPending, 'Draft Guarantee', ShieldCheck, !grnType.trim() || !grnGuarantor.trim() || !grnDebtor.trim() || !grnLender.trim() || !grnAmount.trim())}
               </form>
-              {grnResult && <OutputBlock title="Guarantee Draft" content={grnResult} onCopy={() => copyText(grnResult)} />}
+              {grnResult && (
+                <>
+                  <OutputBlock title="Guarantee Draft" content={grnResult} onCopy={() => copyText(grnResult)} />
+                  <SaveToMatterPanel title="Guarantee Draft" kind="draft" content={grnResult} />
+                </>
+              )}
             </div>
           )}
 

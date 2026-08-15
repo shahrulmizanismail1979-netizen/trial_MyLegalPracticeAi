@@ -214,10 +214,10 @@ function PrepareDialog({ matter, onClose }: { matter: MatterBriefing | null; onC
 }
 
 const QUICK_LINKS = [
-  { href: "/workspace/tool/cause-paper-drafter", label: "Draft Cause Papers", icon: FileText, desc: "Statement of claim, defence, counterclaim" },
-  { href: "/workspace/tool/interlocutory-drafter", label: "Interlocutory Apps", icon: Scale, desc: "Injunctions, summary judgment, striking out" },
+  { href: "/workspace/tool/statement-of-claim", label: "Draft Cause Papers", icon: FileText, desc: "Statement of claim, defence, counterclaim" },
+  { href: "/workspace/tool/injunction-application", label: "Interlocutory Apps", icon: Scale, desc: "Injunctions, summary judgment, striking out" },
   { href: "/workspace/tool/legal-opinion", label: "Legal Opinion", icon: Shield, desc: "Banking & commercial law opinions" },
-  { href: "/workspace/tool/debt-recovery-calc", label: "Debt Calculator", icon: Building, desc: "Interest, costs, judgment amounts" },
+  { href: "/workspace/tool/costs-calculator", label: "Debt Calculator", icon: Building, desc: "Interest, costs, judgment amounts" },
 ];
 
 export default function WorkspaceIndex() {

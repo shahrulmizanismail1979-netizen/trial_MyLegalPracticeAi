@@ -18,6 +18,7 @@ import {
   DEADLINE_TRIGGERS,
 } from "../lib/litigationDeadlines";
 import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "../../lib/attachCaseIntelligence";
+import { recordCaseEvent, updateCaseEventBySource, deleteCaseEventBySource } from "../../lib/caseEvents";
 
 const router: IRouter = Router();
 
@@ -246,6 +247,49 @@ router.post("/:id/deadlines/compute", async (req, res) => {
   res.json(computeDeadlines(trigger, triggerDate));
 });
 
+// ── Chronology ↔ Diary linking ────────────────────────────────────────────────
+// A deadline entered in the Diary should also surface in the matter Chronology
+// (as a kind="deadline" event) and vice-versa. We reuse the existing
+// case_events table; the link is marked with source="deadline:<id>" so the two
+// stay in sync and can be cleaned up without touching unrelated events.
+const DEADLINE_EVENT_SOURCE = (deadlineId: number) => `deadline:${deadlineId}`;
+
+// Parse a chronology event's `source` back into its linked deadline id, or null
+// if the event isn't paired with a diary deadline.
+function parseDeadlineSource(source: unknown): number | null {
+  if (typeof source !== "string" || !source.startsWith("deadline:")) return null;
+  const id = parseInt(source.slice("deadline:".length), 10);
+  return Number.isNaN(id) ? null : id;
+}
+
+function toIsoDate(v: unknown): string | null {
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "string") {
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+  return null;
+}
+
+// Mirror a Diary deadline into the matter's chronology (best-effort, never
+// throws). Keeps the two views consistent per matter.
+async function mirrorDeadlineToChronology(
+  matterId: number,
+  ownerKey: string,
+  deadline: { id: number; title: string; dueDate: unknown; basis?: string | null; notes?: string | null },
+): Promise<void> {
+  const iso = toIsoDate(deadline.dueDate);
+  if (!iso) return;
+  const parts = [deadline.basis, deadline.notes].filter((p): p is string => !!p && typeof p === "string");
+  await recordCaseEvent("lit", matterId, ownerKey, {
+    event_date: iso,
+    title: deadline.title,
+    kind: "deadline",
+    source: DEADLINE_EVENT_SOURCE(deadline.id),
+    description: parts.length ? parts.join(" — ") : null,
+  });
+}
+
 function normaliseDeadlineBody(body: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
   if (typeof body.title === "string") out.title = body.title.slice(0, 500);
@@ -281,6 +325,14 @@ router.post("/:id/deadlines", requireSubscription, async (req, res) => {
       accessCodeId,
     })
     .returning();
+  // Surface this deadline in the matter's chronology too (best-effort).
+  await mirrorDeadlineToChronology(matter.id, String(accessCodeId), {
+    id: row.id,
+    title: row.title,
+    dueDate: row.dueDate,
+    basis: (row as unknown as Record<string, unknown>).basis as string | null,
+    notes: (row as unknown as Record<string, unknown>).notes as string | null,
+  });
   res.status(201).json(row);
 });
 
@@ -303,10 +355,23 @@ router.post("/:id/deadlines/bulk", requireSubscription, async (req, res) => {
     return;
   }
   const rows = await db.insert(litMatterDeadlines).values(values).returning();
+  // Mirror each new deadline into the matter's chronology (best-effort).
+  await Promise.all(
+    rows.map((row) =>
+      mirrorDeadlineToChronology(matter.id, String(accessCodeId), {
+        id: row.id,
+        title: row.title,
+        dueDate: row.dueDate,
+        basis: (row as unknown as Record<string, unknown>).basis as string | null,
+        notes: (row as unknown as Record<string, unknown>).notes as string | null,
+      }),
+    ),
+  );
   res.status(201).json(rows);
 });
 
 router.patch("/:id/deadlines/:did", async (req, res) => {
+  const accessCodeId = (req as unknown as Request & { accessCodeId: number }).accessCodeId;
   const matter = await getOwnedMatter(req, res, (req.params.id as string));
   if (!matter) return;
   const did = parseInt((req.params.did as string), 10);
@@ -329,10 +394,21 @@ router.patch("/:id/deadlines/:did", async (req, res) => {
     res.status(404).json({ error: "Deadline not found" });
     return;
   }
+  // Keep the mirrored chronology event in step with the edited deadline.
+  const parts = [
+    (row as unknown as Record<string, unknown>).basis,
+    (row as unknown as Record<string, unknown>).notes,
+  ].filter((p): p is string => !!p && typeof p === "string");
+  await updateCaseEventBySource("lit", matter.id, String(accessCodeId), DEADLINE_EVENT_SOURCE(row.id), {
+    event_date: toIsoDate(row.dueDate) ?? undefined,
+    title: row.title,
+    description: parts.length ? parts.join(" — ") : null,
+  });
   res.json(row);
 });
 
 router.delete("/:id/deadlines/:did", async (req, res) => {
+  const accessCodeId = (req as unknown as Request & { accessCodeId: number }).accessCodeId;
   const matter = await getOwnedMatter(req, res, (req.params.id as string));
   if (!matter) return;
   const did = parseInt((req.params.did as string), 10);
@@ -353,6 +429,8 @@ router.delete("/:id/deadlines/:did", async (req, res) => {
     res.status(404).json({ error: "Deadline not found" });
     return;
   }
+  // Remove the mirrored chronology event for this deadline.
+  await deleteCaseEventBySource("lit", matter.id, String(accessCodeId), DEADLINE_EVENT_SOURCE(row.id));
   res.json({ success: true });
 });
 
@@ -368,6 +446,82 @@ attachCaseIntelligence({
     return accessCodeId ? String(accessCodeId) : null;
   },
   getMatter: (req, res, id) => getOwnedMatter(req, res, id),
+  // Chronology ↔ Diary is kept bidirectional through the shared "deadline:<id>"
+  // source marker. Both hooks and the diary routes write to their counterpart
+  // table DIRECTLY (never through the other's HTTP route), so the two never
+  // loop. A pair is durable regardless of which side originated it.
+  caseEventHooks: {
+    // Chronology → Diary (create): a deadline logged directly in the matter
+    // Chronology also appears in the Deadline Diary. Events already mirrored
+    // FROM a diary deadline carry a "deadline:<id>" source and are skipped.
+    // Returns the new "deadline:<id>" so the router stamps it onto the event,
+    // establishing the reciprocal link for later edits/deletes.
+    onEventCreated: async (matterId, ownerKey, event) => {
+      if (event.kind !== "deadline") return;
+      if (parseDeadlineSource(event.source) !== null) return; // already linked / mirrored from diary
+      const iso = toIsoDate(event.event_date);
+      if (!iso) return;
+      const accessCodeId = parseInt(ownerKey, 10);
+      if (Number.isNaN(accessCodeId)) return;
+      const title = typeof event.title === "string" ? event.title : "";
+      if (!title.trim()) return;
+      const [row] = await db
+        .insert(litMatterDeadlines)
+        .values({
+          matterId,
+          accessCodeId,
+          title: title.trim(),
+          dueDate: new Date(iso),
+          category: "custom",
+          notes: typeof event.description === "string" ? event.description : null,
+        })
+        .returning();
+      if (!row) return;
+      return DEADLINE_EVENT_SOURCE(row.id);
+    },
+    // Chronology → Diary (edit): mirror the event's changes onto its linked
+    // deadline. Writes directly to the table, so no diary→chronology re-sync.
+    onEventUpdated: async (matterId, ownerKey, event) => {
+      const deadlineId = parseDeadlineSource(event.source);
+      if (deadlineId === null) return;
+      const accessCodeId = parseInt(ownerKey, 10);
+      if (Number.isNaN(accessCodeId)) return;
+      const iso = toIsoDate(event.event_date);
+      const set: Record<string, unknown> = { updatedAt: new Date() };
+      if (typeof event.title === "string" && event.title.trim()) set.title = event.title.trim();
+      if (iso) set.dueDate = new Date(iso);
+      if (event.description !== undefined) {
+        set.notes = typeof event.description === "string" ? event.description : null;
+      }
+      await db
+        .update(litMatterDeadlines)
+        .set(set)
+        .where(
+          and(
+            eq(litMatterDeadlines.id, deadlineId),
+            eq(litMatterDeadlines.matterId, matterId),
+            eq(litMatterDeadlines.accessCodeId, accessCodeId),
+          ),
+        );
+    },
+    // Chronology → Diary (delete): remove the linked deadline. Direct delete,
+    // so the diary's own delete path (which clears the event) is not invoked.
+    onEventDeleted: async (matterId, ownerKey, event) => {
+      const deadlineId = parseDeadlineSource(event.source);
+      if (deadlineId === null) return;
+      const accessCodeId = parseInt(ownerKey, 10);
+      if (Number.isNaN(accessCodeId)) return;
+      await db
+        .delete(litMatterDeadlines)
+        .where(
+          and(
+            eq(litMatterDeadlines.id, deadlineId),
+            eq(litMatterDeadlines.matterId, matterId),
+            eq(litMatterDeadlines.accessCodeId, accessCodeId),
+          ),
+        );
+    },
+  },
 });
 
 export default router;

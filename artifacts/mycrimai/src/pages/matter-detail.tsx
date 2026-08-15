@@ -126,7 +126,8 @@ const CATEGORY_OPTIONS = ["remand", "charge", "bail", "trial", "appeal", "revisi
 const STATUS_OPTIONS = ["open", "on-hold", "closed"];
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  // Display-only DD/MM/YYYY (Malaysian). Does not affect stored values or API payloads.
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function CountdownBadge({ due, status }: { due: string; status: string }) {
@@ -288,7 +289,7 @@ function IntakeBriefingPanel({ matterId }: { matterId: number }) {
               </div>
             )}
             <p className="text-[10px] text-muted-foreground/60 pt-1">
-              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+              Read-only intake snapshot · generated {fmtDate(briefing.generatedAt)}
             </p>
           </div>
         )}

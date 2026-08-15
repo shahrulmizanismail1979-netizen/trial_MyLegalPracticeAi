@@ -44,4 +44,5 @@
 - [Per-seat AI quota identity](ai-seat-identity.md) — never key per-lawyer quotas on IP+UA (office NAT collides); use signed seat cookie, counted only when the client presented it.
 - [Portal matter-files port pattern](matter-files-port.md) — porting lit-style matters into another portal: synthetic inactive master-tenant row, no requireSubscription (portal auth already gates), criminal/portal-specific deadline triggers.
 - [Virtual paralegal dashboard widget](virtual-paralegal-widget.md) — shared chat+voice paralegal per portal; getOwnerKey must handle master sessions (no code row) or masters get 401; /speak has its own throttle.
+- [Scoped large body parsers](lit-heavy-body-parsers.md) — mount 30mb JSON parsers only on heavy AI-draft sub-routes, never a whole portal prefix; chronology↔deadline sync keyed by case_events source "deadline:<id>" both ways.
 - [AI rate-limit visibility banner](rate-limit-banner.md) — portals show remaining AI quota by parsing draft-8 RateLimit headers via a per-portal fetch interceptor; keep header contract test in sync.

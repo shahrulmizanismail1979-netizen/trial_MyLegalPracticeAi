@@ -1024,7 +1024,7 @@ export default function MatterDetailPage() {
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Button asChild size="sm" variant="outline" className="gap-1.5">
-                    <Link href={`/workspace/tool/cause-paper-drafter?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}><FileText className="h-3.5 w-3.5" /> Cause Papers</Link>
+                    <Link href={`/workspace/tool/statement-of-claim?matter=${matter.id}&client=${encodeURIComponent(matter.clientName ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`}><FileText className="h-3.5 w-3.5" /> Cause Papers</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="gap-1.5">
                     <Link href={`/workspace/tool/legal-opinion?matter=${matter.id}&ref=${encodeURIComponent(matter.reference ?? "")}`}><Sparkles className="h-3.5 w-3.5" /> Legal Opinion</Link>

@@ -35,6 +35,7 @@ import {
   useClients,
   useCreateClient,
   useUpdateClient,
+  useDeleteClient,
   type MatterClient,
   useCaseEvents,
   useAddCaseEvent,
@@ -108,7 +109,8 @@ const PRIORITY_DOT: Record<string, string> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  // Display-only DD/MM/YYYY (Malaysian). Does not affect stored values or API payloads.
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function formatMoney(v: string | null) {
@@ -298,7 +300,7 @@ function IntakeBriefingPanel({ matterId }: { matterId: number }) {
               </div>
             )}
             <p className="text-[10px] text-muted-foreground/60 pt-1">
-              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+              Read-only intake snapshot · generated {fmtDate(briefing.generatedAt)}
             </p>
           </div>
         )}
@@ -787,6 +789,7 @@ export default function MatterDetail() {
   const { data: clients } = useClients();
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
 
   // Matter work
   const { data: matterWork } = useMatterWork(id);
@@ -974,12 +977,28 @@ export default function MatterDetail() {
   };
 
   // ── Client handlers ──
-  const matchedClient = clients?.find(c => c.name.toLowerCase() === (matter.clientName ?? '').toLowerCase());
+  // A matter can carry several contact records (client, opponent's solicitor,
+  // guarantor, etc.). Show every record whose name matches the matter's client
+  // name; the first is created pre-filled with the client name, further ones
+  // start blank so multiple distinct contacts can be added.
+  const matchedClients = (clients ?? []).filter(
+    c => c.name.toLowerCase() === (matter.clientName ?? '').toLowerCase(),
+  );
 
   const openClientCreate = () => {
     setEditingClient(null);
-    setClientForm({ name: matter.clientName ?? '', ic_or_company: '', phone: '', email: '', notes: '' });
+    // Pre-fill the matter's client name only for the first record.
+    setClientForm({ name: matchedClients.length === 0 ? (matter.clientName ?? '') : '', ic_or_company: '', phone: '', email: '', notes: '' });
     setClientFormOpen(true);
+  };
+
+  const removeClient = async (c: MatterClient) => {
+    try {
+      await deleteClient.mutateAsync(c.id);
+      toast({ title: 'Client record deleted' });
+    } catch (e) {
+      toast({ title: 'Could not delete client', description: e instanceof Error ? e.message : '', variant: 'destructive' });
+    }
   };
 
   const openClientEdit = (c: MatterClient) => {
@@ -1307,49 +1326,56 @@ export default function MatterDetail() {
           {/* Client record */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Client Contact Record</p>
-              {!matchedClient && (
-                <Button size="sm" className="gap-1.5" onClick={openClientCreate}>
-                  <Plus className="h-3.5 w-3.5" /> Add client record
-                </Button>
-              )}
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Client Contact Records</p>
+              <Button size="sm" className="gap-1.5" onClick={openClientCreate}>
+                <Plus className="h-3.5 w-3.5" /> Add client record
+              </Button>
             </div>
 
-            {matchedClient ? (
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="font-serif font-bold text-foreground">{matchedClient.name}</p>
-                      {matchedClient.ic_or_company && <p className="text-xs text-muted-foreground mt-0.5">{matchedClient.ic_or_company}</p>}
-                    </div>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openClientEdit(matchedClient)}>
-                      <Pencil className="h-3.5 w-3.5" /> Edit
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {matchedClient.phone && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                        <a href={`tel:${matchedClient.phone}`} className="hover:text-primary">{matchedClient.phone}</a>
+            {matchedClients.length > 0 ? (
+              <div className="space-y-3">
+                {matchedClients.map((mc) => (
+                  <Card key={mc.id}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className="font-serif font-bold text-foreground">{mc.name}</p>
+                          {mc.ic_or_company && <p className="text-xs text-muted-foreground mt-0.5">{mc.ic_or_company}</p>}
+                        </div>
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openClientEdit(mc)}>
+                            <Pencil className="h-3.5 w-3.5" /> Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => removeClient(mc)}>
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                    {matchedClient.email && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                        <a href={`mailto:${matchedClient.email}`} className="hover:text-primary">{matchedClient.email}</a>
+                      <div className="space-y-2">
+                        {mc.phone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                            <a href={`tel:${mc.phone}`} className="hover:text-primary">{mc.phone}</a>
+                          </div>
+                        )}
+                        {mc.email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                            <a href={`mailto:${mc.email}`} className="hover:text-primary">{mc.email}</a>
+                          </div>
+                        )}
+                        {mc.ic_or_company && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{mc.ic_or_company}</span>
+                          </div>
+                        )}
+                        {mc.notes && <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">{mc.notes}</p>}
                       </div>
-                    )}
-                    {matchedClient.ic_or_company && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{matchedClient.ic_or_company}</span>
-                      </div>
-                    )}
-                    {matchedClient.notes && <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">{matchedClient.notes}</p>}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
               <Card>
                 <CardContent className="p-6 text-center">

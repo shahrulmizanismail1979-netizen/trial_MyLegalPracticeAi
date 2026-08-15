@@ -99,6 +99,7 @@ export default function ToolDetailPage() {
 
   const handleGenerate = async () => {
     if (!isFormValid || isLoading) return;
+    tts.stop();
     setIsLoading(true);
     setError(null);
     setOutput("");
@@ -172,6 +173,7 @@ export default function ToolDetailPage() {
   };
 
   const handleReset = () => {
+    tts.stop();
     setFormValues({});
     setOutput("");
     setError(null);

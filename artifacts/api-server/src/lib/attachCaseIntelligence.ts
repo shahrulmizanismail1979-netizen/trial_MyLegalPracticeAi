@@ -28,7 +28,7 @@ import { getMatterInsights, invalidateMatterInsights } from "./caseInsights";
 import { getIntakeBriefing, generateAndSaveIntakeBriefing } from "./caseIntakeBriefing";
 import { generateAndSaveChecklist, makeChecklistRouter } from "./caseChecklist";
 import { makeTimeRecordingRouter } from "./caseTimeRecording";
-import { buildCaseEventsRouter } from "./caseEvents";
+import { buildCaseEventsRouter, type CaseEventHooks } from "./caseEvents";
 import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { buildCaseBriefingRouter } from "./caseBriefing";
@@ -47,6 +47,12 @@ export interface IntelligenceOptions {
   pathPrefix?: string;
   getOwnerKey: (req: Request, res: Response) => string | null;
   getMatter: (req: Request, res: Response, id: string) => Promise<MatterRow | undefined>;
+  /**
+   * Optional hooks fired after a chronology event is created / updated /
+   * deleted, letting a portal keep a portal-specific mirror table in step
+   * (e.g. MyLitAI's Deadline Diary).
+   */
+  caseEventHooks?: CaseEventHooks;
 }
 
 export function attachCaseIntelligence(opts: IntelligenceOptions): void {
@@ -245,7 +251,7 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
   router.use(`${P}/:matterId/time-entries`, timeRouter);
 
   // ── Chronology / activity stream (sub-router with mergeParams) ───────────────
-  const eventsRouter = buildCaseEventsRouter(portal, getOwnerKey);
+  const eventsRouter = buildCaseEventsRouter(portal, getOwnerKey, opts.caseEventHooks);
   router.use(`${P}/:matterId/events`, eventsRouter);
 
   // ── Linked client records for a matter ───────────────────────────────────────
