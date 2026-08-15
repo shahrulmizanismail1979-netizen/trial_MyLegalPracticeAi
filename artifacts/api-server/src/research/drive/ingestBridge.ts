@@ -14,7 +14,7 @@ import {
   researchUploadBatchItems,
   type DriveAsset,
 } from "@workspace/db";
-import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull, or, sql } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { downloadDriveFile } from "./driveClient";
 import { getAdapters } from "../adapters";
@@ -66,22 +66,99 @@ export interface IngestResult {
 /**
  * Download a single Drive asset and feed it into the research pipeline.
  * Idempotent: skips assets that aren't PENDING or APPROVED.
+ *
+ * Pass `forceReset: true` on retry attempts so a previously-FAILED asset is
+ * reset to PENDING before attempting ingestion again. Without this, the
+ * idempotency guard would see FAILED and skip the retry silently.
  */
 export async function ingestDriveAsset(
   assetId: number,
+  opts: { forceReset?: boolean } = {},
 ): Promise<IngestResult> {
+  if (opts.forceReset) {
+    // Reset → PENDING for two cases, both safe to retry:
+    //  • processingStatus = 'FAILED': explicit failure recorded by the catch block.
+    //  • processingStatus = 'INGESTION_QUEUED' AND sourceBatchItemId IS NULL:
+    //    the server crashed after setting INGESTION_QUEUED but before creating
+    //    or linking a batch item, so no durable work was persisted and the
+    //    asset is permanently orphaned without this reset.
+    //
+    // Genuinely-progressing assets are left alone:
+    //  • INGESTION_QUEUED + sourceBatchItemId IS NOT NULL: batch item exists;
+    //    the batch-item-reuse path below will pick it up.
+    //  • INGESTION_RUNNING, EXTRACTION_QUEUED, etc.: real downstream progress.
+    await db
+      .update(driveAssets)
+      .set({ processingStatus: "PENDING", pipelineError: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(driveAssets.id, assetId),
+          eq(driveAssets.rightsStatus, "APPROVED"),
+          or(
+            eq(driveAssets.processingStatus, "FAILED"),
+            and(
+              eq(driveAssets.processingStatus, "INGESTION_QUEUED"),
+              isNull(driveAssets.sourceBatchItemId),
+            ),
+          ),
+        ),
+      );
+  }
+
   const [asset] = await db
     .select()
     .from(driveAssets)
     .where(eq(driveAssets.id, assetId));
   if (!asset) throw new Error(`Drive asset ${assetId} not found`);
 
-  // Idempotency guards
+  // Idempotency guard.
+  // Allow INGESTION_QUEUED assets that already have a linked batch item to fall
+  // through to the reuse path below.  They represent a crash that occurred after
+  // sourceBatchItemId was persisted but before or during the downstream enqueue
+  // — the batch item is real and must not be duplicated.  All other non-PENDING
+  // states represent genuine downstream progress and must be skipped.
   if (asset.processingStatus !== "PENDING") {
-    return { assetId, queued: false, skipped: true, reason: `Status is ${asset.processingStatus}` };
+    const canReuse =
+      asset.processingStatus === "INGESTION_QUEUED" && asset.sourceBatchItemId != null;
+    if (!canReuse) {
+      return { assetId, queued: false, skipped: true, reason: `Status is ${asset.processingStatus}` };
+    }
   }
   if (asset.rightsStatus !== "APPROVED") {
     return { assetId, queued: false, skipped: true, reason: `Rights not approved (${asset.rightsStatus})` };
+  }
+
+  // Batch-item idempotency: if a previous attempt already created and linked a
+  // batch item (sourceBatchItemId is set), reuse it instead of re-downloading
+  // and creating a duplicate item + downstream container.ingest job.
+  // Reached for PENDING assets or INGESTION_QUEUED + sourceBatchItemId set (see guard above).
+  if (asset.sourceBatchItemId != null) {
+    const [existingItem] = await db
+      .select()
+      .from(researchUploadBatchItems)
+      .where(eq(researchUploadBatchItems.id, asset.sourceBatchItemId));
+
+    if (existingItem && !["DEAD_LETTER", "REJECTED"].includes(existingItem.state)) {
+      // Retryable batch item — re-enqueue its downstream container.ingest job
+      // rather than downloading and staging the file again.
+      await enqueueIngestJob(existingItem, (existingItem.retryCount ?? 0) + 1, "drive-bridge-retry");
+      await db
+        .update(driveAssets)
+        .set({ processingStatus: "INGESTION_QUEUED", pipelineError: null, updatedAt: new Date() })
+        .where(eq(driveAssets.id, assetId));
+      logger.info(
+        { assetId, batchItemId: existingItem.id },
+        "Drive asset: reusing existing batch item on retry",
+      );
+      return { assetId, queued: true, skipped: false, batchItemId: existingItem.id };
+    }
+
+    // Terminal batch item — clear the stale reference so we fall through to
+    // a fresh download on this attempt.
+    await db
+      .update(driveAssets)
+      .set({ sourceBatchItemId: null, updatedAt: new Date() })
+      .where(eq(driveAssets.id, assetId));
   }
 
   try {
@@ -124,29 +201,45 @@ export async function ingestDriveAsset(
       mimeType,
     );
 
-    // Create the batch item
-    const item = await createBatchItem({
-      batchId: batch.id,
-      originalPath: asset.name,
-      contentSha256: sha256,
-      sizeBytes: bytes.length,
-      mimeType,
-      stagingKey,
+    // Create the batch item AND link it to the drive asset atomically in a
+    // single transaction.  This eliminates the crash window between
+    // createBatchItem() committing and the asset link update — with separate
+    // statements a crash in that interval would leave an orphaned batch item
+    // that a retry would duplicate.  createBatchItem accepts a `dbc` parameter
+    // so its internal writes participate in the outer transaction (drizzle
+    // handles the nested call via a savepoint on PostgreSQL).
+    const item = await db.transaction(async (tx) => {
+      const newItem = await createBatchItem(
+        {
+          batchId: batch.id,
+          originalPath: asset.name,
+          contentSha256: sha256,
+          sizeBytes: bytes.length,
+          mimeType,
+          stagingKey,
+        },
+        tx,
+      );
+
+      // Link immediately within the same transaction so both commit or
+      // neither commits — no intermediate orphan state is possible.
+      await tx
+        .update(driveAssets)
+        .set({
+          processingStatus: "INGESTION_QUEUED",
+          sourceBatchItemId: newItem.id,
+          pipelineError: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(driveAssets.id, assetId));
+
+      return newItem;
     });
 
-    // Enqueue the container.ingest job
+    // Enqueue the container.ingest job after the atomic commit.
+    // A crash here leaves sourceBatchItemId set → the retry reuses the
+    // existing batch item without re-downloading.
     await enqueueIngestJob(item, 0, "drive-bridge");
-
-    // Link the batch item back to the drive asset
-    await db
-      .update(driveAssets)
-      .set({
-        processingStatus: "INGESTION_QUEUED",
-        sourceBatchItemId: item.id,
-        pipelineError: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(driveAssets.id, assetId));
 
     logger.info(
       { assetId, driveFileId: asset.driveFileId, batchItemId: item.id },

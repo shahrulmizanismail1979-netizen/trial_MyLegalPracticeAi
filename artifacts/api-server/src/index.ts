@@ -43,6 +43,8 @@ import { registerMetadataProcessor } from "./research/metadata/metadataProcessor
 import { registerSearchIndexProcessor } from "./research/search/searchIndexProcessor";
 import { registerAiAnalysisProcessor } from "./research/analysis/processor";
 import { registerHeadnotesProcessor } from "./research/headnotes/processor";
+import { registerDriveIngestProcessor } from "./research/drive/driveIngestProcessor";
+import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -58,10 +60,26 @@ function registerAllResearchProcessors(): void {
   registerSearchIndexProcessor();
   registerAiAnalysisProcessor();
   registerHeadnotesProcessor();
+  registerDriveIngestProcessor();
 }
 
 async function startResearchJobWorker(): Promise<void> {
   registerAllResearchProcessors();
+
+  // Recover ALL drive.ingest jobs left in RUNNING state from a previous
+  // server crash/restart.  After a restart there are no active workers, so
+  // every RUNNING job is an orphan regardless of age — use thresholdMinutes: 0
+  // to skip the age filter and recover immediately.
+  // Must run before the polling loop claims new jobs.
+  try {
+    const recovered = await recoverStaleDriveIngestJobs({ thresholdMinutes: 0 });
+    if (recovered > 0) {
+      logger.info({ recovered }, "Recovered orphaned drive.ingest jobs at startup");
+    }
+  } catch (err) {
+    logger.error({ err }, "Drive.ingest job recovery failed at startup (non-fatal)");
+  }
+
   logger.info("Research job worker started");
   // eslint-disable-next-line no-constant-condition
   while (true) {

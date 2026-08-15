@@ -23,7 +23,7 @@ import {
 import { inArray } from "drizzle-orm";
 import casesRouter from "./cases";
 import type { PortalAuthIdentity } from "../middlewares/requireAnyPortalAuth";
-import { indexJudgment } from "../research/search/postgresFtsAdapter";
+import { indexJudgment, ensurePracticeAreaSchema } from "../research/search/postgresFtsAdapter";
 
 const RUN_ID = randomUUID();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -99,6 +99,10 @@ let bankingId = 0;
 let untaggedId = 0;
 
 beforeAll(async () => {
+  // Ensure practice_area column exists — normally applied at server boot,
+  // but test files invoke the processor directly without booting the server.
+  await ensurePracticeAreaSchema();
+
   criminalId = await seedCase("criminal");
   bankingId = await seedCase("banking");
   untaggedId = await seedCase(null);

@@ -232,6 +232,14 @@ export const assetsApi = {
       method: "PATCH",
       body: JSON.stringify({ rightsStatus }),
     }),
+  bulkUpdateRights: (
+    rightsStatus: Exclude<DriveAsset["rightsStatus"], "RIGHTS_REVIEW_REQUIRED">,
+    sourceClassification?: string,
+  ) =>
+    apiFetch<{ updated: number; ingestionQueued: number }>("/drive/assets/bulk-rights", {
+      method: "POST",
+      body: JSON.stringify({ rightsStatus, sourceClassification }),
+    }),
 };
 
 // ── Headnotes & Catchwords ────────────────────────────────────────────────────

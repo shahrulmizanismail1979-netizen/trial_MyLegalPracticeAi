@@ -17,7 +17,7 @@ const { extractMetadata } = await import("./metadata/extractor");
 const { compareJudgments, detectAllDuplicates } = await import(
   "./metadata/duplicateDetector"
 );
-const { postgresFtsAdapter } = await import("./search/postgresFtsAdapter");
+const { postgresFtsAdapter, ensurePracticeAreaSchema } = await import("./search/postgresFtsAdapter");
 const { registerMetadataProcessor, METADATA_JOB_KIND } = await import(
   "./metadata/metadataProcessor"
 );
@@ -424,6 +424,10 @@ beforeAll(async () => {
   registerMetadataProcessor();
   registerDuplicateProcessor();
   registerSearchIndexProcessor();
+
+  // Ensure the practice_area column exists in the test DB — normally applied at
+  // server boot but tests invoke processors directly without booting the server.
+  await ensurePracticeAreaSchema();
 });
 
 afterAll(async () => {

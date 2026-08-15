@@ -221,6 +221,16 @@ afterAll(async () => {
   }
   const jobIds = [...new Set(trackedJobIds)];
   if (jobIds.length > 0) {
+    // Clear the FK reference on batch items that point to these jobs before
+    // deleting the jobs.  This handles batch items created by the job worker
+    // during test execution that weren't captured by the batch filter above.
+    // We NULL the jobId rather than deleting the batch item so we don't
+    // accidentally remove rows owned by concurrent test runs.
+    await db
+      .update(researchUploadBatchItems)
+      .set({ jobId: null })
+      .where(inArray(researchUploadBatchItems.jobId, jobIds));
+
     await db
       .delete(researchAuditEvents)
       .where(

@@ -27,6 +27,7 @@ import {
   syncPipelineStatuses,
   ingestDriveAsset,
 } from "../research/drive/ingestBridge";
+import { DRIVE_INGEST_JOB_KIND, DRIVE_INGEST_PROCESSOR_VERSION } from "../research/drive/driveIngestProcessor";
 import { enqueueHeadnotesJob, HEADNOTES_JOB_KIND, HEADNOTES_PROCESSOR_VERSION } from "../research/headnotes/processor";
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -248,6 +249,71 @@ const PatchRightsSchema = z.object({
     "RIGHTS_REVIEW_REQUIRED",
     "APPROVED",
   ]),
+});
+
+/**
+ * Bulk-update rights_status for all RIGHTS_REVIEW_REQUIRED assets.
+ * Optionally filter by source_classification.
+ * Body: { rightsStatus, sourceClassification? }
+ */
+router.post("/drive/assets/bulk-rights", requireAdminSession, async (req: Request, res: Response) => {
+  const BulkSchema = z.object({
+    rightsStatus: z.enum(["APPROVED", "RESTRICTED_REFERENCE_ONLY", "NEEDS_OFFICIAL_SOURCE"]),
+    sourceClassification: z.string().optional(),
+  });
+
+  const parsed = BulkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid body", details: parsed.error.issues });
+    return;
+  }
+
+  const conditions = [eq(driveAssets.rightsStatus, "RIGHTS_REVIEW_REQUIRED")];
+  if (parsed.data.sourceClassification) {
+    conditions.push(eq(driveAssets.sourceClassification, parsed.data.sourceClassification as Parameters<typeof eq>[1]));
+  }
+
+  // Atomically update rights AND insert durable job rows in one transaction.
+  // If the job inserts fail for any reason the rights change rolls back too,
+  // preventing stranded APPROVED/PENDING assets with no processing job.
+  const { updatedCount, ingestionQueued } = await db.transaction(async (tx) => {
+    const updated = await tx
+      .update(driveAssets)
+      .set({ rightsStatus: parsed.data.rightsStatus, updatedAt: new Date() })
+      .where(and(...conditions))
+      .returning({ id: driveAssets.id });
+
+    const updatedIds = updated.map((r) => r.id);
+    let queued = 0;
+
+    if (parsed.data.rightsStatus === "APPROVED" && updatedIds.length > 0) {
+      // Batch-insert job rows directly (ON CONFLICT DO NOTHING for idempotency).
+      // Chunk by 200 to stay well within Postgres's parameter limit.
+      const CHUNK = 200;
+      for (let i = 0; i < updatedIds.length; i += CHUNK) {
+        const chunk = updatedIds.slice(i, i + CHUNK);
+        const inserted = await tx
+          .insert(researchJobs)
+          .values(
+            chunk.map((assetId) => ({
+              kind: DRIVE_INGEST_JOB_KIND,
+              idempotencyKey: `drive.ingest:asset:${assetId}`,
+              payload: { driveAssetId: assetId } as Record<string, unknown>,
+              maxAttempts: 3,
+              processorVersion: DRIVE_INGEST_PROCESSOR_VERSION,
+              provenance: { actor: "admin-bulk-approve" } as Record<string, unknown>,
+            })),
+          )
+          .onConflictDoNothing({ target: researchJobs.idempotencyKey })
+          .returning({ id: researchJobs.id });
+        queued += inserted.length;
+      }
+    }
+
+    return { updatedCount: updatedIds.length, ingestionQueued: queued };
+  });
+
+  res.json({ updated: updatedCount, ingestionQueued });
 });
 
 router.patch("/drive/assets/:id/rights", requireAdminSession, async (req: Request, res: Response) => {
