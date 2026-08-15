@@ -41,6 +41,7 @@ import { registerDuplicateProcessor } from "./research/metadata/duplicateProcess
 import { registerMetadataProcessor } from "./research/metadata/metadataProcessor";
 import { registerSearchIndexProcessor } from "./research/search/searchIndexProcessor";
 import { registerAiAnalysisProcessor } from "./research/analysis/processor";
+import { registerHeadnotesProcessor } from "./research/headnotes/processor";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -55,6 +56,7 @@ function registerAllResearchProcessors(): void {
   registerMetadataProcessor();
   registerSearchIndexProcessor();
   registerAiAnalysisProcessor();
+  registerHeadnotesProcessor();
 }
 
 async function startResearchJobWorker(): Promise<void> {

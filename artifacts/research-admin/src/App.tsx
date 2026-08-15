@@ -16,6 +16,7 @@ import { Shell } from '@/components/layout/shell';
 import DashboardPage from '@/pages/dashboard';
 import DriveInventoryPage from '@/pages/drive-inventory';
 import RightsReviewPage from '@/pages/rights-review';
+import HeadnotesReviewPage from '@/pages/headnotes-review';
 import ProcessingQueuePage from '@/pages/processing-queue';
 import ErrorDashboardPage from '@/pages/error-dashboard';
 import AuditLogPage from '@/pages/audit-log';
@@ -30,6 +31,7 @@ function AppRoutes({ onLogout }: { onLogout: () => void }) {
           <Route path="/" component={DashboardPage} />
           <Route path="/drive-inventory" component={DriveInventoryPage} />
           <Route path="/rights-review" component={RightsReviewPage} />
+          <Route path="/headnotes" component={HeadnotesReviewPage} />
           <Route path="/queue" component={ProcessingQueuePage} />
           <Route path="/errors" component={ErrorDashboardPage} />
           <Route path="/audit" component={AuditLogPage} />

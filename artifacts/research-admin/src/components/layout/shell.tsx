@@ -7,6 +7,7 @@ import {
   ListOrdered,
   AlertTriangle,
   ScrollText,
+  BookOpen,
   Menu,
   LogOut,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/", icon: <LayoutDashboard size={18} /> },
   { label: "Drive Inventory", href: "/drive-inventory", icon: <FolderOpen size={18} /> },
   { label: "Rights Review", href: "/rights-review", icon: <ShieldCheck size={18} /> },
+  { label: "Headnotes Review", href: "/headnotes", icon: <BookOpen size={18} /> },
   { label: "Processing Queue", href: "/queue", icon: <ListOrdered size={18} /> },
   { label: "Error Dashboard", href: "/errors", icon: <AlertTriangle size={18} /> },
   { label: "Audit Log", href: "/audit", icon: <ScrollText size={18} /> },

@@ -16,6 +16,7 @@ import { ProcessorFailure } from "../processing/handlers";
 import type { ProcessorContext } from "../processing/handlers";
 import { indexJudgment } from "./postgresFtsAdapter";
 import { logger } from "../../lib/logger";
+import { enqueueHeadnotesJob } from "../headnotes/processor";
 
 export const SEARCH_INDEX_JOB_KIND = "container.search_index";
 export const SEARCH_INDEX_VERSION = "search_index@1";
@@ -222,6 +223,12 @@ async function searchIndexProcessor(ctx: ProcessorContext): Promise<{}> {
     { judgmentId, containerId, textLength: documentText.length },
     "search_index complete",
   );
+
+  // Auto-enqueue headnotes generation now that the judgment is fully indexed.
+  // Fire-and-forget: a failure here must not roll back the search-index result.
+  enqueueHeadnotesJob(judgmentId, containerId).catch((err) => {
+    logger.warn({ judgmentId, containerId, err }, "search_index: failed to enqueue headnotes job (non-fatal)");
+  });
 
   return {};
 }

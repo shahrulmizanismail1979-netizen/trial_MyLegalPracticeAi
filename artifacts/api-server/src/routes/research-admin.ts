@@ -13,8 +13,12 @@ import {
   driveInventoryRuns,
   researchJobs,
   researchAuditEvents,
+  researchHeadnotes,
+  researchCatchwords,
+  researchVerifiedJudgments,
+  researchCaseMetadata,
 } from "@workspace/db";
-import { and, asc, count, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { getAllFolderChildren, DRIVE_FOLDER_MIME } from "../research/drive/driveClient";
 import { classifyDriveFile, rightsStatusForClassification } from "../research/drive/classify";
 import {
@@ -23,6 +27,7 @@ import {
   syncPipelineStatuses,
   ingestDriveAsset,
 } from "../research/drive/ingestBridge";
+import { enqueueHeadnotesJob, HEADNOTES_JOB_KIND, HEADNOTES_PROCESSOR_VERSION } from "../research/headnotes/processor";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_PASSWORD: string | null =
@@ -360,6 +365,198 @@ router.get("/queue/stats", requireAdminSession, async (_req: Request, res: Respo
   );
 
   res.json(Object.fromEntries(results));
+});
+
+// ── Headnotes & Catchwords Review ────────────────────────────────────────────
+
+/** List judgments that have ai_draft headnotes pending review. */
+router.get("/headnotes", requireAdminSession, async (req: Request, res: Response) => {
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const offset = Number(req.query.offset ?? 0);
+
+  // Judgments with at least one ai_draft headnote
+  const rows = await db
+    .selectDistinct({ judgmentId: researchHeadnotes.judgmentId })
+    .from(researchHeadnotes)
+    .where(eq(researchHeadnotes.status, "ai_draft"))
+    .orderBy(asc(researchHeadnotes.judgmentId))
+    .limit(limit)
+    .offset(offset);
+
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(distinct ${researchHeadnotes.judgmentId})::int` })
+    .from(researchHeadnotes)
+    .where(eq(researchHeadnotes.status, "ai_draft"));
+
+  // Enrich with case name metadata
+  const judgmentIds = rows.map((r) => r.judgmentId);
+  const caseNames = judgmentIds.length > 0
+    ? await db
+        .select({ judgmentId: researchCaseMetadata.judgmentId, value: researchCaseMetadata.value })
+        .from(researchCaseMetadata)
+        .where(
+          and(
+            inArray(researchCaseMetadata.judgmentId, judgmentIds),
+            eq(researchCaseMetadata.fieldName, "caseName"),
+          ),
+        )
+        .orderBy(desc(researchCaseMetadata.id))
+    : [];
+
+  const nameByJudgment = new Map<number, string>();
+  for (const m of caseNames) {
+    if (!nameByJudgment.has(m.judgmentId) && m.value) {
+      nameByJudgment.set(m.judgmentId, Array.isArray(m.value) ? m.value.join(", ") : String(m.value));
+    }
+  }
+
+  res.json({
+    total,
+    limit,
+    offset,
+    items: rows.map((r) => ({
+      judgmentId: r.judgmentId,
+      caseName: nameByJudgment.get(r.judgmentId) ?? null,
+    })),
+  });
+});
+
+/** Get all headnotes + catchwords for a judgment (all statuses). */
+router.get("/headnotes/:judgmentId", requireAdminSession, async (req: Request, res: Response) => {
+  const judgmentId = Number(req.params.judgmentId);
+  if (isNaN(judgmentId)) { res.status(400).json({ error: "Invalid judgmentId" }); return; }
+
+  const [headnotes, catchwords, judgment, caseName] = await Promise.all([
+    db.select().from(researchHeadnotes)
+      .where(eq(researchHeadnotes.judgmentId, judgmentId))
+      .orderBy(asc(researchHeadnotes.number)),
+    db.select().from(researchCatchwords)
+      .where(eq(researchCatchwords.judgmentId, judgmentId))
+      .orderBy(asc(researchCatchwords.sortOrder)),
+    db.select({ id: researchVerifiedJudgments.id, containerId: researchVerifiedJudgments.containerId })
+      .from(researchVerifiedJudgments)
+      .where(eq(researchVerifiedJudgments.id, judgmentId))
+      .limit(1)
+      .then(([r]) => r ?? null),
+    db.select({ value: researchCaseMetadata.value })
+      .from(researchCaseMetadata)
+      .where(and(
+        eq(researchCaseMetadata.judgmentId, judgmentId),
+        eq(researchCaseMetadata.fieldName, "caseName"),
+      ))
+      .orderBy(desc(researchCaseMetadata.id))
+      .limit(1)
+      .then(([r]) => r?.value ? (Array.isArray(r.value) ? r.value.join(", ") : String(r.value)) : null),
+  ]);
+
+  if (!judgment) { res.status(404).json({ error: "Judgment not found" }); return; }
+
+  res.json({ judgmentId, caseName, containerId: judgment.containerId, headnotes, catchwords });
+});
+
+const PatchHeadnoteSchema = z.object({
+  text: z.string().min(5).optional(),
+  paragraphRef: z.string().optional(),
+  status: z.enum(["accepted", "rejected", "ai_draft"]).optional(),
+});
+
+/** Update a single headnote (edit text, accept, or reject). */
+router.patch("/headnotes/:judgmentId/headnotes/:id", requireAdminSession, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = PatchHeadnoteSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
+
+  const update: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.data.text !== undefined) update.text = parsed.data.text;
+  if (parsed.data.paragraphRef !== undefined) update.paragraphRef = parsed.data.paragraphRef;
+  if (parsed.data.status !== undefined) {
+    update.status = parsed.data.status;
+    update.reviewedBy = "admin";
+    update.reviewedAt = new Date();
+  }
+
+  const [updated] = await db.update(researchHeadnotes).set(update).where(eq(researchHeadnotes.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(updated);
+});
+
+/** Accept or reject a catchword. */
+router.patch("/headnotes/:judgmentId/catchwords/:id", requireAdminSession, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = z.object({
+    catchwordLine: z.string().min(3).optional(),
+    status: z.enum(["accepted", "rejected", "ai_draft"]).optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
+
+  const update: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.data.catchwordLine !== undefined) update.catchwordLine = parsed.data.catchwordLine;
+  if (parsed.data.status !== undefined) {
+    update.status = parsed.data.status;
+    update.reviewedBy = "admin";
+    update.reviewedAt = new Date();
+  }
+
+  const [updated] = await db.update(researchCatchwords).set(update).where(eq(researchCatchwords.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(updated);
+});
+
+/** Accept ALL ai_draft headnotes + catchwords for a judgment in one click. */
+router.post("/headnotes/:judgmentId/accept-all", requireAdminSession, async (req: Request, res: Response) => {
+  const judgmentId = Number(req.params.judgmentId);
+  if (isNaN(judgmentId)) { res.status(400).json({ error: "Invalid judgmentId" }); return; }
+
+  const now = new Date();
+  const [h, c] = await Promise.all([
+    db.update(researchHeadnotes)
+      .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
+      .where(and(eq(researchHeadnotes.judgmentId, judgmentId), eq(researchHeadnotes.status, "ai_draft")))
+      .returning({ id: researchHeadnotes.id }),
+    db.update(researchCatchwords)
+      .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
+      .where(and(eq(researchCatchwords.judgmentId, judgmentId), eq(researchCatchwords.status, "ai_draft")))
+      .returning({ id: researchCatchwords.id }),
+  ]);
+
+  res.json({ acceptedHeadnotes: h.length, acceptedCatchwords: c.length });
+});
+
+/** Regenerate headnotes for a judgment — deletes ai_draft output + re-enqueues. */
+router.post("/headnotes/:judgmentId/regenerate", requireAdminSession, async (req: Request, res: Response) => {
+  const judgmentId = Number(req.params.judgmentId);
+  if (isNaN(judgmentId)) { res.status(400).json({ error: "Invalid judgmentId" }); return; }
+
+  const [judgment] = await db
+    .select({ id: researchVerifiedJudgments.id, containerId: researchVerifiedJudgments.containerId })
+    .from(researchVerifiedJudgments)
+    .where(eq(researchVerifiedJudgments.id, judgmentId));
+
+  if (!judgment) { res.status(404).json({ error: "Judgment not found" }); return; }
+
+  // Delete existing ai_draft headnotes + catchwords so the new run upserts fresh
+  await Promise.all([
+    db.delete(researchHeadnotes).where(and(
+      eq(researchHeadnotes.judgmentId, judgmentId),
+      eq(researchHeadnotes.status, "ai_draft"),
+    )),
+    db.delete(researchCatchwords).where(and(
+      eq(researchCatchwords.judgmentId, judgmentId),
+      eq(researchCatchwords.status, "ai_draft"),
+    )),
+    // Delete the previous queued/failed job so we can re-enqueue with the same idempotency key
+    db.delete(researchJobs).where(and(
+      eq(researchJobs.kind, HEADNOTES_JOB_KIND),
+      eq(researchJobs.idempotencyKey, `${HEADNOTES_JOB_KIND}:judgment:${judgmentId}:${HEADNOTES_PROCESSOR_VERSION}`),
+    )),
+  ]);
+
+  await enqueueHeadnotesJob(judgmentId, judgment.containerId);
+  res.json({ queued: true, judgmentId });
 });
 
 // ── Audit Log ────────────────────────────────────────────────────────────────

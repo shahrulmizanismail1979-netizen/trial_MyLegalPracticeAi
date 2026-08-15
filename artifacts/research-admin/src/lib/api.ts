@@ -234,6 +234,83 @@ export const assetsApi = {
     }),
 };
 
+// ── Headnotes & Catchwords ────────────────────────────────────────────────────
+
+export type HeadnoteStatus = "ai_draft" | "accepted" | "rejected";
+
+export type Headnote = {
+  id: number;
+  judgmentId: number;
+  number: number;
+  text: string;
+  paragraphRef: string | null;
+  status: HeadnoteStatus;
+  processorVersion: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Catchword = {
+  id: number;
+  judgmentId: number;
+  sortOrder: number;
+  catchwordLine: string;
+  status: HeadnoteStatus;
+  processorVersion: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type HeadnotesDetail = {
+  judgmentId: number;
+  caseName: string | null;
+  containerId: number;
+  headnotes: Headnote[];
+  catchwords: Catchword[];
+};
+
+export type HeadnotesListItem = { judgmentId: number; caseName: string | null };
+export type HeadnotesListPage = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: HeadnotesListItem[];
+};
+
+export const headnotesApi = {
+  list: (params: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (params.limit != null) qs.set("limit", String(params.limit));
+    if (params.offset != null) qs.set("offset", String(params.offset));
+    return apiFetch<HeadnotesListPage>(`/headnotes?${qs}`);
+  },
+  get: (judgmentId: number) => apiFetch<HeadnotesDetail>(`/headnotes/${judgmentId}`),
+  updateHeadnote: (judgmentId: number, id: number, body: { text?: string; paragraphRef?: string; status?: HeadnoteStatus }) =>
+    apiFetch<Headnote>(`/headnotes/${judgmentId}/headnotes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  updateCatchword: (judgmentId: number, id: number, body: { catchwordLine?: string; status?: HeadnoteStatus }) =>
+    apiFetch<Catchword>(`/headnotes/${judgmentId}/catchwords/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  acceptAll: (judgmentId: number) =>
+    apiFetch<{ acceptedHeadnotes: number; acceptedCatchwords: number }>(
+      `/headnotes/${judgmentId}/accept-all`,
+      { method: "POST" },
+    ),
+  regenerate: (judgmentId: number) =>
+    apiFetch<{ queued: boolean; judgmentId: number }>(
+      `/headnotes/${judgmentId}/regenerate`,
+      { method: "POST" },
+    ),
+};
+
 // ── Drive Pipeline ────────────────────────────────────────────────────────────
 
 export const pipelineApi = {
