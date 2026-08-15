@@ -158,6 +158,9 @@ export default function Workspace() {
             <Link href="/workspace/billing" data-testid="link-billing-from-workspace"><Calculator className="h-4 w-4" /> Billing</Link>
           </Button>
           <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+            <Link href="/workspace/case-law" data-testid="link-case-law-from-workspace"><BookOpen className="h-4 w-4" /> Case Law</Link>
+          </Button>
+          <Button variant="outline" size="sm" className="w-full gap-2" asChild>
             <Link href="/" data-testid="link-home-from-workspace"><Home className="h-4 w-4" /> Home</Link>
           </Button>
           <Button variant="outline" size="sm" className="w-full gap-2 text-destructive" onClick={handleLogout} data-testid="button-logout">

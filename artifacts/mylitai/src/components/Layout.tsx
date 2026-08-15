@@ -49,6 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: t('nav.workflows'), path: '/app/workflows', icon: GitBranch },
     { name: t('nav.forms'), path: '/app/forms', icon: FileText },
     { name: t('nav.cases'), path: '/app/jurisprudence', icon: Gavel },
+    { name: 'Case Law', path: '/app/case-law', icon: BookOpen },
     { name: t('nav.costs'), path: '/app/costs', icon: Calculator },
     { name: t('nav.terminology'), path: '/app/terminology', icon: BookA },
   ];

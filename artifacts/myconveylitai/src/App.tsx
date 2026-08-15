@@ -23,6 +23,7 @@ import { Admin } from "@/pages/Admin";
 import { Matters } from "@/pages/Matters";
 import { MatterDetail } from "@/pages/MatterDetail";
 import { Billing } from "@/pages/Billing";
+import CaseLawPage from "@/pages/case-law";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,9 @@ function Router() {
       </Route>
       <Route path="/billing">
         <ProtectedRoute component={Billing} />
+      </Route>
+      <Route path="/case-law">
+        <ProtectedRoute component={CaseLawPage} />
       </Route>
       <Route path="/admin">
         <Admin />

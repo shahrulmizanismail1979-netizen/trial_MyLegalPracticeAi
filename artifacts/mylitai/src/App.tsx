@@ -35,6 +35,7 @@ import BundleDetail from "@/pages/BundleDetail";
 import Compliance from "@/pages/Compliance";
 import Appeals from "@/pages/Appeals";
 import Affidavits from "@/pages/Affidavits";
+import CaseLaw from "@/pages/CaseLaw";
 import NotFound from "@/pages/not-found";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 
@@ -107,6 +108,7 @@ function Router() {
       <Route path="/app/matters/:id"><ProtectedRoute component={MatterDetail} /></Route>
       <Route path="/app/diary"><ProtectedRoute component={Diary} /></Route>
       <Route path="/app/billing"><ProtectedRoute component={Billing} /></Route>
+      <Route path="/app/case-law"><ProtectedRoute component={CaseLaw} /></Route>
       <Route path="/app/banking-recovery"><PremiumRoute component={BankingRecovery} /></Route>
       <Route path="/app/enforcement"><PremiumRoute component={Enforcement} /></Route>
       <Route path="/app/bundles"><PremiumRoute component={Bundles} /></Route>

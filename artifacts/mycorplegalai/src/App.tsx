@@ -16,6 +16,7 @@ import MatterDetailPage from "@/pages/MatterDetailPage";
 import BillingPage from "@/pages/BillingPage";
 import AdminPage from "@/pages/AdminPage";
 import PricingPage from "@/pages/PricingPage";
+import CaseLawPage from "@/pages/CaseLawPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/matters" component={MattersPage} />
       <Route path="/matters/:id" component={MatterDetailPage} />
       <Route path="/billing" component={BillingPage} />
+      <Route path="/case-law" component={CaseLawPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route component={NotFound} />

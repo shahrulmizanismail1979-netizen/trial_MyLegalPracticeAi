@@ -77,6 +77,28 @@ function unsignExpressSession(
 }
 
 /**
+ * Resolve a signed session cookie name to its raw session ID.
+ *
+ * cookie-parser (mounted with SESSION_SECRET) automatically verifies signed
+ * cookies and moves them from req.cookies into req.signedCookies — deleting
+ * the entry from req.cookies.  We therefore check req.signedCookies first
+ * (the fast, already-verified path) and fall back to manual verification of
+ * whatever remains in req.cookies (covers misconfigured or alternative setups).
+ */
+function getSessionCookieSid(
+  req: Request,
+  cookieName: string,
+  secret: string,
+): string | null {
+  const signedCookies = req.signedCookies as Record<string, string | false> | undefined;
+  const already = signedCookies?.[cookieName];
+  if (already && typeof already === "string") return already;
+
+  const rawCookies = (req.cookies ?? {}) as Record<string, string | undefined>;
+  return unsignExpressSession(rawCookies[cookieName], secret);
+}
+
+/**
  * Query a Postgres-backed express-session store for a given sid.
  * Returns the parsed session object if found and not expired, else null.
  */
@@ -179,8 +201,10 @@ export async function requireAnyPortalAuth(
 
   // ── 3. Session cookies ────────────────────────────────────────────────────
 
-  // Lit: cookie 'lit.sid', table 'lit_sessions', sess.authenticated = true
-  const litSid = unsignExpressSession(cookies["lit.sid"], SESSION_SECRET);
+  // Lit: cookie 'lit.sid', table 'lit_sessions', sess.authenticated = true + accessCodeId present.
+  // Both conditions are required: authenticated confirms the session is logged-in,
+  // accessCodeId confirms the session is bound to a valid subscription identity.
+  const litSid = getSessionCookieSid(req, "lit.sid", SESSION_SECRET);
   if (litSid) {
     const sess = await loadExpressSession("lit_sessions", litSid);
     if (sess?.authenticated === true && sess?.accessCodeId) {
@@ -194,7 +218,7 @@ export async function requireAnyPortalAuth(
   }
 
   // Crim: cookie 'crim.sid', table 'user_sessions'
-  const crimSid = unsignExpressSession(cookies["crim.sid"], SESSION_SECRET);
+  const crimSid = getSessionCookieSid(req, "crim.sid", SESSION_SECRET);
   if (crimSid) {
     const sess = await loadExpressSession("user_sessions", crimSid);
     if (sess && (sess.authenticated === true || sess.accessCodeId || sess.accessCode)) {
@@ -206,7 +230,7 @@ export async function requireAnyPortalAuth(
   }
 
   // Sya: cookie 'sya.sid', table 'user_sessions'
-  const syaSid = unsignExpressSession(cookies["sya.sid"], SESSION_SECRET);
+  const syaSid = getSessionCookieSid(req, "sya.sid", SESSION_SECRET);
   if (syaSid) {
     const sess = await loadExpressSession("user_sessions", syaSid);
     if (sess && (sess.accessCode || sess.accountType || sess.authenticated)) {
@@ -218,7 +242,7 @@ export async function requireAnyPortalAuth(
   }
 
   // Acad: cookie 'acad.sid', table 'acad_user_sessions'
-  const acadSid = unsignExpressSession(cookies["acad.sid"], SESSION_SECRET);
+  const acadSid = getSessionCookieSid(req, "acad.sid", SESSION_SECRET);
   if (acadSid) {
     const sess = await loadExpressSession("acad_user_sessions", acadSid);
     if (sess?.acadUserId) {

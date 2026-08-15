@@ -35,6 +35,7 @@ import { AiSentencingPage } from "@/pages/ai-sentencing";
 import { AiLegalOpinionPage } from "@/pages/ai-legal-opinion";
 import { AiCaseStrategyPage } from "@/pages/ai-case-strategy";
 import { AiAppealGroundsPage } from "@/pages/ai-appeal-grounds";
+import CaseLawPage from "@/pages/workspace/case-law";
 import { HowToUsePage } from "@/pages/how-to-use";
 import { MattersPage } from "@/pages/matters";
 import { MatterDetailPage } from "@/pages/matter-detail";
@@ -169,6 +170,10 @@ function Router() {
       </Route>
       <Route path="/workspace/ai/appeal-grounds">
         {() => <WorkspaceRoute component={AiAppealGroundsPage} toolId="appeal-grounds" />}
+      </Route>
+
+      <Route path="/workspace/case-law">
+        {() => <WorkspaceRoute component={CaseLawPage} />}
       </Route>
 
       <Route component={NotFound} />

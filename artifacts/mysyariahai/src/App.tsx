@@ -41,6 +41,7 @@ import MatterDetailPage from "@/pages/matter-detail";
 import BillingPage from "@/pages/billing";
 import PricingPage from "@/pages/pricing";
 import AccountPage from "@/pages/account";
+import CaseLawPage from "@/pages/CaseLawPage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -116,6 +117,7 @@ function AuthenticatedApp() {
         <Route path="/matters/:id" component={MatterDetailPage} />
         <Route path="/billing" component={BillingPage} />
         <Route path="/account" component={AccountPage} />
+        <Route path="/case-law" component={CaseLawPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

@@ -274,7 +274,7 @@ describe("Portal-specific auth paths (DB-backed)", () => {
     await pool.query(
       `INSERT INTO lit_sessions (sid, sess, expire)
        VALUES ($1, $2::jsonb, NOW() + interval '7 days')`,
-      [LIT_SESSION_ID, JSON.stringify({ authenticated: true })],
+      [LIT_SESSION_ID, JSON.stringify({ authenticated: true, accessCodeId: 1 })],
     );
 
     // Accident: insert an access code + usage row.

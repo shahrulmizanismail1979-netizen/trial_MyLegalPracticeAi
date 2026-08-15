@@ -83,6 +83,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/dashboard", label: "Dashboard", icon: Book },
     { href: "/matters", label: "Matter Files", icon: FolderKanban },
     { href: "/billing", label: "Billing", icon: Calculator },
+    { href: "/case-law", label: "Case Law", icon: Scale },
   ];
 
   const librarySections = [

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, Target, Grid, FolderKanban } from "lucide-react";
+import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, BookOpen, Target, Grid, FolderKanban } from "lucide-react";
 import { clearToken, authHeaders } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 
@@ -94,6 +94,12 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
               <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${currentLocation.startsWith("/workspace/reference") ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`} data-testid="nav-reference">
                 <BookMarked size={18} />
                 <span>Legal Reference</span>
+              </div>
+            </Link>
+            <Link href="/workspace/case-law">
+              <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors cursor-pointer ${currentLocation.startsWith("/workspace/case-law") ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`} data-testid="nav-case-law">
+                <BookOpen size={18} />
+                <span>Case Law</span>
               </div>
             </Link>
             <Link href="/workspace/strategy">

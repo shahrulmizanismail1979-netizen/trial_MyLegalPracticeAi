@@ -53,6 +53,7 @@ const navigation = [
   { name: "How To Use", href: "/workspace/how-to-use", icon: HelpCircle },
   { name: "Theory Topics", href: "/workspace/topics", icon: BookOpen },
   { name: "Case Laws", href: "/workspace/case-laws", icon: Scale },
+  { name: "Case Law Search", href: "/workspace/case-law", icon: BookOpen },
   { name: "Matter Files", href: "/workspace/matters", icon: FolderKanban },
   { name: "Billing", href: "/workspace/billing", icon: Calculator },
   { name: "Cause Papers", href: "/workspace/cause-papers", icon: FileText },

@@ -125,19 +125,31 @@ async function tryConveyAuth(uid: number): Promise<boolean> {
  * server-side-invalidated session returns no row and is rejected.
  */
 async function trySessionCookieAuth(req: Request): Promise<boolean> {
-  const checks: Array<{ cookie: string; table: string; authField: string }> = [
-    { cookie: "lit.sid",  table: "lit_sessions",       authField: "authenticated" },
+  // andField (optional): a second session field that must also be truthy.
+  // For Lit we require accessCodeId in addition to authenticated so that only
+  // subscription-bound sessions are accepted (mirrors requireAnyPortalAuth).
+  const checks: Array<{ cookie: string; table: string; authField: string; andField?: string }> = [
+    { cookie: "lit.sid",  table: "lit_sessions",       authField: "authenticated", andField: "accessCodeId" },
     { cookie: "crim.sid", table: "user_sessions",       authField: "authenticated" },
     { cookie: "sya.sid",  table: "user_sessions",       authField: "userId"        },
     { cookie: "acad.sid", table: "acad_user_sessions",  authField: "acadUserId"    },
   ];
-  for (const { cookie, table, authField } of checks) {
-    // req.cookies contains the raw (URL-decoded) cookie value including the `s:` prefix.
-    // We validate the HMAC manually because the global cookieParser() (no secret) has
-    // already run and a second cookieParser(SECRET) call would be a no-op.
-    const rawVal = req.cookies?.[cookie] as string | undefined;
-    if (!rawVal) continue;
-    const sessionId = unsignCookie(rawVal, SESSION_SECRET);
+  for (const { cookie, table, authField, andField } of checks) {
+    // When cookieParser is initialised with SESSION_SECRET (as app.ts does), it
+    // moves verified signed cookies from req.cookies into req.signedCookies and
+    // deletes them from req.cookies.  Check req.signedCookies first (the fast,
+    // already-verified path), then fall back to manual verification of whatever
+    // remains in req.cookies (covers misconfigured or cookie-parser-less setups).
+    const signedCookies = req.signedCookies as Record<string, string | false> | undefined;
+    const alreadyVerified = signedCookies?.[cookie];
+    let sessionId: string | false;
+    if (alreadyVerified && typeof alreadyVerified === "string") {
+      sessionId = alreadyVerified;
+    } else {
+      const rawVal = req.cookies?.[cookie] as string | undefined;
+      if (!rawVal) continue;
+      sessionId = unsignCookie(rawVal, SESSION_SECRET);
+    }
     if (!sessionId) continue;
     try {
       const { rows } = await pool.query(
@@ -146,7 +158,7 @@ async function trySessionCookieAuth(req: Request): Promise<boolean> {
       );
       if (rows.length === 0) continue;
       const sess = rows[0].sess as Record<string, unknown> | null;
-      if (sess && sess[authField]) return true;
+      if (sess && sess[authField] && (!andField || sess[andField])) return true;
     } catch (err) {
       logger.warn({ err, cookie }, "shared-uploads: session store lookup failed");
     }

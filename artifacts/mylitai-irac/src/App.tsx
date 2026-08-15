@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitBanner } from "@/lib/rate-limit-monitor";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Scale, FileText, PenTool, Library as LibraryIcon, ScanSearch, Crown, AudioLines, Gavel, FolderLock, FolderKanban, FileSignature, GitBranch, Mic, FolderOpen, CalendarClock, MessagesSquare, ChevronDown } from "lucide-react";
+import { Scale, FileText, PenTool, Library as LibraryIcon, BookOpen, ScanSearch, Crown, AudioLines, Gavel, FolderLock, FolderKanban, FileSignature, GitBranch, Mic, FolderOpen, CalendarClock, MessagesSquare, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -44,6 +44,7 @@ import LibraryQuantum from "@/pages/LibraryQuantum";
 import LibraryGlossary from "@/pages/LibraryGlossary";
 import LibraryPracticeDirections from "@/pages/LibraryPracticeDirections";
 import LibraryBarCouncil from "@/pages/LibraryBarCouncil";
+import CaseLaw from "@/pages/CaseLaw";
 import Login from "@/pages/Login";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -142,6 +143,7 @@ function Navbar() {
 
   const trailingLinks = [
     { href: "/library", label: t("nav.library"), icon: LibraryIcon },
+    { href: "/case-law", label: "Case Law", icon: BookOpen },
   ];
 
   const topLinkClass = (active: boolean) =>
@@ -303,6 +305,7 @@ function Router() {
         <Route path="/library/glossary" component={LibraryGlossary} />
         <Route path="/library/practice-directions" component={LibraryPracticeDirections} />
         <Route path="/library/bar-council" component={LibraryBarCouncil} />
+        <Route path="/case-law" component={CaseLaw} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
