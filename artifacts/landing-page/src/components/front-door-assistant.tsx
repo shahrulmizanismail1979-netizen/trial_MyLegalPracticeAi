@@ -135,7 +135,7 @@ export function FrontDoorAssistant() {
   const showGreeting = !startedRef.current && messages.length === 0;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end">
+    <div className="fixed right-6 z-[60] flex flex-col items-end" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}>
       {open && (
         <div className="mb-4 w-[min(24rem,calc(100vw-3rem))] rounded-2xl border border-primary/25 bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-secondary/40">

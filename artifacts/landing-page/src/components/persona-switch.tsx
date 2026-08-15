@@ -35,7 +35,7 @@ export function PersonaSwitcher() {
     Settings2;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed right-6 z-50 flex flex-col items-end" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}>
       {isOpen && (
         <div className="mb-4 p-2 bg-card border border-border shadow-xl rounded-xl w-64 animate-in slide-in-from-bottom-2 fade-in duration-200">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2 pt-2">
