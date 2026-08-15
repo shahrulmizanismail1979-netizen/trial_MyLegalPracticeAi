@@ -36,6 +36,8 @@ import researchRouter from "../research/routes";
 import researchAdminRouter from "./research-admin";
 import { buildPersonasRouter } from "../lib/personas";
 import sharedUploadsRouter from "./shared-uploads";
+import casesRouter from "./cases";
+import { requireAnyPortalAuth } from "../middlewares/requireAnyPortalAuth";
 
 const router: IRouter = Router();
 
@@ -58,6 +60,12 @@ router.use("/research", requireAuth, requireStaff, researchRouter);
 
 // Research admin portal — password-gated (ADMIN_PASSWORD), no Clerk required.
 router.use("/research-admin", researchAdminRouter);
+
+// Portal-accessible Case Law API: /cases/search, /cases/:id.
+// Accepts any active portal session (Lit, Crim, Sya, Acad, CCB JWT, Corp Bearer,
+// Convey JWT, Accident session_id, or MASTER_ACCESS_CODE).
+// No Clerk required — subscriber-only, approved+headnoted cases only.
+router.use("/cases", requireAnyPortalAuth, casesRouter);
 // MyConveyLitAI (conveyancing app) routes: /convey/*, /convey-admin/*.
 // The convey admin router carries its own password auth (x-admin-token).
 router.use(conveyRouter);

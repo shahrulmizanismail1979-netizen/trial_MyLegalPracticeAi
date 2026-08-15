@@ -48,3 +48,4 @@
 - [AI rate-limit visibility banner](rate-limit-banner.md) — portals show remaining AI quota by parsing draft-8 RateLimit headers via a per-portal fetch interceptor; keep header contract test in sync.
 - [Research Admin Portal](research-admin-portal.md) — password+signed-cookie auth (needs cookieParser secret); API at /api/research-admin/ (no Clerk); researchJobs uses `state` not `status`; drive tables via direct SQL.
 - [Headnotes & Catchwords processor](headnotes-processor.md) — container.headnotes job; rights-gated Gemini; auto-enqueued from search index; regenerate by deleting job row not changing idempotency key.
+- [Portal-accessible Case Law API](portal-cases-api.md) — /api/cases search+detail; requireAnyPortalAuth checks all 8 portal session types; rights gate uses container rights_status; 200/day rate limit on detail.
