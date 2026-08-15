@@ -12,6 +12,18 @@ import {
 import { AiToolsPanel } from "../ai-tools/AiToolsPanel";
 import { useAiContext } from "@/contexts/AiContext";
 import { useTier, setStoredTier, clearStoredTier, canAccessTool } from "@/lib/tier";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
+
+const paralegalRequest = (path: string, init?: RequestInit) => {
+  const token = localStorage.getItem("auth_token");
+  return fetch(`/api/corp/legal${path}`, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+};
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -311,6 +323,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
 
       <AiToolsPanel />
+      <ParalegalWidget portalName="MyCorpLegalAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }

@@ -78,7 +78,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboardPage} />
 
       <Route path="/workspace">
-        {() => <Redirect to="/workspace/matters" />}
+        {() => <WorkspaceRoute component={WorkspaceDashboard} />}
       </Route>
       <Route path="/workspace/how-to-use">
         {() => <WorkspaceRoute component={HowToUsePage} />}

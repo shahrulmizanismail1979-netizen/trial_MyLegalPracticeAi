@@ -427,11 +427,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-      <ParalegalWidget
-        portalName="MyLawFirmAi"
-        request={paralegalRequest}
-        accent="#8a6d2f"
-      />
     </AppLayout>
   );
 }

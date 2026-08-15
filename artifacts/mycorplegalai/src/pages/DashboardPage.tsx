@@ -19,18 +19,7 @@ import {
   AlertTriangle, Scale, Sparkles, BrainCircuit, ChevronRight,
   ListChecks, Loader2, RefreshCw, Target,
 } from "lucide-react";
-import { ParalegalWidget } from "@workspace/paralegal-widget";
 
-const paralegalRequest = (path: string, init?: RequestInit) => {
-  const token = localStorage.getItem("auth_token");
-  return fetch(`/api/corp/legal${path}`, {
-    ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
-};
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   open: { label: "Open", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
@@ -337,7 +326,6 @@ export default function DashboardPage() {
 
       <PrepareDialog matter={prepareFor} onClose={() => setPrepareFor(null)} />
 
-      <ParalegalWidget portalName="MyCorpLegalAI" request={paralegalRequest} accent="#8a6d2f" />
     </AppLayout>
   );
 }

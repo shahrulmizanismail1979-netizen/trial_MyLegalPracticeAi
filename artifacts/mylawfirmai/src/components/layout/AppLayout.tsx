@@ -10,6 +10,10 @@ import { UserSwitcher } from "../UserSwitcher";
 import { ManagerAccess } from "../ManagerAccess";
 import { ContactReminderDialog } from "../ContactReminderDialog";
 import { ExportPageButton } from "../ExportPageButton";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/firm${path}`, { ...init, credentials: "include" });
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -239,6 +243,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <ContactReminderDialog open={contactOpen} onOpenChange={setContactOpen} />
+      <ParalegalWidget portalName="MyLawFirmAi" request={paralegalRequest} accent="#8a6d2f" />
     </SidebarProvider>
   );
 }
