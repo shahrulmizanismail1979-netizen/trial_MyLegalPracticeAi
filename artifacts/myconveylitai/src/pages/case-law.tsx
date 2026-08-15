@@ -223,7 +223,7 @@ export default function CaseLawPage() {
             </div>
           )}
         </div>
-        {toast && <div className="fixed bottom-6 right-6 bg-card border border-border rounded-lg px-4 py-3 shadow-xl text-sm flex items-center gap-2 z-50"><Check className="h-4 w-4 text-primary" />{toast}</div>}
+        {toast && <div className="fixed bottom-24 right-6 bg-card border border-border rounded-lg px-4 py-3 shadow-xl text-sm flex items-center gap-2 z-50"><Check className="h-4 w-4 text-primary" />{toast}</div>}
       </div>
     );
   }

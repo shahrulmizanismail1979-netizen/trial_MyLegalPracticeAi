@@ -30,7 +30,7 @@ export function RateLimitWarning() {
       role="alert"
       aria-live="assertive"
       className={[
-        "fixed bottom-5 left-1/2 -translate-x-1/2 z-50",
+        "fixed bottom-24 left-1/2 -translate-x-1/2 z-50",
         "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium",
         "max-w-sm w-[calc(100%-2rem)] sm:max-w-md",
         isExhausted

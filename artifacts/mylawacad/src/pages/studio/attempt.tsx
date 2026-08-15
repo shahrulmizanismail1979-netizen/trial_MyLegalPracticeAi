@@ -1096,7 +1096,7 @@ export default function Attempt() {
 
       {/* CORNER WIDGETS */}
       {proctoring.webcamSnapshots ? (
-        <div className="fixed bottom-4 right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl">
+        <div className="fixed bottom-24 right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl">
           <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
             <ShieldAlert className="h-3 w-3" /> Proctor cam
           </div>

@@ -192,6 +192,31 @@ function Avatar({ size, speaking }: { size: number; speaking: boolean }) {
   );
 }
 
+/**
+ * FAB layout convention
+ * ---------------------
+ * The Amani FAB occupies: bottom 20 px, right 20 px, 60 × 60 px.
+ * Its top edge is therefore 80 px from the viewport bottom.
+ *
+ * Any other fixed/sticky element that lives near the bottom of the screen
+ * **must** sit above the FAB.  The shared clearance value is:
+ *
+ *   --vp-fab-clearance: 96px   (80 px FAB top + 16 px gap)
+ *
+ * This custom property is written onto <html> by the widget on mount.
+ * Portal-specific fixed elements should use it:
+ *
+ *   Tailwind:      bottom-24   (= 96 px, matches the property value)
+ *   Inline style:  bottom: 96
+ *
+ * z-index tiers (highest wins):
+ *   2 147 483 000 — Amani FAB & chat panel  (this widget)
+ *         z-[200] — full-screen tutorial / exam overlays  (mylawacad)
+ *         z-[150] — tutorial reopen button  (mylawacad)
+ *          z-50   — toasts, rate-limit banners, dropdowns
+ *          z-40   — proctor webcam, portal sidebars
+ *          z-30   — sticky headers, nav scrims
+ */
 export function ParalegalWidget({
   portalName,
   request,
@@ -200,6 +225,19 @@ export function ParalegalWidget({
   greeting,
 }: ParalegalWidgetProps) {
   const [open, setOpen] = useState(false);
+
+  // Publish the FAB clearance value so any portal's fixed-bottom element
+  // can consume it without hard-coding a magic number.
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("--vp-fab-clearance", "96px");
+    }
+    return () => {
+      if (typeof document !== "undefined") {
+        document.documentElement.style.removeProperty("--vp-fab-clearance");
+      }
+    };
+  }, []);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
