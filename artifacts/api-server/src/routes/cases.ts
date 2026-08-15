@@ -193,7 +193,9 @@ async function enrichForSearch(ids: number[]): Promise<SearchResultItem[]> {
 
     return {
       id,
-      citation: metaStr(meta.get("citation")),
+      citation:
+        metaStr(meta.get("reportCitation")) ??
+        metaStr(meta.get("neutralCitation")),
       caseName: metaStr(meta.get("caseName")),
       court: metaStr(meta.get("court")) ?? si?.court ?? null,
       decisionDate:
@@ -489,7 +491,9 @@ router.get("/:id", async (req, res) => {
 
   res.json({
     id,
-    citation: metaStr(meta.get("citation")),
+    citation:
+      metaStr(meta.get("reportCitation")) ??
+      metaStr(meta.get("neutralCitation")),
     caseName: metaStr(meta.get("caseName")),
     court: metaStr(meta.get("court")),
     decisionDate: metaStr(meta.get("decisionDate")),
