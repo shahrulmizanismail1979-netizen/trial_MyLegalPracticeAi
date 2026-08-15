@@ -91,7 +91,7 @@ function SaveDraftButton({ title, matter, content }: { title: string; matter: st
     try {
       await saveWork.mutateAsync({ kind: 'draft', title, matter: matter || null, content });
       setSaved(true);
-      toast({ title: 'Saved to My Work', description: 'Find it later under “My Work”.' });
+      toast({ title: 'Draft saved', description: 'Find it under Saved Drafts on the Matters page.' });
       setTimeout(() => setSaved(false), 2500);
     } catch {
       toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
@@ -103,7 +103,7 @@ function SaveDraftButton({ title, matter, content }: { title: string; matter: st
       disabled={saveWork.isPending || !content}
       className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border bg-secondary text-muted-foreground border-border hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-50"
     >
-      {saved ? <><Check className="h-3 w-3" /> Saved</> : <><BookmarkPlus className="h-3 w-3" /> Save to My Work</>}
+      {saved ? <><Check className="h-3 w-3" /> Saved</> : <><BookmarkPlus className="h-3 w-3" /> Save Draft</>}
     </button>
   );
 }

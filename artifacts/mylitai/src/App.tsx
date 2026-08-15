@@ -24,7 +24,6 @@ import Costs from "@/pages/Costs";
 import Terminology from "@/pages/Terminology";
 import Chambers from "@/pages/Chambers";
 import OralPractice from "@/pages/OralPractice";
-import MyWork from "@/pages/MyWork";
 import Matters from "@/pages/Matters";
 import MatterDetail from "@/pages/MatterDetail";
 import Diary from "@/pages/Diary";
@@ -103,7 +102,7 @@ function Router() {
       <Route path="/app/terminology"><ProtectedRoute component={Terminology} /></Route>
       <Route path="/app/chambers"><PremiumRoute component={Chambers} /></Route>
       <Route path="/app/oral-practice"><ProtectedRoute component={OralPractice} /></Route>
-      <Route path="/app/my-work"><ProtectedRoute component={MyWork} /></Route>
+      <Route path="/app/my-work"><Redirect to="/app/matters" /></Route>
       <Route path="/app/matters"><ProtectedRoute component={Matters} /></Route>
       <Route path="/app/matters/:id"><ProtectedRoute component={MatterDetail} /></Route>
       <Route path="/app/diary"><ProtectedRoute component={Diary} /></Route>

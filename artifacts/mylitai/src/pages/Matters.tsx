@@ -10,7 +10,9 @@ import {
   type MatterBriefing,
   daysUntil,
 } from '@/hooks/use-matters';
+import { useSavedWork, useDeleteWork, kindMeta, type SavedWork } from '@/hooks/use-saved-work';
 import { MatterFileUpload, type ExtractedFile } from '@/components/MatterFileUpload';
+import { ExportButtons } from '@/components/ExportButtons';
 import {
   PageHeader,
   Card,
@@ -40,6 +42,11 @@ import {
   ListChecks,
   Loader2,
   ChevronRight,
+  FolderOpen,
+  FileText,
+  Eye,
+  Clock,
+  Trash2,
 } from 'lucide-react';
 
 const MATTER_TYPES = [
@@ -357,6 +364,134 @@ function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: Matter
   );
 }
 
+// ── Saved Drafts (not yet filed into a matter by ID) ──────────────────────────
+
+function SavedDraftsSection() {
+  const { data: allWork, isLoading } = useSavedWork();
+  const deleteWork = useDeleteWork();
+  const [viewing, setViewing] = useState<SavedWork | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<SavedWork | null>(null);
+
+  // Show all saved work that is NOT linked to a matter by ID.
+  // This includes truly unfiled records AND records saved with only a text matter name
+  // (e.g. from Chambers, Forms, BankingRecovery, DraftCauseModal) which have no matterId.
+  const unlinked = (allWork ?? []).filter((w) => !w.matterId);
+
+  if (isLoading || unlinked.length === 0) return null;
+
+  // Group by matter name string (mirrors the old My Work grouping)
+  const grouped = new Map<string, SavedWork[]>();
+  for (const w of unlinked) {
+    const key = w.matter?.trim() || 'Unfiled Drafts';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(w);
+  }
+  const groups = Array.from(grouped.entries());
+  const totalCount = unlinked.length;
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center gap-2 mb-2">
+        <FolderOpen className="h-5 w-5 text-primary" />
+        <h2 className="font-serif text-xl font-bold text-foreground">Saved Drafts</h2>
+        <Badge variant="outline" className="ml-1">{totalCount}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground mb-6">
+        Drafts saved from AI tools that aren't linked to a matter yet. Open any matter and use the AI tools there to file new drafts directly into it.
+      </p>
+
+      <div className="space-y-8">
+        {groups.map(([groupName, works]) => (
+          <div key={groupName}>
+            <div className="flex items-center gap-2 mb-3">
+              <FolderOpen className="h-4 w-4 text-primary" />
+              <h3 className="font-serif font-bold text-base text-foreground">{groupName}</h3>
+              <Badge variant="outline" className="ml-1">{works.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {works.map((w) => {
+                const meta = kindMeta(w.kind);
+                return (
+                  <Card key={w.id} className="flex flex-col hover:border-primary/50 transition-all">
+                    <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${meta.color}`}>
+                          {meta.label}
+                        </span>
+                        <FileText className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                      </div>
+                      <h3 className="font-medium text-sm text-foreground leading-snug line-clamp-2">{w.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-2 flex-1">
+                        {w.content.replace(/[#*`>-]/g, '').slice(0, 120) || 'No content'}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {fmtDate(w.updatedAt)}
+                      </div>
+                      <div className="flex gap-1.5 pt-1">
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 h-8 text-xs" onClick={() => setViewing(w)}>
+                          <Eye className="h-3.5 w-3.5" /> Open
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(w)} title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* View modal */}
+      <Modal isOpen={!!viewing} onClose={() => setViewing(null)} title={viewing?.title ?? 'Saved Draft'}>
+        {viewing && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${kindMeta(viewing.kind).color}`}>
+                {kindMeta(viewing.kind).label}
+              </span>
+              <ExportButtons title={viewing.title} content={viewing.content} />
+            </div>
+            {viewing.matter && (
+              <p className="text-xs text-muted-foreground">Matter: <span className="text-foreground">{viewing.matter}</span></p>
+            )}
+            <div className="bg-background border border-border rounded-xl p-5 max-h-[55vh] overflow-y-auto text-sm leading-relaxed">
+              {renderMarkdownLite(viewing.content)}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete confirm */}
+      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete saved draft?">
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            This will permanently delete <span className="text-foreground font-medium">"{confirmDelete?.title}"</span>. This cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button
+              className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (confirmDelete) {
+                  await deleteWork.mutateAsync(confirmDelete.id);
+                  setConfirmDelete(null);
+                }
+              }}
+              disabled={deleteWork.isPending}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
 export default function Matters() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [prepareMatter, setPrepareMatter] = useState<MatterBriefing | null>(null);
@@ -522,6 +657,8 @@ export default function Matters() {
           })}
         </div>
       )}
+
+      <SavedDraftsSection />
 
       <Modal isOpen={open} onClose={() => { setOpen(false); setExtractedFiles([]); }} title="New Matter">
         <div className="space-y-4">

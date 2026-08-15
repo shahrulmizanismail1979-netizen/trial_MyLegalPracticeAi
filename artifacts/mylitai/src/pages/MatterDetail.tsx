@@ -1064,7 +1064,7 @@ export default function MatterDetail() {
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="documents" className="gap-1.5">
-            <FileText className="h-3.5 w-3.5" /> Documents
+            <FileText className="h-3.5 w-3.5" /> Client Documents
             {(matterWork?.length ?? 0) > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{matterWork!.length}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="checklist" className="gap-1.5">
@@ -1177,14 +1177,14 @@ export default function MatterDetail() {
           )}
         </TabsContent>
 
-        {/* ── DOCUMENTS ── */}
+        {/* ── CLIENT DOCUMENTS ── */}
         <TabsContent value="documents">
           {(matterWork?.length ?? 0) === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No documents filed yet.{hubEntry ? ' Use the "Draft for this matter" button in Overview.' : ' Generate drafts from the AI tools and file them into this matter.'}
+                  No client documents filed yet.{hubEntry ? ' Use the "Draft for this matter" button in Overview.' : ' Generate drafts from the AI tools and file them into this matter.'}
                 </p>
               </CardContent>
             </Card>

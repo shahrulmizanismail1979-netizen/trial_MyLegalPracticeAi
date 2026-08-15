@@ -5,6 +5,7 @@ export interface SavedWork {
   kind: string;
   title: string;
   matter: string | null;
+  matterId: number | null;
   inputJson: unknown;
   content: string;
   createdAt: string;

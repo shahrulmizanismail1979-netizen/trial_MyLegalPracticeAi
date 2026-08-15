@@ -200,7 +200,7 @@ export default function Affidavits() {
         content: output,
       });
       setSaved(true);
-      toast({ title: 'Saved to My Work', description: matterName ? `Linked to ${matterName}.` : 'Find it later under "My Work".' });
+      toast({ title: 'Draft saved', description: matterName ? `Filed into ${matterName}.` : 'Find it under Saved Drafts on the Matters page.' });
       setTimeout(() => setSaved(false), 2500);
     } catch {
       toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
@@ -368,7 +368,7 @@ export default function Affidavits() {
                       </Select>
                     </div>
                     <Button variant="outline" size="sm" className="h-11 gap-1.5" onClick={saveDraft} disabled={saveWork.isPending}>
-                      {saved ? <><Check className="h-4 w-4" />Saved</> : <><BookmarkPlus className="h-4 w-4" />Save to My Work</>}
+                      {saved ? <><Check className="h-4 w-4" />Saved</> : <><BookmarkPlus className="h-4 w-4" />Save Draft</>}
                     </Button>
                   </div>
                 )}

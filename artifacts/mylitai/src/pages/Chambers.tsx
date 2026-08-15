@@ -64,7 +64,7 @@ function SaveToWorkButton({ title, content }: { title: string; content: string }
     try {
       await saveWork.mutateAsync({ kind: deriveKind(title), title, matter: matter || null, content });
       setSaved(true);
-      toast({ title: 'Saved to My Work', description: 'Find it later under “My Work”.' });
+      toast({ title: 'Draft saved', description: 'Find it under Saved Drafts on the Matters page.' });
       setTimeout(() => setSaved(false), 2500);
     } catch {
       toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
@@ -79,7 +79,7 @@ function SaveToWorkButton({ title, content }: { title: string; content: string }
       disabled={saveWork.isPending || !content}
       className="h-7 gap-1.5 text-xs"
     >
-      {saved ? <><Check className="h-3.5 w-3.5" />Saved</> : <><BookmarkPlus className="h-3.5 w-3.5" />Save to My Work</>}
+      {saved ? <><Check className="h-3.5 w-3.5" />Saved</> : <><BookmarkPlus className="h-3.5 w-3.5" />Save Draft</>}
     </Button>
   );
 }

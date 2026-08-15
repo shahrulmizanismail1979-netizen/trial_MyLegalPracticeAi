@@ -40,7 +40,7 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
           {[
             'Full AI Chambers drafting & analysis suite',
             'Interactive Oral Advocacy practice with voiced judge, witness & opposing counsel',
-            'Save unlimited work to My Work',
+            'Save unlimited drafts — accessible under Saved Drafts on the Matters page',
           ].map((line) => (
             <li key={line} className="flex items-start gap-2 text-sm text-foreground/90">
               <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />

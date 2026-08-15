@@ -399,7 +399,7 @@ function OralPracticeInner() {
         content,
       });
       setSaved(true);
-      toast({ title: 'Saved to My Work', description: 'Find this transcript under “My Work”.' });
+      toast({ title: 'Draft saved', description: 'Find this transcript under Saved Drafts on the Matters page.' });
       setTimeout(() => setSaved(false), 2500);
     } catch {
       toast({ title: 'Could not save', description: 'Please try again.', variant: 'destructive' });
@@ -530,7 +530,7 @@ function OralPracticeInner() {
             className="h-8 gap-1.5 text-xs"
           >
             {saved ? <Check className="h-3.5 w-3.5" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
-            {saved ? 'Saved' : 'Save'}
+            {saved ? 'Saved' : 'Save Draft'}
           </Button>
           <Button
             variant="ghost"
