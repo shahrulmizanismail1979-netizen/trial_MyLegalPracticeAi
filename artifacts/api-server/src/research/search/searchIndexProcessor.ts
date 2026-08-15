@@ -9,12 +9,15 @@ import {
   researchPageSections,
   researchPageExtractions,
   researchCaseMetadata,
+  researchUploadBatchItems,
+  driveAssets,
 } from "@workspace/db";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { registerProcessor } from "../processing";
 import { ProcessorFailure } from "../processing/handlers";
 import type { ProcessorContext } from "../processing/handlers";
 import { indexJudgment } from "./postgresFtsAdapter";
+import { practiceAreaForContributorFolder } from "../drive/classify";
 import { logger } from "../../lib/logger";
 import { enqueueHeadnotesJob } from "../headnotes/processor";
 
@@ -209,6 +212,29 @@ async function searchIndexProcessor(ctx: ProcessorContext): Promise<{}> {
         })()
       : null;
 
+  // Resolve practice area from the originating Drive asset (if any):
+  // container ← upload batch item ← drive_assets.source_batch_item_id.
+  // The contributor folder ("Civil Procedure (Caroline)", "Banking (Fazly)", …)
+  // encodes the practice area used for portal-scoped search.
+  let practiceArea: string | null = null;
+  try {
+    const [driveRow] = await dbc
+      .select({ contributorFolder: driveAssets.contributorFolder })
+      .from(researchUploadBatchItems)
+      .innerJoin(
+        driveAssets,
+        eq(driveAssets.sourceBatchItemId, researchUploadBatchItems.id),
+      )
+      .where(eq(researchUploadBatchItems.containerId, containerId))
+      .limit(1);
+    practiceArea = practiceAreaForContributorFolder(driveRow?.contributorFolder);
+  } catch (err) {
+    logger.warn(
+      { judgmentId, containerId, err },
+      "search_index: failed to resolve practice area (indexing without it)",
+    );
+  }
+
   await indexJudgment({
     judgmentId,
     containerId,
@@ -217,6 +243,7 @@ async function searchIndexProcessor(ctx: ProcessorContext): Promise<{}> {
     court,
     decisionDate: decisionDate && !isNaN(decisionDate.getTime()) ? decisionDate : null,
     language,
+    practiceArea,
   });
 
   logger.info(

@@ -79,7 +79,7 @@ export default function CaseLawPage() {
       if (ct) p.set("court", ct);
       if (df) p.set("dateFrom", df);
       if (dt) p.set("dateTo", dt);
-      p.set("limit", String(LIMIT));
+      p.set("practiceArea", "civil_procedure"); p.set("limit", String(LIMIT));
       p.set("offset", String(off));
       if (srt !== "relevance") { p.set("sort", "date"); p.set("dir", srt === "date_asc" ? "asc" : "desc"); }
       const r = await fetch(`/api/cases/search?${p}`, FETCH_INIT);

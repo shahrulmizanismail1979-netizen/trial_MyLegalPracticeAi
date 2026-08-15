@@ -50,3 +50,4 @@
 - [Headnotes & Catchwords processor](headnotes-processor.md) — container.headnotes job; rights-gated Gemini; auto-enqueued from search index; regenerate by deleting job row not changing idempotency key.
 - [Portal-accessible Case Law API](portal-cases-api.md) — /api/cases search+detail; requireAnyPortalAuth checks all 8 portal session types; rights gate uses container rights_status; 200/day rate limit on detail.
 - [Signed cookie / cookie-parser interaction](signed-cookie-parser-interaction.md) — cookieParser(SECRET) moves verified cookies to req.signedCookies and deletes from req.cookies; always check signedCookies first in portal auth.
+- [Practice-area case scoping](practice-area-tagging.md) — /api/cases scope comes from portal identity server-side, never the query param; all practice portals locked (convey/sya empty until content); only master/acad unrestricted.

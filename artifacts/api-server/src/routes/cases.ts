@@ -36,6 +36,36 @@ import type { PortalAuthIdentity } from "../middlewares/requireAnyPortalAuth";
 
 const router = Router();
 
+// ── Server-side practice-area scoping ────────────────────────────────────────
+// Each portal identity type is locked to its practice area — derived from
+// req.portalAuth, never from the client. A caller cannot widen or switch its
+// scope by tampering with the practiceArea query parameter.
+//   lit  → civil_procedure (MyLitAI + MyLitAI IRAC share lit sessions)
+//   crim → criminal, corp → corporate, ccb → banking, accident → accident
+//   convey → conveyancing, sya → syariah (empty until matching Drive content
+//   is ingested — locked anyway, since client filtering is not authorization)
+// Unrestricted: master (admin override) and acad (academy, not a practice
+// portal) — these may pass an optional practiceArea filter explicitly.
+const PORTAL_PRACTICE_AREA: Partial<Record<PortalAuthIdentity["type"], string>> = {
+  lit: "civil_procedure",
+  crim: "criminal",
+  corp: "corporate",
+  ccb: "banking",
+  accident: "accident",
+  convey: "conveyancing",
+  sya: "syariah",
+};
+
+/** Resolve the effective practice-area filter for this request. */
+function effectivePracticeArea(
+  identity: PortalAuthIdentity,
+  requested: string | undefined,
+): string | undefined {
+  const enforced = PORTAL_PRACTICE_AREA[identity.type];
+  if (enforced) return enforced; // locked — ignore whatever the client sent
+  return requested; // unrestricted identities may filter voluntarily
+}
+
 // Rights statuses that allow display to portal subscribers.
 const DISPLAY_SAFE_RIGHTS = [
   "OFFICIAL_COURT_SOURCE",
@@ -224,6 +254,7 @@ async function enrichForSearch(ids: number[]): Promise<SearchResultItem[]> {
 async function ftsSearchApprovedByDate(opts: {
   q: string;
   court?: string;
+  practiceArea?: string;
   dateFrom?: Date;
   dateTo?: Date;
   limit: number;
@@ -244,6 +275,9 @@ async function ftsSearchApprovedByDate(opts: {
   const dateToFilter = opts.dateTo
     ? sql`AND si.decision_date <= ${opts.dateTo}`
     : sql``;
+  const practiceAreaFilter = opts.practiceArea
+    ? sql`AND si.practice_area = ${opts.practiceArea}`
+    : sql``;
 
   const [countResult, rowsResult] = await Promise.all([
     db.execute(sql`
@@ -263,6 +297,7 @@ async function ftsSearchApprovedByDate(opts: {
         ${courtFilter}
         ${dateFromFilter}
         ${dateToFilter}
+        ${practiceAreaFilter}
     `),
     db.execute(sql`
       SELECT id FROM (
@@ -282,6 +317,7 @@ async function ftsSearchApprovedByDate(opts: {
           ${courtFilter}
           ${dateFromFilter}
           ${dateToFilter}
+          ${practiceAreaFilter}
         ORDER BY rvj.id, si.decision_date DESC NULLS LAST
       ) sub
       ORDER BY decision_date ${direction} NULLS LAST
@@ -300,6 +336,7 @@ async function ftsSearchApprovedByDate(opts: {
  */
 async function browseApproved(opts: {
   court?: string;
+  practiceArea?: string;
   dateFrom?: Date;
   dateTo?: Date;
   limit: number;
@@ -314,6 +351,9 @@ async function browseApproved(opts: {
     : sql``;
   const dateToFilter = opts.dateTo
     ? sql`AND si.decision_date <= ${opts.dateTo}`
+    : sql``;
+  const practiceAreaFilter = opts.practiceArea
+    ? sql`AND si.practice_area = ${opts.practiceArea}`
     : sql``;
 
   const direction = opts.dir === "asc" ? sql`ASC` : sql`DESC`;
@@ -335,6 +375,7 @@ async function browseApproved(opts: {
         ${courtFilter}
         ${dateFromFilter}
         ${dateToFilter}
+        ${practiceAreaFilter}
     `),
     db.execute(sql`
       SELECT id FROM (
@@ -353,6 +394,7 @@ async function browseApproved(opts: {
           ${courtFilter}
           ${dateFromFilter}
           ${dateToFilter}
+          ${practiceAreaFilter}
         ORDER BY rvj.id, si.decision_date DESC NULLS LAST
       ) sub
       ORDER BY decision_date ${direction} NULLS LAST
@@ -424,6 +466,7 @@ async function getJudgmentParagraphs(
 const SearchQuerySchema = z.object({
   q: z.string().min(1).max(500).optional(),
   court: z.string().max(200).optional(),
+  practiceArea: z.string().max(50).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
@@ -447,6 +490,7 @@ router.get("/search", async (req, res) => {
   }
 
   const { q, court, dateFrom, dateTo, limit, offset, sort, dir, lang } = parsed.data;
+  const practiceArea = effectivePracticeArea(req.portalAuth!, parsed.data.practiceArea);
 
   const dateFromDate = dateFrom ? new Date(dateFrom) : undefined;
   const dateToDate = dateTo ? new Date(dateTo) : undefined;
@@ -461,8 +505,11 @@ router.get("/search", async (req, res) => {
       const { total: t, ids } = await ftsSearchApprovedByDate({
         q,
         court,
-        dateFrom: dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
-        dateTo: dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
+        practiceArea,
+        dateFrom:
+          dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
+        dateTo:
+          dateToDate && !isNaN(dateToDate.getTime()) ? dateToDate : undefined,
         limit,
         offset,
         dir,
@@ -474,6 +521,7 @@ router.get("/search", async (req, res) => {
       // Relevance path — over-fetch then rights-filter
       const ftsResults = await ftSearch(q, {
         court,
+        practiceArea,
         dateFrom:
           dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
         dateTo:
@@ -496,6 +544,7 @@ router.get("/search", async (req, res) => {
     // Browse path
     const { total: t, ids } = await browseApproved({
       court,
+      practiceArea,
       dateFrom:
         dateFromDate && !isNaN(dateFromDate.getTime()) ? dateFromDate : undefined,
       dateTo:
@@ -531,8 +580,24 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
-  // Rate limit (after gate — don't count denied requests)
   const identity = req.portalAuth!;
+
+  // Practice-area gate — a scoped portal can only read cases in its own area
+  // (mirrors the search filter; 404 keeps other areas' cases invisible).
+  const enforcedArea = PORTAL_PRACTICE_AREA[identity.type];
+  if (enforcedArea) {
+    const [indexRow] = await db
+      .select({ practiceArea: researchSearchIndex.practiceArea })
+      .from(researchSearchIndex)
+      .where(eq(researchSearchIndex.judgmentId, id))
+      .limit(1);
+    if (indexRow?.practiceArea !== enforcedArea) {
+      res.status(404).json({ error: "Case not found" });
+      return;
+    }
+  }
+
+  // Rate limit (after gate — don't count denied requests)
   const { allowed, remaining } = checkRateLimit(identity);
   if (!allowed) {
     res

@@ -63,7 +63,7 @@ export default function CaseLawPage() {
       if (ct) p.set("court", ct);
       if (df) p.set("dateFrom", df);
       if (dt) p.set("dateTo", dt);
-      p.set("limit", String(LIMIT)); p.set("offset", String(off));
+      p.set("practiceArea", "criminal"); p.set("limit", String(LIMIT)); p.set("offset", String(off));
       if (srt !== "relevance") { p.set("sort", "date"); p.set("dir", srt === "date_asc" ? "asc" : "desc"); }
       const r = await fetch(`/api/cases/search?${p}`, FETCH_INIT);
       if (!r.ok) throw new Error(r.status === 401 ? "Sign in to access case law." : "Search failed.");

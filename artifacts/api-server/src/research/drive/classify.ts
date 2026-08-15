@@ -59,6 +59,46 @@ export function classifyDriveFile(
   return "UNKNOWN_SOURCE";
 }
 
+// ── Practice-area mapping ─────────────────────────────────────────────────────
+// The Drive folder structure encodes practice area in the top-level
+// contributor folder, e.g. "Civil Procedure (Caroline)" or "Banking (Fazly)".
+// Portals filter case-law search by these canonical values.
+
+export const PRACTICE_AREAS = [
+  "civil_procedure",
+  "corporate",
+  "accident",
+  "banking",
+  "criminal",
+  "conveyancing",
+  "syariah",
+] as const;
+export type PracticeArea = (typeof PRACTICE_AREAS)[number];
+
+const PRACTICE_AREA_PATTERNS: Array<[RegExp, PracticeArea]> = [
+  [/civil/i, "civil_procedure"],
+  [/corporate|company/i, "corporate"],
+  [/accident|personal\s+injur/i, "accident"],
+  [/banking|bank/i, "banking"],
+  [/criminal|crime/i, "criminal"],
+  [/convey/i, "conveyancing"],
+  [/syariah|shariah/i, "syariah"],
+];
+
+/**
+ * Map a Drive contributor folder name (top-level folder under the root) to a
+ * canonical practice area. Returns null when no known area matches.
+ */
+export function practiceAreaForContributorFolder(
+  contributorFolder: string | null | undefined,
+): PracticeArea | null {
+  if (!contributorFolder) return null;
+  for (const [pattern, area] of PRACTICE_AREA_PATTERNS) {
+    if (pattern.test(contributorFolder)) return area;
+  }
+  return null;
+}
+
 export function rightsStatusForClassification(
   classification: SourceClassification,
 ): RightsStatus {

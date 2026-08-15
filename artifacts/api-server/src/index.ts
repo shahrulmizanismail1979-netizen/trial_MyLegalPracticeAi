@@ -22,6 +22,7 @@ import { ensureDraftTables } from "./lib/caseDrafts";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
 import { ensureHrTables } from "./firm/routes/hr";
 import { ensureAccountsTables } from "./firm/routes/accounts";
+import { ensurePracticeAreaSchema } from "./research/search/postgresFtsAdapter";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -177,6 +178,11 @@ await ensureDocumentTables();
 await ensureCaseClientMatterTable();
 await ensureHrTables();
 await ensureAccountsTables();
+
+// Case-law practice-area tagging: column + index on research_search_index and
+// backfill from Drive contributor folders. Awaited — /api/cases queries the
+// column unconditionally when a portal-scoped search runs.
+await ensurePracticeAreaSchema();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

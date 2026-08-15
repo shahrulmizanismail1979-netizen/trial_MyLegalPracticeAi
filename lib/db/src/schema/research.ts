@@ -1607,6 +1607,10 @@ export const researchSearchIndex = pgTable(
     court: text("court"),
     decisionDate: timestamp("decision_date", { withTimezone: true }),
     language: text("language"),
+    // Practice area derived from the Drive contributor folder at index time
+    // (e.g. "Civil Procedure (Caroline)" → 'civil_procedure'). NULL when the
+    // source is not a Drive asset or the folder doesn't map to a known area.
+    practiceArea: text("practice_area"),
     indexedAt: timestamp("indexed_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1615,6 +1619,7 @@ export const researchSearchIndex = pgTable(
     index("research_search_index_container_idx").on(t.containerId),
     index("research_search_index_court_idx").on(t.court),
     index("research_search_index_date_idx").on(t.decisionDate),
+    index("research_search_index_practice_area_idx").on(t.practiceArea),
   ],
 );
 
