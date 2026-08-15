@@ -6,7 +6,7 @@ import {
   rightsStatusSchema,
   type ResearchRightsRecord,
 } from "@workspace/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod/v4";
 import { recordAuditEvent } from "../domain/audit";
 import { transitionContainer } from "../domain/containerStateMachine";
@@ -51,16 +51,18 @@ export async function recordRightsDecision(
   return dbc.transaction(async (tx) => {
     // Lock the container row so decision + mirror stay consistent under
     // concurrent reviews.
-    const locked = await tx.execute(sql`
-      SELECT id, rights_status, processing_state
-      FROM research_source_containers
-      WHERE id = ${containerId} FOR UPDATE
-    `);
-    const row = locked.rows[0] as
-      | { id: number; rights_status: string; processing_state: string }
-      | undefined;
+    const locked = await tx
+      .select({
+        id: researchSourceContainers.id,
+        rightsStatus: researchSourceContainers.rightsStatus,
+        processingState: researchSourceContainers.processingState,
+      })
+      .from(researchSourceContainers)
+      .where(eq(researchSourceContainers.id, containerId))
+      .for("update");
+    const row = locked[0];
     if (!row) throw new EntityNotFoundError("container", containerId);
-    const previousStatus = row.rights_status;
+    const previousStatus = row.rightsStatus;
 
     const [record] = await tx
       .insert(researchRightsRecords)
@@ -121,8 +123,8 @@ export async function recordRightsDecision(
     // DO_NOT_RETAIN feeds the deletion path via the state machine.
     if (
       decision.status === "DO_NOT_RETAIN" &&
-      row.processing_state !== "DELETION_PENDING" &&
-      row.processing_state !== "DELETED"
+      row.processingState !== "DELETION_PENDING" &&
+      row.processingState !== "DELETED"
     ) {
       await transitionContainer(containerId, "DELETION_PENDING", {
         actor: opts.actor,
