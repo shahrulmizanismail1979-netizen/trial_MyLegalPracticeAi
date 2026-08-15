@@ -13,6 +13,7 @@ import type { Request, Response, NextFunction } from "express";
 import * as jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { isConveyCodeExpired } from "./conveyAuth";
 
 const SESSION_SECRET = process.env.SESSION_SECRET ?? "";
 const MASTER_ACCESS_CODE = process.env.MASTER_ACCESS_CODE ?? "";
@@ -165,6 +166,40 @@ export async function requireAnyPortalAuth(
         const identityKey = String(
           payload.uid ?? payload.code ?? payload.sub ?? token.slice(0, 32),
         );
+
+        if (isConvey) {
+          // Re-check the live subscription expiry on every request so that a
+          // JWT issued before the plan expired is rejected once the plan ends.
+          // We look up the user's access_code then delegate to isConveyCodeExpired
+          // which queries the subscribers table (fail-closed on DB error).
+          const uid = Number(payload.uid);
+          let accessCode: string | null = null;
+          if (uid) {
+            try {
+              const userRows = await db.execute(sql`
+                SELECT access_code FROM users WHERE id = ${uid} LIMIT 1
+              `);
+              accessCode =
+                (userRows.rows[0] as { access_code?: string } | undefined)
+                  ?.access_code ?? null;
+            } catch {
+              // Fail closed: cannot read the user row — deny access.
+              res.status(401).json({
+                error:
+                  "Unable to verify subscription status. Please try again.",
+              });
+              return;
+            }
+          }
+          if (await isConveyCodeExpired(accessCode)) {
+            res.status(401).json({
+              error:
+                "Subscription has expired. Please renew your plan to access case law.",
+            });
+            return;
+          }
+        }
+
         req.portalAuth = {
           type: isConvey ? "convey" : "ccb",
           identityKey: `${isConvey ? "convey" : "ccb"}:${identityKey}`,
