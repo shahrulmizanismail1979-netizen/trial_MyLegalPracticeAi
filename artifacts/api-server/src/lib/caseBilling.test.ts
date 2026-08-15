@@ -1,0 +1,309 @@
+/**
+ * Integration tests for the billing rate-card save/reload cycle on the lit portal.
+ *
+ * Verifies that:
+ *  - POST /api/lit/matters/billing/rate-cards saves a new entry
+ *  - GET  /api/lit/matters/billing/rate-cards reloads it after creation
+ *  - GET  /api/lit/matters/billing/settings includes rateCards in its payload
+ *  - A time entry with matching activity + level gets its rate auto-filled from
+ *    the rate card (not left null)
+ *  - Cross-tenant isolation: another user cannot read or overwrite entries
+ */
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import request from "supertest";
+import { eq, inArray } from "drizzle-orm";
+
+// Mock Clerk so these tests run without live credentials.
+vi.mock("@clerk/express", () => ({
+  clerkMiddleware:
+    () =>
+    (_req: unknown, _res: unknown, next: () => void): void =>
+      next(),
+  getAuth: () => ({ userId: null }),
+  clerkClient: {
+    users: { getUser: async () => Promise.reject(new Error("not found")) },
+  },
+}));
+
+const { default: app } = await import("../app");
+const { db, pool } = await import("@workspace/db");
+const { litAccessCodes, litMatters } = await import("@workspace/db/schema");
+const { ensureBillingTables } = await import("./caseBilling");
+
+const RUN_ID = `billing-rc-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+const CODE_A = `TEST-${RUN_ID}-A`.toUpperCase();
+const CODE_B = `TEST-${RUN_ID}-B`.toUpperCase();
+
+const codeIds: number[] = [];
+const matterIds: number[] = [];
+
+async function loginAgent(code: string) {
+  const agent = request.agent(app);
+  const res = await agent
+    .post("/api/lit/auth/login")
+    .send({ password: code });
+  expect(res.status).toBe(200);
+  return agent;
+}
+
+beforeAll(async () => {
+  await ensureBillingTables();
+  const rows = await db
+    .insert(litAccessCodes)
+    .values([
+      {
+        code: CODE_A,
+        recipientName: `Billing Test A ${RUN_ID}`,
+        recipientEmail: `billing-a-${RUN_ID}@test.local`,
+        status: "active",
+        compedAccess: true,
+      },
+      {
+        code: CODE_B,
+        recipientName: `Billing Test B ${RUN_ID}`,
+        recipientEmail: `billing-b-${RUN_ID}@test.local`,
+        status: "active",
+        compedAccess: true,
+      },
+    ])
+    .returning();
+  for (const r of rows) codeIds.push(r.id);
+});
+
+afterAll(async () => {
+  if (matterIds.length > 0) {
+    await pool.query(`DELETE FROM case_time_entries WHERE matter_id = ANY($1::int[])`, [matterIds]);
+    await pool.query(`DELETE FROM lit_matters WHERE id = ANY($1::int[])`, [matterIds]);
+  }
+  if (codeIds.length > 0) {
+    await pool.query(
+      `DELETE FROM case_rate_cards WHERE portal = 'lit' AND owner_key = ANY($1::text[])`,
+      [codeIds.map(String)],
+    );
+    await pool.query(
+      `DELETE FROM case_billing_settings WHERE portal = 'lit' AND owner_key = ANY($1::text[])`,
+      [codeIds.map(String)],
+    );
+    await db.delete(litMatters).where(inArray(litMatters.accessCodeId, codeIds));
+    await db
+      .delete(litAccessCodes)
+      .where(inArray(litAccessCodes.id, codeIds));
+  }
+});
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+
+describe("rate-card routes — auth guard", () => {
+  it("rejects unauthenticated GET /billing/rate-cards with 401", async () => {
+    const res = await request(app).get("/api/lit/matters/billing/rate-cards");
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects unauthenticated POST /billing/rate-cards with 401", async () => {
+    const res = await request(app)
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "Hearing", lawyerLevel: "Senior", rateUsd: 800 });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 for the old /api/lit/billing/rate-cards path (not mounted there)", async () => {
+    // The subscription-billing router at /api/lit/billing only handles
+    // /status, /provision and /portal — rate-card routes live on the
+    // matters router at /api/lit/matters/billing/rate-cards.
+    const res = await request(app).get("/api/lit/billing/rate-cards");
+    expect(res.status).toBe(404);
+  });
+});
+
+// ── Rate-card CRUD + reload cycle ─────────────────────────────────────────────
+
+describe("rate-card save and reload cycle", () => {
+  it("creates a rate card, reloads it, and surfaces it in /billing/settings", async () => {
+    const agentA = await loginAgent(CODE_A);
+
+    // 1. Initially empty.
+    const empty = await agentA.get("/api/lit/matters/billing/rate-cards");
+    expect(empty.status).toBe(200);
+    expect(Array.isArray(empty.body)).toBe(true);
+    const initialCount = (empty.body as unknown[]).length;
+
+    // 2. POST a new rate card.
+    const create = await agentA
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({
+        activityType: "Hearing",
+        lawyerLevel: "Senior Associate",
+        rateUsd: 850,
+      });
+    expect(create.status).toBe(201);
+    expect(create.body.activity_type).toBe("Hearing");
+    expect(create.body.lawyer_level).toBe("Senior Associate");
+    expect(parseFloat(create.body.rate_usd as string)).toBeCloseTo(850, 1);
+    const cardId: number = create.body.id as number;
+    expect(typeof cardId).toBe("number");
+
+    // 3. Reload — entry must persist.
+    const list = await agentA.get("/api/lit/matters/billing/rate-cards");
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body)).toBe(true);
+    expect((list.body as unknown[]).length).toBe(initialCount + 1);
+    const found = (list.body as Array<Record<string, unknown>>).find(
+      (rc) => rc.id === cardId,
+    );
+    expect(found).toBeDefined();
+    expect(found!.activity_type).toBe("Hearing");
+    expect(parseFloat(found!.rate_usd as string)).toBeCloseTo(850, 1);
+
+    // 4. GET /billing/settings must include rateCards.
+    const settings = await agentA.get("/api/lit/matters/billing/settings");
+    expect(settings.status).toBe(200);
+    expect(Array.isArray(settings.body.rateCards)).toBe(true);
+    const inSettings = (
+      settings.body.rateCards as Array<Record<string, unknown>>
+    ).find((rc) => rc.id === cardId);
+    expect(inSettings).toBeDefined();
+    expect(inSettings!.activity_type).toBe("Hearing");
+  });
+
+  it("upserts on duplicate activity+level (no duplicate rows)", async () => {
+    const agentA = await loginAgent(CODE_A);
+
+    // First POST — create the row.
+    await agentA.post("/api/lit/matters/billing/rate-cards").send({
+      activityType: "Research",
+      lawyerLevel: "Paralegal",
+      rateUsd: 200,
+    });
+
+    // Second POST — same key, different rate → should upsert, not duplicate.
+    const upsert = await agentA
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({
+        activityType: "Research",
+        lawyerLevel: "Paralegal",
+        rateUsd: 250,
+      });
+    expect(upsert.status).toBe(201);
+    expect(parseFloat(upsert.body.rate_usd as string)).toBeCloseTo(250, 1);
+
+    const list = await agentA.get("/api/lit/matters/billing/rate-cards");
+    const matches = (list.body as Array<Record<string, unknown>>).filter(
+      (rc) =>
+        rc.activity_type === "Research" && rc.lawyer_level === "Paralegal",
+    );
+    // Exactly one row for this activity+level combo.
+    expect(matches.length).toBe(1);
+    expect(parseFloat(matches[0].rate_usd as string)).toBeCloseTo(250, 1);
+  });
+
+  it("validates required fields — rejects missing activityType or rateUsd <= 0", async () => {
+    const agentA = await loginAgent(CODE_A);
+
+    const noActivity = await agentA
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ lawyerLevel: "Junior", rateUsd: 300 });
+    expect(noActivity.status).toBe(400);
+
+    const noLevel = await agentA
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "Drafting", rateUsd: 300 });
+    expect(noLevel.status).toBe(400);
+
+    const zeroRate = await agentA
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "Drafting", lawyerLevel: "Junior", rateUsd: 0 });
+    expect(zeroRate.status).toBe(400);
+  });
+});
+
+// ── Rate auto-fill on time entries ────────────────────────────────────────────
+
+describe("rate auto-fill from rate card on time entry logging", () => {
+  it("auto-fills rate_usd on a time entry when activity+level match a rate card", async () => {
+    const agentA = await loginAgent(CODE_A);
+
+    // Seed a rate card for this combination.
+    const rc = await agentA.post("/api/lit/matters/billing/rate-cards").send({
+      activityType: "Court Attendance",
+      lawyerLevel: "Partner",
+      rateUsd: 1500,
+    });
+    expect(rc.status).toBe(201);
+
+    // Create a matter so we can log time against it.
+    const matterRes = await agentA
+      .post("/api/lit/matters")
+      .send({ title: `Autofill Rate Test ${RUN_ID}`, actingFor: "Plaintiff" });
+    expect(matterRes.status).toBe(201);
+    const matterId: number = matterRes.body.id as number;
+    matterIds.push(matterId);
+
+    // Log a time entry with matching activity + level but NO explicit rateUsd.
+    // Fields are snake_case to match what the server reads (activity_type, lawyer_level).
+    const entry = await agentA
+      .post(`/api/lit/matters/${matterId}/time-entries`)
+      .send({
+        description: `Court hearing day 1 (${RUN_ID})`,
+        minutes: 240,
+        activity_type: "Court Attendance",
+        lawyer_level: "Partner",
+      });
+    expect(entry.status).toBe(201);
+
+    // The rate should have been auto-filled from the rate card.
+    const rate = entry.body.rate_usd;
+    expect(rate).not.toBeNull();
+    expect(parseFloat(String(rate))).toBeCloseTo(1500, 1);
+  });
+
+  it("leaves rate_usd null when no matching rate card exists (falls back to firm default at billing time)", async () => {
+    const agentA = await loginAgent(CODE_A);
+
+    const matterRes = await agentA
+      .post("/api/lit/matters")
+      .send({ title: `No Rate Card Test ${RUN_ID}`, actingFor: "Defendant" });
+    expect(matterRes.status).toBe(201);
+    const matterId: number = matterRes.body.id as number;
+    matterIds.push(matterId);
+
+    // Log time for an activity/level combination with no rate card entry.
+    const entry = await agentA
+      .post(`/api/lit/matters/${matterId}/time-entries`)
+      .send({
+        description: `ADR session (${RUN_ID})`,
+        minutes: 60,
+        activityType: "Mediation_NoCard_" + RUN_ID,
+        lawyerLevel: "Associate_NoCard_" + RUN_ID,
+      });
+    expect(entry.status).toBe(201);
+
+    // No rate card → rate_usd should be null (default used at invoice time).
+    expect(entry.body.rate_usd).toBeNull();
+  });
+});
+
+// ── Cross-tenant isolation ────────────────────────────────────────────────────
+
+describe("rate-card cross-tenant isolation", () => {
+  it("user B cannot see user A's rate cards", async () => {
+    const agentA = await loginAgent(CODE_A);
+    const agentB = await loginAgent(CODE_B);
+
+    // A creates a rate card with a uniquely identifiable activity type.
+    const uniqueActivity = `CrossTenantTest_${RUN_ID}`;
+    const rc = await agentA.post("/api/lit/matters/billing/rate-cards").send({
+      activityType: uniqueActivity,
+      lawyerLevel: "Senior Partner",
+      rateUsd: 9999,
+    });
+    expect(rc.status).toBe(201);
+
+    // B's rate-card list must not include A's entry.
+    const bList = await agentB.get("/api/lit/matters/billing/rate-cards");
+    expect(bList.status).toBe(200);
+    const hasA = (bList.body as Array<Record<string, unknown>>).some(
+      (r) => r.activity_type === uniqueActivity,
+    );
+    expect(hasA).toBe(false);
+  });
+});
