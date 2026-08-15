@@ -136,8 +136,16 @@ export async function ensureBillingTables(): Promise<void> {
     ALTER TABLE case_rate_cards ADD COLUMN IF NOT EXISTS lawyer_name text;
     ALTER TABLE case_rate_cards
       DROP CONSTRAINT IF EXISTS case_rate_cards_portal_owner_key_activity_type_lawyer_level_key;
+
+    -- Add practice_area column (Task #280). NULL means "applies to all practice areas"
+    -- and is the final fallback in the rate-card lookup chain.
+    ALTER TABLE case_rate_cards ADD COLUMN IF NOT EXISTS practice_area text;
+
+    -- Rebuild the unique index to include practice_area.
+    DROP INDEX IF EXISTS idx_case_rate_cards_unique;
     CREATE UNIQUE INDEX IF NOT EXISTS idx_case_rate_cards_unique
-      ON case_rate_cards (portal, owner_key, activity_type, lawyer_level, COALESCE(lawyer_name, ''));
+      ON case_rate_cards (portal, owner_key, activity_type, lawyer_level,
+                          COALESCE(lawyer_name, ''), COALESCE(practice_area, ''));
   `);
   logger.info("Billing tables ensured");
 }
@@ -174,7 +182,7 @@ async function getSettings(portal: Portal, ownerKey: string) {
 async function getRateCards(portal: Portal, ownerKey: string) {
   const { rows } = await pool.query(
     `SELECT * FROM case_rate_cards WHERE portal = $1 AND owner_key = $2
-     ORDER BY activity_type, lawyer_level, COALESCE(lawyer_name, '')`,
+     ORDER BY COALESCE(practice_area, ''), activity_type, lawyer_level, COALESCE(lawyer_name, '')`,
     [portal, ownerKey],
   );
   return rows;
@@ -281,7 +289,7 @@ export function attachBilling(opts: {
   router.post(`${P}/billing/rate-cards`, async (req, res) => {
     const ownerKey = auth(req, res);
     if (!ownerKey) return;
-    const { activityType, lawyerLevel, lawyerName, rateUsd } = req.body ?? {};
+    const { activityType, lawyerLevel, lawyerName, practiceArea, rateUsd } = req.body ?? {};
     if (!activityType || typeof activityType !== "string" || !activityType.trim()) {
       res.status(400).json({ error: "activityType is required" });
       return;
@@ -297,10 +305,14 @@ export function attachBilling(opts: {
     }
     const lawyerNameStr =
       typeof lawyerName === "string" && lawyerName.trim() ? lawyerName.trim().slice(0, MAX_TEXT) : null;
+    const practiceAreaStr =
+      typeof practiceArea === "string" && practiceArea.trim() ? practiceArea.trim().slice(0, MAX_TEXT) : null;
     const { rows } = await pool.query(
-      `INSERT INTO case_rate_cards (portal, owner_key, activity_type, lawyer_level, lawyer_name, rate_usd)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (portal, owner_key, activity_type, lawyer_level, COALESCE(lawyer_name, ''))
+      `INSERT INTO case_rate_cards
+         (portal, owner_key, activity_type, lawyer_level, lawyer_name, practice_area, rate_usd)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (portal, owner_key, activity_type, lawyer_level,
+                    COALESCE(lawyer_name, ''), COALESCE(practice_area, ''))
        DO UPDATE SET rate_usd = EXCLUDED.rate_usd, updated_at = now()
        RETURNING *`,
       [
@@ -309,6 +321,7 @@ export function attachBilling(opts: {
         activityType.trim().slice(0, MAX_TEXT),
         lawyerLevel.trim().slice(0, MAX_TEXT),
         lawyerNameStr,
+        practiceAreaStr,
         money(rate),
       ],
     );

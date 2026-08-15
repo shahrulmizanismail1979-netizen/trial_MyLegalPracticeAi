@@ -61,6 +61,7 @@ export interface RateCard {
   activity_type: string;
   lawyer_level: string;
   lawyer_name: string | null;
+  practice_area: string | null;
   rate_usd: string;
 }
 interface Settings {
@@ -372,6 +373,18 @@ function InvoiceActions({
 
 // ── Rate card management panel ────────────────────────────────────────────────
 
+const PRACTICE_AREA_OPTIONS = [
+  "Litigation",
+  "Conveyancing",
+  "Corporate",
+  "Syariah",
+  "Criminal",
+  "Employment",
+  "Accident / Injury",
+  "Banking / Finance",
+  "Other",
+];
+
 function RateCardPanel({
   rateCards,
   request,
@@ -390,9 +403,11 @@ function RateCardPanel({
   const [addActivity, setAddActivity] = useState("");
   const [addLevel, setAddLevel] = useState("");
   const [addName, setAddName] = useState("");
+  const [addArea, setAddArea] = useState("");
   const [addRate, setAddRate] = useState("");
   const [customActivity, setCustomActivity] = useState(false);
   const [customLevel, setCustomLevel] = useState(false);
+  const [customArea, setCustomArea] = useState(false);
 
   const activityOptions = [
     "Court Hearing",
@@ -429,20 +444,42 @@ function RateCardPanel({
     }
   };
 
-  const activityVal = customActivity ? addActivity : addActivity;
-  const levelVal = customLevel ? addLevel : addLevel;
-
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
-        Rate card — activity × lawyer level (× named lawyer)
+        Rate card — practice area × activity × lawyer level (× named lawyer)
       </div>
       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
-        Set rates by activity type and lawyer level. Optionally add a named lawyer to give that individual a different rate — named entries take priority over the level-only rate. You can still override the rate on any individual time entry.
+        Set rates by practice area, activity type, and lawyer level. Optionally add a named lawyer for an individual rate.
+        Lookup priority: area + activity + level + name → area + activity + level → activity + level + name → activity + level.
+        Leaving practice area blank creates a catch-all entry used when no area-specific rate exists.
       </div>
 
       {/* Add row */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+        {/* Practice area */}
+        {customArea ? (
+          <input
+            style={{ ...S.input, flex: "1 1 130px" }}
+            placeholder="Practice area"
+            value={addArea}
+            onChange={(e) => setAddArea(e.target.value)}
+          />
+        ) : (
+          <select
+            style={{ ...S.input, flex: "1 1 130px" }}
+            value={addArea}
+            onChange={(e) => {
+              if (e.target.value === "__custom__") { setCustomArea(true); setAddArea(""); }
+              else setAddArea(e.target.value);
+            }}
+          >
+            <option value="">Any practice area</option>
+            {PRACTICE_AREA_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+            <option value="__custom__">Custom…</option>
+          </select>
+        )}
+        {/* Activity type */}
         {customActivity ? (
           <input
             style={{ ...S.input, flex: "1 1 150px" }}
@@ -464,6 +501,7 @@ function RateCardPanel({
             <option value="__custom__">Custom…</option>
           </select>
         )}
+        {/* Lawyer level */}
         {customLevel ? (
           <input
             style={{ ...S.input, flex: "1 1 140px" }}
@@ -512,11 +550,12 @@ function RateCardPanel({
                   activityType: addActivity.trim(),
                   lawyerLevel: addLevel.trim(),
                   lawyerName: addName.trim() || undefined,
+                  practiceArea: addArea.trim() || undefined,
                   rateUsd: n(addRate),
                 }),
               }).then(jsonOrThrow);
-              setAddActivity(""); setAddLevel(""); setAddName(""); setAddRate("");
-              setCustomActivity(false); setCustomLevel(false);
+              setAddActivity(""); setAddLevel(""); setAddName(""); setAddArea(""); setAddRate("");
+              setCustomActivity(false); setCustomLevel(false); setCustomArea(false);
             })
           }
         >
@@ -531,6 +570,7 @@ function RateCardPanel({
         <table style={{ ...S.table, fontSize: 12 }}>
           <thead>
             <tr>
+              <th style={S.th}>Practice area</th>
               <th style={S.th}>Activity type</th>
               <th style={S.th}>Lawyer level</th>
               <th style={S.th}>Named lawyer</th>
@@ -584,6 +624,13 @@ function RateCardRow({
 
   return (
     <tr>
+      <td style={S.td}>
+        {rc.practice_area ? (
+          rc.practice_area
+        ) : (
+          <span style={{ color: "#9ca3af", fontStyle: "italic" }}>Any</span>
+        )}
+      </td>
       <td style={S.td}>{rc.activity_type}</td>
       <td style={S.td}>{rc.lawyer_level}</td>
       <td style={S.td}>
@@ -655,8 +702,10 @@ export function BillingTab({
   const [tActivity, setTActivity] = useState("");
   const [tLevel, setTLevel] = useState("");
   const [tName, setTName] = useState("");
+  const [tArea, setTArea] = useState("");
   const [tCustomActivity, setTCustomActivity] = useState(false);
   const [tCustomLevel, setTCustomLevel] = useState(false);
+  const [tCustomArea, setTCustomArea] = useState(false);
   // add-fee form
   const [fDesc, setFDesc] = useState("");
   const [fAmt, setFAmt] = useState("");
@@ -699,26 +748,43 @@ export function BillingTab({
   };
 
   // Auto-fill rate from rate card.
-  // Priority: named-lawyer match (activity + level + name) → level-only match (activity + level, no name).
+  // Mirrors the server-side lookupRateCard fallback chain (most-specific first):
+  //   1. area + activity + level + name
+  //   2. activity + level + name  (any area)
+  //   3. area + activity + level  (no named-lawyer row)
+  //   4. activity + level         (no name, no area — broadest fallback)
   // Partial matches (activity-only or level-only) are intentionally skipped so a
-  // Senior Partner entry never silently receives an Associate rate.
+  // Senior Partner entry never silently receive an Associate rate.
   const rateCards = data?.rateCards ?? [];
 
   const autoRate = useMemo(() => {
     if (!tActivity || !tLevel || rateCards.length === 0) return null;
-    // 1. Named-lawyer match
-    if (tName.trim()) {
-      const named = rateCards.find(
-        (rc) => rc.activity_type === tActivity && rc.lawyer_level === tLevel && rc.lawyer_name === tName.trim(),
-      );
-      if (named) return named.rate_usd;
+    const area = tArea.trim() || null;
+    const name = tName.trim() || null;
+    const match = (rc: RateCard, areaVal: string | null, nameVal: string | null) =>
+      rc.activity_type === tActivity &&
+      rc.lawyer_level === tLevel &&
+      (areaVal === null ? rc.practice_area === null : rc.practice_area === areaVal) &&
+      (nameVal === null ? rc.lawyer_name === null : rc.lawyer_name === nameVal);
+    // 1. area + name
+    if (area && name) {
+      const r = rateCards.find((rc) => match(rc, area, name));
+      if (r) return r.rate_usd;
     }
-    // 2. Level-only fallback (lawyer_name is null)
-    const levelOnly = rateCards.find(
-      (rc) => rc.activity_type === tActivity && rc.lawyer_level === tLevel && !rc.lawyer_name,
-    );
-    return levelOnly ? levelOnly.rate_usd : null;
-  }, [tActivity, tLevel, tName, rateCards]);
+    // 2. name only (any area → practice_area IS NULL row)
+    if (name) {
+      const r = rateCards.find((rc) => match(rc, null, name));
+      if (r) return r.rate_usd;
+    }
+    // 3. area only (no named-lawyer row)
+    if (area) {
+      const r = rateCards.find((rc) => match(rc, area, null));
+      if (r) return r.rate_usd;
+    }
+    // 4. level-only fallback (no area, no name)
+    const r = rateCards.find((rc) => match(rc, null, null));
+    return r ? r.rate_usd : null;
+  }, [tActivity, tLevel, tName, tArea, rateCards]);
 
   // When auto-rate changes, pre-fill rate field (only if user hasn't manually typed)
   const [rateAutoFilled, setRateAutoFilled] = useState(false);
@@ -790,6 +856,28 @@ export function BillingTab({
           <input style={{ ...S.input, width: 90 }} placeholder="Minutes" inputMode="numeric" value={tMin} onChange={(e) => setTMin(e.target.value)} />
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+          {/* Practice area */}
+          {tCustomArea ? (
+            <input
+              style={{ ...S.input, flex: "1 1 120px" }}
+              placeholder="Practice area"
+              value={tArea}
+              onChange={(e) => { setTArea(e.target.value); setRateAutoFilled(false); }}
+            />
+          ) : (
+            <select
+              style={{ ...S.input, flex: "1 1 120px" }}
+              value={tArea}
+              onChange={(e) => {
+                if (e.target.value === "__custom__") { setTCustomArea(true); setTArea(""); }
+                else { setTArea(e.target.value); setRateAutoFilled(false); }
+              }}
+            >
+              <option value="">Practice area (optional)</option>
+              {PRACTICE_AREA_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+              <option value="__custom__">Custom…</option>
+            </select>
+          )}
           {/* Activity type */}
           {tCustomActivity ? (
             <input
@@ -873,10 +961,11 @@ export function BillingTab({
                     activity_type: tActivity.trim() || undefined,
                     lawyer_level: tLevel.trim() || undefined,
                     lawyer_name: tName.trim() || undefined,
+                    practice_area: tArea.trim() || undefined,
                   }),
                 }).then(jsonOrThrow);
-                setTDesc(""); setTMin(""); setTRate(""); setTActivity(""); setTLevel(""); setTName("");
-                setRateAutoFilled(false);
+                setTDesc(""); setTMin(""); setTRate(""); setTActivity(""); setTLevel(""); setTName(""); setTArea("");
+                setRateAutoFilled(false); setTCustomArea(false);
               })
             }
           >

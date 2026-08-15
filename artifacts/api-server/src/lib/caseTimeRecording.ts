@@ -13,13 +13,15 @@ import type { Portal } from "./caseStages";
 
 /**
  * Look up the rate card rate for an activity-type × lawyer-level combination,
- * with an optional named-lawyer refinement.
+ * with optional named-lawyer and practice-area refinements.
  *
- * Priority:
- *   1. Exact match on (activity, level, lawyerName) when lawyerName is provided.
- *   2. Level-only fallback: (activity, level) with no named-lawyer row (lawyer_name IS NULL).
+ * Fallback chain (most-specific first):
+ *   1. activity + level + name + area  (all four match)
+ *   2. activity + level + name          (name match, any area)
+ *   3. activity + level + area          (area match, no named-lawyer row)
+ *   4. activity + level                 (no name, no area — the broadest fallback)
  *
- * Returns null when neither match exists; the caller then falls back to the
+ * Returns null when no match exists; the caller then falls back to the
  * firm's default_hourly_rate at billing time.
  */
 async function lookupRateCard(
@@ -28,22 +30,51 @@ async function lookupRateCard(
   activityType: string,
   lawyerLevel: string,
   lawyerName?: string | null,
+  practiceArea?: string | null,
 ): Promise<number | null> {
-  // Step 1 — named-lawyer exact match (only when a name is provided).
-  if (lawyerName && lawyerName.trim()) {
+  const hasName = !!(lawyerName && lawyerName.trim());
+  const hasArea = !!(practiceArea && practiceArea.trim());
+  const name = hasName ? lawyerName!.trim() : null;
+  const area = hasArea ? practiceArea!.trim() : null;
+
+  // Step 1 — named-lawyer + practice-area exact match.
+  if (hasName && hasArea) {
     const { rows } = await pool.query(
       `SELECT rate_usd FROM case_rate_cards
        WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
-         AND lawyer_level = $4 AND lawyer_name = $5`,
-      [portal, ownerKey, activityType, lawyerLevel, lawyerName.trim()],
+         AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area = $6`,
+      [portal, ownerKey, activityType, lawyerLevel, name, area],
     );
     if (rows[0]) return parseFloat(rows[0].rate_usd as string);
   }
-  // Step 2 — level-only fallback (lawyer_name IS NULL means a seniority-level rate).
+
+  // Step 2 — named-lawyer match (any practice area).
+  if (hasName) {
+    const { rows } = await pool.query(
+      `SELECT rate_usd FROM case_rate_cards
+       WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
+         AND lawyer_level = $4 AND lawyer_name = $5 AND practice_area IS NULL`,
+      [portal, ownerKey, activityType, lawyerLevel, name],
+    );
+    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+  }
+
+  // Step 3 — practice-area match with no named-lawyer row.
+  if (hasArea) {
+    const { rows } = await pool.query(
+      `SELECT rate_usd FROM case_rate_cards
+       WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
+         AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area = $5`,
+      [portal, ownerKey, activityType, lawyerLevel, area],
+    );
+    if (rows[0]) return parseFloat(rows[0].rate_usd as string);
+  }
+
+  // Step 4 — level-only fallback (no name, no area).
   const { rows } = await pool.query(
     `SELECT rate_usd FROM case_rate_cards
      WHERE portal = $1 AND owner_key = $2 AND activity_type = $3
-       AND lawyer_level = $4 AND lawyer_name IS NULL`,
+       AND lawyer_level = $4 AND lawyer_name IS NULL AND practice_area IS NULL`,
     [portal, ownerKey, activityType, lawyerLevel],
   );
   if (rows[0]) return parseFloat(rows[0].rate_usd as string);
@@ -101,7 +132,7 @@ export function makeTimeRecordingRouter(
       return;
     }
 
-    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name } = req.body ?? {};
+    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name, practice_area } = req.body ?? {};
     if (!description || typeof description !== "string" || !description.trim()) {
       res.status(400).json({ error: "description is required" });
       return;
@@ -119,14 +150,15 @@ export function makeTimeRecordingRouter(
     const activityTypeStr = typeof activity_type === "string" && activity_type.trim() ? activity_type.trim().slice(0, 200) : null;
     const lawyerLevelStr = typeof lawyer_level === "string" && lawyer_level.trim() ? lawyer_level.trim().slice(0, 200) : null;
     const lawyerNameStr = typeof lawyer_name === "string" && lawyer_name.trim() ? lawyer_name.trim().slice(0, 200) : null;
+    const practiceAreaStr = typeof practice_area === "string" && practice_area.trim() ? practice_area.trim().slice(0, 200) : null;
 
-    // Resolve rate: explicit rate_usd > named-lawyer rate card > level-only rate card > null (uses default_hourly_rate at billing time)
+    // Resolve rate: explicit rate_usd > rate card lookup (activity + level + name + area) > null (uses default_hourly_rate at billing time)
     let rateVal: number | null =
       rate_usd !== undefined && rate_usd !== null && rate_usd !== ""
         ? parseFloat(String(rate_usd))
         : null;
     if ((rateVal === null || Number.isNaN(rateVal)) && activityTypeStr && lawyerLevelStr) {
-      rateVal = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr);
+      rateVal = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
     }
 
     const { rows } = await pool.query(
