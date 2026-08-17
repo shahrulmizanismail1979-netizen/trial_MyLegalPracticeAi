@@ -204,3 +204,75 @@ describe("GET /admin/alert-status when getOwnerEmail returns null (no admin emai
     expect(sendWebhookAlertMock).toHaveBeenCalled();
   });
 });
+
+describe("GET /admin/alert-status when sendEmail throws an error mid-send", () => {
+  beforeAll(async () => {
+    // Reset in-process dedup flag and status store so previous suites' entries
+    // don't pollute this suite's assertions.
+    _resetTestModeAlertSentForTesting();
+    _resetAlertStatusForTesting();
+
+    // Clear call counts from the previous suite.
+    sendEmailMock.mockClear();
+    sendWebhookAlertMock.mockClear();
+
+    // Make getOwnerEmail return a valid address so the send is attempted.
+    getOwnerEmailMock.mockResolvedValueOnce("owner@example.test");
+
+    // Make sendEmail throw — simulates a Gmail connector runtime error.
+    sendEmailMock.mockRejectedValueOnce(new Error("Gmail connector timeout"));
+
+    // Simulate a production server that boots with a test Stripe key.
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_gmail_throw_test";
+
+    // Trigger the alert check.
+    await warnIfTestModeInProduction(
+      (_msg) => {/* suppress stdout noise in test output */},
+      (_msg) => {/* suppress stderr noise in test output */},
+    );
+
+    // The fire-and-forget async block calls sendEmail (throws), then falls
+    // through to the webhook fallback. Wait until the webhook has been
+    // attempted before asserting.
+    await vi.waitFor(() => {
+      expect(sendWebhookAlertMock).toHaveBeenCalled();
+    }, { timeout: 5_000 });
+  });
+
+  afterAll(() => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+  });
+
+  it("returns a gmail entry with outcome 'failure'", async () => {
+    const res = await request(app).get("/admin/alert-status");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+
+    const gmailEntry = (res.body as Array<{
+      channel: string;
+      outcome: string;
+      attemptedAt: string;
+      detail: string;
+    }>).find((e) => e.channel === "gmail");
+
+    expect(gmailEntry).toBeDefined();
+    expect(gmailEntry!.outcome).toBe("failure");
+    // attemptedAt must be a valid ISO-8601 timestamp.
+    expect(() => new Date(gmailEntry!.attemptedAt)).not.toThrow();
+    expect(new Date(gmailEntry!.attemptedAt).getTime()).toBeGreaterThan(0);
+    // detail must mention the thrown error.
+    expect(gmailEntry!.detail).toContain("Gmail connector timeout");
+  });
+
+  it("gmail send was attempted with the resolved admin email before throwing", () => {
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "owner@example.test" }),
+    );
+  });
+
+  it("webhook fallback was attempted after the gmail failure", () => {
+    expect(sendWebhookAlertMock).toHaveBeenCalled();
+  });
+});
