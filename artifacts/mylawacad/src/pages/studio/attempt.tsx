@@ -810,7 +810,11 @@ export default function Attempt() {
       </div>
 
       {/* MAIN GRID */}
-      <div className="container mx-auto px-6 py-6 flex-1 grid grid-cols-12 gap-6">
+      {/* pb-52 on small screens ensures fixed proctoring widgets don't cover the answer / submit area */}
+      <div className={cn(
+        "container mx-auto px-6 py-6 flex-1 grid grid-cols-12 gap-6",
+        (proctoring.webcamSnapshots || proctoring.audioMonitoring) && "pb-52 sm:pb-6",
+      )}>
         {/* SIDEBAR */}
         <aside className="col-span-12 md:col-span-3">
           <SpotlightCard className="p-4">
@@ -1096,7 +1100,7 @@ export default function Attempt() {
 
       {/* CORNER WIDGETS */}
       {proctoring.webcamSnapshots ? (
-        <div className="fixed right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="fixed right-2 sm:right-4 z-40 w-28 sm:w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
             <ShieldAlert className="h-3 w-3" /> Proctor cam
           </div>
@@ -1115,7 +1119,7 @@ export default function Attempt() {
       ) : null}
 
       {proctoring.audioMonitoring ? (
-        <div className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="fixed left-2 sm:left-4 z-40 w-28 sm:w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1 mb-1">
             <Mic className="h-3 w-3" /> Audio
           </div>
