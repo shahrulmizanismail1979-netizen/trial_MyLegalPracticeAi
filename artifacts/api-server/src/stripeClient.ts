@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
 import { sendEmail, getOwnerEmail, sendWebhookAlert } from "./lib/mailer";
+import { recordAlertAttempt } from "./lib/alertStatus";
 
 /** De-duplicate: only send the test-mode alert once per server process. */
 let testModeAlertSent = false;
@@ -307,17 +308,21 @@ export async function warnIfTestModeInProduction(
               const adminEmail = await getOwnerEmail();
               if (!adminEmail) {
                 errorLog("[Stripe] Could not resolve admin email — skipping Gmail alert.");
+                recordAlertAttempt("gmail", "skipped", "Could not resolve admin email from Gmail profile");
               } else {
                 errorLog(`[Stripe] Attempting to send test-mode alert email to ${adminEmail}...`);
                 gmailOk = await sendEmail({ to: adminEmail, subject, html });
                 if (gmailOk) {
                   errorLog(`[Stripe] Test-mode alert email sent via Gmail to ${adminEmail}.`);
+                  recordAlertAttempt("gmail", "success", `Alert email delivered to ${adminEmail}`);
                 } else {
                   errorLog(`[Stripe] Gmail send returned false (connector error or 5xx).`);
+                  recordAlertAttempt("gmail", "failure", "sendEmail returned false (connector error or 5xx)");
                 }
               }
             } catch (emailErr) {
               errorLog(`[Stripe] Gmail send threw an error: ${String(emailErr)}`);
+              recordAlertAttempt("gmail", "failure", `sendEmail threw: ${String(emailErr)}`);
             }
 
             // --- Fallback channel: configurable webhook (ALERT_WEBHOOK_URL) ---
@@ -327,14 +332,23 @@ export async function warnIfTestModeInProduction(
                 const webhookOk = await sendWebhookAlert({ subject, html, detectedAt, server });
                 if (webhookOk) {
                   errorLog("[Stripe] Test-mode alert delivered via webhook fallback.");
+                  recordAlertAttempt("webhook", "success", "Alert delivered via ALERT_WEBHOOK_URL");
                 } else {
                   errorLog(
                     "[Stripe] Webhook fallback also failed (or ALERT_WEBHOOK_URL not set). " +
                     "Alert was NOT delivered. Check ALERT_WEBHOOK_URL env var.",
                   );
+                  recordAlertAttempt(
+                    "webhook",
+                    process.env.ALERT_WEBHOOK_URL ? "failure" : "skipped",
+                    process.env.ALERT_WEBHOOK_URL
+                      ? "sendWebhookAlert returned false (non-2xx or timeout)"
+                      : "ALERT_WEBHOOK_URL not configured",
+                  );
                 }
               } catch (webhookErr) {
                 errorLog(`[Stripe] Webhook fallback threw an error: ${String(webhookErr)}`);
+                recordAlertAttempt("webhook", "failure", `sendWebhookAlert threw: ${String(webhookErr)}`);
               }
             }
           })();

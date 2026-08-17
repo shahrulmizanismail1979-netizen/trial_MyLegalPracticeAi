@@ -7,6 +7,7 @@ import dashboardRouter from "./dashboard";
 import contributionsRouter from "./contributions";
 import appStatsRouter from "./app-stats";
 import stripeAdminRouter from "./stripe";
+import alertStatusRouter from "./alert-status";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(dashboardRouter);
 router.use(contributionsRouter);
 router.use(appStatsRouter);
 router.use(stripeAdminRouter);
+router.use(alertStatusRouter);
 
 export default router;

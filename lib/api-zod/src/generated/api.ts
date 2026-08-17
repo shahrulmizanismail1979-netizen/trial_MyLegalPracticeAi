@@ -2098,3 +2098,19 @@ export const CorpAiToolsChatBody = zod.object({
     .nullish()
     .describe("Optional additional context for the tool"),
 });
+
+/**
+ * @summary Get the last Stripe alert delivery attempt per channel
+ */
+export const AlertAttemptChannel = zod.enum(["gmail", "webhook"]);
+
+export const AlertAttemptOutcome = zod.enum(["success", "failure", "skipped"]);
+
+export const AlertAttemptItem = zod.object({
+  channel: AlertAttemptChannel,
+  outcome: AlertAttemptOutcome,
+  attemptedAt: zod.coerce.date(),
+  detail: zod.string(),
+});
+
+export const GetAlertStatusResponse = zod.array(AlertAttemptItem);

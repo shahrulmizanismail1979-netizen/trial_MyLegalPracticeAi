@@ -611,6 +611,26 @@ paths:
           description: Entry has no phone or access code, or SMS is not configured
         "502":
           description: SMS send failed
+  /admin/alert-status:
+    get:
+      operationId: getAlertStatus
+      tags:
+        - dashboard
+      summary: Get the last Stripe alert delivery attempt per channel
+      description: >
+        Returns the most recent alert delivery outcome for each notification
+        channel (gmail, webhook). An empty array means no alert has been
+        attempted since the last server restart (e.g. Stripe is in live mode).
+        Staff-only — secured at the admin router mount point.
+      responses:
+        "200":
+          description: Alert status per channel
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AlertAttempt"
   /admin/revenue-by-app:
     get:
       operationId: getRevenueByApp
@@ -3061,6 +3081,30 @@ components:
         - type
         - description
         - createdAt
+    AlertAttempt:
+      type: object
+      properties:
+        channel:
+          type: string
+          enum:
+            - gmail
+            - webhook
+        outcome:
+          type: string
+          enum:
+            - success
+            - failure
+            - skipped
+        attemptedAt:
+          type: string
+          format: date-time
+        detail:
+          type: string
+      required:
+        - channel
+        - outcome
+        - attemptedAt
+        - detail
     DeliveryFailure:
       type: object
       properties:
