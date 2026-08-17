@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import AccessPage from "@/pages/access";
 import WorkspaceIndex from "@/pages/workspace/index";
 import ToolPage from "@/pages/workspace/tool";
+import ToolsListPage from "@/pages/workspace/tools-list";
 import ChatPage from "@/pages/workspace/chat";
 import CalculatorsPage from "@/pages/workspace/calculators";
 import ReferencePage from "@/pages/workspace/reference";
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/workspace/matters/:id" component={MatterDetailPage} />
       <Route path="/workspace/billing" component={BillingPage} />
       <Route path="/workspace/case-law" component={CaseLawPage} />
+      <Route path="/workspace/tools" component={ToolsListPage} />
       <Route path="/workspace/tool/:toolId" component={ToolPage} />
       <Route path="/admin" component={AdminLoginPage} />
       <Route path="/admin/dashboard" component={AdminDashboardPage} />

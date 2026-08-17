@@ -39,6 +39,11 @@ export default function ToolDetailPage() {
     }
   }, [setLocation]);
 
+  // Stop voice playback whenever the output is cleared (reset, new generate, or navigate away)
+  useEffect(() => {
+    if (!output) tts.stop();
+  }, [output]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const tool = PRACTITIONER_TOOLS.find((t) => t.id === id);
 
   if (!tool) {

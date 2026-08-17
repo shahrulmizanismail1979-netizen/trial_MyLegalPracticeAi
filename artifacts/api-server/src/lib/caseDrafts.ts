@@ -276,13 +276,13 @@ ADDITIONAL DETAILS PROVIDED BY LAWYER: ${details || "(none)"}
 
 INSTRUCTIONS:
 1. Begin with the date and client's address block (use "Client's Address" placeholder if unknown).
-2. Write a clear subject line in bold ("**Re: [matter]**").
+2. Write a clear subject line in plain uppercase ("RE: [MATTER]").
 3. ${langInstruction}
 4. Use formal Malaysian legal letter conventions (salutation "Dear [Client]", closing "Yours faithfully").
 5. Tailor the body to the letter type (${typeLabel}).
 6. Keep the tone professional but clear — avoid legalese the client cannot understand.
 7. End with a signature block: "${firmName}" with lines for name, designation, date.
-8. Use markdown formatting: **bold** for headings/subject, plain paragraphs for body.
+8. Use plain text throughout — NO markdown formatting, NO asterisks, NO bold markers. For emphasis use UPPERCASE as is conventional in Malaysian legal correspondence.
 9. Do NOT fabricate specific legal citations unless they are universally correct.
 10. Output ONLY the letter — no preamble, no commentary.`;
 

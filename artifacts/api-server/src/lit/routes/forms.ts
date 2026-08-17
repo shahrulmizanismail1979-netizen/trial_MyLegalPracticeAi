@@ -36,7 +36,7 @@ CONTENT REQUIREMENTS:
 - Include Commissioner for Oaths / Solicitor attestation block for affidavits
 - Standard Malaysian banking litigation boilerplate where appropriate
 
-After the document, include a "─── FILING NOTES ───" section with:
+After the document, include a "FILING NOTES:" section (plain uppercase heading, no divider lines) with:
 1. Which court to file at and relevant court fee (approximate)
 2. Documents to attach as exhibits or annex
 3. Service requirements (personal service vs. AR Registered Post)

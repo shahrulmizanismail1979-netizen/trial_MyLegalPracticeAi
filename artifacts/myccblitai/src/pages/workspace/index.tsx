@@ -349,7 +349,7 @@ export default function WorkspaceIndex() {
             ))}
           </div>
           <div className="mt-3">
-            <Link href="/workspace/tool/list">
+            <Link href="/workspace/tools">
               <button className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
                 <Sparkles className="h-3.5 w-3.5" /> View all AI tools <ChevronRight className="h-3.5 w-3.5" />
               </button>
