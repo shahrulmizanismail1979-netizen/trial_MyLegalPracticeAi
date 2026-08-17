@@ -43,7 +43,7 @@ function resolveOrigin(): string {
   return "";
 }
 
-/** Active price id for the product tagged with the given tier metadata. */
+/** Active price id for the product tagged with the given tier metadata (from local DB cache). */
 async function getActivePriceIdForTier(tier: CheckoutTier): Promise<string | null> {
   const result = await db.execute(sql`
     SELECT pr.id AS price_id
@@ -55,6 +55,32 @@ async function getActivePriceIdForTier(tier: CheckoutTier): Promise<string | nul
   `);
   const row = result.rows[0] as { price_id?: string } | undefined;
   return row?.price_id ?? null;
+}
+
+/**
+ * Search Stripe directly for an active price tagged with the given tier.
+ * Used as a fallback when the local DB cache has stale (e.g. test-mode) data.
+ */
+async function findPriceInStripeForTier(
+  stripe: Awaited<ReturnType<typeof getUncachableStripeClient>>,
+  tier: string,
+): Promise<string | null> {
+  try {
+    const products = await stripe.products.search({
+      query: `active:'true' AND metadata['tier']:'${tier}'`,
+      limit: 1,
+    });
+    const product = products.data[0];
+    if (!product) return null;
+    const prices = await stripe.prices.list({ product: product.id, active: true, limit: 10 });
+    // Prefer monthly recurring USD price; fall back to first active price.
+    const monthly = prices.data.find(
+      (p) => p.currency === "usd" && p.recurring?.interval === "month",
+    );
+    return monthly?.id ?? prices.data[0]?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -182,6 +208,9 @@ router.post("/checkout", async (req, res) => {
     return;
   }
 
+  const origin = resolveOrigin();
+  const stripe = await getUncachableStripeClient();
+
   let priceId = await getActivePriceIdForTier(tier as CheckoutTier);
   if (!priceId && tier in BUNDLE_TIER_CATALOG) {
     try {
@@ -199,9 +228,6 @@ router.post("/checkout", async (req, res) => {
     return;
   }
 
-  const origin = resolveOrigin();
-  const stripe = await getUncachableStripeClient();
-
   // If the caller supplied a whitelisted appUrl, encode it into the success_url
   // so the landing page can redirect the user there after payment is confirmed.
   // NOTE: {CHECKOUT_SESSION_ID} must stay literal (unencoded) — Stripe replaces
@@ -210,20 +236,14 @@ router.post("/checkout", async (req, res) => {
     `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}` +
     (appUrl ? `&redirect=${encodeURIComponent(appUrl)}` : "");
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
+  const buildSessionParams = (resolvedPriceId: string) => ({
+    mode: "subscription" as const,
+    line_items: [{ price: resolvedPriceId, quantity: 1 }],
     allow_promotion_codes: true,
-    billing_address_collection: "auto",
-    // Collect the customer's phone number so the access code can also be
-    // sent by SMS immediately after checkout.
+    billing_address_collection: "auto" as const,
     phone_number_collection: { enabled: true },
-    // Disable Stripe Adaptive Pricing so checkout always shows USD
-    // instead of auto-converting to the customer's local currency (e.g. MYR).
     adaptive_pricing: { enabled: false },
-    // For trials: always collect a card upfront so the subscription
-    // auto-converts to a paid plan when the trial ends unless cancelled.
-    payment_method_collection: "always",
+    payment_method_collection: "always" as const,
     success_url: successUrl,
     cancel_url: `${origin}/?checkout=cancelled`,
     subscription_data: {
@@ -239,6 +259,37 @@ router.post("/checkout", async (req, res) => {
     },
     metadata: { tier, trial: trial ? "true" : "false", ...(appUrl ? { appUrl } : {}) },
   });
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create(buildSessionParams(priceId));
+  } catch (err: unknown) {
+    const stripeErr = err as { code?: string; param?: string; message?: string };
+    // The DB price may be stale (e.g. test-mode price used with a live key).
+    // Fall back to searching Stripe directly for a live-mode price for this tier.
+    if (stripeErr?.code === "resource_missing") {
+      req.log.warn({ tier, priceId }, "DB price invalid in current Stripe mode; searching Stripe directly");
+      const livePriceId =
+        tier in BUNDLE_TIER_CATALOG
+          ? await ensureBundleTierPrice(tier).catch((e) => {
+              req.log.error({ err: e, tier }, "ensureBundleTierPrice failed in fallback");
+              return null;
+            })
+          : await findPriceInStripeForTier(stripe, tier);
+      if (!livePriceId) {
+        req.log.error({ tier }, "No live-mode price found for tier after fallback search");
+        res.status(503).json({
+          error: "Pricing is not configured in live mode yet. Please contact support.",
+        });
+        return;
+      }
+      session = await stripe.checkout.sessions.create(buildSessionParams(livePriceId));
+    } else {
+      req.log.error({ err, tier }, "Stripe checkout session creation failed");
+      res.status(502).json({ error: "Payment provider error. Please try again." });
+      return;
+    }
+  }
 
   res.json({ url: session.url });
 });

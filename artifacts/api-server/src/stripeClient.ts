@@ -160,19 +160,21 @@ async function getStripeCredentials(): Promise<{
   // Only use the env var if it looks like a real Stripe key (sk_live_ or sk_test_).
   const envSecret = process.env.STRIPE_SECRET_KEY;
   if (envSecret) {
-    if (envSecret.startsWith("sk_live_") || envSecret.startsWith("sk_test_")) {
-      const mode = envSecret.startsWith("sk_live_") ? "LIVE" : "TEST";
-      console.log(`[Stripe] Using STRIPE_SECRET_KEY env var (${mode} mode, length=${envSecret.length})`);
+    const livePatterns = ["sk_live_", "sk_test_", "rk_live_", "rk_test_"];
+    const isValidStripeKey = livePatterns.some((p) => envSecret.startsWith(p));
+    if (isValidStripeKey) {
+      const mode = envSecret.includes("_live_") ? "LIVE" : "TEST";
+      console.log(`[Stripe] Using STRIPE_SECRET_KEY env var (${mode} mode, prefix=${envSecret.slice(0, 8)}..., length=${envSecret.length})`);
       return {
         secretKey: envSecret,
         webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
       };
     } else {
       console.warn(
-        `[Stripe] STRIPE_SECRET_KEY is set but does not start with sk_live_ or sk_test_ ` +
+        `[Stripe] STRIPE_SECRET_KEY is set but is not a recognised Stripe key ` +
         `(got prefix: "${envSecret.slice(0, 8)}...", length=${envSecret.length}). ` +
         `Falling back to Replit connector. ` +
-        `Please set STRIPE_SECRET_KEY to your Stripe Secret key (starts with sk_live_ or sk_test_).`
+        `Please set STRIPE_SECRET_KEY to your Stripe Secret key (starts with sk_live_, rk_live_, or sk_test_).`
       );
     }
   } else {
