@@ -1365,3 +1365,88 @@ test.describe("Join page – portrait → landscape rotation before name entry",
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
   });
 });
+
+// ─── Join page on-screen keyboard simulation ──────────────────────────────────
+//
+// When a student taps the name input on a small phone the virtual keyboard
+// pushes content up, reducing the CSS viewport height significantly.  We
+// simulate this by shrinking the viewport to 393×320 after the code has been
+// verified (i.e. when the name / Begin Assessment form is visible).
+//
+// After the viewport shrink:
+//   • The name input must be scrollable into view and within the narrowed bounds
+//   • The Begin Assessment button must also be scrollable into view and within bounds
+
+// Keyboard-reduced height: 393 wide, 320 tall (matches task spec)
+const KEYBOARD_OPEN_VIEWPORT = { width: 393, height: 320 };
+
+test.describe("Join page – on-screen keyboard shrinks viewport (393×320)", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("name input and Begin Assessment button are reachable when keyboard reduces viewport to 393×320", async ({
+    page,
+  }) => {
+    // ── Step 1: Open join page in normal portrait ────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    // ── Step 2: Verify the join code (still at full portrait height) ─────
+    const codeInput = page.getByTestId("code-input");
+    await expect(codeInput).toBeVisible();
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    // Wait for the student-details form to appear
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+
+    // ── Step 3: Simulate keyboard opening by shrinking the viewport height ─
+    await page.setViewportSize(KEYBOARD_OPEN_VIEWPORT);
+
+    // Allow the browser to reflow — no page reload expected
+    await page.waitForTimeout(300);
+
+    // ── Step 4: Name input must be scrollable into view and within bounds ─
+    await nameInput.scrollIntoViewIfNeeded();
+    await expect(nameInput).toBeVisible({ timeout: 5_000 });
+
+    const nameBox = await nameInput.boundingBox();
+    expect(nameBox, "name input bounding box must exist with keyboard open").not.toBeNull();
+    expect(
+      nameBox!.x,
+      "name input must not start left of viewport with keyboard open",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      nameBox!.x + nameBox!.width,
+      "name input must not extend past right edge with keyboard open",
+    ).toBeLessThanOrEqual(KEYBOARD_OPEN_VIEWPORT.width + 2);
+
+    // ── Step 5: Begin Assessment button reachable within the narrowed viewport ─
+    const beginBtn = page.getByRole("button", { name: /begin assessment/i });
+    await beginBtn.scrollIntoViewIfNeeded();
+    await expect(beginBtn).toBeVisible({ timeout: 5_000 });
+
+    const beginBox = await beginBtn.boundingBox();
+    expect(beginBox, "Begin Assessment button bounding box must exist with keyboard open").not.toBeNull();
+    expect(
+      beginBox!.x,
+      "Begin Assessment button must not start left of viewport with keyboard open",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      beginBox!.x + beginBox!.width,
+      "Begin Assessment button must not extend past right edge with keyboard open",
+    ).toBeLessThanOrEqual(KEYBOARD_OPEN_VIEWPORT.width + 2);
+
+    // ── Step 6: The join flow still completes after the keyboard shrink ───
+    await nameInput.fill("Keyboard Open Tester");
+    await beginBtn.click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+  });
+});
