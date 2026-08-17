@@ -16,8 +16,9 @@ async function getStripeCredentials(): Promise<{
 }> {
   // Prefer explicitly-set env vars so live keys are always used in production
   // regardless of what the Replit connector is configured with.
+  // Only use the env var if it looks like a real Stripe key (sk_live_ or sk_test_).
   const envSecret = process.env.STRIPE_SECRET_KEY;
-  if (envSecret) {
+  if (envSecret && (envSecret.startsWith("sk_live_") || envSecret.startsWith("sk_test_"))) {
     return {
       secretKey: envSecret,
       webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
