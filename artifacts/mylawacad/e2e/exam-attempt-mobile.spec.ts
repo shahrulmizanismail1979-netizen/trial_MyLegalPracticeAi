@@ -1700,3 +1700,151 @@ test.describe("Join page – on-screen keyboard shrinks viewport (393×320)", ()
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
   });
 });
+
+// ─── Summary screen portrait → landscape rotation test ────────────────────────
+//
+// Navigates through join → attempt → submit to reach the summary page in
+// portrait (393 × 852), then calls page.setViewportSize to simulate a device
+// rotation to landscape (852 × 393).  After the resize the score ring,
+// pass/fail badge, hero panel, and AI disclaimer must all reflow within the
+// new viewport bounds without a page reload, and no element must overflow
+// horizontally.
+
+test.describe("Summary screen – portrait → landscape rotation after submission", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("score ring, pass/fail badge, hero panel, and AI disclaimer stay within viewport after rotating to landscape", async ({
+    page,
+  }) => {
+    // ── Step 1: Join in portrait ───────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Summary Rotation Tester");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Step 2: Complete the attempt in portrait ───────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await expect(answerTextarea).toBeVisible({ timeout: 10_000 });
+    await answerTextarea.fill(
+      "Natural justice requires a fair hearing (audi alteram partem) and an unbiased decision-maker (nemo judex in causa sua).",
+    );
+
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await saveBtn.click();
+
+    // ── Step 3: Submit and reach the summary page (still in portrait) ──────
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await expect(finishTopBtn).toBeVisible();
+    await finishTopBtn.click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+\/summary/, {
+      timeout: 15_000,
+    });
+
+    // Wait for the summary content to load (hero panel signals readiness)
+    const heroPanel = page.getByTestId("hero-panel");
+    await expect(heroPanel).toBeVisible({ timeout: 30_000 });
+
+    // ── Step 4: Rotate to landscape (simulate device rotation) ────────────
+    await page.setViewportSize(LANDSCAPE_VIEWPORT);
+
+    // Give the browser a moment to reflow — no page reload expected
+    await page.waitForTimeout(300);
+
+    // ── Step 5: Hero panel must be within the landscape viewport ──────────
+    await expect(heroPanel).toBeVisible({ timeout: 5_000 });
+
+    const heroBox = await heroPanel.boundingBox();
+    expect(heroBox, "hero panel bounding box must exist after rotation").not.toBeNull();
+    expect(heroBox!.x, "hero panel must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      heroBox!.x + heroBox!.width,
+      "hero panel must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 6: Score ring must be within the landscape viewport ──────────
+    const scoreRing = page.getByTestId("score-ring");
+    await scoreRing.scrollIntoViewIfNeeded();
+    await expect(scoreRing).toBeVisible({ timeout: 5_000 });
+
+    const ringBox = await scoreRing.boundingBox();
+    expect(ringBox, "score ring bounding box must exist after rotation").not.toBeNull();
+    expect(ringBox!.x, "score ring must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      ringBox!.x + ringBox!.width,
+      "score ring must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 7: Pass/fail badge must be within the landscape viewport ──────
+    const passBadge = page.getByTestId("pass-fail-badge");
+    await passBadge.scrollIntoViewIfNeeded();
+    await expect(passBadge).toBeVisible({ timeout: 5_000 });
+
+    const badgeBox = await passBadge.boundingBox();
+    expect(badgeBox, "pass/fail badge bounding box must exist after rotation").not.toBeNull();
+    expect(badgeBox!.x, "pass/fail badge must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      badgeBox!.x + badgeBox!.width,
+      "pass/fail badge must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 8: AI disclaimer must be within the landscape viewport ────────
+    const disclaimer = page.getByTestId("ai-disclaimer");
+    await disclaimer.scrollIntoViewIfNeeded();
+    await expect(disclaimer).toBeVisible({ timeout: 5_000 });
+
+    const disclaimerBox = await disclaimer.boundingBox();
+    expect(disclaimerBox, "AI disclaimer bounding box must exist after rotation").not.toBeNull();
+    expect(disclaimerBox!.x, "AI disclaimer must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      disclaimerBox!.x + disclaimerBox!.width,
+      "AI disclaimer must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 9: XP / rewards section (if present) must not overflow ────────
+    const rewardsSection = page.getByTestId("attempt-rewards");
+    const rewardsCount = await rewardsSection.count();
+    if (rewardsCount > 0) {
+      await rewardsSection.first().scrollIntoViewIfNeeded();
+      await expect(rewardsSection.first()).toBeVisible();
+      const rwBox = await rewardsSection.first().boundingBox();
+      expect(rwBox, "rewards section bounding box must exist after rotation").not.toBeNull();
+      expect(
+        rwBox!.x + rwBox!.width,
+        "XP rewards must not extend past landscape right edge after rotation",
+      ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+    }
+
+    // ── Step 10: Leaderboard (if present) must not overflow ────────────────
+    const leaderboard = page.getByTestId("leaderboard-section");
+    const lbCount = await leaderboard.count();
+    if (lbCount > 0) {
+      await leaderboard.scrollIntoViewIfNeeded();
+      await expect(leaderboard).toBeVisible();
+      const lbBox = await leaderboard.boundingBox();
+      expect(lbBox, "leaderboard bounding box must exist after rotation").not.toBeNull();
+      expect(lbBox!.x, "leaderboard must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+      expect(
+        lbBox!.x + lbBox!.width,
+        "leaderboard must not extend past landscape right edge after rotation",
+      ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+    }
+  });
+});
