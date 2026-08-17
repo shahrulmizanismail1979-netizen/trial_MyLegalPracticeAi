@@ -2,13 +2,29 @@ import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
 
 /**
- * Fetches Stripe credentials from the Replit connection API.
- * Not cached -- tokens can rotate, so fetch fresh each time.
+ * Fetches Stripe credentials.
+ *
+ * Priority:
+ *  1. STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET environment variables (live keys).
+ *  2. Replit connector API (fallback for local dev when env vars are absent).
+ *
+ * Not cached — fetch fresh every call so rotated keys are picked up immediately.
  */
 async function getStripeCredentials(): Promise<{
   secretKey: string;
   webhookSecret?: string;
 }> {
+  // Prefer explicitly-set env vars so live keys are always used in production
+  // regardless of what the Replit connector is configured with.
+  const envSecret = process.env.STRIPE_SECRET_KEY;
+  if (envSecret) {
+    return {
+      secretKey: envSecret,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    };
+  }
+
+  // Fallback: fetch from the Replit connector (useful in local dev).
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
