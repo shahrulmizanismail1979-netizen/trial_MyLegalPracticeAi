@@ -13,17 +13,26 @@
  *   bottom ≥ 96px (Tailwind: bottom-24) so it sits above the FAB's top edge
  *   (80px) plus a 16px safety gap.
  *
- * Why page.setContent() instead of navigating to MyLitAI:
- *   The portal requires an authenticated lit.sid session that cannot be minted
- *   headlessly in CI.  The assertion we care about is pure CSS geometry, so an
- *   isolated HTML fixture is both faster and more reliable.
+ * Why page.setContent() instead of navigating to real portal pages:
+ *   The portals require authenticated sessions (lit.sid, crim.sid, sya.sid)
+ *   that cannot be minted headlessly in CI.  The fixtures mirror the exact CSS
+ *   geometry taken from each portal's source — same computed pixel values that
+ *   Tailwind produces — so they are functionally equivalent for layout testing.
+ *   See .agents/memory/playwright-e2e-replit.md for the auth constraint.
  *
- * Two scenarios are checked:
- *   1. CONFORMING layout — toast uses `bottom: 96px` (bottom-24).  The FAB must
+ * Scenarios:
+ *   1. CONFORMING layout — toast uses `bottom: 96px` (bottom-24).  FAB must
  *      NOT intersect any other fixed element.  ✅
  *   2. VIOLATION layout  — a badge uses `bottom: 24px` (bottom-6), which is the
- *      exact pattern the convention forbids.  The intersection check MUST catch
- *      it, proving the detector is not a vacuous pass.  ✅ (expected intersection)
+ *      exact pattern the convention forbids.  Intersection check MUST catch it. ✅
+ *   3. MyLitAI case-law detail page — toast at bottom-24 right-6 (line 271 of
+ *      artifacts/mylitai/src/pages/CaseLaw.tsx) with FAB both present.  ✅
+ *   4. MyCrimAI case-law page — toast at bottom-24 right-6 (line 232 of
+ *      artifacts/mycrimai/src/pages/workspace/case-law.tsx) plus the
+ *      RateLimitWarning banner at bottom-24 left-1/2.  ✅
+ *   5. MySyariahAI case-law page — toast at bottom-24 right-6 (line 200 of
+ *      artifacts/mysyariahai/src/pages/CaseLawPage.tsx) plus the Toaster
+ *      component (fixed top-0 on mobile).  ✅
  */
 
 import { test, expect, Page } from "@playwright/test";
@@ -260,5 +269,429 @@ test.describe("FAB stacking — violation detector self-test (375 × 812)", () =
       collisions.length,
       "Detector must catch the bottom-6 element overlapping the FAB"
     ).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scenario 3 — MyLitAI case-law detail page (portal-specific fixture)
+//
+// Source: artifacts/mylitai/src/pages/CaseLaw.tsx line 271
+//   {toast && <div className="fixed bottom-24 right-6 bg-card border border-border
+//     rounded-lg px-4 py-3 shadow-xl text-sm flex items-center gap-2 z-50">
+//     <Check ... />{toast}</div>}
+//
+// The portal requires an authenticated lit.sid session that cannot be minted
+// headlessly in CI, so we use page.setContent() with the exact computed CSS
+// values that Tailwind produces for those classes:
+//   bottom-24  → bottom: 96px
+//   right-6    → right: 24px
+//   z-50       → z-index: 50
+//   px-4 py-3  → padding: 12px 16px
+// ---------------------------------------------------------------------------
+test.describe("FAB stacking — MyLitAI case-law detail page fixture (375 × 812)", () => {
+  test.use({ viewport: VIEWPORT });
+
+  test("citation-copied toast (bottom-24 right-6) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors the case-law detail view rendered by CaseLaw.tsx when the user
+    // clicks "Copy Citation" and the toast state is truthy.
+    const html = buildPage(`
+      <!-- Sticky header — position: sticky, not fixed; not captured by getFixedRects -->
+      <div style="position: sticky; top: 0; z-index: 30; padding: 12px 16px; background: #111;">
+        <h1 style="font-size: 18px;">Abdul Rahman v PP [2021] 4 MLJ 100</h1>
+      </div>
+
+      <!--
+        Toast: exact geometry from CaseLaw.tsx line 271
+          className="fixed bottom-24 right-6 … z-50"
+          bottom-24 = 96px, right-6 = 24px
+      -->
+      <div
+        data-testid="mylitai-citation-toast"
+        style="
+          position: fixed;
+          bottom: 96px;
+          right: 24px;
+          z-index: 50;
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+          width: auto;
+          max-width: 220px;
+          white-space: nowrap;
+        "
+      >✓ Citation copied!</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    expect(others.length, "MyLitAI toast must be present").toBeGreaterThan(0);
+
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}\n` +
+        `FAB rect: bottom=${fab!.bottom.toFixed(0)}\n` +
+        collisions.map((c) => `  ${c.label}: top=${c.top.toFixed(0)} bottom=${c.bottom.toFixed(0)}`).join("\n")
+    ).toHaveLength(0);
+  });
+
+  test("save-to-matter toast (bottom-24 right-6) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors the toast rendered after saveToMatter() succeeds (CaseLaw.tsx line 151).
+    const html = buildPage(`
+      <div
+        data-testid="mylitai-save-toast"
+        style="
+          position: fixed;
+          bottom: 96px;
+          right: 24px;
+          z-index: 50;
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+          white-space: nowrap;
+        "
+      >✓ Saved to matter file!</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scenario 4 — MyCrimAI case-law page (portal-specific fixture)
+//
+// Sources:
+//   artifacts/mycrimai/src/pages/workspace/case-law.tsx line 232
+//     {toast && <div className="fixed bottom-24 right-6 … z-50">…</div>}
+//   artifacts/mycrimai/src/components/RateLimitWarning.tsx line 27
+//     "fixed bottom-24 left-1/2 -translate-x-1/2 z-50"
+//     (centered banner; at 375 px it extends ~359 px from left — must use bottom-24)
+//
+// Both elements are rendered simultaneously when the user has used 90 %+ of
+// their daily quota and then copies a citation.
+// ---------------------------------------------------------------------------
+test.describe("FAB stacking — MyCrimAI case-law page fixture (375 × 812)", () => {
+  test.use({ viewport: VIEWPORT });
+
+  test("citation-copied toast (bottom-24 right-6) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors case-law.tsx line 232 — same CSS as MyLitAI.
+    const html = buildPage(`
+      <div
+        data-testid="mycrimai-citation-toast"
+        style="
+          position: fixed;
+          bottom: 96px;
+          right: 24px;
+          z-index: 50;
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+        "
+      >✓ Citation copied!</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    expect(others.length, "MyCrimAI toast must be present").toBeGreaterThan(0);
+
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+
+  test("rate-limit banner (bottom-24 centered) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors RateLimitWarning.tsx line 27.
+    // At 375 px a calc(100% - 2rem) / max-w-sm banner reaches ~343 px from the
+    // left edge, which would clip the FAB's left side if placed at bottom-6.
+    const html = buildPage(`
+      <div
+        data-testid="mycrimai-rate-limit-banner"
+        style="
+          position: fixed;
+          bottom: 96px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          background: #1a1a2e;
+          border: 1px solid #4a4a8a;
+          border-radius: 8px;
+          padding: 10px 16px;
+          font-size: 13px;
+          width: calc(100% - 2rem);
+          max-width: 360px;
+        "
+      >You have used 90% of your daily AI quota.</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+
+  test("toast + rate-limit banner together do not overlap the FAB", async ({
+    page,
+  }) => {
+    // Worst-case concurrent state: both the citation-copied toast (right-aligned)
+    // and the rate-limit banner (centered) are visible simultaneously.
+    const html = buildPage(`
+      <div
+        data-testid="mycrimai-citation-toast"
+        style="
+          position: fixed;
+          bottom: 96px;
+          right: 24px;
+          z-index: 50;
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 14px;
+          white-space: nowrap;
+        "
+      >✓ Citation copied!</div>
+
+      <div
+        data-testid="mycrimai-rate-limit-banner"
+        style="
+          position: fixed;
+          bottom: 96px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          background: #1a1a2e;
+          border: 1px solid #4a4a8a;
+          border-radius: 8px;
+          padding: 10px 16px;
+          font-size: 13px;
+          width: calc(100% - 2rem);
+          max-width: 360px;
+        "
+      >You have used 90% of your daily AI quota.</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    expect(others.length, "Both fixed elements must be present").toBe(2);
+
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scenario 5 — MySyariahAI case-law page (portal-specific fixture)
+//
+// Sources:
+//   artifacts/mysyariahai/src/pages/CaseLawPage.tsx line 200
+//     {toast && <div className="fixed bottom-24 right-6 … z-50">…</div>}
+//   artifacts/mysyariahai/src/components/RateLimitWarning.tsx line 27
+//     "fixed bottom-24 left-1/2 -translate-x-1/2 z-50"
+//   artifacts/mysyariahai/src/components/ui/toast.tsx line 17
+//     ToastViewport: "fixed top-0 z-[100] … sm:bottom-0 sm:right-0 sm:top-auto …"
+//     At 375 px (< sm breakpoint 640 px) this renders at top-0, not bottom.
+// ---------------------------------------------------------------------------
+test.describe("FAB stacking — MySyariahAI case-law page fixture (375 × 812)", () => {
+  test.use({ viewport: VIEWPORT });
+
+  test("citation-copied toast (bottom-24 right-6) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors CaseLawPage.tsx line 200.
+    const html = buildPage(`
+      <div
+        data-testid="mysyariahai-citation-toast"
+        style="
+          position: fixed;
+          bottom: 96px;
+          right: 24px;
+          z-index: 50;
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 12px 16px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+        "
+      >✓ Citation copied!</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    expect(others.length, "MySyariahAI toast must be present").toBeGreaterThan(0);
+
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+
+  test("Toaster viewport at mobile (fixed top-0) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // The MySyariahAI Toaster uses shadcn/radix ToastViewport:
+    //   "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4
+    //    sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"
+    // At 375 px (below the sm:640px breakpoint) it anchors to top-0, placing
+    // it well above the FAB's zone. This fixture verifies that remains true.
+    const html = buildPage(`
+      <!--
+        ToastViewport at 375 px: fixed top-0, full width, max-h-screen.
+        The active toast appears at the top — no conflict with bottom-mounted FAB.
+        z-[100] = 100 (below FAB's 2147483000 but that does not affect geometry).
+      -->
+      <div
+        data-testid="mysyariahai-toast-viewport"
+        style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 100;
+          display: flex;
+          flex-direction: column-reverse;
+          max-height: 100vh;
+          width: 100%;
+          padding: 16px;
+          pointer-events: none;
+        "
+      >
+        <div style="
+          background: #1e1e1e;
+          border: 1px solid #333;
+          border-radius: 6px;
+          padding: 16px 32px 16px 24px;
+          font-size: 14px;
+          pointer-events: auto;
+        ">Saved to matter!</div>
+      </div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    expect(others.length, "Toaster viewport must be present").toBeGreaterThan(0);
+
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
+  });
+
+  test("rate-limit banner (bottom-24 centered) does not overlap the FAB", async ({
+    page,
+  }) => {
+    // Mirrors RateLimitWarning.tsx in MySyariahAI (identical geometry to MyCrimAI).
+    const html = buildPage(`
+      <div
+        data-testid="mysyariahai-rate-limit-banner"
+        style="
+          position: fixed;
+          bottom: 96px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          background: #1a1a2e;
+          border: 1px solid #4a4a8a;
+          border-radius: 8px;
+          padding: 10px 16px;
+          font-size: 13px;
+          width: calc(100% - 2rem);
+          max-width: 360px;
+        "
+      >You have reached your daily AI usage limit.</div>
+    `);
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const rects = await getFixedRects(page);
+    const fab = rects.find((r) => r.label === "Open virtual paralegal");
+    expect(fab, "FAB must be present in the DOM").toBeDefined();
+
+    const others = rects.filter((r) => r.label !== "Open virtual paralegal");
+    const collisions = others.filter((el) => intersects(fab!, el));
+    expect(
+      collisions,
+      `FAB collides with: ${collisions.map((c) => c.label).join(", ")}`
+    ).toHaveLength(0);
   });
 });
