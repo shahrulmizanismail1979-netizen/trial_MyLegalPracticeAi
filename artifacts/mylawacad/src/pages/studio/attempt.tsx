@@ -100,6 +100,40 @@ export default function Attempt() {
   const [recognising, setRecognising] = useState(false);
   const [recordingMic, setRecordingMic] = useState(false);
 
+  // —— viewport-shape detection for proctoring widget repositioning ——
+  //
+  // isNarrowPortrait — true only on PORTRAIT phones narrower than 640 px.
+  //   Both widgets are anchored below the sticky exam bar (top: 3.5rem)
+  //   so they can never slide over the answer textarea or footer buttons.
+  //   Orientation: portrait is explicitly included so the same viewport
+  //   width in landscape (e.g. 568 × 320) keeps the original bottom layout.
+  const [isNarrowPortrait, setIsNarrowPortrait] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 639px) and (orientation: portrait)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px) and (orientation: portrait)");
+    const handler = (e: MediaQueryListEvent) => setIsNarrowPortrait(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // isVeryShortViewport — true when the visible viewport height drops below
+  //   250 px (e.g. a landscape phone with the software keyboard open).  In
+  //   this state the full-height cam widget would overflow above the viewport
+  //   into the content area, so it is collapsed to a tiny right-edge badge
+  //   that keeps clear of the answer textarea horizontally.
+  const [isVeryShortViewport, setIsVeryShortViewport] = useState<boolean>(
+    () => typeof window !== "undefined" && window.innerHeight < 250,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-height: 249px)");
+    const handler = (e: MediaQueryListEvent) => setIsVeryShortViewport(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   // —— refs ——
   const lastActivityRef = useRef<number>(Date.now());
   const idleFiredRef = useRef(false);
@@ -1115,28 +1149,71 @@ export default function Attempt() {
         </section>
       </div>
 
-      {/* CORNER WIDGETS */}
+      {/* CORNER WIDGETS
+          Three positioning modes depending on the current viewport shape:
+          1. isVeryShortViewport (height < 250 px — keyboard open in landscape)
+             The cam widget collapses to a narrow right-edge badge (w-10) at
+             top: 0 so it clears the answer textarea horizontally and doesn't
+             overflow above the viewport.  The audio bar is hidden in this
+             mode because there is no usable vertical space for it.
+          2. isNarrowPortrait (width < 640 px AND orientation: portrait)
+             Both widgets anchor below the sticky exam bar (top: 3.5 rem).
+             Orientation is explicitly tested so narrow landscape phones keep
+             the original bottom layout.
+          3. Default (landscape / wide)
+             Original bottom-anchored positions. */}
       {proctoring.webcamSnapshots ? (
-        <div data-testid="proctor-cam-widget" className="fixed right-4 z-40 w-40 max-w-[40vw] rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl [@media(max-height:300px)]:hidden" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
-          <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
-            <ShieldAlert className="h-3 w-3" /> Proctor cam
-          </div>
-          <video
-            autoPlay
-            muted
-            playsInline
-            ref={(el) => {
-              if (el && videoStreamRef.current && !el.srcObject) {
-                el.srcObject = videoStreamRef.current;
-              }
-            }}
-            className="w-full h-24 object-cover"
-          />
+        <div
+          data-testid="proctor-cam-widget"
+          className={cn(
+            "fixed right-4 z-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl",
+            isVeryShortViewport ? "w-10" : "w-40",
+          )}
+          style={
+            isVeryShortViewport
+              ? { top: "0" }
+              : isNarrowPortrait
+                ? { top: "3.5rem" }
+                : { bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }
+          }
+        >
+          {isVeryShortViewport ? (
+            /* Collapsed badge — just an icon so the widget stays visible
+               without covering the textarea on a keyboard-shrunk viewport. */
+            <div className="flex items-center justify-center p-1.5">
+              <ShieldAlert className="h-4 w-4 text-amber-400/80" />
+            </div>
+          ) : (
+            <>
+              <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" /> Proctor cam
+              </div>
+              <video
+                autoPlay
+                muted
+                playsInline
+                ref={(el) => {
+                  if (el && videoStreamRef.current && !el.srcObject) {
+                    el.srcObject = videoStreamRef.current;
+                  }
+                }}
+                className="w-full h-24 object-cover"
+              />
+            </>
+          )}
         </div>
       ) : null}
 
-      {proctoring.audioMonitoring ? (
-        <div data-testid="audio-monitor-bar" className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+      {proctoring.audioMonitoring && !isVeryShortViewport ? (
+        <div
+          data-testid="audio-monitor-bar"
+          className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl"
+          style={
+            isNarrowPortrait
+              ? { top: "3.5rem" }
+              : { bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }
+          }
+        >
           <div className="text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1 mb-1">
             <Mic className="h-3 w-3" /> Audio
           </div>
