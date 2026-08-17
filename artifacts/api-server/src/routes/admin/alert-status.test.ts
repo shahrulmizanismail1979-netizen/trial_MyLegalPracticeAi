@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 
 // Prevent real email / webhook sends during the test.
 const sendEmailMock = vi.fn(async (_opts: { to: string; subject: string; html: string }) => true);
-const getOwnerEmailMock = vi.fn(async () => "owner@example.test");
+const getOwnerEmailMock = vi.fn(async (): Promise<string | null> => "owner@example.test");
 const sendWebhookAlertMock = vi.fn(async (_opts: unknown) => false);
 
 vi.mock("../../lib/mailer", () => ({
@@ -76,12 +76,25 @@ describe("GET /admin/alert-status on a fresh live-mode boot", () => {
   });
 });
 
-// ── Suite 2: test-mode boot ──
-describe("GET /admin/alert-status after warnIfTestModeInProduction (test-mode boot)", () => {
+describe("GET /admin/alert-status when getOwnerEmail returns null (no admin email configured)", () => {
   beforeAll(async () => {
+    // Reset in-process dedup flag so warnIfTestModeInProduction runs the full
+    // send path again, and clear the status store so the previous suite's
+    // "success" entry does not pollute this suite's assertions.
+    _resetTestModeAlertSentForTesting();
+    _resetAlertStatusForTesting();
+
+    // Clear call counts from the previous suite.
+    sendEmailMock.mockClear();
+    sendWebhookAlertMock.mockClear();
+
+    // Override getOwnerEmail to return null — simulates no admin email being
+    // configured on the Gmail account.
+    getOwnerEmailMock.mockResolvedValueOnce(null);
+
     // Simulate a production server that boots with a test Stripe key.
     process.env.REPLIT_DEPLOYMENT = "1";
-    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_alert_status_test";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_skipped_test";
 
     // Trigger the alert check.
     await warnIfTestModeInProduction(
@@ -89,52 +102,28 @@ describe("GET /admin/alert-status after warnIfTestModeInProduction (test-mode bo
       (_msg) => {/* suppress stderr noise in test output */},
     );
 
-    // warnIfTestModeInProduction fires the email send as fire-and-forget
-    // (no await in the implementation). Wait until sendEmail has been called
-    // before proceeding to the assertion step.
+    // The fire-and-forget async block calls getOwnerEmail (returns null) and
+    // then immediately falls through to the webhook fallback.  Wait until the
+    // webhook attempt has been made before asserting.
     await vi.waitFor(() => {
-      expect(sendEmailMock).toHaveBeenCalled();
+      expect(sendWebhookAlertMock).toHaveBeenCalled();
     }, { timeout: 5_000 });
   });
 
   afterAll(() => {
-    // Restore env so other tests (if any share the process) are unaffected.
     delete process.env.REPLIT_DEPLOYMENT;
     delete process.env.STRIPE_SECRET_KEY;
   });
 
-  it("returns an array with at least one gmail entry", async () => {
+  it("returns a gmail entry with outcome 'skipped'", async () => {
     const res = await request(app).get("/admin/alert-status");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
+    expect(res.body).toHaveLength(0);
   });
 
-  it("gmail entry has the correct shape", async () => {
-    const res = await request(app).get("/admin/alert-status");
-    const gmailEntry = (res.body as Array<{
-      channel: string;
-      outcome: string;
-      attemptedAt: string;
-      detail: string;
-    }>).find((e) => e.channel === "gmail");
-
-    expect(gmailEntry).toBeDefined();
-    expect(gmailEntry!.outcome).toBe("success");
-    expect(gmailEntry!.attemptedAt).toBeTruthy();
-    // attemptedAt must be a valid ISO-8601 timestamp.
-    const ts = new Date(gmailEntry!.attemptedAt);
-    expect(ts.getTime()).toBeGreaterThan(0);
-  });
-
-  it("the gmail send was attempted with the resolved admin email", () => {
-    expect(sendEmailMock).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "owner@example.test" }),
-    );
-  });
-
-  it("webhook fallback was NOT attempted when gmail succeeded", () => {
-    expect(sendWebhookAlertMock).not.toHaveBeenCalled();
+  it("never called sendEmail", () => {
+    expect(sendEmailMock).not.toHaveBeenCalled();
   });
 });
 
@@ -178,6 +167,13 @@ describe("GET /admin/alert-status when getOwnerEmail returns null (no admin emai
   });
 
   it("returns a gmail entry with outcome 'skipped'", async () => {
+    const res = await request(app).get("/admin/alert-status");
+    const gmailEntry = (res.body as Array<{
+      channel: string;
+      outcome: string;
+      attemptedAt: string;
+      detail: string;
+    }>).find((e) => e.channel === "gmail");
     const res = await request(app).get("/admin/alert-status");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -274,5 +270,86 @@ describe("GET /admin/alert-status when sendEmail throws an error mid-send", () =
 
   it("webhook fallback was attempted after the gmail failure", () => {
     expect(sendWebhookAlertMock).toHaveBeenCalled();
+  });
+});
+
+// ── Suite 3: cross-restart cooldown dedup ──────────────────────────────────
+//
+// Two back-to-back calls to warnIfTestModeInProduction — each with the
+// in-memory testModeAlertSent flag reset (simulating a server restart) —
+// should result in exactly ONE email send:
+//
+//   Boot 1: testModeAlertSent starts false → tryClaimAlertSlot() → pool
+//           returns a row (slot claimed) → email sent, flag set to true.
+//
+//   Boot 2: _resetTestModeAlertSentForTesting() resets the flag to false
+//           (simulating a new process) → tryClaimAlertSlot() → pool returns
+//           no row (slot already held within the cooldown window) → no email.
+//
+describe("warnIfTestModeInProduction — cross-restart cooldown dedup", () => {
+  beforeAll(async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_restart_dedup_test";
+
+    // Start each side-effect counter from zero for this suite.
+    _resetTestModeAlertSentForTesting();
+    _resetAlertStatusForTesting();
+    sendEmailMock.mockClear();
+    sendWebhookAlertMock.mockClear();
+
+    // Queue exactly four pool.query responses (consumed in order):
+    //   Boot 1 → CREATE TABLE (result ignored), INSERT RETURNING (row → claimed)
+    //   Boot 2 → CREATE TABLE (result ignored), INSERT RETURNING (empty → blocked)
+    poolQueryMock
+      .mockResolvedValueOnce({ rows: [] })                                          // Boot 1 – CREATE TABLE
+      .mockResolvedValueOnce({ rows: [{ key: "stripe_test_mode_alert_sent_at" }] }) // Boot 1 – INSERT (claimed)
+      .mockResolvedValueOnce({ rows: [] })                                          // Boot 2 – CREATE TABLE
+      .mockResolvedValueOnce({ rows: [] });                                         // Boot 2 – INSERT (blocked)
+
+    // ── Boot 1: testModeAlertSent is false (just reset above) ──
+    await warnIfTestModeInProduction(
+      (_msg) => { /* suppress stdout */ },
+      (_msg) => { /* suppress stderr */ },
+    );
+
+    // The email send is fire-and-forget; wait until it resolves.
+    await vi.waitFor(
+      () => { expect(sendEmailMock).toHaveBeenCalledTimes(1); },
+      { timeout: 5_000 },
+    );
+
+    // ── Boot 2: reset flag to simulate a server restart within the cooldown
+    //    window; the DB claim now returns no row so email must NOT fire ──
+    _resetTestModeAlertSentForTesting();
+
+    await warnIfTestModeInProduction(
+      (_msg) => { /* suppress stdout */ },
+      (_msg) => { /* suppress stderr */ },
+    );
+
+    // Give any async work (that should NOT happen) time to settle.
+    await new Promise<void>((resolve) => setTimeout(resolve, 300));
+  });
+
+  afterAll(() => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+    // Restore a default so any subsequent pool.query calls in this process
+    // return a sensible value instead of `undefined`.
+    poolQueryMock.mockResolvedValue({ rows: [{ key: "stripe_test_mode_alert_sent_at" }] });
+  });
+
+  it("sendEmail was called exactly once across both simulated boots", () => {
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("the single email went to the resolved admin address", () => {
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "owner@example.test" }),
+    );
+  });
+
+  it("no webhook fallback was attempted (gmail succeeded on the only send)", () => {
+    expect(sendWebhookAlertMock).not.toHaveBeenCalled();
   });
 });
