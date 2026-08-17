@@ -90,6 +90,10 @@ async function getStripeCredentials(): Promise<{
     );
   }
 
+  // Log key mode so we can see connector key prefix in startup logs
+  const connectorPrefix = secretKey.slice(0, 12);
+  console.log(`[Stripe] Using connector key (prefix: ${connectorPrefix}..., length=${secretKey.length})`);
+
   return {
     secretKey,
     webhookSecret: settings?.webhook_secret,
