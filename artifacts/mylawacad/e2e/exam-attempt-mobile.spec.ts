@@ -658,6 +658,209 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
   });
 });
 
+// ─── Audio-monitoring bar overlap test (small landscape phone) ────────────────
+//
+// Creates an assessment with audioMonitoring: true and renders the attempt page
+// at 812 × 320 (small Android phone in landscape with browser chrome).
+// Confirms the fixed audio-monitor bar:
+//   1. Is fully within the viewport (not clipped)
+//   2. Does not overlap the footer action buttons
+//   3. Does not overlap the answer textarea
+
+async function setupAssessmentWithAudioMonitoring(
+  request: Parameters<typeof test>[1] extends {
+    request: infer R;
+  }
+    ? R
+    : never,
+): Promise<SetupResult> {
+  const uid = Date.now();
+  const email = `audio-monitor-${uid}@test.local`;
+  const password = "AudioMon1234!";
+
+  const regResp = await request.post("/api/acad/auth/register", {
+    data: { email, password, name: "Audio Monitor Tester" },
+  });
+  expect(
+    [201, 409],
+    `register failed: ${regResp.status()} ${await regResp.text()}`,
+  ).toContain(regResp.status());
+
+  const loginResp = await request.post("/api/acad/auth/login", {
+    data: { email, password },
+  });
+  expect(loginResp.status(), `login failed: ${await loginResp.text()}`).toBe(200);
+  const setCookieHeader = loginResp.headers()["set-cookie"] ?? "";
+  const sessionCookie = setCookieHeader
+    .split(",")
+    .map((c) => c.split(";")[0]?.trim() ?? "")
+    .filter(Boolean)
+    .join("; ");
+
+  const headers = { Cookie: sessionCookie };
+
+  const createResp = await request.post("/api/acad/studio/assessments", {
+    headers,
+    data: {
+      title: `Audio Monitor E2E ${uid}`,
+      educatorName: "Audio Monitor Tester",
+      timeLimitMinutes: 60,
+      allowedAnswerModes: ["text"],
+      rubric: { criteria: [] },
+      proctoring: {
+        lockFullscreen: false,
+        blockCopyPaste: false,
+        blockRightClick: false,
+        blockShortcuts: false,
+        detectDevtools: false,
+        webcamSnapshots: false,
+        audioMonitoring: true,
+        idleTimeoutSeconds: 0,
+        maxTabSwitches: 0,
+        webcamSnapshotIntervalSec: 60,
+      },
+    },
+  });
+  expect(createResp.status(), `create assessment failed: ${await createResp.text()}`).toBe(201);
+  const assessment = await createResp.json();
+  const assessmentId: string = assessment.id;
+  const code: string = assessment.code;
+
+  const qResp = await request.post(
+    `/api/acad/studio/assessments/${assessmentId}/questions`,
+    {
+      headers,
+      data: {
+        type: "short_answer",
+        prompt: "Describe the duty of care concept in Malaysian tort law.",
+        taxonomyLevel: 2,
+        points: 10,
+        options: [],
+      },
+    },
+  );
+  expect(qResp.status(), `add question failed: ${await qResp.text()}`).toBe(201);
+
+  const patchResp = await request.patch(
+    `/api/acad/studio/assessments/${assessmentId}`,
+    {
+      headers,
+      data: { status: "open" },
+    },
+  );
+  expect(patchResp.status(), `open assessment failed: ${await patchResp.text()}`).toBe(200);
+
+  return { code, cookie: sessionCookie };
+}
+
+test.describe("Audio-monitoring bar – small landscape phone (812×320)", () => {
+  test.use({ viewport: SMALL_LANDSCAPE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessmentWithAudioMonitoring(request as any);
+    code = result.code;
+  });
+
+  test("audio-monitor bar does not overlap footer-actions or answer textarea and stays within viewport", async ({
+    page,
+  }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Small Landscape Audio Tester");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Confirm we are on the attempt page ────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+    await expect(page.getByTestId("question-pane")).toBeVisible({ timeout: 10_000 });
+
+    // ── Audio monitor bar must be present ────────────────────────────────
+    const audioBar = page.getByTestId("audio-monitor-bar");
+    await expect(audioBar).toBeVisible({ timeout: 8_000 });
+
+    const audioBarBox = await audioBar.boundingBox();
+    expect(audioBarBox, "audio-monitor bar bounding box must exist").not.toBeNull();
+
+    const vw = SMALL_LANDSCAPE_VIEWPORT.width;
+    const vh = SMALL_LANDSCAPE_VIEWPORT.height;
+
+    // ── 1. Audio bar is fully within the viewport (not clipped) ──────────
+    expect(
+      audioBarBox!.x,
+      "audio bar must not start left of viewport",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      audioBarBox!.y,
+      "audio bar must not start above viewport top",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      audioBarBox!.x + audioBarBox!.width,
+      "audio bar must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(vw + 2);
+    expect(
+      audioBarBox!.y + audioBarBox!.height,
+      "audio bar must not extend past viewport bottom edge",
+    ).toBeLessThanOrEqual(vh + 2);
+
+    // ── 2. Audio bar must not overlap footer-actions ───────────────────
+    const footerActions = page.getByTestId("footer-actions");
+    await footerActions.scrollIntoViewIfNeeded();
+    await expect(footerActions).toBeVisible({ timeout: 5_000 });
+
+    const footerBox = await footerActions.boundingBox();
+    expect(footerBox, "footer-actions bounding box must exist").not.toBeNull();
+
+    const audioTop = audioBarBox!.y;
+    const audioBottom = audioBarBox!.y + audioBarBox!.height;
+    const audioLeft = audioBarBox!.x;
+    const audioRight = audioBarBox!.x + audioBarBox!.width;
+
+    const footerTop = footerBox!.y;
+    const footerBottom = footerBox!.y + footerBox!.height;
+    const footerLeft = footerBox!.x;
+    const footerRight = footerBox!.x + footerBox!.width;
+
+    const overlapsFooterVertically = audioTop < footerBottom && audioBottom > footerTop;
+    const overlapsFooterHorizontally = audioLeft < footerRight && audioRight > footerLeft;
+    const overlapsFooter = overlapsFooterVertically && overlapsFooterHorizontally;
+
+    expect(
+      overlapsFooter,
+      `Audio bar (x=${audioLeft}–${audioRight}, y=${audioTop}–${audioBottom}) overlaps footer-actions (x=${footerLeft}–${footerRight}, y=${footerTop}–${footerBottom}) on 812×320 viewport`,
+    ).toBe(false);
+
+    // ── 3. Audio bar must not overlap the answer textarea ────────────────
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await answerTextarea.scrollIntoViewIfNeeded();
+    await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
+
+    const taBox = await answerTextarea.boundingBox();
+    expect(taBox, "answer textarea bounding box must exist").not.toBeNull();
+
+    const taTop = taBox!.y;
+    const taBottom = taBox!.y + taBox!.height;
+    const taLeft = taBox!.x;
+    const taRight = taBox!.x + taBox!.width;
+
+    const overlapsTextareaVertically = audioTop < taBottom && audioBottom > taTop;
+    const overlapsTextareaHorizontally = audioLeft < taRight && audioRight > taLeft;
+    const overlapsTextarea = overlapsTextareaVertically && overlapsTextareaHorizontally;
+
+    expect(
+      overlapsTextarea,
+      `Audio bar (x=${audioLeft}–${audioRight}, y=${audioTop}–${audioBottom}) overlaps answer textarea (x=${taLeft}–${taRight}, y=${taTop}–${taBottom}) on 812×320 viewport`,
+    ).toBe(false);
+  });
+});
+
 // ─── Mid-attempt portrait → landscape rotation test ───────────────────────────
 //
 // Starts the attempt page in portrait (393 × 852), types a partial answer, then

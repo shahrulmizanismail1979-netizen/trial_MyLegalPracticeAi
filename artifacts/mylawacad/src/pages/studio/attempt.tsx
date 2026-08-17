@@ -1136,7 +1136,7 @@ export default function Attempt() {
       ) : null}
 
       {proctoring.audioMonitoring ? (
-        <div className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div data-testid="audio-monitor-bar" className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1 mb-1">
             <Mic className="h-3 w-3" /> Audio
           </div>
