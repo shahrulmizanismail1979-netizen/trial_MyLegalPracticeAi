@@ -282,6 +282,174 @@ describe("rate auto-fill from rate card on time entry logging", () => {
   });
 });
 
+// ── Propagation through the billing endpoint (BillingTab path) ───────────────
+//
+// These tests exercise exactly the path the browser follows:
+//   1. Log a time entry — rate auto-filled from a rate card.
+//   2. PUT the rate card to a new rate.
+//   3. GET /{matterId}/billing (the endpoint BillingTab fetches) — the entry's
+//      `rate` field AND the `unbilled.time` total must reflect the new rate
+//      without any page-level reload.
+//   4. DELETE the rate card — same endpoint must show null rate and
+//      `rate_source = "default"`.
+//
+// The GET /time-entries tests in crim/billing-rate-cards.test.ts cover the DB
+// propagation layer; these tests confirm the billing summary endpoint (used by
+// BillingTab) also surfaces the propagated values.
+
+describe("rate-card edit propagates to billing summary (BillingTab endpoint)", () => {
+  let agentProp: ReturnType<typeof request.agent>;
+  let propMatterId: number;
+  let propCardId: number;
+  let propEntryId: number;
+
+  beforeAll(async () => {
+    agentProp = await loginAgent(CODE_A);
+
+    // Create a matter for propagation tests.
+    const m = await agentProp
+      .post("/api/lit/matters")
+      .send({ title: `Propagation BillingTab Test ${RUN_ID}`, actingFor: "Plaintiff" });
+    expect(m.status, JSON.stringify(m.body)).toBe(201);
+    propMatterId = m.body.id as number;
+    matterIds.push(propMatterId);
+  });
+
+  it("adds a rate card (drafting / associate / 400)", async () => {
+    const rc = await agentProp
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "PropDraft", lawyerLevel: "PropAssoc", rateUsd: 400 });
+    expect(rc.status, JSON.stringify(rc.body)).toBe(201);
+    propCardId = rc.body.id as number;
+    expect(parseFloat(rc.body.rate_usd as string)).toBeCloseTo(400, 1);
+  });
+
+  it("logs a time entry — rate auto-filled from the rate card (60 min × 400 = 400 RM)", async () => {
+    const entry = await agentProp
+      .post(`/api/lit/matters/${propMatterId}/time-entries`)
+      .send({
+        description: `PropDraft session ${RUN_ID}`,
+        minutes: 60,
+        activity_type: "PropDraft",
+        lawyer_level: "PropAssoc",
+      });
+    expect(entry.status, JSON.stringify(entry.body)).toBe(201);
+    propEntryId = entry.body.id as number;
+    expect(parseFloat(entry.body.rate_usd as string)).toBeCloseTo(400, 1);
+    expect(entry.body.rate_card_id).toBe(propCardId);
+
+    // Verify the billing summary reflects the initial 400/hr rate.
+    const billing = await agentProp.get(`/api/lit/matters/${propMatterId}/billing`);
+    expect(billing.status).toBe(200);
+    const { timeEntries, unbilled } = billing.body as {
+      timeEntries: Array<{ id: number; rate: string | null; rate_source: string }>;
+      unbilled: { time: string };
+    };
+    const te = timeEntries.find((e) => e.id === propEntryId);
+    expect(te, "entry should appear in billing summary").toBeTruthy();
+    expect(parseFloat(te!.rate as string)).toBeCloseTo(400, 1);
+    // 60 min / 60 × 400 = 400.00
+    expect(parseFloat(unbilled.time)).toBeCloseTo(400, 1);
+  });
+
+  it("PUT rate card to 600 — billing summary immediately shows updated rate and total", async () => {
+    // Update the rate card.
+    const put = await agentProp
+      .put(`/api/lit/matters/billing/rate-cards/${propCardId}`)
+      .send({ rateUsd: 600 });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+    expect(parseFloat(put.body.rate_usd as string)).toBeCloseTo(600, 1);
+
+    // Fetch the billing summary — no page reload, just re-GET the endpoint.
+    const billing = await agentProp.get(`/api/lit/matters/${propMatterId}/billing`);
+    expect(billing.status).toBe(200);
+    const { timeEntries, unbilled } = billing.body as {
+      timeEntries: Array<{ id: number; rate: string | null; rate_source: string }>;
+      unbilled: { time: string };
+    };
+
+    const te = timeEntries.find((e) => e.id === propEntryId);
+    expect(te, "entry must still appear").toBeTruthy();
+    // Rate must have updated from 400 to 600.
+    expect(parseFloat(te!.rate as string)).toBeCloseTo(600, 1);
+    // unbilled.time = 60 min / 60 × 600 = 600.00
+    expect(parseFloat(unbilled.time)).toBeCloseTo(600, 1);
+  });
+
+  it("DELETE rate card — billing summary shows null rate and falls back to firm default total", async () => {
+    // Delete the rate card.
+    const del = await agentProp.delete(
+      `/api/lit/matters/billing/rate-cards/${propCardId}`,
+    );
+    expect(del.status, JSON.stringify(del.body)).toBe(200);
+    expect(del.body.success).toBe(true);
+
+    // Fetch the billing summary again.
+    const billing = await agentProp.get(`/api/lit/matters/${propMatterId}/billing`);
+    expect(billing.status).toBe(200);
+    const { timeEntries, unbilled } = billing.body as {
+      timeEntries: Array<{
+        id: number;
+        rate: string | null;
+        rate_source: string;
+      }>;
+      unbilled: { time: string };
+      settings: { default_hourly_rate: string | null };
+    };
+
+    const te = timeEntries.find((e) => e.id === propEntryId);
+    expect(te, "entry must still appear after card deletion").toBeTruthy();
+
+    // Rate must be nullified — the entry should now carry rate_source = 'default'.
+    // (rate_card_id is an internal field not projected by the billing endpoint.)
+    expect(te!.rate).toBeNull();
+    expect(te!.rate_source).toBe("default");
+
+    // unbilled.time falls back to firm default (likely 0 since no default is set
+    // for a freshly created test tenant).
+    const defaultRate = parseFloat(billing.body.settings?.default_hourly_rate ?? "0") || 0;
+    expect(parseFloat(unbilled.time)).toBeCloseTo((60 / 60) * defaultRate, 1);
+  });
+
+  it("manual-rate entries (no rate_card_id) are never touched by propagation", async () => {
+    // Log a manual entry — explicit rate, not from a rate card.
+    const manualEntry = await agentProp
+      .post(`/api/lit/matters/${propMatterId}/time-entries`)
+      .send({
+        description: `Manual rate session ${RUN_ID}`,
+        minutes: 30,
+        rate_usd: 999,
+        // rate_autofilled is absent → server treats rate as manual
+      });
+    expect(manualEntry.status, JSON.stringify(manualEntry.body)).toBe(201);
+    const manualId = manualEntry.body.id as number;
+    matterIds.push(propMatterId); // already pushed, harmless duplicate
+
+    expect(parseFloat(manualEntry.body.rate_usd as string)).toBeCloseTo(999, 1);
+    expect(manualEntry.body.rate_source).toBe("manual");
+    expect(manualEntry.body.rate_card_id).toBeNull();
+
+    // Add a fresh rate card and delete it immediately — manual entry must be untouched.
+    const rc2 = await agentProp
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "PropDraft2", lawyerLevel: "PropAssoc2", rateUsd: 800 });
+    expect(rc2.status).toBe(201);
+    const rc2Id = rc2.body.id as number;
+
+    await agentProp.delete(`/api/lit/matters/billing/rate-cards/${rc2Id}`);
+
+    // Billing summary must show the manual entry still at 999.
+    const billing = await agentProp.get(`/api/lit/matters/${propMatterId}/billing`);
+    const { timeEntries } = billing.body as {
+      timeEntries: Array<{ id: number; rate: string | null; rate_source: string }>;
+    };
+    const me = timeEntries.find((e) => e.id === manualId);
+    expect(me, "manual entry must still appear").toBeTruthy();
+    expect(parseFloat(me!.rate as string)).toBeCloseTo(999, 1);
+    expect(me!.rate_source).toBe("manual");
+  });
+});
+
 // ── Cross-tenant isolation ────────────────────────────────────────────────────
 
 describe("rate-card cross-tenant isolation", () => {
