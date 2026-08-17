@@ -630,3 +630,170 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
     });
   });
 });
+
+// ─── Mid-attempt portrait → landscape rotation test ───────────────────────────
+//
+// Starts the attempt page in portrait (393 × 852), types a partial answer, then
+// calls page.setViewportSize to simulate a device rotation to landscape
+// (852 × 393).  After the resize the timer badge, question pane, and footer
+// action buttons must all reflow within the new viewport without a page reload.
+
+test.describe("Exam attempt page – mid-attempt portrait → landscape rotation", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("timer, question pane and footer buttons stay usable after rotating to landscape mid-attempt", async ({
+    page,
+  }) => {
+    // ── Step 1: Join in portrait ───────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Rotation Tester");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Step 2: Confirm we are on the attempt page (portrait) ─────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    // Timer badge visible in portrait
+    const timerBadge = page.getByTestId("timer-badge");
+    await expect(timerBadge).toBeVisible({ timeout: 10_000 });
+
+    // Question pane visible in portrait
+    const questionPane = page.getByTestId("question-pane");
+    await expect(questionPane).toBeVisible({ timeout: 10_000 });
+
+    // Type a partial answer before rotating
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
+    await answerTextarea.scrollIntoViewIfNeeded();
+    await answerTextarea.fill(
+      "Audi alteram partem — the right to be heard — is a cardinal rule of natural justice.",
+    );
+
+    // ── Step 3: Rotate to landscape (simulate device rotation) ────────────
+    await page.setViewportSize(LANDSCAPE_VIEWPORT);
+
+    // Give the browser a moment to reflow (no page reload expected)
+    await page.waitForTimeout(300);
+
+    // ── Step 4: Timer badge must still be within the landscape viewport ────
+    await expect(timerBadge).toBeVisible({ timeout: 5_000 });
+
+    const timerBox = await timerBadge.boundingBox();
+    expect(timerBox, "timer badge bounding box must exist after rotation").not.toBeNull();
+    expect(timerBox!.x, "timer badge x must be ≥ 0 after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      timerBox!.x + timerBox!.width,
+      "timer badge must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 1);
+    expect(
+      timerBox!.y,
+      "timer badge y must be ≥ 0 after rotation",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      timerBox!.y + timerBox!.height,
+      "timer badge must not extend past landscape bottom edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.height + 1);
+
+    // ── Step 5: Question pane must still be accessible after rotation ──────
+    await expect(questionPane).toBeVisible({ timeout: 5_000 });
+
+    const paneBox = await questionPane.boundingBox();
+    expect(paneBox, "question pane bounding box must exist after rotation").not.toBeNull();
+    expect(paneBox!.x, "question pane x must be ≥ 0 after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      paneBox!.x + paneBox!.width,
+      "question pane must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 6: Footer action buttons must be within the landscape viewport ─
+    const footerActions = page.getByTestId("footer-actions");
+    await footerActions.scrollIntoViewIfNeeded();
+    await expect(footerActions).toBeVisible({ timeout: 5_000 });
+
+    const footerBox = await footerActions.boundingBox();
+    expect(footerBox, "footer actions bounding box must exist after rotation").not.toBeNull();
+    expect(footerBox!.x, "footer must not start left of viewport after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      footerBox!.x + footerBox!.width,
+      "footer must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // Save button (within footer) must be reachable
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await expect(saveBtn).toBeVisible();
+
+    const saveBtnBox = await saveBtn.boundingBox();
+    expect(saveBtnBox, "save button bounding box must exist after rotation").not.toBeNull();
+    expect(saveBtnBox!.x, "save button x must be ≥ 0 after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      saveBtnBox!.x + saveBtnBox!.width,
+      "save button must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 7: Webcam proctoring widget must not overlap footer after rotation ──
+    const webcamWidget = page.locator(".fixed").filter({
+      has: page.locator("text=Proctor cam"),
+    });
+    const webcamCount = await webcamWidget.count();
+    if (webcamCount > 0 && footerBox) {
+      const wcBox = await webcamWidget.first().boundingBox();
+      if (wcBox) {
+        const footerTop = footerBox.y;
+        const footerBottom = footerBox.y + footerBox.height;
+        const wcTop = wcBox.y;
+        const wcBottom = wcBox.y + wcBox.height;
+        const overlaps = wcTop < footerBottom && wcBottom > footerTop;
+        expect(
+          overlaps,
+          `Webcam widget (y=${wcTop}–${wcBottom}) overlaps footer actions (y=${footerTop}–${footerBottom}) after rotating to landscape`,
+        ).toBe(false);
+      }
+    }
+
+    // ── Step 8: Finish button (top bar) must still be accessible ──────────
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await expect(finishTopBtn).toBeVisible();
+
+    const finishBox = await finishTopBtn.boundingBox();
+    expect(finishBox, "finish button bounding box must exist after rotation").not.toBeNull();
+    expect(finishBox!.x, "finish button x must be ≥ 0 after rotation").toBeGreaterThanOrEqual(0);
+    expect(
+      finishBox!.x + finishBox!.width,
+      "finish button must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 9: The answer text is still intact in the textarea ───────────
+    await answerTextarea.scrollIntoViewIfNeeded();
+    await expect(answerTextarea).toHaveValue(
+      /audi alteram partem/i,
+      { timeout: 3_000 },
+    );
+
+    // ── Step 10: The attempt can still be submitted after the rotation ─────
+    await saveBtn.scrollIntoViewIfNeeded();
+    await saveBtn.click();
+    // Should remain on the attempt page — no unintended navigation
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 5_000 });
+
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await finishTopBtn.click();
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+\/summary/, {
+      timeout: 15_000,
+    });
+  });
+});
