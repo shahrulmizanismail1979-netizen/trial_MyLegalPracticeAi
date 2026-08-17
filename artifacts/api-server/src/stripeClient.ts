@@ -6,6 +6,15 @@ import { recordAlertAttempt } from "./lib/alertStatus";
 /** De-duplicate: only send the test-mode alert once per server process. */
 let testModeAlertSent = false;
 
+/**
+ * @internal Only for testing — resets the in-process alert-sent flag so a
+ * fresh call to `warnIfTestModeInProduction` exercises the full send path
+ * without restarting the module.
+ */
+export function _resetTestModeAlertSentForTesting(): void {
+  testModeAlertSent = false;
+}
+
 /** Key used to persist the last alert timestamp in the server_kv table. */
 const ALERT_KV_KEY = "stripe_test_mode_alert_sent_at";
 

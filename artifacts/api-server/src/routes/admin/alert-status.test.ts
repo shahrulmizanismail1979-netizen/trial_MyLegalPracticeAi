@@ -30,7 +30,8 @@ vi.mock("@workspace/db", () => ({
 import express from "express";
 import request from "supertest";
 import alertStatusRouter from "./alert-status";
-import { warnIfTestModeInProduction } from "../../stripeClient";
+import { warnIfTestModeInProduction, _resetTestModeAlertSentForTesting } from "../../stripeClient";
+import { _resetAlertStatusForTesting } from "../../lib/alertStatus";
 
 // ── Minimal Express app that mounts only the route under test ──
 const app = express();
@@ -129,5 +130,72 @@ describe("GET /admin/alert-status after warnIfTestModeInProduction (test-mode bo
 
   it("webhook fallback was NOT attempted when gmail succeeded", () => {
     expect(sendWebhookAlertMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /admin/alert-status when getOwnerEmail returns null (no admin email configured)", () => {
+  beforeAll(async () => {
+    // Reset in-process dedup flag so warnIfTestModeInProduction runs the full
+    // send path again, and clear the status store so the previous suite's
+    // "success" entry does not pollute this suite's assertions.
+    _resetTestModeAlertSentForTesting();
+    _resetAlertStatusForTesting();
+
+    // Clear call counts from the previous suite.
+    sendEmailMock.mockClear();
+    sendWebhookAlertMock.mockClear();
+
+    // Override getOwnerEmail to return null — simulates no admin email being
+    // configured on the Gmail account.
+    getOwnerEmailMock.mockResolvedValueOnce(null);
+
+    // Simulate a production server that boots with a test Stripe key.
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_skipped_test";
+
+    // Trigger the alert check.
+    await warnIfTestModeInProduction(
+      (_msg) => {/* suppress stdout noise in test output */},
+      (_msg) => {/* suppress stderr noise in test output */},
+    );
+
+    // The fire-and-forget async block calls getOwnerEmail (returns null) and
+    // then immediately falls through to the webhook fallback.  Wait until the
+    // webhook attempt has been made before asserting.
+    await vi.waitFor(() => {
+      expect(sendWebhookAlertMock).toHaveBeenCalled();
+    }, { timeout: 5_000 });
+  });
+
+  afterAll(() => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+  });
+
+  it("returns a gmail entry with outcome 'skipped'", async () => {
+    const res = await request(app).get("/admin/alert-status");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+
+    const gmailEntry = (res.body as Array<{
+      channel: string;
+      outcome: string;
+      attemptedAt: string;
+      detail: string;
+    }>).find((e) => e.channel === "gmail");
+
+    expect(gmailEntry).toBeDefined();
+    expect(gmailEntry!.outcome).toBe("skipped");
+    // attemptedAt must be a valid ISO-8601 timestamp.
+    expect(() => new Date(gmailEntry!.attemptedAt)).not.toThrow();
+    expect(new Date(gmailEntry!.attemptedAt).getTime()).toBeGreaterThan(0);
+  });
+
+  it("gmail send was NOT attempted when owner email resolved to null", () => {
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("webhook fallback was attempted after gmail was skipped", () => {
+    expect(sendWebhookAlertMock).toHaveBeenCalled();
   });
 });

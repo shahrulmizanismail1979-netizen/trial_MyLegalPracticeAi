@@ -61,3 +61,11 @@ export function getAlertStatus(): AlertAttempt[] {
     (a, b) => b.attemptedAt.localeCompare(a.attemptedAt),
   );
 }
+
+/**
+ * @internal Only for testing — clears all recorded attempts so each test suite
+ * starts from a clean slate without module re-initialisation.
+ */
+export function _resetAlertStatusForTesting(): void {
+  lastAttempts.clear();
+}
