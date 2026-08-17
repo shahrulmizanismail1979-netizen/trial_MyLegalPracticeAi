@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Button, Input, Label, Select } from '@/components/ui';
 import { FolderKanban, FolderPlus, Check, Loader2, ArrowRight } from 'lucide-react';
@@ -52,6 +52,22 @@ export function SaveToMatterPanel({
 
   const busy = createMatter.isPending || saveWork.isPending;
 
+  // A linked matter id can arrive stale (old link, re-issued access code).
+  // If the matters list has loaded and neither it nor the direct lookup can
+  // resolve the linked matter, it doesn't belong to this account — unlock the
+  // panel instead of leaving the user stuck on a guaranteed "not found" save.
+  const linkedMatterMissing =
+    !!linkedMatterId &&
+    matters !== undefined &&
+    !matters.some(m => m.id === linkedMatterId) &&
+    !(linkedMatter && linkedMatter.id === linkedMatterId);
+  useEffect(() => {
+    if (linkedMatterMissing && mode === 'existing' && existingId === String(linkedMatterId)) {
+      setMode('idle');
+      setExistingId('');
+    }
+  }, [linkedMatterMissing, mode, existingId, linkedMatterId]);
+
   const fileDraft = async (matterId: number, matterTitle: string) => {
     await saveWork.mutateAsync({
       kind: 'draft',
@@ -93,11 +109,19 @@ export function SaveToMatterPanel({
     try {
       await fileDraft(id, m?.title ?? `Matter #${id}`);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      const notFound = /matter not found/i.test(msg);
       toast({
         title: 'Could not save to matter',
-        description: err instanceof Error && err.message ? err.message : 'Please try again.',
+        description: notFound
+          ? 'That matter no longer exists on this account. Pick another matter or create a new one.'
+          : msg || 'Please try again.',
         variant: 'destructive',
       });
+      if (notFound) {
+        setExistingId('');
+        setMode('idle');
+      }
     }
   };
 
@@ -165,7 +189,7 @@ export function SaveToMatterPanel({
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               File draft here
             </Button>
-            {!linkedMatterId && <Button size="sm" variant="ghost" onClick={() => setMode('idle')} disabled={busy}>Back</Button>}
+            <Button size="sm" variant="ghost" onClick={() => setMode('idle')} disabled={busy}>Back</Button>
           </div>
         </div>
       )}

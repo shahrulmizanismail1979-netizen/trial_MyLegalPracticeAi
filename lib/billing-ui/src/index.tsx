@@ -1009,7 +1009,13 @@ export function BillingTab({
                   <td style={S.td}>{t.description}</td>
                   <td style={S.td}>{t.minutes}</td>
                   <td style={S.td}>
-                    {t.rate != null && String(t.rate).trim() !== "" ? fmtMoney(t.rate, currency) : `default${defaultRate > 0 ? " (" + fmtMoney(defaultRate, currency) + ")" : ""}`}
+                    {t.rate != null && String(t.rate).trim() !== "" ? (
+                      fmtMoney(t.rate, currency)
+                    ) : defaultRate > 0 ? (
+                      `default (${fmtMoney(defaultRate, currency)})`
+                    ) : (
+                      <span style={{ color: "#b45309", fontWeight: 600 }} title="No rate on this entry and no firm default hourly rate is set — this entry bills at zero until one is configured.">no rate set</span>
+                    )}
                     {t.rate_source === "named" && (
                       <span
                         title={`Named-lawyer rule matched${t.lawyer_name ? ` for ${t.lawyer_name}` : ""}`}
@@ -1036,10 +1042,10 @@ export function BillingTab({
                     )}
                     {t.rate_source === "default" && (
                       <span
-                        title="No rate card matched — firm default rate applied"
-                        style={{ display: "block", fontSize: 10, marginTop: 2, color: "#6b7280", fontWeight: 600, whiteSpace: "nowrap" as const }}
+                        title={defaultRate > 0 ? "No rate card matched — firm default rate applied" : "No rate card matched and no firm default rate is set — this entry bills at zero"}
+                        style={{ display: "block", fontSize: 10, marginTop: 2, color: defaultRate > 0 ? "#6b7280" : "#b45309", fontWeight: 600, whiteSpace: "nowrap" as const }}
                       >
-                        firm default
+                        {defaultRate > 0 ? "firm default" : "no default rate"}
                       </span>
                     )}
                   </td>
