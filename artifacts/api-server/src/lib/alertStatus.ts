@@ -14,6 +14,29 @@ import { db, alertDeliveryAttemptsTable } from "@workspace/db";
 import { desc, sql } from "drizzle-orm";
 import { logger } from "./logger";
 
+/**
+ * Idempotent boot-time schema ensure.  Creates the alert_delivery_attempts
+ * table and its index if they do not yet exist in the target database
+ * (development or production).  Called from api-server/src/index.ts before
+ * the server starts accepting requests.
+ */
+export async function ensureAlertDeliveryAttemptsTable(): Promise<void> {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS alert_delivery_attempts (
+      id           SERIAL PRIMARY KEY,
+      channel      TEXT        NOT NULL,
+      outcome      TEXT        NOT NULL,
+      detail       TEXT        NOT NULL,
+      attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS idx_alert_delivery_attempts_time
+      ON alert_delivery_attempts (attempted_at DESC)
+  `);
+  logger.info("alert_delivery_attempts table ensured");
+}
+
 export type AlertChannel = "gmail" | "webhook";
 export type AlertOutcome = "success" | "failure" | "skipped";
 

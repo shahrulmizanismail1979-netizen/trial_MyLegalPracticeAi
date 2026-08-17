@@ -23,6 +23,7 @@ import { ensureCaseClientMatterTable } from "./lib/caseClients";
 import { ensureHrTables } from "./firm/routes/hr";
 import { ensureAccountsTables } from "./firm/routes/accounts";
 import { ensurePracticeAreaSchema } from "./research/search/postgresFtsAdapter";
+import { ensureAlertDeliveryAttemptsTable } from "./lib/alertStatus";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -209,6 +210,11 @@ await ensureAccountsTables();
 // backfill from Drive contributor folders. Awaited — /api/cases queries the
 // column unconditionally when a portal-scoped search runs.
 await ensurePracticeAreaSchema();
+
+// Stripe alert delivery history — persists each webhook alert attempt so
+// /admin/alert-status survives server restarts.  CREATE IF NOT EXISTS is safe
+// to run on every boot.
+await ensureAlertDeliveryAttemptsTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).
