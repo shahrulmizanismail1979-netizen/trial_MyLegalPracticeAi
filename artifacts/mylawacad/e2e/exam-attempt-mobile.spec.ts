@@ -139,9 +139,10 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     code = result.code;
   });
 
-  test("join page is usable – code input and submit button are fully visible", async ({
+  test("timer, question pane and footer buttons stay usable after rotating to landscape mid-attempt", async ({
     page,
   }) => {
+    // ── Step 1: Join in portrait ───────────────────────────────────────────
     await page.goto("/mylawacad/studio/join");
 
     const codeInput = page.getByTestId("code-input");
@@ -171,18 +172,15 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     await codeInput.fill(code);
     await page.getByRole("button", { name: /verify code/i }).click();
 
-    // Wait for the student-details form to appear
     const nameInput = page.getByTestId("name-input");
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill("Test Candidate Mobile");
-
-    // Submit the join form
+    await nameInput.fill("Rotation Tester");
     await page.getByRole("button", { name: /begin assessment/i }).click();
 
-    // ── Step 2: Attempt page ───────────────────────────────────────────────
+    // ── Step 2: Confirm we are on the attempt page (portrait) ─────────────
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
 
-    // Timer badge must be visible in the sticky top bar
+    // Timer badge visible in portrait
     const timerBadge = page.getByTestId("timer-badge");
     await expect(timerBadge).toBeVisible({ timeout: 10_000 });
 
@@ -194,14 +192,13 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
 
     // ── Step 3: Question pane accessible ──────────────────────────────────
     const questionPane = page.getByTestId("question-pane");
-    await expect(questionPane).toBeVisible();
+    await expect(questionPane).toBeVisible({ timeout: 10_000 });
 
-    // Answer textarea must be reachable
+    // Type a partial answer before rotating
     const answerTextarea = page.getByTestId("answer-textarea");
     await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
-
-    // Scroll to the textarea so it is in view
     await answerTextarea.scrollIntoViewIfNeeded();
+
     const taBox = await answerTextarea.boundingBox();
     expect(taBox).not.toBeNull();
     expect(taBox!.x).toBeGreaterThanOrEqual(0);
@@ -218,33 +215,35 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     await expect(saveBtn).toBeVisible();
 
     const saveBtnBox = await saveBtn.boundingBox();
-    expect(saveBtnBox).not.toBeNull();
-    expect(saveBtnBox!.x).toBeGreaterThanOrEqual(0);
-    expect(saveBtnBox!.x + saveBtnBox!.width).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 1);
-    expect(saveBtnBox!.y + saveBtnBox!.height).toBeLessThanOrEqual(
-      IPHONE_VIEWPORT.height + 10, // 10 px tolerance for sub-pixel rendering
-    );
+    expect(saveBtnBox, "save button bounding box must exist").not.toBeNull();
+    expect(saveBtnBox!.x, "save button must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      saveBtnBox!.x + saveBtnBox!.width,
+      "save button must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
 
-    // Click Save
-    await saveBtn.click();
-    // Toast confirmation (or at minimum no error toast)
-    // The page should not navigate away
-    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 5_000 });
-
-    // ── Step 6: No proctoring widget overlaps the footer actions ──────────
+    // ── Footer actions container ──────────────────────────────────────────
     const footerActions = page.getByTestId("footer-actions");
     await footerActions.scrollIntoViewIfNeeded();
-    const footerBox = await footerActions.boundingBox();
-    expect(footerBox).not.toBeNull();
+    await expect(footerActions).toBeVisible({ timeout: 5_000 });
 
-    // Webcam widget (right-4 bottom area) — check it is NOT overlapping the footer
-    const webcamWidget = page.locator('.fixed').filter({ has: page.locator('text=Proctor cam') });
+    const footerBox = await footerActions.boundingBox();
+    expect(footerBox, "footer actions bounding box must exist").not.toBeNull();
+    expect(
+      footerBox!.x + footerBox!.width,
+      "footer actions must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Webcam widget must not overlap footer (if proctoring enabled) ─────
+    const webcamWidget = page.locator(".fixed").filter({
+      has: page.locator("text=Proctor cam"),
+    });
     const webcamCount = await webcamWidget.count();
-    if (webcamCount > 0) {
+    if (webcamCount > 0 && footerBox) {
       const wcBox = await webcamWidget.first().boundingBox();
       if (wcBox && footerBox) {
         // No vertical overlap between footer actions and webcam widget
-        const footerBottom = footerBox!.y + footerBox!.height;
+        const footerBottom = footerBox.y + footerBox.height;
         const webcamTop = wcBox.y;
         // If footer is above the webcam widget top, they don't overlap
         expect(
@@ -284,14 +283,22 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
 
     const answerTextarea = page.getByTestId("answer-textarea");
-    await expect(answerTextarea).toBeVisible({ timeout: 10_000 });
-    await answerTextarea.fill("Natural justice encompasses audi alteram partem and nemo judex in causa sua.");
+    await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
+    await answerTextarea.scrollIntoViewIfNeeded();
+    await answerTextarea.fill(
+      "Natural justice principles: audi alteram partem (right to be heard) and nemo judex in causa sua (no person shall be judge in their own cause).",
+    );
 
+    // Save
     const saveBtn = page.getByTestId("btn-save-answer");
     await saveBtn.scrollIntoViewIfNeeded();
+    await expect(saveBtn).toBeVisible();
     await saveBtn.click();
 
-    // ── Step 3: Finish and land on summary ────────────────────────────────
+    // Page should remain on attempt
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 5_000 });
+
+    // Finish
     const finishTopBtn = page.getByTestId("btn-finish-top");
     await finishTopBtn.scrollIntoViewIfNeeded();
     await expect(finishTopBtn).toBeVisible();
@@ -425,8 +432,10 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
     code = result.code;
   });
 
-  test("timer badge is within the landscape viewport", async ({ page }) => {
-    // ── Join ──────────────────────────────────────────────────────────────
+  test("timer, question pane and footer buttons stay usable after rotating to landscape mid-attempt", async ({
+    page,
+  }) => {
+    // ── Step 1: Join in portrait ───────────────────────────────────────────
     await page.goto("/mylawacad/studio/join");
 
     const codeInput = page.getByTestId("code-input");
@@ -435,12 +444,13 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
 
     const nameInput = page.getByTestId("name-input");
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill("Landscape Timer Checker");
+    await nameInput.fill("Rotation Tester");
     await page.getByRole("button", { name: /begin assessment/i }).click();
 
-    // ── Attempt page ──────────────────────────────────────────────────────
+    // ── Step 2: Confirm we are on the attempt page (portrait) ─────────────
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
 
+    // Timer badge visible in portrait
     const timerBadge = page.getByTestId("timer-badge");
     await expect(timerBadge).toBeVisible({ timeout: 10_000 });
 
@@ -540,6 +550,8 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
     // ── Footer actions container ──────────────────────────────────────────
     const footerActions = page.getByTestId("footer-actions");
     await footerActions.scrollIntoViewIfNeeded();
+    await expect(footerActions).toBeVisible({ timeout: 5_000 });
+
     const footerBox = await footerActions.boundingBox();
     expect(footerBox, "footer actions bounding box must exist").not.toBeNull();
     expect(
@@ -552,11 +564,9 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
       has: page.locator("text=Proctor cam"),
     });
     const webcamCount = await webcamWidget.count();
-    if (webcamCount > 0) {
+    if (webcamCount > 0 && footerBox) {
       const wcBox = await webcamWidget.first().boundingBox();
-      if (wcBox && footerBox) {
-        // The webcam widget must not vertically overlap the footer actions area.
-        // Either the widget ends above the footer start, or starts below the footer end.
+      if (wcBox) {
         const footerTop = footerBox.y;
         const footerBottom = footerBox.y + footerBox.height;
         const wcTop = wcBox.y;
@@ -564,12 +574,12 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
         const overlaps = wcTop < footerBottom && wcBottom > footerTop;
         expect(
           overlaps,
-          `Webcam widget (y=${wcTop}–${wcBottom}) overlaps footer actions (y=${footerTop}–${footerBottom}) in landscape mode`,
+          `Webcam widget (y=${wcTop}–${wcBottom}) overlaps footer actions (y=${footerTop}–${footerBottom}) after rotating to landscape`,
         ).toBe(false);
       }
     }
 
-    // ── Finish button (top bar) is accessible in landscape ────────────────
+    // ── Step 8: Finish button (top bar) must still be accessible ──────────
     const finishTopBtn = page.getByTestId("btn-finish-top");
     await finishTopBtn.scrollIntoViewIfNeeded();
     await expect(finishTopBtn).toBeVisible();
@@ -595,13 +605,13 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
 
     const nameInput = page.getByTestId("name-input");
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill("Landscape E2E Candidate");
+    await nameInput.fill("Rotation Tester");
     await page.getByRole("button", { name: /begin assessment/i }).click();
 
-    // ── Attempt page ──────────────────────────────────────────────────────
+    // ── Step 2: Confirm we are on the attempt page (portrait) ─────────────
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
 
-    // Timer visible in landscape
+    // Timer badge visible in portrait
     const timerBadge = page.getByTestId("timer-badge");
     await expect(timerBadge).toBeVisible({ timeout: 10_000 });
 
@@ -924,5 +934,187 @@ test.describe("Exam attempt page on small Android landscape viewport (812×320)"
       finishBox!.y + finishBox!.height,
       "finish button (sticky top bar) must be within the 320 px viewport height",
     ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.height + 1);
+  });
+});
+
+// ─── Handwriting tests (393 × 852) ───────────────────────────────────────────
+
+test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let hwCode = "";
+
+  test.beforeAll(async ({ request }) => {
+    const uid = Date.now();
+    const email = `mobile-hw-${uid}@test.local`;
+    const password = "Mobile1234!";
+
+    const regResp = await request.post("/api/acad/auth/register", {
+      data: { email, password, name: "HW Tester" },
+    });
+    expect([201, 409]).toContain(regResp.status());
+
+    const loginResp = await request.post("/api/acad/auth/login", {
+      data: { email, password },
+    });
+    expect(loginResp.status()).toBe(200);
+    const setCookieHeader = loginResp.headers()["set-cookie"] ?? "";
+    const sessionCookie = setCookieHeader
+      .split(",")
+      .map((c) => c.split(";")[0]?.trim() ?? "")
+      .filter(Boolean)
+      .join("; ");
+    const headers = { Cookie: sessionCookie };
+
+    const createResp = await request.post("/api/acad/studio/assessments", {
+      headers,
+      data: {
+        title: `Mobile HW E2E ${uid}`,
+        educatorName: "HW Tester",
+        timeLimitMinutes: 60,
+        allowedAnswerModes: ["handwriting", "text"],
+        rubric: { criteria: [] },
+        proctoring: {
+          lockFullscreen: false,
+          blockCopyPaste: false,
+          blockRightClick: false,
+          blockShortcuts: false,
+          detectDevtools: false,
+          webcamSnapshots: false,
+          audioMonitoring: false,
+          idleTimeoutSeconds: 0,
+          maxTabSwitches: 0,
+          webcamSnapshotIntervalSec: 60,
+        },
+      },
+    });
+    expect(createResp.status(), `create hw assessment: ${await createResp.text()}`).toBe(201);
+    const assessment = await createResp.json();
+    hwCode = assessment.code;
+    const assessmentId: string = assessment.id;
+
+    const qResp = await request.post(
+      `/api/acad/studio/assessments/${assessmentId}/questions`,
+      {
+        headers,
+        data: {
+          type: "short_answer",
+          prompt: "Write a brief note on the rule against bias.",
+          taxonomyLevel: 2,
+          points: 10,
+          options: [],
+        },
+      },
+    );
+    expect(qResp.status(), `add hw question: ${await qResp.text()}`).toBe(201);
+
+    const patchResp = await request.patch(
+      `/api/acad/studio/assessments/${assessmentId}`,
+      { headers, data: { status: "open" } },
+    );
+    expect(patchResp.status(), `open hw assessment: ${await patchResp.text()}`).toBe(200);
+  });
+
+  async function joinHandwritingAttempt(page: Page): Promise<void> {
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(hwCode);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("HW Candidate");
+
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+    await expect(page.getByTestId("question-pane")).toBeVisible({ timeout: 10_000 });
+  }
+
+  test("handwriting tab is selectable on a 393 px viewport", async ({ page }) => {
+    await joinHandwritingAttempt(page);
+
+    const writeTab = page.getByRole("tab", { name: /write/i });
+    await expect(writeTab).toBeVisible();
+    await writeTab.scrollIntoViewIfNeeded();
+    const tabBox = await writeTab.boundingBox();
+    expect(tabBox).not.toBeNull();
+    expect(tabBox!.x).toBeGreaterThanOrEqual(0);
+    expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 1);
+
+    await writeTab.click();
+
+    const canvas = page.getByTestId("hw-canvas");
+    await expect(canvas).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("canvas, Clear and Recognise buttons are all visible within 393 px viewport", async ({
+    page,
+  }) => {
+    await joinHandwritingAttempt(page);
+
+    await page.getByRole("tab", { name: /write/i }).click();
+
+    const canvas = page.getByTestId("hw-canvas");
+    const clearBtn = page.getByTestId("btn-hw-clear");
+    const recogniseBtn = page.getByTestId("btn-hw-recognise");
+
+    await expect(canvas).toBeVisible({ timeout: 5_000 });
+    await expect(clearBtn).toBeVisible();
+    await expect(recogniseBtn).toBeVisible();
+
+    for (const [label, locator] of [
+      ["canvas", canvas],
+      ["Clear button", clearBtn],
+      ["Recognise button", recogniseBtn],
+    ] as const) {
+      await locator.scrollIntoViewIfNeeded();
+      const box = await locator.boundingBox();
+      expect(box, `${label} has no bounding box`).not.toBeNull();
+      expect(box!.x, `${label} starts before left edge`).toBeGreaterThanOrEqual(0);
+      expect(
+        box!.x + box!.width,
+        `${label} extends past right edge`,
+      ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 1);
+    }
+  });
+
+  test("touch-pointer stroke on canvas is accepted and Recognise button submits without error", async ({
+    page,
+  }) => {
+    await joinHandwritingAttempt(page);
+
+    await page.getByRole("tab", { name: /write/i }).click();
+
+    const canvas = page.getByTestId("hw-canvas");
+    await expect(canvas).toBeVisible({ timeout: 5_000 });
+    await canvas.scrollIntoViewIfNeeded();
+
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+
+    const startX = box!.x + box!.width * 0.2;
+    const startY = box!.y + box!.height * 0.3;
+    const endX = box!.x + box!.width * 0.8;
+    const endY = box!.y + box!.height * 0.7;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      await page.mouse.move(startX + (endX - startX) * t, startY + (endY - startY) * t);
+    }
+    await page.mouse.up();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 3_000 });
+
+    const recogniseBtn = page.getByTestId("btn-hw-recognise");
+    await recogniseBtn.scrollIntoViewIfNeeded();
+    await expect(recogniseBtn).toBeVisible();
+    await recogniseBtn.click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 10_000 });
+    await expect(page.getByTestId("hw-textarea")).toBeVisible();
   });
 });

@@ -994,9 +994,10 @@ export default function Attempt() {
 
                 {allowedModes.includes("handwriting") ? (
                   <TabsContent value="handwriting" className="space-y-3">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex items-center gap-2 min-w-[180px]">
-                        <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                    {/* Toolbar: pen-size slider on first row, action buttons on second row on mobile */}
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-widest text-muted-foreground shrink-0">
                           Pen
                         </span>
                         <Slider
@@ -1005,28 +1006,35 @@ export default function Attempt() {
                           max={16}
                           step={1}
                           onValueChange={(v) => setPenSize(v[0] ?? 4)}
-                          className="w-32"
+                          className="flex-1 sm:w-32 sm:flex-none"
                         />
-                        <span className="font-mono text-xs text-amber-200">
+                        <span className="font-mono text-xs text-amber-200 w-5 text-right shrink-0">
                           {penSize}
                         </span>
                       </div>
-                      <GhostButton type="button" onClick={clearCanvas}>
-                        <Eraser className="h-3.5 w-3.5" /> Clear
-                      </GhostButton>
-                      <Button
-                        type="button"
-                        onClick={recogniseHandwriting}
-                        disabled={recognising}
-                        className="bg-amber-500 text-black hover:bg-amber-400"
-                      >
-                        {recognising ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                        ) : (
-                          <ScanLine className="h-3.5 w-3.5 mr-2" />
-                        )}
-                        Recognise
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <GhostButton
+                          type="button"
+                          onClick={clearCanvas}
+                          data-testid="btn-hw-clear"
+                        >
+                          <Eraser className="h-3.5 w-3.5" /> Clear
+                        </GhostButton>
+                        <Button
+                          type="button"
+                          onClick={recogniseHandwriting}
+                          disabled={recognising}
+                          className="bg-amber-500 text-black hover:bg-amber-400"
+                          data-testid="btn-hw-recognise"
+                        >
+                          {recognising ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                          ) : (
+                            <ScanLine className="h-3.5 w-3.5 mr-2" />
+                          )}
+                          Recognise
+                        </Button>
+                      </div>
                     </div>
                     <canvas
                       ref={drawCanvasRef}
@@ -1038,12 +1046,14 @@ export default function Attempt() {
                       onPointerLeave={onPointerUp}
                       style={{ touchAction: "none" }}
                       className="w-full bg-yellow-50 rounded-xl border border-amber-200/40 shadow-inner cursor-crosshair"
+                      data-testid="hw-canvas"
                     />
                     <Textarea
                       value={draftText}
                       onChange={(e) => setDraftText(e.target.value)}
                       placeholder="Recognised text appears here — edit if needed."
                       className="min-h-[120px] bg-black/40 border-white/10 font-mono text-sm"
+                      data-testid="hw-textarea"
                     />
                   </TabsContent>
                 ) : null}
