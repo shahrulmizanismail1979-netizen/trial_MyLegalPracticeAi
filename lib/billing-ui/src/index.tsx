@@ -9,7 +9,7 @@
  * portal's matters API base (e.g. path "/12/billing" →
  * GET /api/lit/matters/12/billing) and return the raw Response.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type BillingRequest = (path: string, init?: RequestInit) => Promise<Response>;
 
@@ -99,6 +99,20 @@ const d10 = (v: string | null | undefined) => {
 };
 const today = () => new Date().toISOString().slice(0, 10);
 
+function isoToDisplay(iso: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
+/** Returns true only when day/month/year form a real calendar date. */
+function isRealDate(day: number, month: number, year: number): boolean {
+  const d = new Date(year, month - 1, day); // month is 0-based in JS Date
+  return (
+    d.getFullYear() === year &&
+    d.getMonth() === month - 1 &&
+    d.getDate() === day
+  );
+}
 function fmtMoney(v: unknown, currency = "RM") {
   return `${currency} ${n(v).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -848,7 +862,7 @@ export function BillingTab({
       <div style={S.card}>
         <h3 style={S.h}>Time entries</h3>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-          <input style={{ ...S.input, width: 130 }} type="date" value={tDate} onChange={(e) => setTDate(e.target.value)} />
+          <DateInputDMY style={{ ...S.input, width: 130 }} value={tDate} onChange={setTDate} />
           <input
             style={{ ...S.input, flex: "1 1 200px" }}
             placeholder="Description, e.g. Drafting affidavit"
@@ -949,7 +963,7 @@ export function BillingTab({
           )}
           <Btn
             accent={accent}
-            disabled={busy || !tDesc.trim() || n(tMin) <= 0}
+            disabled={busy || !tDesc.trim() || n(tMin) <= 0 || !tDate}
             onClick={() =>
               run(async () => {
                 await request(`/${matterId}/time-entries`, {
@@ -1447,5 +1461,100 @@ export function BillingPage({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Date input that shows DD/MM/YYYY (Malaysian convention) while storing
+ * values internally as ISO YYYY-MM-DD.
+ *
+ * - `onChange` receives a valid ISO string, or `""` when the field is
+ *   incomplete or contains an impossible date (e.g. 31/02/2025).
+ * - The parent should disable submission whenever the value is `""`.
+ * - Invalid input is highlighted in red; on blur the display text is
+ *   preserved so the user can see and correct what they typed.
+ * - External value changes (e.g. form reset to today) re-sync the display,
+ *   but internal emissions of `""` do NOT clear the typed text — the ref
+ *   tracks the last value this component itself emitted so the useEffect
+ *   can distinguish an external parent reset from an internal echo.
+ */
+function DateInputDMY({
+  value,
+  onChange,
+  style,
+}: {
+  value: string;
+  onChange: (iso: string) => void;
+  style?: React.CSSProperties;
+}) {
+  const [display, setDisplay] = useState(() => isoToDisplay(value));
+  const [invalid, setInvalid] = useState(false);
+  // Tracks the last ISO string this component passed to onChange so we can
+  // tell the difference between an external form-reset and an echo of our
+  // own onChange("") call.
+  const lastEmitted = useRef(value);
+
+  useEffect(() => {
+    // Only resync display when the parent changed value to something that
+    // differs from what we last emitted — i.e. a genuine external reset
+    // (e.g. form submit re-initialises tDate to today()).
+    if (value !== lastEmitted.current) {
+      lastEmitted.current = value;
+      setDisplay(isoToDisplay(value));
+      setInvalid(false);
+    }
+  }, [value]);
+
+  const parseAndCommit = (raw: string) => {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw.trim());
+    if (m) {
+      const day = parseInt(m[1], 10);
+      const month = parseInt(m[2], 10);
+      const year = parseInt(m[3], 10);
+      if (isRealDate(day, month, year)) {
+        const iso = `${m[3]}-${m[2]}-${m[1]}`;
+        setInvalid(false);
+        lastEmitted.current = iso;
+        onChange(iso);
+        return;
+      }
+    }
+    // Incomplete or impossible date — clear ISO state to block submission.
+    // Record "" as last-emitted so the useEffect skip logic works correctly.
+    const nonEmpty = raw.trim().length > 0;
+    setInvalid(nonEmpty);
+    lastEmitted.current = "";
+    onChange("");
+  };
+
+  const handleChange = (raw: string) => {
+    setDisplay(raw);
+    parseAndCommit(raw);
+  };
+
+  const handleBlur = () => {
+    if (value) {
+      // Snap to canonical display of the stored ISO value.
+      setDisplay(isoToDisplay(value));
+      setInvalid(false);
+    }
+    // If value is "" (invalid), keep the typed text visible so the user
+    // can see what needs correcting; leave invalid=true for the red border.
+  };
+
+  return (
+    <input
+      type="text"
+      style={{
+        ...style,
+        ...(invalid ? { borderColor: "#b91c1c", background: "#fff5f5" } : {}),
+      }}
+      placeholder="DD/MM/YYYY"
+      value={display}
+      maxLength={10}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={handleBlur}
+      title={invalid ? "Enter a valid date in DD/MM/YYYY format (e.g. 17/08/2026)" : undefined}
+    />
   );
 }
