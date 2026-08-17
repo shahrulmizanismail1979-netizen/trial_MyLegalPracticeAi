@@ -13,8 +13,11 @@
 
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 
-// iPhone 14 Pro logical resolution
+// iPhone 14 Pro logical resolution (portrait)
 const IPHONE_VIEWPORT = { width: 393, height: 852 };
+
+// iPhone 14 Pro rotated to landscape
+const LANDSCAPE_VIEWPORT = { width: 852, height: 393 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -403,5 +406,227 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     expect(h2Box!.x).toBeGreaterThanOrEqual(0);
     // Must not extend past the right edge (clipped on right) — allow 2px tolerance
     expect(h2Box!.x + h2Box!.width).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+  });
+});
+
+// ─── Landscape phone tests (852 × 393) ───────────────────────────────────────
+
+test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)", () => {
+  test.use({ viewport: LANDSCAPE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("timer badge is within the landscape viewport", async ({ page }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Landscape Timer Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    const timerBadge = page.getByTestId("timer-badge");
+    await expect(timerBadge).toBeVisible({ timeout: 10_000 });
+
+    const timerBox = await timerBadge.boundingBox();
+    expect(timerBox, "timer badge bounding box must exist").not.toBeNull();
+    expect(timerBox!.x, "timer badge must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      timerBox!.x + timerBox!.width,
+      "timer badge must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 1);
+    expect(
+      timerBox!.y,
+      "timer badge must not start above viewport top",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      timerBox!.y + timerBox!.height,
+      "timer badge must be within landscape viewport height",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.height + 1);
+  });
+
+  test("question pane and answer textarea are within the landscape viewport", async ({ page }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Landscape Pane Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    // Question pane
+    const questionPane = page.getByTestId("question-pane");
+    await expect(questionPane).toBeVisible({ timeout: 10_000 });
+
+    const paneBox = await questionPane.boundingBox();
+    expect(paneBox, "question pane bounding box must exist").not.toBeNull();
+    expect(paneBox!.x, "question pane must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      paneBox!.x + paneBox!.width,
+      "question pane must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // Answer textarea (scroll into view first — landscape is shorter)
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
+    await answerTextarea.scrollIntoViewIfNeeded();
+
+    const taBox = await answerTextarea.boundingBox();
+    expect(taBox, "answer textarea bounding box must exist").not.toBeNull();
+    expect(taBox!.x, "textarea must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      taBox!.x + taBox!.width,
+      "textarea must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+  });
+
+  test("footer action buttons are within the landscape viewport and not obscured by the webcam widget", async ({
+    page,
+  }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Landscape Footer Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    // Wait for the page to settle
+    await expect(page.getByTestId("question-pane")).toBeVisible({ timeout: 10_000 });
+
+    // ── Save-answer button ────────────────────────────────────────────────
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await expect(saveBtn).toBeVisible();
+
+    const saveBtnBox = await saveBtn.boundingBox();
+    expect(saveBtnBox, "save button bounding box must exist").not.toBeNull();
+    expect(saveBtnBox!.x, "save button must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      saveBtnBox!.x + saveBtnBox!.width,
+      "save button must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Footer actions container ──────────────────────────────────────────
+    const footerActions = page.getByTestId("footer-actions");
+    await footerActions.scrollIntoViewIfNeeded();
+    const footerBox = await footerActions.boundingBox();
+    expect(footerBox, "footer actions bounding box must exist").not.toBeNull();
+    expect(
+      footerBox!.x + footerBox!.width,
+      "footer actions must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Webcam widget must not overlap footer (if proctoring enabled) ─────
+    const webcamWidget = page.locator(".fixed").filter({
+      has: page.locator("text=Proctor cam"),
+    });
+    const webcamCount = await webcamWidget.count();
+    if (webcamCount > 0) {
+      const wcBox = await webcamWidget.first().boundingBox();
+      if (wcBox && footerBox) {
+        // The webcam widget must not vertically overlap the footer actions area.
+        // Either the widget ends above the footer start, or starts below the footer end.
+        const footerTop = footerBox.y;
+        const footerBottom = footerBox.y + footerBox.height;
+        const wcTop = wcBox.y;
+        const wcBottom = wcBox.y + wcBox.height;
+        const overlaps = wcTop < footerBottom && wcBottom > footerTop;
+        expect(
+          overlaps,
+          `Webcam widget (y=${wcTop}–${wcBottom}) overlaps footer actions (y=${footerTop}–${footerBottom}) in landscape mode`,
+        ).toBe(false);
+      }
+    }
+
+    // ── Finish button (top bar) is accessible in landscape ────────────────
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await expect(finishTopBtn).toBeVisible();
+
+    const finishBox = await finishTopBtn.boundingBox();
+    expect(finishBox, "finish button bounding box must exist").not.toBeNull();
+    expect(finishBox!.x, "finish button must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      finishBox!.x + finishBox!.width,
+      "finish button must not extend past landscape viewport right edge",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+  });
+
+  test("full landscape join → type → save → submit flow completes successfully", async ({
+    page,
+  }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Landscape E2E Candidate");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    // Timer visible in landscape
+    const timerBadge = page.getByTestId("timer-badge");
+    await expect(timerBadge).toBeVisible({ timeout: 10_000 });
+
+    // Type an answer
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await expect(answerTextarea).toBeVisible({ timeout: 5_000 });
+    await answerTextarea.scrollIntoViewIfNeeded();
+    await answerTextarea.fill(
+      "Natural justice principles: audi alteram partem (right to be heard) and nemo judex in causa sua (no person shall be judge in their own cause).",
+    );
+
+    // Save
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await expect(saveBtn).toBeVisible();
+    await saveBtn.click();
+
+    // Page should remain on attempt
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 5_000 });
+
+    // Finish
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await expect(finishTopBtn).toBeVisible();
+    await finishTopBtn.click();
+
+    // Must reach summary
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+\/summary/, {
+      timeout: 15_000,
+    });
   });
 });
