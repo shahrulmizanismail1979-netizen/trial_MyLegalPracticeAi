@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
-import { sendEmail, getOwnerEmail } from "./lib/mailer";
+import { sendEmail, getOwnerEmail, sendWebhookAlert } from "./lib/mailer";
 
 /** De-duplicate: only send the test-mode alert once per server process. */
 let testModeAlertSent = false;
@@ -169,19 +169,15 @@ export async function warnIfTestModeInProduction(
       ].join("\n");
       errorLog(banner);
 
-      // Send a one-time admin alert email (de-duplicated per server process).
+      // Send a one-time admin alert (de-duplicated per server process).
       if (!testModeAlertSent) {
         testModeAlertSent = true;
-        // Fire-and-forget — do not await; a send failure must not crash startup.
+        // Fire-and-forget — do not await; send failures must not crash startup.
         (async () => {
-          try {
-            const adminEmail = await getOwnerEmail();
-            if (!adminEmail) {
-              errorLog("[Stripe] Could not resolve admin email — skipping test-mode alert.");
-              return;
-            }
-            const detectedAt = new Date().toISOString();
-            const html = `
+          const subject = "🚨 CRITICAL: Stripe is in TEST mode on production";
+          const detectedAt = new Date().toISOString();
+          const server = process.env.REPLIT_DEPLOYMENT ?? "production";
+          const html = `
 <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;border:3px solid #dc2626;border-radius:8px;">
   <h1 style="color:#dc2626;margin-top:0;">🚨 CRITICAL: Stripe is in TEST mode on production</h1>
   <p style="font-size:16px;">The production server started with a <strong>Stripe test key</strong> (<code>sk_test_…</code>).</p>
@@ -189,16 +185,44 @@ export async function warnIfTestModeInProduction(
   <em>"Your request was in test mode, but used a non-test card."</em></p>
   <p style="font-size:16px;"><strong>Action required:</strong> Set the <code>STRIPE_SECRET_KEY</code> environment variable to a live key (<code>sk_live_…</code>) and restart the server immediately.</p>
   <hr style="margin:24px 0;border:none;border-top:1px solid #fca5a5;">
-  <p style="color:#6b7280;font-size:13px;">Detected at: ${detectedAt}<br>Server: ${process.env.REPLIT_DEPLOYMENT ?? "production"}</p>
+  <p style="color:#6b7280;font-size:13px;">Detected at: ${detectedAt}<br>Server: ${server}</p>
 </div>`;
-            await sendEmail({
-              to: adminEmail,
-              subject: "🚨 CRITICAL: Stripe is in TEST mode on production",
-              html,
-            });
-            errorLog(`[Stripe] Test-mode alert email sent to ${adminEmail}.`);
+
+          // --- Primary channel: Gmail connector ---
+          let gmailOk = false;
+          try {
+            const adminEmail = await getOwnerEmail();
+            if (!adminEmail) {
+              errorLog("[Stripe] Could not resolve admin email — skipping Gmail alert.");
+            } else {
+              errorLog(`[Stripe] Attempting to send test-mode alert email to ${adminEmail}...`);
+              gmailOk = await sendEmail({ to: adminEmail, subject, html });
+              if (gmailOk) {
+                errorLog(`[Stripe] Test-mode alert email sent via Gmail to ${adminEmail}.`);
+              } else {
+                errorLog(`[Stripe] Gmail send returned false (connector error or 5xx).`);
+              }
+            }
           } catch (emailErr) {
-            errorLog(`[Stripe] Failed to send test-mode alert email: ${String(emailErr)}`);
+            errorLog(`[Stripe] Gmail send threw an error: ${String(emailErr)}`);
+          }
+
+          // --- Fallback channel: configurable webhook (ALERT_WEBHOOK_URL) ---
+          if (!gmailOk) {
+            errorLog("[Stripe] Gmail alert failed — attempting webhook fallback...");
+            try {
+              const webhookOk = await sendWebhookAlert({ subject, html, detectedAt, server });
+              if (webhookOk) {
+                errorLog("[Stripe] Test-mode alert delivered via webhook fallback.");
+              } else {
+                errorLog(
+                  "[Stripe] Webhook fallback also failed (or ALERT_WEBHOOK_URL not set). " +
+                  "Alert was NOT delivered. Check ALERT_WEBHOOK_URL env var.",
+                );
+              }
+            } catch (webhookErr) {
+              errorLog(`[Stripe] Webhook fallback threw an error: ${String(webhookErr)}`);
+            }
           }
         })();
       }

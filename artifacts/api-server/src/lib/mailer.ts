@@ -4,6 +4,62 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { logger } from "./logger";
 
+/**
+ * Sends an alert to the configurable ALERT_WEBHOOK_URL (if set) as a JSON POST.
+ * Used as a secondary notification channel when the Gmail connector is unavailable.
+ *
+ * The payload shape is intentionally simple so it can be consumed by generic
+ * webhook receivers (Slack incoming webhooks, n8n, Make, custom endpoints, etc.).
+ *
+ * Returns true when the webhook responded with a 2xx status, false otherwise.
+ */
+export async function sendWebhookAlert(payload: {
+  subject: string;
+  html: string;
+  detectedAt: string;
+  server: string;
+}): Promise<boolean> {
+  const webhookUrl = process.env.ALERT_WEBHOOK_URL;
+  if (!webhookUrl) {
+    logger.info("ALERT_WEBHOOK_URL not configured — skipping webhook fallback.");
+    return false;
+  }
+
+  try {
+    const body = JSON.stringify({
+      subject: payload.subject,
+      message: payload.subject,
+      html: payload.html,
+      detectedAt: payload.detectedAt,
+      server: payload.server,
+    });
+
+    logger.info({ webhookUrl }, "Attempting webhook alert fallback...");
+
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "(unreadable body)");
+      logger.error(
+        { status: res.status, body: text },
+        "Webhook alert fallback returned non-2xx status",
+      );
+      return false;
+    }
+
+    logger.info({ webhookUrl, status: res.status }, "Webhook alert fallback succeeded.");
+    return true;
+  } catch (err) {
+    logger.error({ err }, "Error sending webhook alert fallback");
+    return false;
+  }
+}
+
 const connectors = new ReplitConnectors();
 
 function base64UrlEncode(input: string): string {
