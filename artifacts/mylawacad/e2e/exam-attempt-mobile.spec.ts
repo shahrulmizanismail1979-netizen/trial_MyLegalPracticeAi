@@ -1118,3 +1118,87 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
     await expect(page.getByTestId("hw-textarea")).toBeVisible();
   });
 });
+
+// ─── Join page portrait → landscape rotation test ────────────────────────────
+//
+// Simulates a student picking up their phone in portrait, entering the join code,
+// then rotating to landscape BEFORE filling in their name.  After the viewport
+// change the name input, the Begin Assessment button, and the assessment title
+// card must all be within the new viewport bounds without a page reload.
+
+test.describe("Join page – portrait → landscape rotation before name entry", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("name input and Begin Assessment button are reachable after rotating to landscape mid-join", async ({
+    page,
+  }) => {
+    // ── Step 1: Open join page in portrait ───────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    // ── Step 2: Enter the join code (still in portrait) ──────────────────
+    const codeInput = page.getByTestId("code-input");
+    await expect(codeInput).toBeVisible();
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    // Wait for the student-details form to appear while still in portrait
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+
+    // ── Step 3: Rotate to landscape before the student types their name ───
+    await page.setViewportSize(LANDSCAPE_VIEWPORT);
+
+    // Give the browser a moment to reflow without a page reload
+    await page.waitForTimeout(300);
+
+    // ── Step 4: Assessment title card must still be visible after resize ──
+    // The card shows the assessment code, title, and educator name.
+    // The code text is the most reliable anchor since we have it in scope.
+    const titleCard = page.locator(`text=${code}`).first();
+    await expect(titleCard).toBeVisible({ timeout: 5_000 });
+
+    // ── Step 5: Name input is within the landscape viewport bounds ────────
+    await expect(nameInput).toBeVisible({ timeout: 5_000 });
+    await nameInput.scrollIntoViewIfNeeded();
+
+    const nameBox = await nameInput.boundingBox();
+    expect(nameBox, "name input bounding box must exist after rotation").not.toBeNull();
+    expect(
+      nameBox!.x,
+      "name input must not start left of viewport after rotation",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      nameBox!.x + nameBox!.width,
+      "name input must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 6: Begin Assessment button is within the landscape viewport ──
+    const beginBtn = page.getByRole("button", { name: /begin assessment/i });
+    await beginBtn.scrollIntoViewIfNeeded();
+    await expect(beginBtn).toBeVisible({ timeout: 5_000 });
+
+    const beginBox = await beginBtn.boundingBox();
+    expect(beginBox, "Begin Assessment button bounding box must exist after rotation").not.toBeNull();
+    expect(
+      beginBox!.x,
+      "Begin Assessment button must not start left of viewport after rotation",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      beginBox!.x + beginBox!.width,
+      "Begin Assessment button must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+
+    // ── Step 7: The join flow still completes after the rotation ──────────
+    await nameInput.fill("Rotation Join Tester");
+    await beginBtn.click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+  });
+});
