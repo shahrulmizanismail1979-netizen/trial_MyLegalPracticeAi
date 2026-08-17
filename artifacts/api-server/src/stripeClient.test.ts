@@ -380,7 +380,141 @@ describe("warnIfTestModeInProduction", () => {
   });
 });
 
-// ── Suite 2: webhook fallback path ────────────────────────────────────────────
+// ── Suite 2: ALERT_COOLDOWN_MS IIFE ──────────────────────────────────────────
+//
+// ALERT_COOLDOWN_MS is evaluated once when the module is first imported.
+// To test it with different env var values we:
+//  1. Set process.env.STRIPE_ALERT_COOLDOWN_MINUTES before each test.
+//  2. Call vi.resetModules() so the next import gets a fresh module.
+//  3. Dynamically import stripeClient and inspect the exported constant.
+//
+// console.warn is spied on to verify invalid-input warnings.
+
+describe("ALERT_COOLDOWN_MS — env var parsing", () => {
+  const COOLDOWN_KEY = "STRIPE_ALERT_COOLDOWN_MINUTES";
+  let savedValue: string | undefined;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    savedValue = process.env[COOLDOWN_KEY];
+    delete process.env[COOLDOWN_KEY];
+    vi.clearAllMocks();
+    vi.resetModules();
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    if (savedValue === undefined) delete process.env[COOLDOWN_KEY];
+    else process.env[COOLDOWN_KEY] = savedValue;
+    warnSpy.mockRestore();
+  });
+
+  // ── Test A: valid positive integer ────────────────────────────────────────
+
+  it("returns the correct ms for a valid positive integer (30 → 1 800 000 ms)", async () => {
+    process.env[COOLDOWN_KEY] = "30";
+
+    const { ALERT_COOLDOWN_MS } = await import("./stripeClient");
+
+    expect(ALERT_COOLDOWN_MS).toBe(30 * 60 * 1_000);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  // ── Test B: valid zero ────────────────────────────────────────────────────
+
+  it("returns 0 ms for the value '0' (zero-minute cooldown is valid)", async () => {
+    process.env[COOLDOWN_KEY] = "0";
+
+    const { ALERT_COOLDOWN_MS } = await import("./stripeClient");
+
+    expect(ALERT_COOLDOWN_MS).toBe(0);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  // ── Test C: non-numeric string → fallback + warn ──────────────────────────
+
+  it("falls back to 60-min default and emits console.warn for a non-numeric string", async () => {
+    process.env[COOLDOWN_KEY] = "abc";
+
+    const { ALERT_COOLDOWN_MS } = await import("./stripeClient");
+
+    expect(ALERT_COOLDOWN_MS).toBe(60 * 60 * 1_000);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('STRIPE_ALERT_COOLDOWN_MINUTES="abc" is invalid'),
+    );
+  });
+
+  // ── Test D: negative number → fallback + warn ─────────────────────────────
+
+  it("falls back to 60-min default and emits console.warn for a negative number", async () => {
+    process.env[COOLDOWN_KEY] = "-5";
+
+    const { ALERT_COOLDOWN_MS } = await import("./stripeClient");
+
+    expect(ALERT_COOLDOWN_MS).toBe(60 * 60 * 1_000);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('STRIPE_ALERT_COOLDOWN_MINUTES="-5" is invalid'),
+    );
+  });
+
+  // ── Test E: env var absent → default 60 min, no warn ─────────────────────
+
+  it("defaults to 60-min (3 600 000 ms) when STRIPE_ALERT_COOLDOWN_MINUTES is not set", async () => {
+    // env var already deleted in beforeEach
+    const { ALERT_COOLDOWN_MS } = await import("./stripeClient");
+
+    expect(ALERT_COOLDOWN_MS).toBe(60 * 60 * 1_000);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  // ── Test F: tryClaimAlertSlot uses the module-level ALERT_COOLDOWN_MS ─────
+  //
+  // When a custom cooldown is set (e.g. 1 minute), the cutoff timestamp passed
+  // to the DB upsert must reflect that value rather than the 60-min default.
+  // We verify this indirectly: after warnIfTestModeInProduction runs, the DB
+  // query is called with a cutoff close to (now - 1 min).
+
+  it("tryClaimAlertSlot uses the runtime ALERT_COOLDOWN_MS (1-min cooldown test)", async () => {
+    process.env[COOLDOWN_KEY] = "1"; // 1 minute = 60 000 ms
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task411_cooldown";
+
+    // mockQuery is already set to return empty rows (slot not claimed is fine —
+    // we only care that the correct cutoff was passed).
+    // Slot claimed so the alert fires:
+    mockClaim(true);
+
+    const before = Date.now();
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    await warnIfTestModeInProduction(vi.fn(), vi.fn());
+    await new Promise((r) => setTimeout(r, 200));
+    const after = Date.now();
+
+    // The second pool.query call carries the cutoff as $2.
+    // Find the INSERT … RETURNING call (it has two params: key and cutoff).
+    const insertCall = mockQuery.mock.calls.find(
+      (args: unknown[]) =>
+        typeof args[0] === "string" && (args[0] as string).includes("RETURNING"),
+    );
+    expect(insertCall).toBeDefined();
+
+    const cutoffStr = (insertCall as [string, [string, string]])[1][1] as string;
+    const cutoffMs = new Date(cutoffStr).getTime();
+
+    // The cutoff should be approximately (now - 1 min), i.e. within 5 s of
+    // (before - 60_000) and (after - 60_000).
+    expect(cutoffMs).toBeGreaterThanOrEqual(before - 60_000 - 5_000);
+    expect(cutoffMs).toBeLessThanOrEqual(after - 60_000 + 5_000);
+
+    // Clean up the extra env vars set for this test.
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+  });
+});
+
+// ── Suite 3: webhook fallback path ────────────────────────────────────────────
 
 describe("warnIfTestModeInProduction — webhook fallback", () => {
   let savedEnv: Record<string, string | undefined>;
