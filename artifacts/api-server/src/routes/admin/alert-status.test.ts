@@ -119,7 +119,16 @@ describe("GET /admin/alert-status when getOwnerEmail returns null (no admin emai
     const res = await request(app).get("/admin/alert-status");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body).toHaveLength(0);
+
+    const gmailEntry = (res.body as Array<{
+      channel: string;
+      outcome: string;
+      attemptedAt: string;
+      detail: string;
+    }>).find((e) => e.channel === "gmail");
+
+    expect(gmailEntry).toBeDefined();
+    expect(gmailEntry!.outcome).toBe("skipped");
   });
 
   it("never called sendEmail", () => {
@@ -167,13 +176,6 @@ describe("GET /admin/alert-status when getOwnerEmail returns null (no admin emai
   });
 
   it("returns a gmail entry with outcome 'skipped'", async () => {
-    const res = await request(app).get("/admin/alert-status");
-    const gmailEntry = (res.body as Array<{
-      channel: string;
-      outcome: string;
-      attemptedAt: string;
-      detail: string;
-    }>).find((e) => e.channel === "gmail");
     const res = await request(app).get("/admin/alert-status");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -350,6 +352,78 @@ describe("warnIfTestModeInProduction — cross-restart cooldown dedup", () => {
   });
 
   it("no webhook fallback was attempted (gmail succeeded on the only send)", () => {
+    expect(sendWebhookAlertMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Suite: stale cooldown — alert re-fires after cooldown window has expired ──
+//
+// Scenario: a test key was deployed → alert fired → server_kv row was written.
+// The operator then swapped in a live key (alert stopped).  Later a rollback
+// put a test key back in production, but by now the server_kv entry is older
+// than ALERT_COOLDOWN_MS.
+//
+// The conditional upsert's WHERE clause (server_kv.updated_at < $cutoff)
+// evaluates to TRUE for a stale row, so the DB returns a row → slot is claimed
+// → alert fires.
+//
+// This test seeds that stale state by making pool.query return a row (= slot
+// claimed), which is exactly what the DB does when the existing row's
+// updated_at pre-dates the cutoff.
+//
+describe("warnIfTestModeInProduction — alert re-fires when cooldown row is sufficiently stale", () => {
+  beforeAll(async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_stale_cooldown_refire_test";
+
+    // Start counters from zero for this suite.
+    _resetTestModeAlertSentForTesting();
+    _resetAlertStatusForTesting();
+    sendEmailMock.mockClear();
+    sendWebhookAlertMock.mockClear();
+
+    // Simulate a stale server_kv row: the conditional upsert succeeds because
+    // the existing row's updated_at is older than ALERT_COOLDOWN_MS.  The DB
+    // therefore returns a row, signalling that this process has claimed the slot.
+    //
+    //   pool.query call 1 → CREATE TABLE IF NOT EXISTS (result ignored)
+    //   pool.query call 2 → INSERT … ON CONFLICT … RETURNING key
+    //                       → row returned (stale row was overwritten → claimed)
+    poolQueryMock
+      .mockResolvedValueOnce({ rows: [] })                                          // CREATE TABLE
+      .mockResolvedValueOnce({ rows: [{ key: "stripe_test_mode_alert_sent_at" }] }); // INSERT (stale → claimed)
+
+    await warnIfTestModeInProduction(
+      (_msg) => { /* suppress stdout */ },
+      (_msg) => { /* suppress stderr */ },
+    );
+
+    // The fire-and-forget email send must complete before we assert.
+    await vi.waitFor(
+      () => { expect(sendEmailMock).toHaveBeenCalledTimes(1); },
+      { timeout: 5_000 },
+    );
+  });
+
+  afterAll(() => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+    // Restore a default so any subsequent pool.query calls return a sensible
+    // value instead of `undefined`.
+    poolQueryMock.mockResolvedValue({ rows: [{ key: "stripe_test_mode_alert_sent_at" }] });
+  });
+
+  it("sendEmail is called once — the expired slot allows the alert to re-fire", () => {
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("the re-fired alert email is addressed to the admin", () => {
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "owner@example.test" }),
+    );
+  });
+
+  it("no webhook fallback is triggered when gmail succeeds", () => {
     expect(sendWebhookAlertMock).not.toHaveBeenCalled();
   });
 });
