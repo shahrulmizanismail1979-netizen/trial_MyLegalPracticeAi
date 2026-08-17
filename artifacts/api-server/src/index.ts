@@ -5,7 +5,6 @@ import {
   reconcileMissedProvisioning,
   backfillPortalAccessCodes,
 } from "./lib/provisioning";
-import { getStripeSync, warnIfTestModeInProduction } from "./stripeClient";
 import { seedApps } from "./acad/lib/seed";
 import { seedSyaContent } from "./sya/lib/seed";
 import { seedCrimContent } from "./crim/lib/seed";
@@ -46,6 +45,7 @@ import { registerAiAnalysisProcessor } from "./research/analysis/processor";
 import { registerHeadnotesProcessor } from "./research/headnotes/processor";
 import { registerDriveIngestProcessor } from "./research/drive/driveIngestProcessor";
 import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
+import { getStripeSync, getStripeMode, warnIfTestModeInProduction, purgeTestModeStripeData } from "./stripeClient";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -115,6 +115,21 @@ async function initStripe(): Promise<void> {
       (msg) => logger.info(msg),
       (msg) => logger.error(msg),
     );
+
+    // Purge any stale test-mode records from the stripe schema before syncing.
+    // This prevents "No such customer: cus_xxx" errors from stripe-replit-sync's
+    // syncBackfill, which retrieves every DB ID that isn't found in the live
+    // Stripe API list — exactly what test-mode IDs look like to the live key.
+    // Only runs when the active key is live; a no-op if no test-mode rows exist.
+    {
+      const { pool } = await import("@workspace/db");
+      const mode = await getStripeMode().catch(() => "test" as const);
+      if (mode === "live") {
+        await purgeTestModeStripeData(pool, (msg) => logger.info(msg));
+      } else {
+        logger.info("[Stripe] Test-mode key active — skipping test-record purge.");
+      }
+    }
 
     const stripeSync = await getStripeSync();
 

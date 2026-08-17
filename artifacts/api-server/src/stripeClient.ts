@@ -240,6 +240,136 @@ async function getStripeCredentials(): Promise<{
 }
 
 /**
+ * Deletes all test-mode (livemode = false) records from every `stripe` schema
+ * data table inside a single transaction.  Safe to call on every startup — it
+ * is a no-op when no test-mode rows exist anywhere.
+ *
+ * Why this is needed
+ * ------------------
+ * `stripe-replit-sync`'s `syncBackfill` works by:
+ *   1. Listing all resources from the Stripe API (paginated).
+ *   2. Finding IDs that exist locally but are NOT in the API result
+ *      (`findMissingEntries`) across every synced table independently.
+ *   3. Trying to `retrieve` each "missing" ID from the Stripe API.
+ *
+ * After switching to a live Stripe key, every test-mode ID in any table
+ * appears "missing" from the live API, so Stripe returns errors like
+ * "No such customer: cus_xxx" for each one.  Purging all tables atomically
+ * before the sync eliminates those errors.
+ *
+ * What is cleaned
+ * ---------------
+ * Every row in the stripe-schema data tables where `_raw_data->>'livemode'`
+ * is `'false'`, across ALL synced data tables — not just customers.
+ * `stripe._sync_status` is also cleared (only when rows were deleted) so the
+ * next syncBackfill performs a full fresh pull from the live API rather than
+ * resuming a stale test-mode cursor.
+ *
+ * The `stripe.accounts`, `stripe._managed_webhooks`, and `stripe._migrations`
+ * tables are intentionally left untouched.
+ *
+ * Atomicity
+ * ---------
+ * All deletes and the optional _sync_status reset run inside a single
+ * database transaction.  A mid-purge crash leaves the schema unchanged;
+ * the cleanup will retry cleanly on the next server start.
+ *
+ * @param pool A node-postgres Pool (or compatible client factory).
+ * @param log  Optional logger (defaults to console.log).
+ */
+
+/** Minimal DB client interface used inside purgeTestModeStripeData. */
+export interface PgClientLike {
+  query(text: string): Promise<{ rowCount: number | null }>;
+  release(err?: unknown): void;
+}
+
+/** Minimal pool interface accepted by purgeTestModeStripeData. */
+export interface PgPoolLike {
+  connect(): Promise<PgClientLike>;
+}
+
+/**
+ * All stripe-schema data tables that carry a livemode field inside _raw_data.
+ * Ordered from most-child to least-child so FK constraints on `_account_id →
+ * stripe.accounts` are satisfied (accounts is NOT deleted).
+ */
+export const STRIPE_DATA_TABLES = [
+  "subscription_items",
+  "subscription_schedules",
+  "subscriptions",
+  "checkout_session_line_items",
+  "checkout_sessions",
+  "tax_ids",
+  "refunds",
+  "credit_notes",
+  "disputes",
+  "early_fraud_warnings",
+  "charges",
+  "invoices",
+  "setup_intents",
+  "payment_methods",
+  "payment_intents",
+  "active_entitlements",
+  "features",
+  "plans",
+  "prices",
+  "products",
+  "reviews",
+  "payouts",
+  "coupons",
+  "events",
+  "customers",
+] as const;
+
+export async function purgeTestModeStripeData(
+  pool: PgPoolLike,
+  log: (msg: string) => void = console.log,
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    let totalDeleted = 0;
+    for (const table of STRIPE_DATA_TABLES) {
+      const result = await client.query(
+        `DELETE FROM stripe."${table}" WHERE (_raw_data->>'livemode')::boolean = false`,
+      );
+      const deleted = result.rowCount ?? 0;
+      if (deleted > 0) {
+        log(`[Stripe] Purged ${deleted} test-mode row(s) from stripe.${table}`);
+        totalDeleted += deleted;
+      }
+    }
+
+    if (totalDeleted === 0) {
+      // No test-mode rows found anywhere — roll back (nothing to write) and exit.
+      await client.query("ROLLBACK");
+      log("[Stripe] No test-mode records found in any stripe table — skipping purge.");
+      return;
+    }
+
+    // Reset sync cursors so syncBackfill performs a full fresh pull from the
+    // live API rather than resuming a test-mode incremental cursor.
+    const syncResult = await client.query(`DELETE FROM stripe."_sync_status"`);
+    const syncDeleted = syncResult.rowCount ?? 0;
+    if (syncDeleted > 0) {
+      log(
+        `[Stripe] Cleared ${syncDeleted} row(s) from stripe._sync_status (fresh sync will follow)`,
+      );
+    }
+
+    await client.query("COMMIT");
+    log(`[Stripe] Purge complete — ${totalDeleted} test-mode row(s) removed atomically.`);
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Returns a fresh authenticated Stripe client.
  * Not cached -- fetches credentials on every call so rotated keys are picked up.
  */

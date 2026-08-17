@@ -627,3 +627,179 @@ describe("warnIfTestModeInProduction — webhook fallback", () => {
     expect(mockSendWebhookAlert).not.toHaveBeenCalled();
   });
 });
+
+// ── Suite 3: purgeTestModeStripeData ─────────────────────────────────────────
+
+import {
+  purgeTestModeStripeData,
+  STRIPE_DATA_TABLES,
+  type PgClientLike,
+  type PgPoolLike,
+} from "./stripeClient";
+
+/**
+ * Build a mock PgPoolLike whose single client returns the supplied rowCounts
+ * for each successive query call.
+ *
+ * Call order inside purgeTestModeStripeData:
+ *   [0]  BEGIN
+ *   [1…N] DELETE from each STRIPE_DATA_TABLES entry  (N = 25)
+ *   If totalDeleted > 0:
+ *     [N+1]  DELETE from stripe._sync_status
+ *     [N+2]  COMMIT
+ *   Else:
+ *     [N+1]  ROLLBACK
+ *
+ * `rowCounts` only needs to cover the DELETE calls; BEGIN/COMMIT/ROLLBACK
+ * positions are inserted automatically at the correct indices.
+ */
+function makePool(
+  /** rowCount for each DELETE from STRIPE_DATA_TABLES (index = table order) */
+  tableRowCounts: number[],
+  /** rowCount for the _sync_status DELETE (only called when totalDeleted > 0) */
+  syncRowCount = 0,
+): {
+  pool: PgPoolLike;
+  clientQuery: ReturnType<typeof vi.fn>;
+  clientRelease: ReturnType<typeof vi.fn>;
+} {
+  const clientQuery = vi.fn();
+  const clientRelease = vi.fn();
+
+  // Begin always succeeds
+  clientQuery.mockResolvedValueOnce({ rowCount: null }); // BEGIN
+
+  // Table DELETEs
+  for (let i = 0; i < STRIPE_DATA_TABLES.length; i++) {
+    clientQuery.mockResolvedValueOnce({ rowCount: tableRowCounts[i] ?? 0 });
+  }
+
+  const totalDeleted = tableRowCounts.reduce((s, n) => s + (n ?? 0), 0);
+  if (totalDeleted > 0) {
+    clientQuery.mockResolvedValueOnce({ rowCount: syncRowCount }); // _sync_status DELETE
+    clientQuery.mockResolvedValueOnce({ rowCount: null }); // COMMIT
+  } else {
+    clientQuery.mockResolvedValueOnce({ rowCount: null }); // ROLLBACK
+  }
+
+  const mockClient: PgClientLike = {
+    query: clientQuery,
+    release: clientRelease,
+  };
+
+  const pool: PgPoolLike = {
+    connect: vi.fn().mockResolvedValue(mockClient),
+  };
+
+  return { pool, clientQuery, clientRelease };
+}
+
+describe("purgeTestModeStripeData", () => {
+  // ── no-op when nothing to delete ─────────────────────────────────────────
+
+  it("is a no-op and calls ROLLBACK when no test-mode rows exist in any table", async () => {
+    const allZero = new Array<number>(STRIPE_DATA_TABLES.length).fill(0);
+    const { pool, clientQuery, clientRelease } = makePool(allZero);
+    const logs: string[] = [];
+
+    await purgeTestModeStripeData(pool, (m) => logs.push(m));
+
+    // BEGIN + 25 DELETEs + ROLLBACK
+    expect(clientQuery).toHaveBeenCalledTimes(STRIPE_DATA_TABLES.length + 2);
+
+    const calls = clientQuery.mock.calls.map((c) => (c[0] as string).trim());
+    expect(calls[0]).toBe("BEGIN");
+    expect(calls[calls.length - 1]).toBe("ROLLBACK");
+
+    // _sync_status must NOT be touched
+    expect(calls.some((s) => s.includes("_sync_status"))).toBe(false);
+
+    expect(logs.some((l) => l.includes("skipping"))).toBe(true);
+    expect(clientRelease).toHaveBeenCalledOnce();
+  });
+
+  // ── customers only ────────────────────────────────────────────────────────
+
+  it("purges and commits when only customers have test-mode rows", async () => {
+    const counts = new Array<number>(STRIPE_DATA_TABLES.length).fill(0);
+    const custIdx = STRIPE_DATA_TABLES.indexOf("customers");
+    counts[custIdx] = 22;
+
+    const { pool, clientQuery, clientRelease } = makePool(counts, 3);
+    const logs: string[] = [];
+
+    await purgeTestModeStripeData(pool, (m) => logs.push(m));
+
+    const calls = clientQuery.mock.calls.map((c) => (c[0] as string).trim());
+    expect(calls[0]).toBe("BEGIN");
+    expect(calls[calls.length - 1]).toBe("COMMIT");
+    expect(calls.some((s) => s.includes("_sync_status"))).toBe(true);
+
+    expect(logs.some((l) => l.includes("22") && l.includes("customers"))).toBe(true);
+    expect(logs.some((l) => l.includes("22 test-mode row(s) removed atomically"))).toBe(true);
+    expect(clientRelease).toHaveBeenCalledOnce();
+  });
+
+  // ── non-customer table only ───────────────────────────────────────────────
+
+  it("purges and commits when only a non-customer table (products) has test-mode rows", async () => {
+    const counts = new Array<number>(STRIPE_DATA_TABLES.length).fill(0);
+    const prodIdx = STRIPE_DATA_TABLES.indexOf("products");
+    counts[prodIdx] = 12;
+
+    const { pool, clientQuery } = makePool(counts, 1);
+    const logs: string[] = [];
+
+    await purgeTestModeStripeData(pool, (m) => logs.push(m));
+
+    const calls = clientQuery.mock.calls.map((c) => (c[0] as string).trim());
+    expect(calls[0]).toBe("BEGIN");
+    expect(calls[calls.length - 1]).toBe("COMMIT");
+    expect(calls.some((s) => s.includes("_sync_status"))).toBe(true);
+    expect(logs.some((l) => l.includes("12") && l.includes("products"))).toBe(true);
+    // No customer log line
+    expect(logs.some((l) => l.includes("customers"))).toBe(false);
+  });
+
+  // ── mixed: multiple tables ────────────────────────────────────────────────
+
+  it("deletes across multiple tables and reports the correct total", async () => {
+    const counts = new Array<number>(STRIPE_DATA_TABLES.length).fill(0);
+    counts[STRIPE_DATA_TABLES.indexOf("customers")] = 22;
+    counts[STRIPE_DATA_TABLES.indexOf("subscriptions")] = 9;
+    counts[STRIPE_DATA_TABLES.indexOf("invoices")] = 18;
+
+    const { pool, clientQuery } = makePool(counts, 2);
+    const logs: string[] = [];
+
+    await purgeTestModeStripeData(pool, (m) => logs.push(m));
+
+    const calls = clientQuery.mock.calls.map((c) => (c[0] as string).trim());
+    expect(calls[0]).toBe("BEGIN");
+    expect(calls[calls.length - 1]).toBe("COMMIT");
+
+    // Total = 22 + 9 + 18 = 49
+    expect(logs.some((l) => l.includes("49 test-mode row(s) removed atomically"))).toBe(true);
+  });
+
+  // ── error handling: ROLLBACK on failure ───────────────────────────────────
+
+  it("calls ROLLBACK and re-throws when a DELETE query throws", async () => {
+    const clientQuery = vi.fn();
+    const clientRelease = vi.fn();
+
+    clientQuery.mockResolvedValueOnce({ rowCount: null }); // BEGIN
+    clientQuery.mockRejectedValueOnce(new Error("DB error during DELETE")); // first table DELETE
+    clientQuery.mockResolvedValueOnce({ rowCount: null }); // ROLLBACK
+
+    const pool: PgPoolLike = {
+      connect: vi.fn().mockResolvedValue({ query: clientQuery, release: clientRelease }),
+    };
+
+    await expect(purgeTestModeStripeData(pool)).rejects.toThrow("DB error during DELETE");
+
+    const calls = clientQuery.mock.calls.map((c) => (c[0] as string).trim());
+    expect(calls[calls.length - 1]).toBe("ROLLBACK");
+    expect(clientRelease).toHaveBeenCalledOnce();
+  });
+});
