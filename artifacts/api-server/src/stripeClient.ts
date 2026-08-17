@@ -11,9 +11,26 @@ const ALERT_KV_KEY = "stripe_test_mode_alert_sent_at";
 
 /**
  * How long to suppress repeat alerts, even across process restarts.
- * Exported so tests can reference the same constant.
+ * Controlled by the STRIPE_ALERT_COOLDOWN_MINUTES env var (integer, default 60).
+ * Invalid values (non-numeric, negative) fall back to 60 minutes with a warning.
+ * Exported so tests can override via the env var without touching source.
  */
-export const ALERT_COOLDOWN_MS = 60 * 60 * 1_000; // 1 hour
+export const ALERT_COOLDOWN_MS = (() => {
+  const DEFAULT_MINUTES = 60;
+  const raw = process.env.STRIPE_ALERT_COOLDOWN_MINUTES;
+  if (raw !== undefined) {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      console.warn(
+        `[Stripe] STRIPE_ALERT_COOLDOWN_MINUTES="${raw}" is invalid (must be a non-negative integer). ` +
+          `Falling back to ${DEFAULT_MINUTES}-minute default.`,
+      );
+    } else {
+      return parsed * 60 * 1_000;
+    }
+  }
+  return DEFAULT_MINUTES * 60 * 1_000;
+})();
 
 /**
  * Maximum time (ms) to wait for each DB operation during the alert check.
