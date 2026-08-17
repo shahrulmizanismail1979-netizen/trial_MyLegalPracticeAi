@@ -80,7 +80,7 @@ function ScoreRing({
   const offset = c * (1 - pct);
   const gradId = passed ? "ring-grad-gold" : "ring-grad-crimson";
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative" data-testid="score-ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="block -rotate-90">
         <defs>
           <linearGradient id="ring-grad-gold" x1="0" x2="1" y1="0" y2="1">
@@ -414,7 +414,7 @@ export default function AttemptSummary() {
               </span>
             </div>
             {/* Hero panel */}
-            <SpotlightCard className="p-10 border-gold rounded-2xl">
+            <SpotlightCard data-testid="hero-panel" className="p-10 border-gold rounded-2xl">
               <div className="flex flex-col lg:flex-row gap-10 items-center lg:items-start">
                 <div className="flex-shrink-0">
                   <ScoreRing
@@ -467,14 +467,14 @@ export default function AttemptSummary() {
                   )}
                   <div className="pt-2 flex justify-center lg:justify-start">
                     {summary.passed ? (
-                      <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 text-black shadow-[0_8px_30px_-8px_rgba(251,191,36,0.6)]">
+                      <div data-testid="pass-fail-badge" className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 text-black shadow-[0_8px_30px_-8px_rgba(251,191,36,0.6)]">
                         <Award className="h-6 w-6" strokeWidth={2.5} />
                         <span className="font-display font-bold uppercase tracking-[0.2em] text-sm">
                           Passed with distinction
                         </span>
                       </div>
                     ) : (
-                      <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl border border-red-900/60 bg-red-950/40 text-red-200">
+                      <div data-testid="pass-fail-badge" className="inline-flex items-center gap-3 px-6 py-3 rounded-xl border border-red-900/60 bg-red-950/40 text-red-200">
                         <ShieldAlert className="h-6 w-6" strokeWidth={2.2} />
                         <span className="font-display font-bold uppercase tracking-[0.2em] text-sm">
                           Did not meet threshold

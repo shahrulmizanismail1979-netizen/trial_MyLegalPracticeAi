@@ -259,6 +259,121 @@ test.describe("Exam attempt page on iPhone 14 Pro viewport", () => {
     });
   });
 
+  test("summary screen key elements are fully visible and do not overflow on mobile", async ({
+    page,
+  }) => {
+    // ── Step 1: Join ───────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Summary Screen Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Step 2: Attempt ────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    const answerTextarea = page.getByTestId("answer-textarea");
+    await expect(answerTextarea).toBeVisible({ timeout: 10_000 });
+    await answerTextarea.fill("Natural justice encompasses audi alteram partem and nemo judex in causa sua.");
+
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await saveBtn.click();
+
+    // ── Step 3: Finish and land on summary ────────────────────────────────
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await finishTopBtn.scrollIntoViewIfNeeded();
+    await expect(finishTopBtn).toBeVisible();
+    await finishTopBtn.click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+\/summary/, {
+      timeout: 15_000,
+    });
+
+    // ── Step 4: Wait for summary to load ──────────────────────────────────
+    // The page shows a loading state while the AI evaluates; wait for hero panel
+    const heroPanel = page.getByTestId("hero-panel");
+    await expect(heroPanel).toBeVisible({ timeout: 30_000 });
+
+    // ── Step 5: Hero panel does not overflow horizontally ─────────────────
+    const heroBoundingBox = await heroPanel.boundingBox();
+    expect(heroBoundingBox, "hero panel bounding box must exist").not.toBeNull();
+    expect(heroBoundingBox!.x, "hero panel must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      heroBoundingBox!.x + heroBoundingBox!.width,
+      "hero panel must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+
+    // ── Step 6: Score ring is visible and within viewport ─────────────────
+    const scoreRing = page.getByTestId("score-ring");
+    await scoreRing.scrollIntoViewIfNeeded();
+    await expect(scoreRing).toBeVisible();
+    const ringBox = await scoreRing.boundingBox();
+    expect(ringBox, "score ring bounding box must exist").not.toBeNull();
+    expect(ringBox!.x, "score ring must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      ringBox!.x + ringBox!.width,
+      "score ring must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+
+    // ── Step 7: Pass/fail badge is visible and within viewport ────────────
+    const passBadge = page.getByTestId("pass-fail-badge");
+    await passBadge.scrollIntoViewIfNeeded();
+    await expect(passBadge).toBeVisible();
+    const badgeBox = await passBadge.boundingBox();
+    expect(badgeBox, "pass/fail badge bounding box must exist").not.toBeNull();
+    expect(badgeBox!.x, "pass/fail badge must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      badgeBox!.x + badgeBox!.width,
+      "pass/fail badge must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+
+    // ── Step 8: XP / rewards section visible if present ───────────────────
+    const rewardsSection = page.getByTestId("attempt-rewards");
+    const rewardsCount = await rewardsSection.count();
+    if (rewardsCount > 0) {
+      await rewardsSection.first().scrollIntoViewIfNeeded();
+      await expect(rewardsSection.first()).toBeVisible();
+      const rwBox = await rewardsSection.first().boundingBox();
+      expect(rwBox, "rewards section bounding box must exist").not.toBeNull();
+      expect(
+        rwBox!.x + rwBox!.width,
+        "XP rewards must not extend past viewport right edge",
+      ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+    }
+
+    // ── Step 9: Leaderboard does not overflow horizontally ─────────────────
+    const leaderboard = page.getByTestId("leaderboard-section");
+    const lbCount = await leaderboard.count();
+    if (lbCount > 0) {
+      await leaderboard.scrollIntoViewIfNeeded();
+      await expect(leaderboard).toBeVisible();
+      const lbBox = await leaderboard.boundingBox();
+      expect(lbBox, "leaderboard bounding box must exist").not.toBeNull();
+      expect(lbBox!.x, "leaderboard must not start left of viewport").toBeGreaterThanOrEqual(0);
+      expect(
+        lbBox!.x + lbBox!.width,
+        "leaderboard must not extend past viewport right edge",
+      ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+    }
+
+    // ── Step 10: AI disclaimer banner is readable ─────────────────────────
+    const disclaimer = page.getByTestId("ai-disclaimer");
+    await disclaimer.scrollIntoViewIfNeeded();
+    await expect(disclaimer).toBeVisible();
+    const disclaimerBox = await disclaimer.boundingBox();
+    expect(disclaimerBox, "disclaimer bounding box must exist").not.toBeNull();
+    expect(disclaimerBox!.x, "disclaimer must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      disclaimerBox!.x + disclaimerBox!.width,
+      "disclaimer must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+  });
+
   test("question prompt text is not clipped on the left or right", async ({
     page,
   }) => {
