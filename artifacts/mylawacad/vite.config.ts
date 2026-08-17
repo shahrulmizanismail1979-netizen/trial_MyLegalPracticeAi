@@ -63,6 +63,15 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    // Proxy /api/* to the Express API server so the Vite dev server is a
+    // single-origin host for both the frontend and the backend during
+    // development and e2e tests (Playwright baseURL points at this port).
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },

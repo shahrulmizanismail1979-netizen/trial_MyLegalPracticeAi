@@ -23,6 +23,19 @@ const LANDSCAPE_VIEWPORT = { width: 852, height: 393 };
 // reduces visible height to ~320 px
 const SMALL_LANDSCAPE_VIEWPORT = { width: 812, height: 320 };
 
+// ─── suppress tutorial overlays ───────────────────────────────────────────────
+// The studio join page auto-opens a "Student Tour" tutorial overlay 600 ms
+// after the first visit (localStorage key "studio.tutorial.student.v1").
+// If the overlay appears before the "Begin assessment" button is clicked it
+// intercepts the click and the test hangs waiting for a navigation that never
+// comes.  addInitScript runs before any page script, so the key is already set
+// when the tutorial component mounts and the overlay never auto-opens.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("studio.tutorial.student.v1", "1");
+  });
+});
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 interface SetupResult {
@@ -605,7 +618,7 @@ test.describe("Exam attempt page on iPhone 14 Pro landscape viewport (852×393)"
 
     const nameInput = page.getByTestId("name-input");
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill("Rotation Tester");
+    await nameInput.fill("Landscape E2E Candidate");
     await page.getByRole("button", { name: /begin assessment/i }).click();
 
     // ── Step 2: Confirm we are on the attempt page (portrait) ─────────────
@@ -1250,7 +1263,9 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
     expect(patchResp.status(), `open hw assessment: ${await patchResp.text()}`).toBe(200);
   });
 
-  async function joinHandwritingAttempt(page: Page): Promise<void> {
+  // Each test must pass a unique student name so the per-student maxAttempts=1
+  // limit on the assessment does not block the second and third test from joining.
+  async function joinHandwritingAttempt(page: Page, studentName: string): Promise<void> {
     await page.goto("/mylawacad/studio/join");
 
     const codeInput = page.getByTestId("code-input");
@@ -1259,7 +1274,7 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
 
     const nameInput = page.getByTestId("name-input");
     await expect(nameInput).toBeVisible({ timeout: 10_000 });
-    await nameInput.fill("HW Candidate");
+    await nameInput.fill(studentName);
 
     await page.getByRole("button", { name: /begin assessment/i }).click();
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
@@ -1267,7 +1282,7 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
   }
 
   test("handwriting tab is selectable on a 393 px viewport", async ({ page }) => {
-    await joinHandwritingAttempt(page);
+    await joinHandwritingAttempt(page, "HW Tab Checker");
 
     const writeTab = page.getByRole("tab", { name: /write/i });
     await expect(writeTab).toBeVisible();
@@ -1286,7 +1301,7 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
   test("canvas, Clear and Recognise buttons are all visible within 393 px viewport", async ({
     page,
   }) => {
-    await joinHandwritingAttempt(page);
+    await joinHandwritingAttempt(page, "HW Canvas Checker");
 
     await page.getByRole("tab", { name: /write/i }).click();
 
@@ -1317,7 +1332,7 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
   test("touch-pointer stroke on canvas is accepted and Recognise button submits without error", async ({
     page,
   }) => {
-    await joinHandwritingAttempt(page);
+    await joinHandwritingAttempt(page, "HW Stroke Checker");
 
     await page.getByRole("tab", { name: /write/i }).click();
 

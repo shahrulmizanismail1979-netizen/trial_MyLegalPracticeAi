@@ -45,7 +45,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run test:e2e:fab"
+args = "pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile"
 
 [workflows.workflow.metadata]
 isValidation = true
