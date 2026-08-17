@@ -37,6 +37,40 @@ const app = express();
 app.use(express.json());
 app.use("/admin", alertStatusRouter);
 
+// ── Suite 1: live-mode boot — must run FIRST so lastAttempts is still empty ──
+describe("GET /admin/alert-status on a fresh live-mode boot", () => {
+  beforeAll(async () => {
+    // Simulate a production server that boots with a live Stripe key.
+    // warnIfTestModeInProduction exits early without recording any attempt.
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_live_fake_key_for_alert_status_test";
+
+    await warnIfTestModeInProduction(
+      (_msg) => {/* suppress stdout */},
+      (_msg) => {/* suppress stderr */},
+    );
+  });
+
+  afterAll(() => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.STRIPE_SECRET_KEY;
+    // Reset the mock so Suite 2's waitFor starts from zero calls.
+    sendEmailMock.mockClear();
+  });
+
+  it("returns 200 with an empty array", async () => {
+    const res = await request(app).get("/admin/alert-status");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it("never called sendEmail", () => {
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── Suite 2: test-mode boot ──
 describe("GET /admin/alert-status after warnIfTestModeInProduction (test-mode boot)", () => {
   beforeAll(async () => {
     // Simulate a production server that boots with a test Stripe key.
