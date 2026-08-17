@@ -40,6 +40,17 @@ args = "pnpm --filter @workspace/api-server run test"
 isValidation = true
 
 [[workflows.workflow]]
+name = "e2e-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:e2e:fab"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
 name = "artifacts/mylitai: web"
 author = "agent"
 

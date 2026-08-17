@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:fab": "playwright test e2e/fab-stacking.spec.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

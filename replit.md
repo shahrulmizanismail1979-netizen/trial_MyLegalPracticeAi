@@ -47,6 +47,28 @@ pnpm workspace monorepo with a landing page for AI Web Books (6 AI-powered legal
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
+## CI Workflows (run automatically on every task merge)
+
+| Workflow | Command | What it tests |
+|---|---|---|
+| `api-tests` | `pnpm --filter @workspace/api-server run test` | Unit + integration tests (Vitest) |
+| `e2e-tests` | `pnpm --filter @workspace/api-server run test:e2e:fab` | FAB stacking regression guard — Playwright fixture tests (`artifacts/api-server/e2e/fab-stacking.spec.ts`) |
+
+To run either workflow manually from the shell:
+
+```sh
+# Unit tests
+pnpm --filter @workspace/api-server run test
+
+# FAB stacking e2e tests only (what the CI workflow runs)
+pnpm --filter @workspace/api-server run test:e2e:fab
+
+# Full Playwright suite (requires running services + authenticated sessions — not used as a merge gate)
+pnpm --filter @workspace/api-server run test:e2e
+```
+
+Both workflows are configured as `isValidation = true` in `.replit`, so Replit enforces them before any task branch is merged.
+
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
 
 ## Judgment Research Platform (persistent rules)
