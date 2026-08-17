@@ -83,6 +83,12 @@ vi.mock("./lib/mailer", () => ({
 
 vi.mock("@workspace/db", () => ({
   pool: { query: mockQuery },
+  // alertStatus.ts imports these; provide no-op stubs so the module loads.
+  db: {
+    insert: () => ({ values: () => ({ catch: () => {} }) }),
+    execute: vi.fn().mockResolvedValue({ rows: [] }),
+  },
+  alertDeliveryAttemptsTable: {},
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

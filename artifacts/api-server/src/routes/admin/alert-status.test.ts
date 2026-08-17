@@ -20,8 +20,13 @@ vi.mock("../../lib/mailer", () => ({
 const poolQueryMock = vi.fn().mockResolvedValue({ rows: [{ key: "stripe_test_mode_alert_sent_at" }] });
 vi.mock("@workspace/db", () => ({
   pool: { query: (...args: unknown[]) => poolQueryMock(...args) },
-  // Provide stubs for anything else the module re-exports that other imports may need.
-  db: {},
+  // Stub db so alertStatus.ts DB calls are no-ops; getAlertStatus falls back
+  // to its in-memory map when execute returns an empty result.
+  db: {
+    insert: () => ({ values: () => ({ catch: (_fn: unknown) => undefined }) }),
+    execute: vi.fn().mockResolvedValue({ rows: [] }),
+  },
+  alertDeliveryAttemptsTable: {},
   subscribersTable: {},
   activityTable: {},
 }));
@@ -110,16 +115,16 @@ describe("GET /admin/alert-status after warnIfTestModeInProduction (test-mode bo
     const gmailEntry = (res.body as Array<{
       channel: string;
       outcome: string;
-      attemptedAt: string | null;
+      attemptedAt: string;
       detail: string;
     }>).find((e) => e.channel === "gmail");
 
     expect(gmailEntry).toBeDefined();
     expect(gmailEntry!.outcome).toBe("success");
-    expect(gmailEntry!.attemptedAt).not.toBeNull();
+    expect(gmailEntry!.attemptedAt).toBeTruthy();
     // attemptedAt must be a valid ISO-8601 timestamp.
-    expect(() => new Date(gmailEntry!.attemptedAt)).not.toThrow();
-    expect(new Date(gmailEntry!.attemptedAt).getTime()).toBeGreaterThan(0);
+    const ts = new Date(gmailEntry!.attemptedAt);
+    expect(ts.getTime()).toBeGreaterThan(0);
   });
 
   it("the gmail send was attempted with the resolved admin email", () => {

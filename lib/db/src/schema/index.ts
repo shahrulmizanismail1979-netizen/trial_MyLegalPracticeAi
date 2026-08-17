@@ -51,3 +51,4 @@ export * from "./matter-files";
 export * from "./portal-code-seats";
 export * from "./portal-clients";
 export * from "./case-events";
+export * from "./alert-delivery-attempts";
