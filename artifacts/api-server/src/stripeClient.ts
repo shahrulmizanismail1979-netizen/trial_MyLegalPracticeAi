@@ -18,11 +18,24 @@ async function getStripeCredentials(): Promise<{
   // regardless of what the Replit connector is configured with.
   // Only use the env var if it looks like a real Stripe key (sk_live_ or sk_test_).
   const envSecret = process.env.STRIPE_SECRET_KEY;
-  if (envSecret && (envSecret.startsWith("sk_live_") || envSecret.startsWith("sk_test_"))) {
-    return {
-      secretKey: envSecret,
-      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-    };
+  if (envSecret) {
+    if (envSecret.startsWith("sk_live_") || envSecret.startsWith("sk_test_")) {
+      const mode = envSecret.startsWith("sk_live_") ? "LIVE" : "TEST";
+      console.log(`[Stripe] Using STRIPE_SECRET_KEY env var (${mode} mode, length=${envSecret.length})`);
+      return {
+        secretKey: envSecret,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+      };
+    } else {
+      console.warn(
+        `[Stripe] STRIPE_SECRET_KEY is set but does not start with sk_live_ or sk_test_ ` +
+        `(got prefix: "${envSecret.slice(0, 8)}...", length=${envSecret.length}). ` +
+        `Falling back to Replit connector. ` +
+        `Please set STRIPE_SECRET_KEY to your Stripe Secret key (starts with sk_live_ or sk_test_).`
+      );
+    }
+  } else {
+    console.log("[Stripe] STRIPE_SECRET_KEY not set — using Replit connector.");
   }
 
   // Fallback: fetch from the Replit connector (useful in local dev).
