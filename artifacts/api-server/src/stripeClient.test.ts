@@ -16,6 +16,12 @@
  * 7. Cross-restart sends when the cooldown has expired (upsert returns a row).
  * 8. Concurrent-start dedup: two independent server processes race on the DB
  *    slot; only the one whose atomic upsert returns a row sends the alert.
+ * 9. DB error fallback: when pool.query throws (e.g. server_kv was wiped by a
+ *    migration), tryClaimAlertSlot fails open → alert fires exactly once.
+ *    The in-memory testModeAlertSent flag then suppresses any further calls
+ *    within the same process, so the blast is bounded to one per restart.
+ *
+ * Webhook fallback suite (separate describe block below):
  * 9. The webhook fallback fires when Gmail returns false.
  * 10. The webhook fallback fires when Gmail throws.
  * 11. The webhook fallback does NOT fire when Gmail succeeds.
@@ -336,6 +342,41 @@ describe("warnIfTestModeInProduction", () => {
 
     // Still exactly one email — process B was suppressed by the DB claim
     expect(mockSendEmail).toHaveBeenCalledOnce();
+  });
+
+  // ── Test 9: DB error falls back to sending once (server_kv wiped) ─────────
+
+  it("sends exactly once when pool.query throws (server_kv missing after migration), then in-memory flag suppresses further calls", async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task407_dberror";
+
+    // Simulate server_kv being wiped by a migration — every query throws.
+    mockQuery.mockRejectedValue(new Error('relation "server_kv" does not exist'));
+
+    // Fresh module import = simulated process restart (testModeAlertSent: false)
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    const log = vi.fn();
+    const errorLog = vi.fn();
+
+    // First call: DB error → fail open → alert fires once
+    await warnIfTestModeInProduction(log, errorLog);
+    await flushAsync();
+
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("STRIPE IS IN TEST MODE"),
+    );
+    expect(mockSendEmail).toHaveBeenCalledOnce();
+
+    // Second call in the same process: testModeAlertSent is now true →
+    // short-circuited before even reaching tryClaimAlertSlot.
+    // mockQuery still rejects, but it should never be called.
+    mockQuery.mockClear();
+    await warnIfTestModeInProduction(log, errorLog);
+    await flushAsync();
+
+    // No further emails and no DB calls — the in-memory flag suppressed spam.
+    expect(mockSendEmail).toHaveBeenCalledOnce();
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 });
 

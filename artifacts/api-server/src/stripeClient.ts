@@ -75,8 +75,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
  * Returns `true` when this process won the race (should send the alert).
  * Returns `false` when another process already claimed the slot recently.
  *
- * Best-effort: returns `false` (suppress) on timeout or DB errors to avoid
- * spamming on infrastructure failures, while keeping startup non-blocking.
+ * Fail-open on timeout or DB errors: returns `true` so the alert fires
+ * exactly once (the in-memory `testModeAlertSent` flag immediately suppresses
+ * any further same-process calls).  This is preferable to silent suppression
+ * because a DB outage (e.g. server_kv wiped during a migration) should not
+ * hide a real production misconfiguration indefinitely — it produces one alert
+ * per process restart, which is acceptable spam compared to zero alerts.
+ *
+ * ⚠️  Infrastructure note — server_kv is NOT resettable during migrations.
+ *     Dropping or truncating this table resets all cross-restart cooldowns.
+ *     Treat it like a system config table: preserve data across schema changes
+ *     (use ALTER TABLE, never DROP + recreate in a migration that touches it).
  */
 async function tryClaimAlertSlot(): Promise<boolean> {
   const cutoff = new Date(Date.now() - ALERT_COOLDOWN_MS).toISOString();
@@ -85,6 +94,8 @@ async function tryClaimAlertSlot(): Promise<boolean> {
     const { pool } = await import("@workspace/db");
 
     // Ensure the table exists (idempotent, cheap after first run).
+    // ⚠️  server_kv is infrastructure-critical — never DROP or TRUNCATE it in
+    //     a migration; data loss resets all cross-restart cooldowns.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS server_kv (
         key         TEXT PRIMARY KEY,
@@ -111,11 +122,14 @@ async function tryClaimAlertSlot(): Promise<boolean> {
   })();
 
   try {
-    // Fail closed on timeout (suppress) so a DB hang doesn't block boot.
-    return await withTimeout(work, DB_TIMEOUT_MS, false);
+    // Fail open on timeout: return true so the alert fires exactly once.
+    // The in-memory testModeAlertSent flag immediately suppresses further
+    // same-process calls, bounding the blast to one alert per process restart.
+    return await withTimeout(work, DB_TIMEOUT_MS, true);
   } catch {
-    // DB error — suppress to avoid alert spam on DB outages.
-    return false;
+    // DB error (e.g. server_kv dropped during a migration) — fail open so the
+    // alert fires once.  The in-memory flag prevents same-process spam.
+    return true;
   }
 }
 
