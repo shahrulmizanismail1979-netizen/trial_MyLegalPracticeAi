@@ -29,8 +29,9 @@ export function RateLimitWarning() {
     <div
       role="alert"
       aria-live="assertive"
+      style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}
       className={[
-        "fixed bottom-24 left-1/2 -translate-x-1/2 z-50",
+        "fixed left-1/2 -translate-x-1/2 z-50",
         "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm font-medium",
         "max-w-sm w-[calc(100%-2rem)] sm:max-w-md",
         isExhausted

@@ -1096,7 +1096,7 @@ export default function Attempt() {
 
       {/* CORNER WIDGETS */}
       {proctoring.webcamSnapshots ? (
-        <div className="fixed bottom-24 right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl">
+        <div className="fixed right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
             <ShieldAlert className="h-3 w-3" /> Proctor cam
           </div>
@@ -1115,7 +1115,7 @@ export default function Attempt() {
       ) : null}
 
       {proctoring.audioMonitoring ? (
-        <div className="fixed bottom-4 left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl">
+        <div className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1 mb-1">
             <Mic className="h-3 w-3" /> Audio
           </div>
