@@ -937,6 +937,241 @@ test.describe("Exam attempt page on small Android landscape viewport (812×320)"
   });
 });
 
+// ─── Proctor-cam overlay vs timer / finish button (812 × 320) ────────────────
+//
+// Creates an assessment with webcamSnapshots: true so the fixed "Proctor cam"
+// widget appears.  Verifies at the 812×320 small-landscape viewport that:
+//   • the widget does not overlap the sticky timer badge in the top bar
+//   • the widget stays fully within the viewport (not clipped off-screen)
+//   • the widget does not obscure the "Finish" button in the sticky top bar
+
+test.describe("Proctor-cam overlay does not hide timer or finish button on 812×320 landscape", () => {
+  test.use({ viewport: SMALL_LANDSCAPE_VIEWPORT });
+
+  let webcamCode = "";
+
+  test.beforeAll(async ({ request }) => {
+    const uid = Date.now();
+    const email = `proctor-cam-${uid}@test.local`;
+    const password = "Mobile1234!";
+
+    const regResp = await request.post("/api/acad/auth/register", {
+      data: { email, password, name: "Proctor Cam Tester" },
+    });
+    expect([201, 409]).toContain(regResp.status());
+
+    const loginResp = await request.post("/api/acad/auth/login", {
+      data: { email, password },
+    });
+    expect(loginResp.status(), `login failed: ${await loginResp.text()}`).toBe(200);
+    const setCookieHeader = loginResp.headers()["set-cookie"] ?? "";
+    const sessionCookie = setCookieHeader
+      .split(",")
+      .map((c) => c.split(";")[0]?.trim() ?? "")
+      .filter(Boolean)
+      .join("; ");
+    const headers = { Cookie: sessionCookie };
+
+    // Assessment with webcam proctoring enabled
+    const createResp = await request.post("/api/acad/studio/assessments", {
+      headers,
+      data: {
+        title: `Proctor Cam E2E ${uid}`,
+        educatorName: "Proctor Cam Tester",
+        timeLimitMinutes: 60,
+        allowedAnswerModes: ["text"],
+        rubric: { criteria: [] },
+        proctoring: {
+          lockFullscreen: false,
+          blockCopyPaste: false,
+          blockRightClick: false,
+          blockShortcuts: false,
+          detectDevtools: false,
+          webcamSnapshots: true,
+          audioMonitoring: false,
+          idleTimeoutSeconds: 0,
+          maxTabSwitches: 0,
+          webcamSnapshotIntervalSec: 60,
+        },
+      },
+    });
+    expect(createResp.status(), `create proctored assessment: ${await createResp.text()}`).toBe(201);
+    const assessment = await createResp.json();
+    webcamCode = assessment.code;
+    const assessmentId: string = assessment.id;
+
+    const qResp = await request.post(
+      `/api/acad/studio/assessments/${assessmentId}/questions`,
+      {
+        headers,
+        data: {
+          type: "short_answer",
+          prompt: "Describe the doctrine of separation of powers.",
+          taxonomyLevel: 2,
+          points: 10,
+          options: [],
+        },
+      },
+    );
+    expect(qResp.status(), `add question: ${await qResp.text()}`).toBe(201);
+
+    const patchResp = await request.patch(
+      `/api/acad/studio/assessments/${assessmentId}`,
+      { headers, data: { status: "open" } },
+    );
+    expect(patchResp.status(), `open assessment: ${await patchResp.text()}`).toBe(200);
+  });
+
+  /** Inject a fake getUserMedia so the proctor-cam widget renders without a real camera. */
+  async function mockCamera(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 160;
+      canvas.height = 96;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(0, 0, 160, 96);
+      }
+      // captureStream is available in Chromium
+      const fakeStream = (canvas as any).captureStream?.() ?? null;
+      try {
+        Object.defineProperty(navigator, "mediaDevices", {
+          configurable: true,
+          value: {
+            getUserMedia: () =>
+              fakeStream
+                ? Promise.resolve(fakeStream)
+                : Promise.reject(new DOMException("Not allowed", "NotAllowedError")),
+            enumerateDevices: () => Promise.resolve([]),
+          },
+        });
+      } catch {
+        // In some contexts mediaDevices is already defined; ignore
+      }
+    });
+  }
+
+  /** Join the webcam-enabled assessment as a named student. */
+  async function joinWebcamAttempt(page: Page, name: string): Promise<void> {
+    await mockCamera(page);
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(webcamCode);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill(name);
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+    // Wait for the attempt page to fully settle
+    await expect(page.getByTestId("question-pane")).toBeVisible({ timeout: 10_000 });
+  }
+
+  test("webcam overlay does not overlap timer badge on 812×320 landscape", async ({
+    page,
+  }) => {
+    await joinWebcamAttempt(page, "Proctor Overlap Checker");
+
+    // Timer badge must be visible in the sticky top bar
+    const timerBadge = page.getByTestId("timer-badge");
+    await expect(timerBadge).toBeVisible({ timeout: 10_000 });
+
+    const timerBox = await timerBadge.boundingBox();
+    expect(timerBox, "timer badge bounding box must exist").not.toBeNull();
+
+    // Proctor-cam widget must be present (assessment has webcamSnapshots: true)
+    const webcamWidget = page.getByTestId("proctor-cam-widget");
+    await expect(webcamWidget).toBeVisible({ timeout: 10_000 });
+
+    const wcBox = await webcamWidget.boundingBox();
+    expect(wcBox, "webcam widget bounding box must exist").not.toBeNull();
+
+    // Bounding-box overlap check
+    const timerRight = timerBox!.x + timerBox!.width;
+    const timerBottom = timerBox!.y + timerBox!.height;
+    const wcRight = wcBox!.x + wcBox!.width;
+    const wcBottom = wcBox!.y + wcBox!.height;
+    const horizontalOverlap = timerBox!.x < wcRight && timerRight > wcBox!.x;
+    const verticalOverlap = timerBox!.y < wcBottom && timerBottom > wcBox!.y;
+
+    expect(
+      horizontalOverlap && verticalOverlap,
+      `Webcam widget (x=${wcBox!.x}–${wcRight}, y=${wcBox!.y}–${wcBottom}) overlaps ` +
+      `timer badge (x=${timerBox!.x}–${timerRight}, y=${timerBox!.y}–${timerBottom}) ` +
+      `on 812×320 landscape viewport`,
+    ).toBe(false);
+  });
+
+  test("webcam widget is fully within the 812×320 viewport", async ({
+    page,
+  }) => {
+    await joinWebcamAttempt(page, "Proctor Viewport Checker");
+
+    const webcamWidget = page.getByTestId("proctor-cam-widget");
+    await expect(webcamWidget).toBeVisible({ timeout: 10_000 });
+
+    const wcBox = await webcamWidget.boundingBox();
+    expect(wcBox, "webcam widget bounding box must exist").not.toBeNull();
+
+    expect(
+      wcBox!.x,
+      "webcam widget must not start left of the viewport",
+    ).toBeGreaterThanOrEqual(0);
+
+    expect(
+      wcBox!.y,
+      "webcam widget must not start above the top of the viewport",
+    ).toBeGreaterThanOrEqual(0);
+
+    expect(
+      wcBox!.x + wcBox!.width,
+      "webcam widget must not extend past the 812 px viewport right edge",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.width + 2);
+
+    expect(
+      wcBox!.y + wcBox!.height,
+      "webcam widget must not extend below the 320 px viewport bottom",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.height + 2);
+  });
+
+  test("webcam overlay does not obscure the finish button on 812×320 landscape", async ({
+    page,
+  }) => {
+    await joinWebcamAttempt(page, "Finish Obscure Checker");
+
+    // Finish button is in the sticky top bar
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await expect(finishTopBtn).toBeVisible({ timeout: 10_000 });
+
+    const finishBox = await finishTopBtn.boundingBox();
+    expect(finishBox, "finish button bounding box must exist").not.toBeNull();
+
+    const webcamWidget = page.getByTestId("proctor-cam-widget");
+    await expect(webcamWidget).toBeVisible({ timeout: 10_000 });
+
+    const wcBox = await webcamWidget.boundingBox();
+    expect(wcBox, "webcam widget bounding box must exist").not.toBeNull();
+
+    const finishRight = finishBox!.x + finishBox!.width;
+    const finishBottom = finishBox!.y + finishBox!.height;
+    const wcRight = wcBox!.x + wcBox!.width;
+    const wcBottom = wcBox!.y + wcBox!.height;
+    const horizontalOverlap = finishBox!.x < wcRight && finishRight > wcBox!.x;
+    const verticalOverlap = finishBox!.y < wcBottom && finishBottom > wcBox!.y;
+
+    expect(
+      horizontalOverlap && verticalOverlap,
+      `Webcam widget (x=${wcBox!.x}–${wcRight}, y=${wcBox!.y}–${wcBottom}) obscures ` +
+      `finish button (x=${finishBox!.x}–${finishRight}, y=${finishBox!.y}–${finishBottom}) ` +
+      `on 812×320 landscape viewport`,
+    ).toBe(false);
+  });
+});
+
 // ─── Handwriting tests (393 × 852) ───────────────────────────────────────────
 
 test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
