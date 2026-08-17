@@ -2107,3 +2107,222 @@ test.describe("Summary screen – portrait → landscape rotation after submissi
     }
   });
 });
+
+// ─── Both proctoring widgets simultaneously on a small landscape viewport ──────
+//
+// When an invigilator enables both webcamSnapshots and audioMonitoring the
+// attempt page renders two fixed-position widgets at the same time:
+//   • audio-monitor-bar  – bottom-left  (bottom: ~1rem,  left: 1rem,  w-40)
+//   • proctor-cam-widget – bottom-right (bottom: ~6rem,  right: 1rem, w-40)
+//
+// On a 812 × 320 viewport (small phone landscape with browser chrome) neither
+// widget should overlap the other and both must remain fully inside the
+// viewport.
+//
+// Because the test environment has no real camera or microphone the test
+// injects a silent MediaStream stub so getUserMedia never rejects and the
+// widgets render immediately without waiting for real hardware.
+
+test.describe("Both proctoring widgets on small landscape viewport (812×320)", () => {
+  test.use({ viewport: SMALL_LANDSCAPE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const uid = Date.now();
+    const email = `both-proctor-${uid}@test.local`;
+    const password = "BothProctor1234!";
+
+    // Register
+    const regResp = await (request as any).post("/api/acad/auth/register", {
+      data: { email, password, name: "BothProctor Tester" },
+    });
+    expect([201, 409], `register failed: ${regResp.status()} ${await regResp.text()}`).toContain(
+      regResp.status(),
+    );
+
+    // Login
+    const loginResp = await (request as any).post("/api/acad/auth/login", {
+      data: { email, password },
+    });
+    expect(loginResp.status(), `login failed: ${await loginResp.text()}`).toBe(200);
+    const setCookieHeader = loginResp.headers()["set-cookie"] ?? "";
+    const sessionCookie = setCookieHeader
+      .split(",")
+      .map((c: string) => c.split(";")[0]?.trim() ?? "")
+      .filter(Boolean)
+      .join("; ");
+    const headers = { Cookie: sessionCookie };
+
+    // Create assessment with BOTH proctoring modes enabled
+    const createResp = await (request as any).post("/api/acad/studio/assessments", {
+      headers,
+      data: {
+        title: `BothProctor E2E ${uid}`,
+        educatorName: "BothProctor Tester",
+        timeLimitMinutes: 60,
+        allowedAnswerModes: ["text"],
+        rubric: { criteria: [] },
+        proctoring: {
+          lockFullscreen: false,
+          blockCopyPaste: false,
+          blockRightClick: false,
+          blockShortcuts: false,
+          detectDevtools: false,
+          webcamSnapshots: true,
+          audioMonitoring: true,
+          idleTimeoutSeconds: 0,
+          maxTabSwitches: 0,
+          webcamSnapshotIntervalSec: 60,
+        },
+      },
+    });
+    expect(createResp.status(), `create assessment failed: ${await createResp.text()}`).toBe(201);
+    const assessment = await createResp.json();
+    const assessmentId: string = assessment.id;
+    code = assessment.code;
+
+    // Add a question
+    const qResp = await (request as any).post(
+      `/api/acad/studio/assessments/${assessmentId}/questions`,
+      {
+        headers,
+        data: {
+          type: "short_answer",
+          prompt: "Describe the elements of a valid contract under Malaysian law.",
+          taxonomyLevel: 2,
+          points: 10,
+          options: [],
+        },
+      },
+    );
+    expect(qResp.status(), `add question failed: ${await qResp.text()}`).toBe(201);
+
+    // Open the assessment
+    const patchResp = await (request as any).patch(
+      `/api/acad/studio/assessments/${assessmentId}`,
+      {
+        headers,
+        data: { status: "open" },
+      },
+    );
+    expect(patchResp.status(), `open assessment failed: ${await patchResp.text()}`).toBe(200);
+  });
+
+  test("audio-monitor-bar and proctor-cam-widget do not intersect and stay within the viewport", async ({
+    page,
+  }) => {
+    // ── Stub getUserMedia so the page never hangs waiting for real hardware ─
+    // The attempt page calls getUserMedia for both camera and microphone; without
+    // real devices in a headless browser these calls reject and the widgets may
+    // not render.  We replace getUserMedia with a function that resolves with a
+    // silent MediaStream so both widgets mount immediately.
+    await page.addInitScript(() => {
+      const silentStream = (): MediaStream => {
+        try {
+          const ctx = new AudioContext();
+          const dest = ctx.createMediaStreamDestination();
+          return dest.stream;
+        } catch {
+          // Fallback: return an empty MediaStream when AudioContext is unavailable
+          return new MediaStream();
+        }
+      };
+      Object.defineProperty(navigator, "mediaDevices", {
+        value: {
+          getUserMedia: async (_constraints: MediaStreamConstraints) => silentStream(),
+          enumerateDevices: async () => [],
+        },
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    // ── Step 1: Join the assessment ───────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await expect(codeInput).toBeVisible();
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("BothProctor Student");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Step 2: Confirm we are on the attempt page ────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    // ── Step 3: Wait for both widgets to appear ───────────────────────────
+    const camWidget = page.getByTestId("proctor-cam-widget");
+    const audioBar = page.getByTestId("audio-monitor-bar");
+
+    await expect(camWidget).toBeVisible({ timeout: 10_000 });
+    await expect(audioBar).toBeVisible({ timeout: 10_000 });
+
+    // ── Step 4: Capture bounding boxes ───────────────────────────────────
+    const camBox = await camWidget.boundingBox();
+    const audioBox = await audioBar.boundingBox();
+
+    expect(camBox, "proctor-cam-widget bounding box must exist").not.toBeNull();
+    expect(audioBox, "audio-monitor-bar bounding box must exist").not.toBeNull();
+
+    const vw = SMALL_LANDSCAPE_VIEWPORT.width;
+    const vh = SMALL_LANDSCAPE_VIEWPORT.height;
+
+    // ── Step 5: Both widgets must be fully within the viewport ────────────
+    expect(
+      camBox!.x,
+      "proctor-cam-widget must not start left of viewport left edge",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      camBox!.y,
+      "proctor-cam-widget must not start above viewport top edge",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      camBox!.x + camBox!.width,
+      "proctor-cam-widget must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(vw + 2);
+    expect(
+      camBox!.y + camBox!.height,
+      "proctor-cam-widget must not extend below viewport bottom edge",
+    ).toBeLessThanOrEqual(vh + 2);
+
+    expect(
+      audioBox!.x,
+      "audio-monitor-bar must not start left of viewport left edge",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      audioBox!.y,
+      "audio-monitor-bar must not start above viewport top edge",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      audioBox!.x + audioBox!.width,
+      "audio-monitor-bar must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(vw + 2);
+    expect(
+      audioBox!.y + audioBox!.height,
+      "audio-monitor-bar must not extend below viewport bottom edge",
+    ).toBeLessThanOrEqual(vh + 2);
+
+    // ── Step 6: The two widgets must not intersect each other ─────────────
+    // Two axis-aligned rectangles do NOT intersect when one is entirely to
+    // the left, right, above, or below the other.
+    const camRight = camBox!.x + camBox!.width;
+    const camBottom = camBox!.y + camBox!.height;
+    const audioRight = audioBox!.x + audioBox!.width;
+    const audioBottom = audioBox!.y + audioBox!.height;
+
+    const noHorizontalOverlap = camRight <= audioBox!.x || audioRight <= camBox!.x;
+    const noVerticalOverlap = camBottom <= audioBox!.y || audioBottom <= camBox!.y;
+    const noIntersection = noHorizontalOverlap || noVerticalOverlap;
+
+    expect(
+      noIntersection,
+      `proctor-cam-widget [x:${camBox!.x.toFixed(1)}, y:${camBox!.y.toFixed(1)}, w:${camBox!.width.toFixed(1)}, h:${camBox!.height.toFixed(1)}] ` +
+        `and audio-monitor-bar [x:${audioBox!.x.toFixed(1)}, y:${audioBox!.y.toFixed(1)}, w:${audioBox!.width.toFixed(1)}, h:${audioBox!.height.toFixed(1)}] ` +
+        `must not overlap on a ${vw}×${vh} viewport`,
+    ).toBe(true);
+  });
+});
