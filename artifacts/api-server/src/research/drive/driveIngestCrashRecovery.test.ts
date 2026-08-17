@@ -325,10 +325,18 @@ describe("recoverStaleDriveIngestJobs — startup (thresholdMinutes: 0)", () => 
 
     seededStartupJobIds.push(job!.id);
 
-    // Periodic sweep (10min threshold) would NOT recover this job
+    // Periodic sweep (10min threshold) would NOT recover this specific job
+    // (claimedAt is seconds ago, well within the threshold).
+    // We check the job's own state rather than the global count because other
+    // tests running concurrently may leave orphaned RUNNING jobs that the sweep
+    // legitimately picks up, making a count-is-0 assertion fragile.
     const { recoverStaleDriveIngestJobs } = await import("./driveJobRecovery");
-    const periodicCount = await recoverStaleDriveIngestJobs({ thresholdMinutes: 10 });
-    expect(periodicCount).toBe(0); // not old enough for periodic sweep
+    await recoverStaleDriveIngestJobs({ thresholdMinutes: 10 });
+    const [afterPeriodic] = await db
+      .select({ state: researchJobs.state })
+      .from(researchJobs)
+      .where(eq(researchJobs.id, job!.id));
+    expect(afterPeriodic?.state).toBe("RUNNING"); // too recent — periodic sweep must not touch it
 
     // But startup recovery (thresholdMinutes: 0) must recover ALL RUNNING jobs
     const startupCount = await recoverStaleDriveIngestJobs({ thresholdMinutes: 0 });
