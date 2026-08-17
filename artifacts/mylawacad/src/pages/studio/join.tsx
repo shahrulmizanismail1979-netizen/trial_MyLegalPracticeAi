@@ -73,7 +73,7 @@ export default function Join() {
             <p className="uppercase tracking-widest text-muted-foreground text-sm">Enter your access code</p>
           </div>
 
-          <SpotlightCard className="p-8">
+          <SpotlightCard className="p-5 sm:p-8">
             {!assessment && (
               <form onSubmit={handleSearch} className="space-y-6">
                 <div>

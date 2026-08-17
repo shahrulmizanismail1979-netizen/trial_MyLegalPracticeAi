@@ -757,20 +757,20 @@ export default function Attempt() {
 
       {/* TOP BAR */}
       <div className="sticky top-0 z-30 backdrop-blur-xl bg-black/70 border-b border-amber-500/20">
-        <div className="container mx-auto px-6 py-3 flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
+        <div className="container mx-auto px-3 sm:px-6 py-2 sm:py-3 flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex-1 min-w-[140px]">
             <div className="text-[0.6rem] uppercase tracking-[0.4em] text-amber-400/80">
               {assessment.code}
             </div>
-            <div className="font-display text-lg text-gold leading-tight truncate">
+            <div className="font-display text-base sm:text-lg text-gold leading-tight truncate">
               {assessment.title}
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
+          <div className="hidden sm:flex items-center gap-2 text-sm">
             <UserIcon className="h-4 w-4 text-amber-400" />
             <span className="text-foreground/90">{attempt.studentName}</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10">
+          <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10" data-testid="timer-badge">
             <Clock className="h-4 w-4 text-amber-300" />
             <span className="font-mono tabular-nums text-amber-200 text-sm">
               {secondsLeft == null ? "--:--" : formatClock(secondsLeft)}
@@ -781,23 +781,29 @@ export default function Attempt() {
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
             <span>
               {currentIdx + 1} / {totalQuestions}
             </span>
-            <Progress value={progressPct} className="w-32 h-1.5" />
+            <Progress value={progressPct} className="w-24 sm:w-32 h-1.5" />
+          </div>
+          {/* Progress indicator visible on mobile */}
+          <div className="flex sm:hidden items-center text-xs text-muted-foreground font-mono">
+            {currentIdx + 1}/{totalQuestions}
           </div>
           <GoldButton
             onClick={onFinish}
             disabled={finishAttempt.isPending}
-            className="!py-2 !px-4"
+            className="!py-2 !px-3 sm:!px-4 text-xs sm:text-sm"
+            data-testid="btn-finish-top"
           >
             {finishAttempt.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Flag className="h-3.5 w-3.5" />
             )}
-            Finish & submit
+            <span className="hidden xs:inline">Finish &amp; submit</span>
+            <span className="xs:hidden">Submit</span>
           </GoldButton>
         </div>
         {tabSwitches > 0 ? (
@@ -809,11 +815,10 @@ export default function Attempt() {
         ) : null}
       </div>
 
-      {/* MAIN GRID */}
-      {/* pb-52 on small screens ensures fixed proctoring widgets don't cover the answer / submit area */}
+      {/* MAIN GRID — extra bottom padding so fixed proctoring widgets don't obscure content */}
       <div className={cn(
-        "container mx-auto px-6 py-6 flex-1 grid grid-cols-12 gap-6",
-        (proctoring.webcamSnapshots || proctoring.audioMonitoring) && "pb-52 sm:pb-6",
+        "container mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 grid grid-cols-12 gap-4 sm:gap-6",
+        (proctoring?.webcamSnapshots || proctoring?.audioMonitoring) && "pb-48 sm:pb-32",
       )}>
         {/* SIDEBAR */}
         <aside className="col-span-12 md:col-span-3">
@@ -858,8 +863,8 @@ export default function Attempt() {
         </aside>
 
         {/* QUESTION PANE */}
-        <section className="col-span-12 md:col-span-9 space-y-5">
-          <SpotlightCard className="p-8 space-y-6">
+        <section className="col-span-12 md:col-span-9 space-y-5" data-testid="question-pane">
+          <SpotlightCard className="p-4 sm:p-8 space-y-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <div className="text-[0.6rem] uppercase tracking-[0.4em] text-amber-400/80">
@@ -941,6 +946,7 @@ export default function Attempt() {
                       onChange={(e) => setDraftText(e.target.value)}
                       placeholder="Compose your response..."
                       className="min-h-[220px] bg-black/40 border-white/10 font-mono text-sm"
+                      data-testid="answer-textarea"
                     />
                   </TabsContent>
                 ) : null}
@@ -1045,7 +1051,7 @@ export default function Attempt() {
             )}
 
             {/* FOOTER ACTIONS */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/10 flex-wrap gap-3">
+            <div className="flex items-center justify-between pt-4 border-t border-white/10 flex-wrap gap-3" data-testid="footer-actions">
               <GhostButton
                 type="button"
                 onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
@@ -1060,6 +1066,7 @@ export default function Attempt() {
                   onClick={() => persistDraft()}
                   disabled={submitAnswer.isPending}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                  data-testid="btn-save-answer"
                 >
                   {submitAnswer.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
@@ -1100,7 +1107,7 @@ export default function Attempt() {
 
       {/* CORNER WIDGETS */}
       {proctoring.webcamSnapshots ? (
-        <div className="fixed right-2 sm:right-4 z-40 w-28 sm:w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="fixed right-4 z-40 w-40 rounded-lg overflow-hidden border border-amber-500/40 bg-black/80 shadow-xl" style={{ bottom: "calc(6rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="px-2 py-1 text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1">
             <ShieldAlert className="h-3 w-3" /> Proctor cam
           </div>
@@ -1119,7 +1126,7 @@ export default function Attempt() {
       ) : null}
 
       {proctoring.audioMonitoring ? (
-        <div className="fixed left-2 sm:left-4 z-40 w-28 sm:w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
+        <div className="fixed left-4 z-40 w-40 rounded-lg border border-amber-500/40 bg-black/80 px-3 py-2 shadow-xl" style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}>
           <div className="text-[0.55rem] uppercase tracking-widest text-amber-400/80 flex items-center gap-1 mb-1">
             <Mic className="h-3 w-3" /> Audio
           </div>
