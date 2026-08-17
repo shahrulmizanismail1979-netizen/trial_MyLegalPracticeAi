@@ -335,6 +335,10 @@ function OralPracticeInner() {
 
   const endSession = () => {
     stopAudio();
+    // Also stop mic recognition so it doesn't keep running after the session ends
+    manualStopRef.current = true;
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+    setListening(false);
     setPhase('setup');
   };
 

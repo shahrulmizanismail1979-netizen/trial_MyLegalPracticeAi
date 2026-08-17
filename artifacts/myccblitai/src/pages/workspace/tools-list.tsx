@@ -18,7 +18,7 @@ export default function ToolsListPage() {
     if (!isAuthenticated()) setLocation("/access");
   }, [setLocation]);
 
-  const { data: tools, isLoading } = useQuery({
+  const { data: tools, isLoading, isError } = useQuery({
     queryKey: ["ccb-tools"],
     queryFn: async () => {
       const res = await fetch("/api/ccb/tools/list", { headers: authHeaders() });
@@ -59,6 +59,11 @@ export default function ToolsListPage() {
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-lg" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-16 space-y-3">
+            <p className="text-muted-foreground">Could not load tools. Please check your connection and try again.</p>
+            <button onClick={() => window.location.reload()} className="text-sm text-primary underline">Retry</button>
           </div>
         ) : !tools?.length ? (
           <p className="text-muted-foreground text-center py-16">No tools available.</p>

@@ -98,6 +98,8 @@ function MarkdownText({ content }: { content: string }) {
 // ─── TTS Button ─────────────────────────────────────────────────────────────────
 function MessageTTS({ content }: { content: string }) {
   const [speaking, setSpeaking] = useState(false);
+  // Stop speech on unmount (navigation, reset) so audio doesn't outlive the component
+  useEffect(() => () => { if (speaking) stop(); }, [speaking]);
   if (!isSupported()) return null;
   const toggle = () => {
     if (speaking) { stop(); setSpeaking(false); }

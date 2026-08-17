@@ -257,7 +257,7 @@ export default function ToolPage() {
     <WorkspaceLayout>
       <div className="p-6 md:p-10 max-w-7xl mx-auto flex flex-col h-[calc(100vh-64px)] md:h-full">
         <div className="mb-6 flex-shrink-0">
-          <Link href="/workspace">
+          <Link href="/workspace/tools">
             <Button variant="ghost" size="sm" className="mb-4 -ml-3 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Tools

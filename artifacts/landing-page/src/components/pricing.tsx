@@ -231,7 +231,7 @@ export function Pricing() {
                 </span>
               </div>
               <CardTitle className="font-serif text-3xl mb-2">Complete Bundle</CardTitle>
-              <CardDescription className="text-lg">All 7 AI Portals</CardDescription>
+              <CardDescription className="text-lg">All 9 AI Portals</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-1">
@@ -246,7 +246,7 @@ export function Pricing() {
 
               <ul className="space-y-3 mb-6">
                 {[
-                  "Unlimited access to all 7 AI Portals",
+                  "Unlimited access to all 9 AI Portals",
                   "All features & updates",
                   "1 user license",
                   "Priority support",

@@ -28,7 +28,13 @@ interface Matter { id: number; title: string }
 
 function fmt(d: string | null) {
   if (!d) return null;
-  try { return new Date(d).toLocaleDateString("en-MY", { year: "numeric", month: "long", day: "numeric" }); } catch { return d; }
+  try {
+    const dt = new Date(d);
+    const day = String(dt.getDate()).padStart(2, "0");
+    const month = String(dt.getMonth() + 1).padStart(2, "0");
+    const year = dt.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch { return d; }
 }
 
 export default function CaseLawPage() {

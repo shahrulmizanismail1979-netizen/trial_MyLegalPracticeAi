@@ -79,7 +79,7 @@ export default function Exam() {
     return () => setAttemptTokenGetter(null);
   }, [id]);
 
-  const { data: session, isLoading: sessionLoading } = useGetExam(id, {
+  const { data: session, isLoading: sessionLoading, isError: sessionError } = useGetExam(id, {
     query: { enabled: !!id, queryKey: getGetExamQueryKey(id) },
   });
   const { data: questions } = useListExamQuestions(id, {
@@ -319,6 +319,18 @@ export default function Exam() {
       { onSuccess: () => navigate(`/exam/${session.id}/summary`) },
     );
   };
+
+  if (sessionError) {
+    return (
+      <CinematicShell showHeader={false} showFooter={false}>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="text-lg text-muted-foreground">This exam session could not be loaded.</p>
+          <p className="text-sm text-muted-foreground/70">Your session may have expired or the link is invalid. Please rejoin through your access portal.</p>
+          <a href="/" className="mt-2 text-sm text-fuchsia-400 underline hover:text-fuchsia-300">Return to home</a>
+        </div>
+      </CinematicShell>
+    );
+  }
 
   if (sessionLoading || !session) {
     return (

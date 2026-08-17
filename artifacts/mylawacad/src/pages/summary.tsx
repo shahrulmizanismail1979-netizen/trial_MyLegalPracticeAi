@@ -53,6 +53,17 @@ export default function Summary() {
     query: { enabled: !!id, queryKey: getListProctorEventsQueryKey(id) },
   });
 
+  if (session.isError || summary.isError) {
+    return (
+      <CinematicShell>
+        <div className="container mx-auto px-6 py-20 flex flex-col items-center gap-4 text-center">
+          <p className="text-muted-foreground">Your results could not be loaded. The session may have expired.</p>
+          <a href="/" className="text-sm text-fuchsia-400 underline hover:text-fuchsia-300">Return to home</a>
+        </div>
+      </CinematicShell>
+    );
+  }
+
   if (summary.isLoading || session.isLoading || !session.data) {
     return (
       <CinematicShell>

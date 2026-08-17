@@ -34,7 +34,7 @@ export function ExportButtons({ title, content, showText = true }: Props) {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to export Word document');
+      toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Failed to export Word document', variant: 'destructive' });
     } finally {
       setBusy(false);
     }

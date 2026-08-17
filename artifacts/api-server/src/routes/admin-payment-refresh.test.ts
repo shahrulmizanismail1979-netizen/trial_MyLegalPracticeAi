@@ -61,10 +61,16 @@ async function insertInvoice(params: {
     created: params.created,
     parent: { subscription_details: { subscription: SUB_ID } },
   });
+  // Resolve a valid account ID: prefer an existing invoice's account, then
+  // fall back to any row in stripe.accounts (populated by the Stripe sync).
+  // Never hard-code 'acct_test' — it may not exist after test-data cleanup.
   await db.execute(sql`
     INSERT INTO stripe.invoices (_account_id, _raw_data)
     VALUES (
-      COALESCE((SELECT _account_id FROM stripe.invoices LIMIT 1), 'acct_test'),
+      COALESCE(
+        (SELECT _account_id FROM stripe.invoices LIMIT 1),
+        (SELECT id FROM stripe.accounts LIMIT 1)
+      ),
       ${raw}::jsonb
     )
     ON CONFLICT (id) DO UPDATE SET _raw_data = EXCLUDED._raw_data
