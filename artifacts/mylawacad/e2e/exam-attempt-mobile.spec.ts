@@ -19,6 +19,10 @@ const IPHONE_VIEWPORT = { width: 393, height: 852 };
 // iPhone 14 Pro rotated to landscape
 const LANDSCAPE_VIEWPORT = { width: 852, height: 393 };
 
+// Small Android phone in landscape with browser chrome (address bar + status bar)
+// reduces visible height to ~320 px
+const SMALL_LANDSCAPE_VIEWPORT = { width: 812, height: 320 };
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 interface SetupResult {
@@ -795,5 +799,130 @@ test.describe("Exam attempt page – mid-attempt portrait → landscape rotation
     await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+\/summary/, {
       timeout: 15_000,
     });
+  });
+});
+
+// ─── Small Android landscape tests (812 × 320) ────────────────────────────────
+// Simulates a phone with browser chrome (address bar + status bar) that
+// reduces the visible CSS viewport height to ≈ 320 px.
+
+test.describe("Exam attempt page on small Android landscape viewport (812×320)", () => {
+  test.use({ viewport: SMALL_LANDSCAPE_VIEWPORT });
+
+  let code = "";
+
+  test.beforeAll(async ({ request }) => {
+    const result = await setupAssessment(request as any);
+    code = result.code;
+  });
+
+  test("timer badge is fully within the 812×320 viewport", async ({ page }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Small Landscape Timer Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    const timerBadge = page.getByTestId("timer-badge");
+    await expect(timerBadge).toBeVisible({ timeout: 10_000 });
+
+    const timerBox = await timerBadge.boundingBox();
+    expect(timerBox, "timer badge bounding box must exist").not.toBeNull();
+
+    // Badge must not start above the top of the viewport
+    expect(
+      timerBox!.y,
+      "timer badge must not start above viewport top",
+    ).toBeGreaterThanOrEqual(0);
+
+    // Badge must not extend past the bottom of the 320 px viewport
+    expect(
+      timerBox!.y + timerBox!.height,
+      "timer badge bottom must be within the 320 px viewport height",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.height + 1);
+
+    // Badge must not start left of the viewport
+    expect(
+      timerBox!.x,
+      "timer badge must not start left of viewport",
+    ).toBeGreaterThanOrEqual(0);
+
+    // Badge must not extend past the right edge of the 812 px viewport
+    expect(
+      timerBox!.x + timerBox!.width,
+      "timer badge must not extend past the 812 px viewport right edge",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.width + 1);
+  });
+
+  test("footer action buttons are reachable by scrolling on 812×320 viewport", async ({
+    page,
+  }) => {
+    // ── Join ──────────────────────────────────────────────────────────────
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(code);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 10_000 });
+    await nameInput.fill("Small Landscape Footer Checker");
+    await page.getByRole("button", { name: /begin assessment/i }).click();
+
+    // ── Attempt page ──────────────────────────────────────────────────────
+    await expect(page).toHaveURL(/\/studio\/attempt\/[^/]+$/, { timeout: 15_000 });
+
+    await expect(page.getByTestId("question-pane")).toBeVisible({ timeout: 10_000 });
+
+    // Footer action buttons must be reachable after scrolling
+    const saveBtn = page.getByTestId("btn-save-answer");
+    await saveBtn.scrollIntoViewIfNeeded();
+    await expect(saveBtn).toBeVisible();
+
+    const saveBtnBox = await saveBtn.boundingBox();
+    expect(saveBtnBox, "save button bounding box must exist").not.toBeNull();
+    // After scrollIntoView, the button's left/right edges must be within the 812 px width
+    expect(saveBtnBox!.x, "save button must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      saveBtnBox!.x + saveBtnBox!.width,
+      "save button must not extend past 812 px viewport right edge",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.width + 2);
+
+    const footerActions = page.getByTestId("footer-actions");
+    await footerActions.scrollIntoViewIfNeeded();
+    await expect(footerActions).toBeVisible();
+
+    const footerBox = await footerActions.boundingBox();
+    expect(footerBox, "footer actions bounding box must exist").not.toBeNull();
+    expect(
+      footerBox!.x + footerBox!.width,
+      "footer actions must not extend past 812 px viewport right edge",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.width + 2);
+
+    // Finish button in top bar must also be reachable (it's sticky — no scroll needed)
+    const finishTopBtn = page.getByTestId("btn-finish-top");
+    await expect(finishTopBtn).toBeVisible();
+
+    const finishBox = await finishTopBtn.boundingBox();
+    expect(finishBox, "finish button bounding box must exist").not.toBeNull();
+    expect(finishBox!.x, "finish button must not start left of viewport").toBeGreaterThanOrEqual(0);
+    expect(
+      finishBox!.x + finishBox!.width,
+      "finish button must not extend past 812 px viewport right edge",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.width + 2);
+    // Finish button is in the sticky top bar — it must sit within the viewport height
+    expect(
+      finishBox!.y + finishBox!.height,
+      "finish button (sticky top bar) must be within the 320 px viewport height",
+    ).toBeLessThanOrEqual(SMALL_LANDSCAPE_VIEWPORT.height + 1);
   });
 });
