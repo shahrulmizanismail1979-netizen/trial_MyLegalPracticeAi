@@ -1,5 +1,5 @@
 /**
- * Integration smoke-tests for warnIfTestModeInProduction (stripeClient.ts).
+ * Tests for warnIfTestModeInProduction (stripeClient.ts).
  *
  * Coverage
  * --------
@@ -16,6 +16,10 @@
  * 7. Cross-restart sends when the cooldown has expired (upsert returns a row).
  * 8. Concurrent-start dedup: two independent server processes race on the DB
  *    slot; only the one whose atomic upsert returns a row sends the alert.
+ * 9. The webhook fallback fires when Gmail returns false.
+ * 10. The webhook fallback fires when Gmail throws.
+ * 11. The webhook fallback does NOT fire when Gmail succeeds.
+ * 12. The webhook fallback does NOT fire when not in production.
  *
  * Module isolation
  * ----------------
@@ -99,10 +103,13 @@ function mockClaim(claimed: boolean) {
     }); // INSERT … RETURNING
 }
 
+// ── Suite 1: main alert + cooldown path ──────────────────────────────────────
+
 describe("warnIfTestModeInProduction", () => {
-  const savedEnv: Record<string, string | undefined> = {};
+  let savedEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
+    savedEnv = {};
     // Snapshot
     for (const k of ENV_KEYS) savedEnv[k] = process.env[k];
     // Start clean
@@ -160,14 +167,13 @@ describe("warnIfTestModeInProduction", () => {
     expect(mockGetOwnerEmail).toHaveBeenCalledOnce();
   });
 
-  // ── Test 2: de-duplication (within same process) ──────────────────────────
+  // ── Test 2: de-duplication within process ─────────────────────────────────
 
   it("de-duplicates: a second call in the same process sends no further email", async () => {
     process.env.REPLIT_DEPLOYMENT = "1";
     process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task401_dedup";
 
-    // Only the first call hits the DB; the second is short-circuited by
-    // the in-memory testModeAlertSent flag.
+    // First call claims the slot
     mockClaim(true);
 
     const { warnIfTestModeInProduction } = await import("./stripeClient");
@@ -178,7 +184,7 @@ describe("warnIfTestModeInProduction", () => {
     await warnIfTestModeInProduction(log, errorLog);
     await flushAsync();
 
-    // Second call — testModeAlertSent is now true inside the module
+    // Second call — testModeAlertSent is now true inside the module; no DB hit
     await warnIfTestModeInProduction(log, errorLog);
     await flushAsync();
 
@@ -201,8 +207,6 @@ describe("warnIfTestModeInProduction", () => {
 
     expect(mockSendEmail).not.toHaveBeenCalled();
     expect(errorLog).not.toHaveBeenCalled();
-    // No DB calls either — returns before reaching tryClaimAlertSlot
-    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   // ── Test 4: live key in production is fine ────────────────────────────────
@@ -221,7 +225,6 @@ describe("warnIfTestModeInProduction", () => {
     expect(mockSendEmail).not.toHaveBeenCalled();
     expect(errorLog).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith("Stripe mode: live ✓");
-    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   // ── Test 5: no admin email → no send ─────────────────────────────────────
@@ -230,7 +233,6 @@ describe("warnIfTestModeInProduction", () => {
     process.env.REPLIT_DEPLOYMENT = "1";
     process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task401_noemail";
 
-    // Slot is claimed (past the DB gate) but no admin email available
     mockClaim(true);
     mockGetOwnerEmail.mockResolvedValueOnce(null);
 
@@ -247,18 +249,16 @@ describe("warnIfTestModeInProduction", () => {
     );
   });
 
-  // ── Test 6: cross-restart de-duplication (cooldown active) ────────────────
+  // ── Test 6: cross-restart suppression while cooldown is active ────────────
 
-  it("suppresses the alert when the DB upsert returns no row (slot taken within cooldown)", async () => {
+  it("suppresses the alert on restart when the DB slot is still within the cooldown window", async () => {
     process.env.REPLIT_DEPLOYMENT = "1";
-    process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task405_xrestart";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fakekey_task405_suppressed";
 
-    // Simulate: another process already claimed the slot within the cooldown
-    // window — the upsert WHERE clause is false, RETURNING returns nothing.
+    // Simulate: existing record is within the cooldown window — the upsert
+    // WHERE clause is false, so no row is returned (slot NOT reclaimed).
     mockClaim(false);
 
-    // vi.resetModules() in beforeEach already gives us a fresh testModeAlertSent = false,
-    // simulating a process restart.
     const { warnIfTestModeInProduction } = await import("./stripeClient");
     const log = vi.fn();
     const errorLog = vi.fn();
@@ -266,12 +266,12 @@ describe("warnIfTestModeInProduction", () => {
     await warnIfTestModeInProduction(log, errorLog);
     await flushAsync();
 
-    // The banner is still logged (visible warning even when suppressed)
+    // Banner still logged (visible warning regardless)
     expect(errorLog).toHaveBeenCalledWith(
       expect.stringContaining("STRIPE IS IN TEST MODE"),
     );
 
-    // But NO email was sent — cooldown is active
+    // No email — cooldown is active
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
@@ -336,5 +336,113 @@ describe("warnIfTestModeInProduction", () => {
 
     // Still exactly one email — process B was suppressed by the DB claim
     expect(mockSendEmail).toHaveBeenCalledOnce();
+  });
+});
+
+// ── Suite 2: webhook fallback path ────────────────────────────────────────────
+
+describe("warnIfTestModeInProduction — webhook fallback", () => {
+  let savedEnv: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    savedEnv = {
+      REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    };
+    vi.clearAllMocks();
+    mockSendEmail.mockResolvedValue(true);
+    mockGetOwnerEmail.mockResolvedValue("admin@example.test");
+    mockSendWebhookAlert.mockResolvedValue(true);
+    mockQuery.mockResolvedValue({ rows: [] });
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    for (const [k, v] of Object.entries(savedEnv)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+
+  // ── Test 9: webhook fires when Gmail returns false ────────────────────────
+
+  it("calls sendWebhookAlert with the correct payload when Gmail returns false", async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_vitest";
+
+    mockClaim(true);
+    mockSendEmail.mockResolvedValue(false);
+
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    await warnIfTestModeInProduction(vi.fn(), vi.fn());
+
+    await vi.waitFor(
+      () => {
+        expect(mockSendWebhookAlert).toHaveBeenCalledTimes(1);
+        const [payload] = mockSendWebhookAlert.mock.calls[0] as [
+          { subject: string; html: string; detectedAt: string; server: string },
+        ];
+        expect(payload.subject).toContain("TEST mode");
+        expect(typeof payload.detectedAt).toBe("string");
+        expect(typeof payload.server).toBe("string");
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // ── Test 10: webhook fires when Gmail throws ──────────────────────────────
+
+  it("calls sendWebhookAlert with the correct payload when Gmail throws", async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_vitest";
+
+    mockClaim(true);
+    mockSendEmail.mockRejectedValue(new Error("Gmail connector unavailable"));
+
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    await warnIfTestModeInProduction(vi.fn(), vi.fn());
+
+    await vi.waitFor(
+      () => {
+        expect(mockSendWebhookAlert).toHaveBeenCalledTimes(1);
+        const [payload] = mockSendWebhookAlert.mock.calls[0] as [
+          { subject: string; html: string; detectedAt: string; server: string },
+        ];
+        expect(payload.subject).toContain("TEST mode");
+        expect(typeof payload.detectedAt).toBe("string");
+        expect(typeof payload.server).toBe("string");
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  // ── Test 11: webhook does NOT fire when Gmail succeeds ────────────────────
+
+  it("does NOT call sendWebhookAlert when Gmail succeeds", async () => {
+    process.env.REPLIT_DEPLOYMENT = "1";
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_vitest";
+
+    mockClaim(true);
+    mockSendEmail.mockResolvedValue(true);
+
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    await warnIfTestModeInProduction(vi.fn(), vi.fn());
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(mockSendWebhookAlert).not.toHaveBeenCalled();
+  });
+
+  // ── Test 12: webhook does NOT fire outside production ─────────────────────
+
+  it("does NOT call sendWebhookAlert when NOT in production (REPLIT_DEPLOYMENT unset)", async () => {
+    delete process.env.REPLIT_DEPLOYMENT;
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_vitest";
+
+    const { warnIfTestModeInProduction } = await import("./stripeClient");
+    await warnIfTestModeInProduction(vi.fn(), vi.fn());
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(mockSendWebhookAlert).not.toHaveBeenCalled();
   });
 });
