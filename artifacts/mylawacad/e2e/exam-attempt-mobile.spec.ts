@@ -1386,6 +1386,62 @@ test.describe("Proctor-cam overlay does not hide timer or finish button on 812×
       `on 812×320 landscape viewport`,
     ).toBe(false);
   });
+
+  test("proctor-cam widget does not overlap answer textarea after on-screen keyboard pushes viewport up", async ({
+    page,
+  }) => {
+    // ── Setup ─────────────────────────────────────────────────────────────
+    // Join with webcam mock so the proctor-cam widget appears.
+    await joinWebcamAttempt(page, "Keyboard Viewport Checker");
+
+    // ── Locate the answer textarea ─────────────────────────────────────────
+    const textarea = page.getByTestId("answer-textarea");
+    await textarea.scrollIntoViewIfNeeded();
+    await expect(textarea).toBeVisible({ timeout: 10_000 });
+
+    // ── Simulate the on-screen keyboard pushing the viewport up ────────────
+    // On real mobile devices, focusing a text input causes the OS keyboard
+    // to appear, which reduces the visual viewport height by ~200–240 px.
+    // Playwright drives a desktop Chromium that doesn't have a software
+    // keyboard, so we replicate the effect by shrinking the viewport height
+    // to 160 px (≈ 812×320 minus a 160 px keyboard) after focusing the
+    // textarea, which forces all fixed-positioned elements to reflow into
+    // the reduced space exactly as they would on a real device.
+    await textarea.focus();
+    await page.setViewportSize({ width: 812, height: 160 });
+
+    // Give the browser one animation frame to reflow fixed elements.
+    await page.waitForTimeout(200);
+
+    // ── Bounding boxes after the simulated keyboard open ──────────────────
+    const webcamWidget = page.getByTestId("proctor-cam-widget");
+    await expect(webcamWidget).toBeVisible({ timeout: 10_000 });
+
+    const wcBox = await webcamWidget.boundingBox();
+    expect(wcBox, "webcam widget bounding box must exist after keyboard resize").not.toBeNull();
+
+    // Scroll textarea back into view (keyboard may have pushed it out of the
+    // shrunken viewport) and re-measure its position.
+    await textarea.scrollIntoViewIfNeeded();
+    const taBox = await textarea.boundingBox();
+    expect(taBox, "answer textarea bounding box must exist after keyboard resize").not.toBeNull();
+
+    // ── Overlap check ─────────────────────────────────────────────────────
+    const wcRight   = wcBox!.x + wcBox!.width;
+    const wcBottom  = wcBox!.y + wcBox!.height;
+    const taRight   = taBox!.x + taBox!.width;
+    const taBottom  = taBox!.y + taBox!.height;
+
+    const horizontalOverlap = wcBox!.x < taRight  && wcRight  > taBox!.x;
+    const verticalOverlap   = wcBox!.y < taBottom && wcBottom > taBox!.y;
+
+    expect(
+      horizontalOverlap && verticalOverlap,
+      `Proctor-cam widget (x=${wcBox!.x}–${wcRight}, y=${wcBox!.y}–${wcBottom}) ` +
+      `overlaps answer textarea (x=${taBox!.x}–${taRight}, y=${taBox!.y}–${taBottom}) ` +
+      `after on-screen keyboard pushes viewport to 812×160`,
+    ).toBe(false);
+  });
 });
 
 // ─── Handwriting tests (393 × 852) ───────────────────────────────────────────
