@@ -98,10 +98,10 @@ export default function Join() {
 
             {assessment && (
               <form onSubmit={handleJoin} className="space-y-6">
-                <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 mb-6">
+                <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 mb-6" data-testid="assessment-title-card">
                   <div className="text-xs uppercase tracking-widest text-amber-500 mb-1">{assessment.code}</div>
-                  <div className="font-display font-bold text-xl">{assessment.title}</div>
-                  <div className="text-sm text-muted-foreground mt-2">{assessment.educatorName}</div>
+                  <div className="font-display font-bold text-xl break-words [overflow-wrap:anywhere]">{assessment.title}</div>
+                  <div className="text-sm text-muted-foreground mt-2 break-words [overflow-wrap:anywhere]">{assessment.educatorName}</div>
                 </div>
 
                 <div className="space-y-4">

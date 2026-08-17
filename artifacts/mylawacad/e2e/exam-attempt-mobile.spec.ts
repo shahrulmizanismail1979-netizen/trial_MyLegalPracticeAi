@@ -1126,6 +1126,169 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
 // change the name input, the Begin Assessment button, and the assessment title
 // card must all be within the new viewport bounds without a page reload.
 
+// ─── Long title / educator name clipping tests ───────────────────────────────
+//
+// Creates an assessment whose title exceeds 60 characters and whose educator
+// name exceeds 40 characters, then verifies the title card on the join page
+// fits entirely within the iPhone 14 Pro viewport without horizontal clipping.
+
+test.describe("Join page – assessment title card with very long title and educator name", () => {
+  test.use({ viewport: IPHONE_VIEWPORT });
+
+  let longTitleCode = "";
+
+  test.beforeAll(async ({ request }) => {
+    const uid = Date.now();
+    const email = `mobile-long-title-${uid}@test.local`;
+    const password = "Mobile1234!";
+
+    const regResp = await request.post("/api/acad/auth/register", {
+      data: { email, password, name: "Long Title Educator With An Exceptionally Long Name Indeed" },
+    });
+    expect([201, 409]).toContain(regResp.status());
+
+    const loginResp = await request.post("/api/acad/auth/login", {
+      data: { email, password },
+    });
+    expect(loginResp.status(), `login failed: ${await loginResp.text()}`).toBe(200);
+    const setCookieHeader = loginResp.headers()["set-cookie"] ?? "";
+    const sessionCookie = setCookieHeader
+      .split(",")
+      .map((c) => c.split(";")[0]?.trim() ?? "")
+      .filter(Boolean)
+      .join("; ");
+    const headers = { Cookie: sessionCookie };
+
+    // Title is >60 chars, educatorName is >40 chars
+    const longTitle =
+      "Advanced Constitutional Law and Administrative Principles in Malaysian Context — Midterm Examination";
+    const longEducatorName = "Prof. Dr. Aisyah binti Mohamed Al-Rashid Al-Amin";
+
+    const createResp = await request.post("/api/acad/studio/assessments", {
+      headers,
+      data: {
+        title: longTitle,
+        educatorName: longEducatorName,
+        timeLimitMinutes: 60,
+        allowedAnswerModes: ["text"],
+        rubric: { criteria: [] },
+        proctoring: {
+          lockFullscreen: false,
+          blockCopyPaste: false,
+          blockRightClick: false,
+          blockShortcuts: false,
+          detectDevtools: false,
+          webcamSnapshots: false,
+          audioMonitoring: false,
+          idleTimeoutSeconds: 0,
+          maxTabSwitches: 0,
+          webcamSnapshotIntervalSec: 60,
+        },
+      },
+    });
+    expect(createResp.status(), `create long-title assessment: ${await createResp.text()}`).toBe(201);
+    const assessment = await createResp.json();
+    longTitleCode = assessment.code;
+    const assessmentId: string = assessment.id;
+
+    const qResp = await request.post(
+      `/api/acad/studio/assessments/${assessmentId}/questions`,
+      {
+        headers,
+        data: {
+          type: "short_answer",
+          prompt: "Explain the doctrine of separation of powers.",
+          taxonomyLevel: 2,
+          points: 10,
+          options: [],
+        },
+      },
+    );
+    expect(qResp.status(), `add question: ${await qResp.text()}`).toBe(201);
+
+    const patchResp = await request.patch(
+      `/api/acad/studio/assessments/${assessmentId}`,
+      { headers, data: { status: "open" } },
+    );
+    expect(patchResp.status(), `open assessment: ${await patchResp.text()}`).toBe(200);
+  });
+
+  test("title card with long title and educator name does not overflow the mobile viewport", async ({
+    page,
+  }) => {
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await expect(codeInput).toBeVisible();
+    await codeInput.fill(longTitleCode);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    // Wait for the assessment title card to appear
+    const titleCard = page.getByTestId("assessment-title-card");
+    await expect(titleCard).toBeVisible({ timeout: 10_000 });
+
+    // The title card must be entirely within the viewport width
+    const cardBox = await titleCard.boundingBox();
+    expect(cardBox, "assessment title card bounding box must exist").not.toBeNull();
+    expect(
+      cardBox!.x,
+      "assessment title card must not start left of viewport",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      cardBox!.x + cardBox!.width,
+      "assessment title card must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+
+    // The name input must also be visible (confirming the form rendered fully)
+    const nameInput = page.getByTestId("name-input");
+    await expect(nameInput).toBeVisible({ timeout: 5_000 });
+    await nameInput.scrollIntoViewIfNeeded();
+
+    const nameInputBox = await nameInput.boundingBox();
+    expect(nameInputBox, "name input bounding box must exist").not.toBeNull();
+    expect(
+      nameInputBox!.x,
+      "name input must not start left of viewport",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      nameInputBox!.x + nameInputBox!.width,
+      "name input must not extend past viewport right edge",
+    ).toBeLessThanOrEqual(IPHONE_VIEWPORT.width + 2);
+  });
+
+  test("title card does not overflow after rotating to landscape with a long title", async ({
+    page,
+  }) => {
+    await page.goto("/mylawacad/studio/join");
+
+    const codeInput = page.getByTestId("code-input");
+    await codeInput.fill(longTitleCode);
+    await page.getByRole("button", { name: /verify code/i }).click();
+
+    const titleCard = page.getByTestId("assessment-title-card");
+    await expect(titleCard).toBeVisible({ timeout: 10_000 });
+
+    // Rotate to landscape
+    await page.setViewportSize(LANDSCAPE_VIEWPORT);
+    await page.waitForTimeout(300);
+
+    // Card must remain within the landscape viewport after reflow
+    await expect(titleCard).toBeVisible({ timeout: 5_000 });
+    await titleCard.scrollIntoViewIfNeeded();
+
+    const cardBoxLandscape = await titleCard.boundingBox();
+    expect(cardBoxLandscape, "title card bounding box must exist after rotation").not.toBeNull();
+    expect(
+      cardBoxLandscape!.x,
+      "title card must not start left of viewport after rotation",
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      cardBoxLandscape!.x + cardBoxLandscape!.width,
+      "title card must not extend past landscape right edge after rotation",
+    ).toBeLessThanOrEqual(LANDSCAPE_VIEWPORT.width + 2);
+  });
+});
+
 test.describe("Join page – portrait → landscape rotation before name entry", () => {
   test.use({ viewport: IPHONE_VIEWPORT });
 
