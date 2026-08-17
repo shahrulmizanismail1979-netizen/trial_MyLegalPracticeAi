@@ -102,6 +102,18 @@ export async function getUncachableStripeClient(): Promise<Stripe> {
 }
 
 /**
+ * Returns the Stripe mode inferred from the current secret key prefix.
+ * "test"  → key starts with sk_test_  (or rk_test_)
+ * "live"  → key starts with sk_live_  (or rk_live_)
+ * Does NOT cache the result so rotated keys are reflected immediately.
+ */
+export async function getStripeMode(): Promise<"live" | "test"> {
+  const { secretKey } = await getStripeCredentials();
+  return secretKey.startsWith("sk_live_") || secretKey.startsWith("rk_live_")
+    ? "live"
+    : "test";
+}
+/**
  * Returns a fresh StripeSync instance for webhook processing and data sync.
  * Not cached -- fetches credentials on every call so rotated keys are picked up.
  */
@@ -117,4 +129,42 @@ export async function getStripeSync(): Promise<StripeSync> {
     stripeSecretKey: secretKey,
     stripeWebhookSecret: webhookSecret ?? "",
   });
+}
+
+/**
+ * Checks the Stripe mode at server startup and emits a loud ERROR log when the
+ * server is running in production (REPLIT_DEPLOYMENT is set) but the Stripe key
+ * is a test key.  Silently does nothing in development — test mode is expected
+ * there.
+ *
+ * Call this once during the boot sequence, after Stripe credentials are
+ * available.  The check is best-effort: a failure to fetch credentials is
+ * logged as a warning but does NOT crash the server.
+ */
+export async function warnIfTestModeInProduction(
+  log: (msg: string) => void,
+  errorLog: (msg: string) => void,
+): Promise<void> {
+  const isProduction = !!process.env.REPLIT_DEPLOYMENT;
+  if (!isProduction) return; // test mode is fine in dev
+
+  try {
+    const mode = await getStripeMode();
+    if (mode === "test") {
+      const banner = [
+        "════════════════════════════════════════════════════════════════",
+        "  ██████  STRIPE IS IN TEST MODE ON A PRODUCTION SERVER  ██████",
+        "  Real client cards will be DECLINED with:                     ",
+        '  "Your request was in test mode, but used a non-test card."   ',
+        "  Switch to a live Stripe key (sk_live_...) immediately.       ",
+        "════════════════════════════════════════════════════════════════",
+      ].join("\n");
+      errorLog(banner);
+    } else {
+      log("Stripe mode: live ✓");
+    }
+  } catch (err) {
+    // Could not fetch credentials — Stripe init will surface the real error.
+    log(`Stripe mode check skipped: ${String(err)}`);
+  }
 }

@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { sql } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { getUncachableStripeClient } from "../stripeClient";
+import { getUncachableStripeClient, getStripeMode } from "../stripeClient";
 import {
   provisionFromCheckoutSession,
   BUNDLE_TIER_CATALOG,
@@ -268,6 +268,24 @@ router.get("/session-info", async (req, res) => {
   } catch (err) {
     req.log.error({ err, sessionId }, "session-info lookup failed");
     res.status(404).json({ error: "Checkout session not found." });
+  }
+});
+
+/**
+ * GET /stripe/mode
+ * Returns the current Stripe mode so monitoring tools can verify the server is
+ * running against live keys.  No auth required — the response contains no
+ * sensitive data.
+ *
+ * Response: { mode: "live" | "test" }
+ */
+router.get("/mode", async (req, res) => {
+  try {
+    const mode = await getStripeMode();
+    res.json({ mode });
+  } catch (err) {
+    req.log.error({ err }, "Failed to determine Stripe mode");
+    res.status(503).json({ error: "Stripe credentials unavailable" });
   }
 });
 

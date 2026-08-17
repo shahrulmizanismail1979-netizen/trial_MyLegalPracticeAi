@@ -5,7 +5,7 @@ import {
   reconcileMissedProvisioning,
   backfillPortalAccessCodes,
 } from "./lib/provisioning";
-import { getStripeSync } from "./stripeClient";
+import { getStripeSync, warnIfTestModeInProduction } from "./stripeClient";
 import { seedApps } from "./acad/lib/seed";
 import { seedSyaContent } from "./sya/lib/seed";
 import { seedCrimContent } from "./crim/lib/seed";
@@ -106,6 +106,14 @@ async function initStripe(): Promise<void> {
   try {
     await runMigrations({ databaseUrl });
     logger.info("Stripe schema ready");
+
+    // Warn loudly if a live production server is running with a Stripe test key.
+    // A test key silently declines all real client cards — this must never go
+    // unnoticed in production.
+    await warnIfTestModeInProduction(
+      (msg) => logger.info(msg),
+      (msg) => logger.error(msg),
+    );
 
     const stripeSync = await getStripeSync();
 
