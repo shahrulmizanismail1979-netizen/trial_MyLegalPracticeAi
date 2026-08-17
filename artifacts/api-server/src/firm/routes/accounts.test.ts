@@ -12,7 +12,7 @@ import request from "supertest";
 import express from "express";
 import cookieParser from "cookie-parser";
 import firmRouter from "../index";
-import { writeFileSync, rmSync } from "fs";
+import { writeFileSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -441,7 +441,7 @@ describe("Excel accounts export workbook structure", () => {
 
     const wb2 = new ExcelJS.Workbook();
     await wb2.xlsx.readFile(tmpFile);
-    rmSync(tmpFile, { force: true });
+    unlinkSync(tmpFile);
 
     // ── Sheet count and names ─────────────────────────────────────────────────
     expect(wb2.worksheets).toHaveLength(3);

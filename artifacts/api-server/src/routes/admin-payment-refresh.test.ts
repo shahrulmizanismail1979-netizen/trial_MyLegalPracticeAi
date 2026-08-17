@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import request from "supertest";
 import { eq, sql } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
@@ -77,16 +77,6 @@ async function insertInvoice(params: {
   `);
 }
 
-// Ensure a stripe account row exists so foreign-key constraints on
-// stripe.invoices._account_id are satisfied even on a fresh test DB.
-beforeAll(async () => {
-  await db.execute(sql`
-    INSERT INTO stripe.accounts (_raw_data)
-    VALUES ('{"id":"acct_test"}'::jsonb)
-    ON CONFLICT (id) DO NOTHING
-  `);
-});
-
 beforeEach(() => {
   state.auth = { userId: null };
   state.users = {};
@@ -95,7 +85,6 @@ beforeEach(() => {
 
 afterAll(async () => {
   await db.execute(sql`DELETE FROM stripe.invoices WHERE id IN (${INVOICE_A}, ${INVOICE_B})`);
-  await db.execute(sql`DELETE FROM stripe.accounts WHERE id = 'acct_test'`);
   await db.delete(subscribersTable).where(eq(subscribersTable.email, EMAIL));
 });
 
