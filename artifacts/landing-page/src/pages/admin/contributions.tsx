@@ -305,7 +305,7 @@ export default function ContributionsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(c.createdAt).toLocaleDateString()}
+                      {new Date(c.createdAt).toLocaleDateString('en-GB')}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

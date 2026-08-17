@@ -354,15 +354,15 @@ function AccessCodesPanel() {
                         )}
                         {c.expiresAt && new Date(c.expiresAt).getTime() >= Date.now() && (
                           <Badge variant="outline" className="border-amber-700/60 text-amber-300">
-                            Expires {new Date(c.expiresAt).toLocaleDateString()}
+                            Expires {new Date(c.expiresAt).toLocaleDateString('en-GB')}
                           </Badge>
                         )}
                       </div>
                       {c.label && <p className="text-sm text-muted-foreground mt-1">{c.label}</p>}
                       <p className="text-xs text-muted-foreground mt-1">
-                        Created: {new Date(c.createdAt).toLocaleString()}
-                        {c.lastSeenAt && ` · Last active: ${new Date(c.lastSeenAt).toLocaleString()}`}
-                        {c.expiresAt && ` · Expires: ${new Date(c.expiresAt).toLocaleString()}`}
+                        Created: {new Date(c.createdAt).toLocaleString('en-GB')}
+                        {c.lastSeenAt && ` · Last active: ${new Date(c.lastSeenAt).toLocaleString('en-GB')}`}
+                        {c.expiresAt && ` · Expires: ${new Date(c.expiresAt).toLocaleString('en-GB')}`}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-1">

@@ -92,7 +92,7 @@ function InventoryRunBanner({ run }: { run: Stats["latestInventoryRun"] }) {
         <div>
           <span className="text-muted-foreground">Completed: </span>
           <span className="font-medium">
-            {new Date(run.completedAt).toLocaleString()}
+            {new Date(run.completedAt).toLocaleString('en-GB')}
           </span>
         </div>
       )}

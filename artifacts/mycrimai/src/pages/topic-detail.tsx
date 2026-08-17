@@ -54,7 +54,7 @@ export function TopicDetailPage() {
             <span>•</span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              {new Date(topic.createdAt).toLocaleDateString()}
+              {new Date(topic.createdAt).toLocaleDateString('en-GB')}
             </span>
           </div>
           

@@ -226,7 +226,7 @@ export default function AdminDashboard() {
                     <div className="flex-1">
                       <p className="text-sm font-medium">{entry.description}</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(entry.createdAt).toLocaleString()}
+                        {new Date(entry.createdAt).toLocaleString('en-GB')}
                       </p>
                     </div>
                   </div>
@@ -366,8 +366,8 @@ function DeliveryFailuresPanel() {
                     {f.phone && <span className="font-mono">{f.phone}</span>}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(f.createdAt).toLocaleString()}
-                    {f.resolved && f.resolvedAt && ` — handled ${new Date(f.resolvedAt).toLocaleString()}`}
+                    {new Date(f.createdAt).toLocaleString('en-GB')}
+                    {f.resolved && f.resolvedAt && ` — handled ${new Date(f.resolvedAt).toLocaleString('en-GB')}`}
                   </p>
                 </div>
                 {!f.resolved && (

@@ -567,7 +567,7 @@ export default function Appeals() {
               {appealTimelineToDeadlines(timelinePathway, new Date(anchorDate).toISOString()).map((d, i) => (
                 <div key={i} className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-foreground/85">{d.title}</span>
-                  <span className="text-muted-foreground font-mono shrink-0">{new Date(d.dueDate).toLocaleDateString()}</span>
+                  <span className="text-muted-foreground font-mono shrink-0">{new Date(d.dueDate).toLocaleDateString('en-GB')}</span>
                 </div>
               ))}
             </div>

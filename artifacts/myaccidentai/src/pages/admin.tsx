@@ -276,7 +276,7 @@ function AdminDashboard() {
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" /> {c.currentUsers} / {c.maxUsers} users
                     </span>
-                    <span className="text-xs">Created: {new Date(c.createdAt).toLocaleDateString()}</span>
+                    <span className="text-xs">Created: {new Date(c.createdAt).toLocaleDateString('en-GB')}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -324,7 +324,7 @@ function AdminDashboard() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">{usage.codeLabel}</span>
                   <span className="text-muted-foreground flex-1">{usage.sessionId.slice(0, 8)}...</span>
-                  <span className="text-xs text-muted-foreground">{new Date(usage.usedAt).toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">{new Date(usage.usedAt).toLocaleString('en-GB')}</span>
                 </div>
               ))}
             </div>

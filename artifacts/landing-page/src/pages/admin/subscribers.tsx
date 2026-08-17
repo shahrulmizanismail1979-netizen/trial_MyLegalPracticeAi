@@ -259,7 +259,7 @@ export default function SubscribersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(sub.createdAt).toLocaleDateString()}
+                      {new Date(sub.createdAt).toLocaleDateString('en-GB')}
                     </TableCell>
                     <TableCell className="text-sm">
                       {sub.subscriptionExpiry ? (
@@ -270,7 +270,7 @@ export default function SubscribersPage() {
                               : "text-muted-foreground"
                           }
                         >
-                          {new Date(sub.subscriptionExpiry).toLocaleDateString()}
+                          {new Date(sub.subscriptionExpiry).toLocaleDateString('en-GB')}
                           {new Date(sub.subscriptionExpiry) < new Date() && " (expired)"}
                         </span>
                       ) : (

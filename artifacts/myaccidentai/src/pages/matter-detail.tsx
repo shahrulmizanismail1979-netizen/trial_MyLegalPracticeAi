@@ -343,7 +343,7 @@ function IntakeBriefingPanel({ matterId }: { matterId: number }) {
               </div>
             )}
             <p className="text-[10px] text-muted-foreground/60 pt-1">
-              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString('en-GB')}
             </p>
           </div>
         )}
@@ -505,7 +505,7 @@ function AiInsightsPanel({ matterId }: { matterId: number }) {
             </div>
 
             <p className="text-[10px] text-muted-foreground/60 pt-1">
-              AI-generated · cached {new Date(insights.cachedAt).toLocaleDateString()} · verify before relying on this
+              AI-generated · cached {new Date(insights.cachedAt).toLocaleDateString('en-GB')} · verify before relying on this
             </p>
           </div>
         )}

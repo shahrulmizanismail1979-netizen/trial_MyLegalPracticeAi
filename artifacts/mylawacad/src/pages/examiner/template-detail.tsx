@@ -223,7 +223,7 @@ export default function TemplateDetail() {
                           ) : null}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(a.startedAt).toLocaleString()} ·{" "}
+                          {new Date(a.startedAt).toLocaleString('en-GB')} ·{" "}
                           {a.status.replace("_", " ")} · trust {a.trustScore}/100
                         </div>
                       </div>

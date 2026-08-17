@@ -327,7 +327,7 @@ function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         {code.label && <span>{code.label}</span>}
-                        <span>Created {new Date(code.createdAt).toLocaleDateString()}</span>
+                        <span>Created {new Date(code.createdAt).toLocaleDateString('en-GB')}</span>
                         {code.activeSession && (
                           <span className="flex items-center gap-1 text-purple-400">
                             <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />

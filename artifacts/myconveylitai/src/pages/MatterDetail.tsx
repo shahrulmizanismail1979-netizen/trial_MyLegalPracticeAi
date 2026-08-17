@@ -270,7 +270,7 @@ function IntakeBriefingPanel({ matterId }: { matterId: number }) {
               </div>
             )}
             <p className="text-[10px] text-slate-500 pt-1">
-              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString()}
+              Read-only intake snapshot · generated {new Date(briefing.generatedAt).toLocaleDateString('en-GB')}
             </p>
           </div>
         )}

@@ -269,7 +269,7 @@ export default function AICounselPage() {
       const label = msg.role === "user" ? "User" : "AI Peguam Kanan Syarie";
       text += `[${label}]\n${msg.content}\n\n`;
     }
-    text += `---\n${t("Exported from MySyariahAI", "Dieksport daripada MySyariahAI")} | ${new Date().toLocaleString()}`;
+    text += `---\n${t("Exported from MySyariahAI", "Dieksport daripada MySyariahAI")} | ${new Date().toLocaleString('en-GB')}`;
     navigator.clipboard.writeText(text).then(() => {
       setShowExportNotice(true);
       setTimeout(() => setShowExportNotice(false), 2000);

@@ -74,7 +74,7 @@ export default function ErrorDashboardPage() {
                         {asset.errorStatus || "Unknown error"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {new Date(asset.updatedAt).toLocaleString()}
+                        {new Date(asset.updatedAt).toLocaleString('en-GB')}
                       </td>
                     </tr>
                   ))}

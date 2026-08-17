@@ -143,7 +143,7 @@ export default function ProcessingQueuePage() {
                     {job.error ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(job.createdAt).toLocaleString()}
+                    {new Date(job.createdAt).toLocaleString('en-GB')}
                   </td>
                 </tr>
               ))}

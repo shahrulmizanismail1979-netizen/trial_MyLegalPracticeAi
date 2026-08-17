@@ -23,7 +23,7 @@ type Props = {
 const AUTO_PDF_AFTER_SECONDS = 30;
 
 function buildDocBody(password: string, email: string) {
-  const date = new Date().toLocaleString();
+  const date = new Date().toLocaleString('en-GB');
   return `MyLawAcad — Your License Credential
 
 Account email: ${email}
@@ -74,7 +74,7 @@ function makePdf(password: string, email: string): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   doc.text(`Account email: ${email}`, margin, margin + 80);
-  doc.text(`Issued on:    ${new Date().toLocaleString()}`, margin, margin + 100);
+  doc.text(`Issued on:    ${new Date().toLocaleString('en-GB')}`, margin, margin + 100);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);

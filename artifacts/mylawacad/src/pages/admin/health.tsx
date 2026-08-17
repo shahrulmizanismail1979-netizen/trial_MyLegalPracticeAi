@@ -192,7 +192,7 @@ export default function AdminHealth() {
 
             <div className="text-xs text-white/40 text-center">
               Snapshot generated at{" "}
-              {new Date(data.generatedAt).toLocaleString()}
+              {new Date(data.generatedAt).toLocaleString('en-GB')}
             </div>
           </>
         ) : null}

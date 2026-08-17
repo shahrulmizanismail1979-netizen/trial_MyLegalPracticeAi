@@ -147,7 +147,7 @@ export function WorkspaceDashboard() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {new Date(item.createdAt).toLocaleDateString()}
+                          {new Date(item.createdAt).toLocaleDateString('en-GB')}
                         </span>
                       </div>
                     </div>

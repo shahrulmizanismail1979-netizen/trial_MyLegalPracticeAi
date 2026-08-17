@@ -293,7 +293,7 @@ function TeachersPanel({ selfId }: { selfId: string }) {
                     </td>
                     <td className="px-3 py-4 text-xs text-muted-foreground">
                       {u.lastLoginAt
-                        ? new Date(u.lastLoginAt).toLocaleString()
+                        ? new Date(u.lastLoginAt).toLocaleString('en-GB')
                         : "—"}
                     </td>
                     <td className="px-6 py-4">

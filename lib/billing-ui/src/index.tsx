@@ -958,11 +958,14 @@ export function BillingTab({
                   body: JSON.stringify({
                     description: tDesc.trim(),
                     minutes: Math.round(n(tMin)),
-                    // Only send rate_usd when the user manually typed it.
-                    // Auto-filled values are omitted so the server does its own
-                    // rate-card lookup and persists the correct rate_source
-                    // ('named' or 'level') rather than 'manual'.
-                    rate_usd: !rateAutoFilled && tRate.trim() ? n(tRate) : undefined,
+                    // Always send the rate shown in the box so the entry can
+                    // never be stored with a NULL rate while the user sees one.
+                    // rate_autofilled tells the server the value came from a
+                    // rate card, so it re-runs its own lookup for provenance
+                    // ('named'/'level') and only falls back to this value as
+                    // 'manual' if its lookup misses.
+                    rate_usd: tRate.trim() ? n(tRate) : undefined,
+                    rate_autofilled: rateAutoFilled || undefined,
                     entry_date: tDate,
                     activity_type: tActivity.trim() || undefined,
                     lawyer_level: tLevel.trim() || undefined,

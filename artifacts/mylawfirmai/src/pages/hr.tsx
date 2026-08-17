@@ -614,7 +614,7 @@ function PayrollTab() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-sm">{MONTHS[run.month - 1]} {run.year}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(run.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(run.createdAt).toLocaleDateString('en-GB')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className={`text-xs ${STATUS_COLORS[run.status] ?? ""}`}>{t(`hr.pay.status.${run.status}`)}</Badge>

@@ -66,7 +66,7 @@ export default function AuditLogPage() {
                   {page!.events.map((ev) => (
                     <tr key={ev.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                       <td className="px-4 py-3 text-muted-foreground tabular-nums whitespace-nowrap">
-                        {new Date(ev.createdAt).toLocaleString()}
+                        {new Date(ev.createdAt).toLocaleString('en-GB')}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs font-medium">{ev.action}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">

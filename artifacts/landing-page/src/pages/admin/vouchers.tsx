@@ -138,7 +138,7 @@ export default function VouchersPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {voucher.validUntil ? new Date(voucher.validUntil).toLocaleDateString() : "Never"}
+                        {voucher.validUntil ? new Date(voucher.validUntil).toLocaleDateString('en-GB') : "Never"}
                         {isExpired && <Badge variant="destructive" className="ml-2 text-[10px] px-1 h-4">Expired</Badge>}
                       </TableCell>
                       <TableCell>

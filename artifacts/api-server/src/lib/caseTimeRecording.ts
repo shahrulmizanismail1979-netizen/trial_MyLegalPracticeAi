@@ -150,7 +150,7 @@ export function makeTimeRecordingRouter(
       return;
     }
 
-    const { description, minutes, rate_usd, entry_date, activity_type, lawyer_level, lawyer_name, practice_area } = req.body ?? {};
+    const { description, minutes, rate_usd, rate_autofilled, entry_date, activity_type, lawyer_level, lawyer_name, practice_area } = req.body ?? {};
     if (!description || typeof description !== "string" || !description.trim()) {
       res.status(400).json({ error: "description is required" });
       return;
@@ -185,16 +185,26 @@ export function makeTimeRecordingRouter(
         ? parseFloat(String(rate_usd))
         : null;
 
-    if (explicitRate !== null && !Number.isNaN(explicitRate)) {
+    const hasExplicit = explicitRate !== null && !Number.isNaN(explicitRate);
+    if (hasExplicit && rate_autofilled !== true) {
       rateVal = explicitRate;
       rateSource = "manual";
       // rate_card_id stays null — manual rates are not tied to any card
-    } else if (activityTypeStr && lawyerLevelStr) {
-      const match = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
-      if (match) {
-        rateVal = match.rate;
-        rateSource = match.source;
-        rateCardId = match.cardId;
+    } else {
+      if (activityTypeStr && lawyerLevelStr) {
+        const match = await lookupRateCard(portal, ownerKey, activityTypeStr, lawyerLevelStr, lawyerNameStr, practiceAreaStr);
+        if (match) {
+          rateVal = match.rate;
+          rateSource = match.source;
+          rateCardId = match.cardId;
+        }
+      }
+      // The client showed the user a rate (auto-filled from a rate card) but our
+      // lookup missed (e.g. the card changed since the page loaded). Never store
+      // NULL when the user saw a concrete rate — fall back to it as manual.
+      if (rateVal === null && hasExplicit) {
+        rateVal = explicitRate;
+        rateSource = "manual";
       }
     }
 

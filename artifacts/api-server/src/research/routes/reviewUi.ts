@@ -576,7 +576,7 @@ async function loadAudit() {
       '<div class="action-row"><b>' + esc(e.event) + '</b>' +
       (e.fromState ? " <span style=\\"color:#78716c\\">" + esc(e.fromState) + " → " + esc(e.toState) + "</span>" : "") +
       " by " + esc(e.actor) +
-      " <small style=\\"color:#a8a29e\\">" + esc(new Date(e.createdAt).toLocaleString()) + "</small>" +
+      " <small style=\\"color:#a8a29e\\">" + esc(new Date(e.createdAt).toLocaleString('en-GB')) + "</small>" +
       "</div>"
     ).join("");
   } catch (e) {

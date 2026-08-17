@@ -176,7 +176,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="text-xs text-muted-foreground hidden md:block">
                       {row.lastUsedAt
-                        ? `Last used: ${new Date(row.lastUsedAt).toLocaleDateString()}`
+                        ? `Last used: ${new Date(row.lastUsedAt).toLocaleDateString('en-GB')}`
                         : "Never used"}
                     </div>
                     <div className="flex gap-1">

@@ -437,7 +437,7 @@ export default function DriveInventoryPage() {
                     {formatBytes(asset.size ?? 0)}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {asset.modifiedTime ? new Date(asset.modifiedTime).toLocaleDateString() : "—"}
+                    {asset.modifiedTime ? new Date(asset.modifiedTime).toLocaleDateString('en-GB') : "—"}
                   </td>
                   <td className="px-4 py-3">
                     {/* Re-ingest button for PENDING or FAILED approved assets */}

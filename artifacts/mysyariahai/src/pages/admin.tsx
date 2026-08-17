@@ -240,11 +240,11 @@ export default function AdminPage() {
                     </div>
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                       <span>
-                        {t("Created", "Dicipta")}: {new Date(c.createdAt).toLocaleDateString()}
+                        {t("Created", "Dicipta")}: {new Date(c.createdAt).toLocaleDateString('en-GB')}
                       </span>
                       {c.lastUsedAt && (
                         <span>
-                          {t("Last used", "Terakhir digunakan")}: {new Date(c.lastUsedAt).toLocaleDateString()}
+                          {t("Last used", "Terakhir digunakan")}: {new Date(c.lastUsedAt).toLocaleDateString('en-GB')}
                         </span>
                       )}
                     </div>
