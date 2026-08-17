@@ -130,6 +130,12 @@
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
 }
 
+/* Exam top bar: absorb iOS/Android notch insets in landscape so the flex row never wraps */
+.exam-top-bar {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 @layer utilities {
   .font-display {
     font-family: var(--font-display);
