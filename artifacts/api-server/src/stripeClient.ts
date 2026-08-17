@@ -1,5 +1,9 @@
 import Stripe from "stripe";
 import { StripeSync } from "stripe-replit-sync";
+import { sendEmail, getOwnerEmail } from "./lib/mailer";
+
+/** De-duplicate: only send the test-mode alert once per server process. */
+let testModeAlertSent = false;
 
 /**
  * Fetches Stripe credentials.
@@ -160,6 +164,40 @@ export async function warnIfTestModeInProduction(
         "════════════════════════════════════════════════════════════════",
       ].join("\n");
       errorLog(banner);
+
+      // Send a one-time admin alert email (de-duplicated per server process).
+      if (!testModeAlertSent) {
+        testModeAlertSent = true;
+        // Fire-and-forget — do not await; a send failure must not crash startup.
+        (async () => {
+          try {
+            const adminEmail = await getOwnerEmail();
+            if (!adminEmail) {
+              errorLog("[Stripe] Could not resolve admin email — skipping test-mode alert.");
+              return;
+            }
+            const detectedAt = new Date().toISOString();
+            const html = `
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;border:3px solid #dc2626;border-radius:8px;">
+  <h1 style="color:#dc2626;margin-top:0;">🚨 CRITICAL: Stripe is in TEST mode on production</h1>
+  <p style="font-size:16px;">The production server started with a <strong>Stripe test key</strong> (<code>sk_test_…</code>).</p>
+  <p style="font-size:16px;"><strong>Impact:</strong> Real customer card charges will be declined with the error:<br>
+  <em>"Your request was in test mode, but used a non-test card."</em></p>
+  <p style="font-size:16px;"><strong>Action required:</strong> Set the <code>STRIPE_SECRET_KEY</code> environment variable to a live key (<code>sk_live_…</code>) and restart the server immediately.</p>
+  <hr style="margin:24px 0;border:none;border-top:1px solid #fca5a5;">
+  <p style="color:#6b7280;font-size:13px;">Detected at: ${detectedAt}<br>Server: ${process.env.REPLIT_DEPLOYMENT ?? "production"}</p>
+</div>`;
+            await sendEmail({
+              to: adminEmail,
+              subject: "🚨 CRITICAL: Stripe is in TEST mode on production",
+              html,
+            });
+            errorLog(`[Stripe] Test-mode alert email sent to ${adminEmail}.`);
+          } catch (emailErr) {
+            errorLog(`[Stripe] Failed to send test-mode alert email: ${String(emailErr)}`);
+          }
+        })();
+      }
     } else {
       log("Stripe mode: live ✓");
     }
