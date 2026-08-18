@@ -31,13 +31,13 @@ import crypto from "node:crypto";
 import multer from "multer";
 import rateLimit from "express-rate-limit";
 import jwt from "jsonwebtoken";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gt } from "drizzle-orm";
 import { Router, type Request, type Response, type NextFunction } from "express";
 import mammoth from "mammoth";
-import { db, pool, corpSessions, corpAccessCodes } from "@workspace/db";
+import { db, pool, corpSessions, corpAccessCodes, ccbAccessCodes } from "@workspace/db";
 import { accessCodeUsageTable } from "@workspace/db/schema";
 import { isConveyCodeExpired } from "../middlewares/conveyAuth.js";
-import { SEAT_TTL_MS } from "../lib/seatLimits.js";
+import { SEAT_TTL_MS, claimSeat, deviceSeatKey } from "../lib/seatLimits.js";
 import { logger } from "../lib/logger.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -87,29 +87,102 @@ async function tryCorpAuth(token: string): Promise<boolean> {
   }
 }
 
+// ── CCB static-code set (mirrors ccb/routes/auth.ts STATIC_CODES) ─────────────
+// Evaluated once at module load so the cost is paid once, not per request.
+const CCB_STATIC_CODES: ReadonlySet<string> = (() => {
+  const master = (process.env.MASTER_ACCESS_CODE ?? "").trim().toUpperCase();
+  const envList = process.env.CCB_ACCESS_CODES
+    ? process.env.CCB_ACCESS_CODES.split(",")
+    : ["CCBLIT2024", "MYCCBLIT", "UKM2024", "PRACTITIONER"];
+  return new Set(
+    [master, ...envList]
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c.length > 0),
+  );
+})();
+
 /**
- * CCB: validates a JWT Bearer token; requires role practitioner or admin.
- * Replicates requirePractitioner's JWT-verify path (without DB code re-check,
- * which is only needed for live-revocation of individual codes — not upload).
+ * CCB: validates a JWT Bearer token; requires role practitioner or admin AND
+ * either membership in the canonical static-code set OR a live DB row in
+ * ccb_access_codes (active=true, not expired, seat available).
+ *
+ * Fully mirrors requirePractitioner from ccb/routes/auth.ts:
+ *  - Static/env codes → always allowed, no DB lookup.
+ *  - DB codes → active check, expiry check, and claimSeat for capped codes.
+ *  - Unknown code (no DB row, not static) → always denied (fail closed).
+ *  - Missing/empty code field in the JWT → denied.
+ *  - DB errors during seat claim → fail closed (deny).
  */
-function tryCCBAuth(payload: Record<string, unknown>): boolean {
-  return payload.role === "practitioner" || payload.role === "admin";
+async function tryCCBAuth(
+  payload: Record<string, unknown>,
+  req: Request,
+): Promise<boolean> {
+  if (payload.role !== "practitioner" && payload.role !== "admin") return false;
+  const code = typeof payload.code === "string" ? payload.code.trim().toUpperCase() : "";
+  if (!code) return false; // No code field — not a standard practitioner JWT.
+  if (CCB_STATIC_CODES.has(code)) return true; // Static/env/master code — always allowed.
+  try {
+    const [row] = await db
+      .select({
+        active: ccbAccessCodes.active,
+        expiresAt: ccbAccessCodes.expiresAt,
+        maxSeats: ccbAccessCodes.maxSeats,
+      })
+      .from(ccbAccessCodes)
+      .where(eq(ccbAccessCodes.code, code));
+    if (!row) return false; // Unknown code — not static, no DB row → deny.
+    if (!row.active) return false;
+    if (row.expiresAt && new Date(row.expiresAt) < new Date()) return false;
+    // Seat enforcement for capped codes — fail closed on errors.
+    if (row.maxSeats != null) {
+      let claim: Awaited<ReturnType<typeof claimSeat>>;
+      try {
+        claim = await claimSeat({
+          portal: "ccb",
+          code,
+          maxSeats: row.maxSeats,
+          seatKey: deviceSeatKey(req),
+        });
+      } catch {
+        return false; // Seat registry error — deny to prevent oversubscription.
+      }
+      if (!claim.ok) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Convey: verifies JWT uid + DB user active + code not expired.
+ * Convey: verifies JWT uid + DB user active + code not expired + seat claim.
  * Uses raw SQL to avoid usersTable ambiguity in the schema barrel.
- * Replicates attachUser/requireAuth from conveyAuth middleware.
+ * Replicates attachUser/requireAuth from conveyAuth middleware, including the
+ * claimSeat guard for capped-seat (team-bundle) access codes.
  */
-async function tryConveyAuth(uid: number): Promise<boolean> {
+async function tryConveyAuth(uid: number, req: Request): Promise<boolean> {
   try {
-    const { rows } = await pool.query<{ access_code: string | null; is_active: boolean }>(
-      `SELECT access_code, is_active FROM users WHERE id = $1`,
+    const { rows } = await pool.query<{
+      access_code: string | null;
+      is_active: boolean;
+      max_seats: number | null;
+    }>(
+      `SELECT access_code, is_active, max_seats FROM users WHERE id = $1`,
       [uid],
     );
     const user = rows[0];
     if (!user || !user.is_active) return false;
     if (await isConveyCodeExpired(user.access_code)) return false;
+    // Enforce seat limits for team-bundle codes (mirrors attachUser).
+    if (user.access_code && user.max_seats != null) {
+      const claim = await claimSeat({
+        portal: "convey",
+        code: user.access_code,
+        maxSeats: user.max_seats,
+        seatKey: deviceSeatKey(req),
+      });
+      if (!claim.ok) return false;
+    }
     return true;
   } catch {
     return false;
@@ -268,11 +341,11 @@ async function requirePortalAuth(
     }
 
     if (payload !== null) {
-      // CCB: JWT with role field
-      if (tryCCBAuth(payload)) { next(); return; }
-      // Convey: JWT with uid field
+      // CCB: JWT with role field + DB code verification + seat enforcement
+      if (await tryCCBAuth(payload, req)) { next(); return; }
+      // Convey: JWT with uid field + seat enforcement
       if (typeof payload.uid === "number") {
-        if (await tryConveyAuth(payload.uid)) { next(); return; }
+        if (await tryConveyAuth(payload.uid, req)) { next(); return; }
       }
     } else {
       // Corp: opaque session token (not a JWT)
