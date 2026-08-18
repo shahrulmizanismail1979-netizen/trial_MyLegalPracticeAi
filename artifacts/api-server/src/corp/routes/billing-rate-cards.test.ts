@@ -580,3 +580,155 @@ describe("MyCorpLegalAI POST-upsert leaves billed entries untouched", () => {
     );
   });
 });
+
+// ── Void → re-invoice cycle tests ─────────────────────────────────────────────
+//
+// Confirm that the billed-entry guard holds across the full void → re-invoice
+// lifecycle:
+//
+//   1. Time entry is invoiced  → protected (invoice_id IS NOT NULL)
+//   2. Invoice is voided        → entry released back to unbilled (invoice_id NULL)
+//   3. Rate-card PUT propagates → entry is now unbilled so rate updates
+//   4. Entry is re-invoiced     → protected again (invoice_id IS NOT NULL)
+//   5. Rate-card PUT propagates → entry is billed, rate stays unchanged
+
+describe("MyCorpLegalAI void → re-invoice cycle: billed-entry guard holds throughout", () => {
+  let voidMatterId: number;
+  let voidCardId: number;
+  let voidEntryId: number;
+  let firstInvoiceId: number;
+  let secondInvoiceId: number;
+
+  async function voidInvoice(invoiceId: number) {
+    const res = await api("patch", `/api/corp/matters/billing/invoices/${invoiceId}`).send({
+      status: "void",
+    });
+    expect(res.status, `void invoice: ${JSON.stringify(res.body)}`).toBe(200);
+    return res.body as Record<string, unknown>;
+  }
+
+  async function generateInvoice(matterId: number) {
+    const res = await api("post", `/api/corp/matters/${matterId}/billing/invoices`).send({
+      includeTime: true,
+      includeFees: false,
+    });
+    expect(res.status, `create invoice: ${JSON.stringify(res.body)}`).toBe(201);
+    return res.body as Record<string, unknown>;
+  }
+
+  it("creates a matter for void-cycle test", async () => {
+    voidMatterId = await createMatter(`Void Cycle Test ${RUN_ID}`);
+    expect(voidMatterId).toBeGreaterThan(0);
+  });
+
+  it("adds a rate card (filing / associate, 200)", async () => {
+    const card = await addRateCard("filing", "associate", 200);
+    expect(parseFloat(card.rate_usd as string)).toBeCloseTo(200, 1);
+    voidCardId = card.id as number;
+    expect(voidCardId).toBeGreaterThan(0);
+  });
+
+  it("logs a time entry that resolves the rate card (rate = 200)", async () => {
+    const body = {
+      description: `Void cycle filing work (${RUN_ID})`,
+      minutes: 60,
+      activity_type: "filing",
+      lawyer_level: "associate",
+    };
+    const res = await api("post", `/api/corp/matters/${voidMatterId}/time-entries`).send(body);
+    expect(res.status, `log time entry: ${JSON.stringify(res.body)}`).toBe(201);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(200, 1);
+    voidEntryId = res.body.id as number;
+    timeEntryIds.push(voidEntryId);
+  });
+
+  it("generates a first invoice that captures the time entry", async () => {
+    const inv = await generateInvoice(voidMatterId);
+    firstInvoiceId = inv.id as number;
+    expect(firstInvoiceId).toBeGreaterThan(0);
+    // Entry must be billed (protected).
+    const { rows } = await pool.query(
+      `SELECT invoice_id FROM case_time_entries WHERE id = $1`,
+      [voidEntryId],
+    );
+    expect(rows[0]?.invoice_id).toBe(firstInvoiceId);
+  });
+
+  it("voiding the invoice releases the time entry back to unbilled", async () => {
+    const voided = await voidInvoice(firstInvoiceId);
+    expect(voided.status).toBe("void");
+
+    // Entry must now be unbilled.
+    const { rows } = await pool.query(
+      `SELECT invoice_id FROM case_time_entries WHERE id = $1`,
+      [voidEntryId],
+    );
+    expect(rows[0]?.invoice_id).toBeNull();
+  });
+
+  it("rate-card PUT propagates to the now-unbilled entry (rate becomes 450)", async () => {
+    const updated = await updateRateCard(voidCardId, 450);
+    expect(parseFloat(updated.rate_usd as string)).toBeCloseTo(450, 1);
+
+    const billing = await getBillingForMatter(voidMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Void cycle filing work"),
+    );
+    expect(entry, "entry should appear in billing summary after void").toBeTruthy();
+    // Propagation must have updated the now-unbilled entry.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(450, 1);
+  });
+
+  it("generates a second invoice that re-captures the time entry", async () => {
+    const inv = await generateInvoice(voidMatterId);
+    secondInvoiceId = inv.id as number;
+    expect(secondInvoiceId).toBeGreaterThan(0);
+    // Entry must be billed again.
+    const { rows } = await pool.query(
+      `SELECT invoice_id FROM case_time_entries WHERE id = $1`,
+      [voidEntryId],
+    );
+    expect(rows[0]?.invoice_id).toBe(secondInvoiceId);
+  });
+
+  it("rate-card PUT after re-invoice does NOT touch the re-billed entry (rate stays 450)", async () => {
+    const updated = await updateRateCard(voidCardId, 999);
+    expect(parseFloat(updated.rate_usd as string)).toBeCloseTo(999, 1);
+
+    const billing = await getBillingForMatter(voidMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Void cycle filing work"),
+    );
+    expect(entry, "re-billed entry should appear in billing summary").toBeTruthy();
+    // The guard must hold: billed entry rate is unchanged at 450.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(450, 1);
+  });
+
+  afterAll(async () => {
+    const ownerKey = String(codeId);
+    // Delete the time entry first (no FK to invoices, just a nullable column).
+    if (voidEntryId) {
+      await pool.query(
+        `DELETE FROM case_time_entries WHERE portal = 'corp' AND id = $1`,
+        [voidEntryId],
+      );
+    }
+    // Delete both invoices (cascade-deletes lines).
+    const invoicesToDelete = [firstInvoiceId, secondInvoiceId].filter(Boolean);
+    if (invoicesToDelete.length > 0) {
+      await pool.query(
+        `DELETE FROM case_invoices WHERE portal = 'corp' AND id = ANY($1::int[])`,
+        [invoicesToDelete],
+      );
+    }
+    // Delete the matter.
+    if (voidMatterId) {
+      await pool.query(`DELETE FROM corp_matters WHERE id = $1`, [voidMatterId]);
+    }
+    // Delete the rate card (updated to 999 at this point).
+    await pool.query(
+      `DELETE FROM case_rate_cards WHERE portal = 'corp' AND owner_key = $1 AND activity_type = 'filing'`,
+      [ownerKey],
+    );
+  });
+});
