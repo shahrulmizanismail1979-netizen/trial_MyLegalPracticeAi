@@ -48,11 +48,12 @@ let bearerToken: string;
 let testMatterId: number;
 const timeEntryIds: number[] = [];
 
-function api(method: "get" | "post" | "patch" | "delete", path: string) {
+function api(method: "get" | "post" | "put" | "patch" | "delete", path: string) {
   const r = request(app);
   const req =
     method === "get" ? r.get(path)
     : method === "post" ? r.post(path)
+    : method === "put" ? r.put(path)
     : method === "patch" ? r.patch(path)
     : r.delete(path);
   return req.set("Authorization", `Bearer ${bearerToken}`);
@@ -122,6 +123,24 @@ async function addRateCard(
   const res = await api("post", "/api/convey/matters/billing/rate-cards").send(body);
   expect(res.status, `add convey rate card: ${JSON.stringify(res.body)}`).toBe(201);
   return res.body as Record<string, unknown>;
+}
+
+async function updateRateCard(cardId: number, rateUsd: number) {
+  const res = await api("put", `/api/convey/matters/billing/rate-cards/${cardId}`).send({ rateUsd });
+  expect(res.status, `update convey rate card: ${JSON.stringify(res.body)}`).toBe(200);
+  return res.body as Record<string, unknown>;
+}
+
+async function deleteRateCard(cardId: number) {
+  const res = await api("delete", `/api/convey/matters/billing/rate-cards/${cardId}`);
+  expect(res.status, `delete convey rate card: ${JSON.stringify(res.body)}`).toBe(200);
+  return res.body as Record<string, unknown>;
+}
+
+async function getBillingForMatter(matterId: number) {
+  const res = await api("get", `/api/convey/matters/${matterId}/billing`);
+  expect(res.status, `get convey billing: ${JSON.stringify(res.body)}`).toBe(200);
+  return res.body as { timeEntries: Array<Record<string, unknown>> };
 }
 
 async function logTimeEntry(
@@ -220,5 +239,85 @@ describe("MyConveyLitAI rate-card auto-fill", () => {
     const levelOnlyRate = 300;
     const namedLawyerRate = 500;
     expect(namedLawyerRate).toBeGreaterThan(levelOnlyRate);
+  });
+});
+
+// ── Propagation tests ─────────────────────────────────────────────────────────
+//
+// Verify that PUT (rate update) and DELETE on a rate card cascade to the
+// matching unbilled time entries (those linked via rate_card_id).
+// Verification uses GET /:matterId/billing which returns timeEntries[].rate.
+
+describe("MyConveyLitAI rate-card propagation (PUT & DELETE)", () => {
+  let propagationMatterId: number;
+  let propagationCardId: number;
+  const propagationEntryIds: number[] = [];
+
+  it("creates a matter for propagation tests", async () => {
+    propagationMatterId = await createMatter(`Propagation Test ${RUN_ID}`);
+    expect(propagationMatterId).toBeGreaterThan(0);
+  });
+
+  it("adds a propagation rate card (drafting / partner, 400)", async () => {
+    const card = await addRateCard("drafting", "partner", 400);
+    expect(parseFloat(card.rate_usd as string)).toBeCloseTo(400, 1);
+    propagationCardId = card.id as number;
+    expect(propagationCardId).toBeGreaterThan(0);
+  });
+
+  it("logs a time entry that resolves from the propagation rate card", async () => {
+    const body = {
+      description: `Propagation drafting work (${RUN_ID})`,
+      minutes: 60,
+      activity_type: "drafting",
+      lawyer_level: "partner",
+    };
+    const res = await api("post", `/api/convey/matters/${propagationMatterId}/time-entries`).send(body);
+    expect(res.status, `log propagation entry: ${JSON.stringify(res.body)}`).toBe(201);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(400, 1);
+    propagationEntryIds.push(res.body.id as number);
+    timeEntryIds.push(res.body.id as number);
+  });
+
+  it("PUT rate card: updates rate to 650 and propagates to unbilled time entry", async () => {
+    const updated = await updateRateCard(propagationCardId, 650);
+    expect(parseFloat(updated.rate_usd as string)).toBeCloseTo(650, 1);
+
+    const billing = await getBillingForMatter(propagationMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Propagation drafting work"),
+    );
+    expect(entry, "propagation entry should appear in billing").toBeTruthy();
+    // The billing endpoint aliases rate_usd as `rate`.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(650, 1);
+  });
+
+  it("DELETE rate card: nullifies rate on linked unbilled time entry", async () => {
+    const result = await deleteRateCard(propagationCardId);
+    expect(result.success).toBe(true);
+
+    const billing = await getBillingForMatter(propagationMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Propagation drafting work"),
+    );
+    expect(entry, "propagation entry should still appear in billing after card delete").toBeTruthy();
+    // rate_usd is nullified when its resolving card is deleted.
+    expect(entry!.rate).toBeNull();
+  });
+
+  afterAll(async () => {
+    const ownerKey = String(userId);
+    if (propagationEntryIds.length > 0) {
+      await pool.query(
+        `DELETE FROM case_time_entries WHERE portal = 'convey' AND id = ANY($1::int[])`,
+        [propagationEntryIds],
+      );
+    }
+    await pool.query(`DELETE FROM convey_matters WHERE id = $1`, [propagationMatterId]);
+    // The rate card is deleted by the test itself; guard in case it wasn't.
+    await pool.query(
+      `DELETE FROM case_rate_cards WHERE portal = 'convey' AND owner_key = $1 AND activity_type = 'drafting' AND lawyer_level = 'partner'`,
+      [ownerKey],
+    );
   });
 });
