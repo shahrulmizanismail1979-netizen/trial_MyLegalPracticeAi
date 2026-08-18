@@ -36,6 +36,7 @@ export function sanitiseFilename(raw: string): string | null {
 }
 import {
   db,
+  driveAssets,
   researchSourceContainers,
   researchTransformations,
   type ResearchUploadBatch,
@@ -73,6 +74,32 @@ import {
 // affects its own batch item.
 
 export const INGEST_JOB_KIND = "container.ingest";
+
+// ── Container state → drive processing status mapping ────────────────────────
+// Mirrors the map in drive/ingestBridge.ts; kept here to avoid a circular
+// import (ingestBridge imports enqueueIngestJob from this module).
+const CONTAINER_STATE_TO_DRIVE_STATUS: Record<string, string> = {
+  UPLOADED: "INGESTION_RUNNING",
+  QUARANTINED: "FAILED",
+  RIGHTS_REVIEW_REQUIRED: "INGESTION_RUNNING",
+  RIGHTS_APPROVED: "INGESTION_RUNNING",
+  INVENTORY_PENDING: "INGESTION_COMPLETE",
+  INVENTORIED: "INGESTION_COMPLETE",
+  EXTRACTION_PENDING: "EXTRACTION_QUEUED",
+  TEXT_EXTRACTED: "EXTRACTION_COMPLETE",
+  OCR_REVIEW_REQUIRED: "EXTRACTION_COMPLETE",
+  SEGMENTATION_PENDING: "SEGMENTATION_QUEUED",
+  SEGMENTATION_PROPOSED: "SEGMENTATION_RUNNING",
+  SEGMENTATION_REVIEW_REQUIRED: "SEGMENTATION_COMPLETE",
+  EDITORIAL_REVIEW_PENDING: "REVIEW_QUEUED",
+  EDITORIAL_REVIEW_REQUIRED: "REVIEW_IN_PROGRESS",
+  JUDGMENT_VERIFICATION_PENDING: "REVIEW_IN_PROGRESS",
+  VERIFIED: "REVIEW_COMPLETE",
+  SEARCHABLE: "PUBLISHED",
+  PROCESSING_BLOCKED: "FAILED",
+  DELETION_PENDING: "CANCELLED",
+  DELETED: "CANCELLED",
+};
 
 /** Postgres unique-violation (SQLSTATE 23505), possibly wrapped by drizzle. */
 function isUniqueViolation(err: unknown): boolean {
@@ -443,6 +470,23 @@ async function ingestProcessor({
         actor: `job:${job.id}`,
         detail: { duplicateOfContainerId: existingId },
       });
+
+      // Immediately resolve the drive asset's processingStatus so it never
+      // sits stuck in INGESTION_QUEUED waiting for syncPipelineStatuses().
+      // Any drive asset linked to this batch item (via sourceBatchItemId)
+      // should reflect the original container's current pipeline state.
+      const [originalContainer] = await tx
+        .select({ processingState: researchSourceContainers.processingState })
+        .from(researchSourceContainers)
+        .where(eq(researchSourceContainers.id, existingId))
+        .limit(1);
+      const driveStatus = originalContainer
+        ? (CONTAINER_STATE_TO_DRIVE_STATUS[originalContainer.processingState] ?? "INGESTION_COMPLETE")
+        : "INGESTION_COMPLETE";
+      await tx
+        .update(driveAssets)
+        .set({ processingStatus: driveStatus as (typeof driveAssets.$inferInsert)["processingStatus"], updatedAt: new Date() })
+        .where(eq(driveAssets.sourceBatchItemId, item.id));
     });
     return { outputChecksum: sha };
   };
