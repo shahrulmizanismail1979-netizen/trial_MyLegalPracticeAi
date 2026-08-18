@@ -4,6 +4,7 @@
  */
 import React, { useState, useCallback, useEffect } from "react";
 import { Search, ArrowLeft, Copy, BookOpen, Loader2, ChevronRight, ChevronLeft, FolderKanban, Check } from "lucide-react";
+import WorkspaceLayout from "./layout";
 
 const TOKEN_KEY = "myccblitai_access_token";
 function getInit(): RequestInit {
@@ -123,6 +124,7 @@ export default function CaseLawPage() {
 
   if (selectedId !== null) {
     return (
+      <WorkspaceLayout>
       <div className="min-h-screen bg-background text-foreground">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <button onClick={() => { setSelectedId(null); setDetail(null); setShowMatter(false); }}
@@ -206,10 +208,12 @@ export default function CaseLawPage() {
         </div>
         {toast && <div className="fixed bottom-24 right-6 bg-card border border-border rounded-lg px-4 py-3 shadow-xl text-sm flex items-center gap-2 z-50"><Check className="h-4 w-4 text-primary" />{toast}</div>}
       </div>
+      </WorkspaceLayout>
     );
   }
 
   return (
+    <WorkspaceLayout>
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-8">
@@ -288,5 +292,6 @@ export default function CaseLawPage() {
         )}
       </div>
     </div>
+    </WorkspaceLayout>
   );
 }

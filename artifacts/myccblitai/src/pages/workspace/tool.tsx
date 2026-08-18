@@ -132,13 +132,17 @@ export default function ToolPage() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let lineBuffer = "";
       
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        // Append decoded chunk to any leftover partial line from the previous chunk
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split('\n');
+        // Keep the last element (possibly an incomplete line) in the buffer
+        lineBuffer = lines.pop() ?? "";
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -162,6 +166,20 @@ export default function ToolPage() {
             } catch (e) {
               console.error("Error parsing SSE data", e);
             }
+          }
+        }
+      }
+      // Process any remaining content in the buffer after the stream ends
+      if (lineBuffer.startsWith('data: ')) {
+        const dataStr = lineBuffer.slice(6);
+        if (dataStr !== '[DONE]') {
+          try {
+            const data = JSON.parse(dataStr);
+            if (data.content) {
+              setOutput(prev => prev + data.content);
+            }
+          } catch (e) {
+            console.error("Error parsing SSE data (tail)", e);
           }
         }
       }
