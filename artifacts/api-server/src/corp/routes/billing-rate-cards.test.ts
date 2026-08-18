@@ -479,3 +479,104 @@ describe("MyCorpLegalAI billed entries are immutable to rate-card changes", () =
     );
   });
 });
+
+// ── POST-upsert billed-entry immutability test ────────────────────────────────
+//
+// The POST /billing/rate-cards route uses ON CONFLICT … DO UPDATE, which
+// triggers propagateRateCardUpdate just like PUT does. This describe block
+// confirms the `invoice_id IS NULL` guard holds on the upsert path: a billed
+// time entry must never have its rate changed by a subsequent POST that
+// resolves to the same card via the unique conflict key.
+
+describe("MyCorpLegalAI POST-upsert leaves billed entries untouched", () => {
+  let upsertMatterId: number;
+  let upsertCardId: number;
+  let upsertEntryId: number;
+  let upsertInvoiceId: number;
+
+  it("creates a matter for upsert immutability test", async () => {
+    upsertMatterId = await createMatter(`Billed Immutability UPSERT ${RUN_ID}`);
+    expect(upsertMatterId).toBeGreaterThan(0);
+  });
+
+  it("adds an initial rate card via POST (drafting / senior, 400)", async () => {
+    const card = await addRateCard("drafting", "senior", 400);
+    expect(parseFloat(card.rate_usd as string)).toBeCloseTo(400, 1);
+    upsertCardId = card.id as number;
+    expect(upsertCardId).toBeGreaterThan(0);
+  });
+
+  it("logs a time entry that resolves the rate card (rate = 400)", async () => {
+    const body = {
+      description: `Billed immutability UPSERT work (${RUN_ID})`,
+      minutes: 60,
+      activity_type: "drafting",
+      lawyer_level: "senior",
+    };
+    const res = await api("post", `/api/corp/matters/${upsertMatterId}/time-entries`).send(body);
+    expect(res.status, `log time entry: ${JSON.stringify(res.body)}`).toBe(201);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(400, 1);
+    upsertEntryId = res.body.id as number;
+    timeEntryIds.push(upsertEntryId);
+  });
+
+  it("generates an invoice that captures the time entry", async () => {
+    const res = await api("post", `/api/corp/matters/${upsertMatterId}/billing/invoices`).send({
+      includeTime: true,
+      includeFees: false,
+    });
+    expect(res.status, `create invoice: ${JSON.stringify(res.body)}`).toBe(201);
+    upsertInvoiceId = res.body.id as number;
+    expect(upsertInvoiceId).toBeGreaterThan(0);
+    // Confirm the time entry is now stamped with the invoice_id in the DB.
+    const { rows } = await pool.query(
+      `SELECT invoice_id FROM case_time_entries WHERE id = $1`,
+      [upsertEntryId],
+    );
+    expect(rows[0]?.invoice_id).toBe(upsertInvoiceId);
+  });
+
+  it("POST same activity/level with new rate 800 (triggers ON CONFLICT upsert): billed entry rate stays at 400", async () => {
+    // This POST hits the ON CONFLICT DO UPDATE path because (drafting, senior,
+    // null lawyer_name, null practice_area) already exists for this owner.
+    const upserted = await addRateCard("drafting", "senior", 800);
+    // The card itself should now carry the new rate.
+    expect(parseFloat(upserted.rate_usd as string)).toBeCloseTo(800, 1);
+    // The card id must be the same row (upsert, not insert).
+    expect(upserted.id).toBe(upsertCardId);
+
+    // The billed time entry must be untouched because invoice_id IS NOT NULL.
+    const billing = await getBillingForMatter(upsertMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Billed immutability UPSERT work"),
+    );
+    expect(entry, "billed time entry should still appear in billing").toBeTruthy();
+    // propagateRateCardUpdate must not have updated this billed entry.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(400, 1);
+  });
+
+  afterAll(async () => {
+    const ownerKey = String(codeId);
+    if (upsertEntryId) {
+      await pool.query(
+        `DELETE FROM case_time_entries WHERE portal = 'corp' AND id = $1`,
+        [upsertEntryId],
+      );
+    }
+    if (upsertInvoiceId) {
+      await pool.query(
+        `DELETE FROM case_invoices WHERE portal = 'corp' AND id = $1`,
+        [upsertInvoiceId],
+      );
+    }
+    if (upsertMatterId) {
+      await pool.query(`DELETE FROM corp_matters WHERE id = $1`, [upsertMatterId]);
+    }
+    // Clean up the upserted rate card.
+    await pool.query(
+      `DELETE FROM case_rate_cards WHERE portal = 'corp' AND owner_key = $1
+       AND activity_type = 'drafting' AND lawyer_level = 'senior'`,
+      [ownerKey],
+    );
+  });
+});
