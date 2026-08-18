@@ -410,15 +410,19 @@ export async function syncPipelineStatuses(): Promise<number> {
       id: researchUploadBatchItems.id,
       state: researchUploadBatchItems.state,
       containerId: researchUploadBatchItems.containerId,
+      duplicateOfContainerId: researchUploadBatchItems.duplicateOfContainerId,
     })
     .from(researchUploadBatchItems)
     .where(inArray(researchUploadBatchItems.id, batchItemIds));
 
   const batchItemMap = new Map(batchItems.map((b) => [b.id, b]));
 
-  // Collect container IDs to batch-fetch their states
+  // Collect container IDs to batch-fetch their states.
+  // For DUPLICATE items, also include duplicateOfContainerId (the original container)
+  // since containerId is null for deduped batch items — the original container
+  // drives the drive asset's status.
   const containerIds = batchItems
-    .map((b) => b.containerId)
+    .flatMap((b) => [b.containerId, b.duplicateOfContainerId])
     .filter((id): id is number => id != null);
 
   const containers =
@@ -442,9 +446,14 @@ export async function syncPipelineStatuses(): Promise<number> {
     if (batchItem.state === "DEAD_LETTER" || batchItem.state === "REJECTED") {
       newStatus = "FAILED";
     } else if (batchItem.state === "DUPLICATE") {
-      // Duplicate: the original container drives status
-      if (batchItem.containerId) {
-        const containerState = containerMap.get(batchItem.containerId);
+      // Duplicate: the original container drives status.
+      // DUPLICATE batch items have containerId = null (no new container was
+      // created for them); the original container is referenced via
+      // duplicateOfContainerId instead.
+      const originalContainerId =
+        batchItem.containerId ?? batchItem.duplicateOfContainerId;
+      if (originalContainerId) {
+        const containerState = containerMap.get(originalContainerId);
         if (containerState) {
           newStatus = CONTAINER_STATE_MAP[containerState] ?? null;
         }
