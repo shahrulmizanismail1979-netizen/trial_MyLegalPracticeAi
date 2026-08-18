@@ -16,6 +16,7 @@ import { Footer } from "@/components/footer";
 import { CheckoutSuccess } from "@/components/checkout-success";
 import { PersonaFrontDoor } from "@/components/persona-front-door";
 import { PersonaSwitcher } from "@/components/persona-switch";
+import { PoweredByBanner } from "@/components/powered-by-banner";
 import { usePersona } from "@/lib/persona";
 
 export default function Home() {
@@ -53,12 +54,18 @@ export default function Home() {
   }, []);
 
   if (!persona && !skipped && !isCheckoutReturn && !isAnchorLink) {
-    return <PersonaFrontDoor />;
+    return (
+      <>
+        <PoweredByBanner />
+        <PersonaFrontDoor />
+      </>
+    );
   }
 
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
-      <div className="fixed inset-0 pointer-events-none z-0">
+      <PoweredByBanner />
+      <div className="fixed inset-0 pointer-events-none z-0" style={{ top: "36px" }}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background opacity-50" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>

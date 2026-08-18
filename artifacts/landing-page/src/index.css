@@ -226,6 +226,11 @@
   }
   
   /* Text gradient utility */
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
   .text-gradient-gold {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-300 to-primary;
   }
