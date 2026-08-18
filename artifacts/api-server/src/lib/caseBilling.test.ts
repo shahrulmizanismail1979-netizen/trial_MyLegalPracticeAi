@@ -36,6 +36,7 @@ const CODE_B = `TEST-${RUN_ID}-B`.toUpperCase();
 
 const codeIds: number[] = [];
 const matterIds: number[] = [];
+const invoiceIds: number[] = [];
 
 async function loginAgent(code: string) {
   const agent = request.agent(app);
@@ -71,6 +72,16 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (invoiceIds.length > 0) {
+    // Deleting invoices cascades to case_invoice_lines and case_invoice_payments.
+    // Time entries linked to these invoices are unlinked first so matter cleanup
+    // doesn't leave orphaned invoice_id references.
+    await pool.query(
+      `UPDATE case_time_entries SET invoice_id = NULL WHERE invoice_id = ANY($1::int[])`,
+      [invoiceIds],
+    );
+    await pool.query(`DELETE FROM case_invoices WHERE id = ANY($1::int[])`, [invoiceIds]);
+  }
   if (matterIds.length > 0) {
     await pool.query(`DELETE FROM case_time_entries WHERE matter_id = ANY($1::int[])`, [matterIds]);
     await pool.query(`DELETE FROM lit_matters WHERE id = ANY($1::int[])`, [matterIds]);
@@ -473,5 +484,162 @@ describe("rate-card cross-tenant isolation", () => {
       (r) => r.activity_type === uniqueActivity,
     );
     expect(hasA).toBe(false);
+  });
+});
+
+// ── Billed-entry immutability ─────────────────────────────────────────────────
+//
+// propagateRateCardUpdate / propagateRateCardDelete both guard with
+// WHERE invoice_id IS NULL, so time entries that have already been placed on
+// an issued invoice must never be repriced or nullified.
+//
+// Test plan:
+//   1. Log a time entry — rate auto-filled from a rate card.
+//   2. Generate and issue an invoice (invoice_id IS NOT NULL on the entry).
+//   3. Edit the rate card (PUT) → billed entry rate_usd must be unchanged.
+//   4. Delete the rate card → billed entry rate_usd must still be unchanged.
+//   5. The matter billing summary (GET /:matterId/billing) must reflect the
+//      original billed rate throughout, confirming the endpoint reads the DB.
+
+describe("billed entries are immutable when rate card is edited or deleted", () => {
+  let agentBilled: ReturnType<typeof request.agent>;
+  let billedMatterId: number;
+  let billedCardId: number;
+  let billedEntryId: number;
+  let billedInvoiceId: number;
+  const ORIGINAL_RATE = 700;
+
+  beforeAll(async () => {
+    agentBilled = await loginAgent(CODE_A);
+
+    // 1. Create a dedicated matter for this suite.
+    const m = await agentBilled
+      .post("/api/lit/matters")
+      .send({ title: `Billed Immutability Test ${RUN_ID}`, actingFor: "Plaintiff" });
+    expect(m.status, JSON.stringify(m.body)).toBe(201);
+    billedMatterId = m.body.id as number;
+    matterIds.push(billedMatterId);
+
+    // 2. Create a rate card at 700/hr.
+    const rc = await agentBilled
+      .post("/api/lit/matters/billing/rate-cards")
+      .send({ activityType: "BilledHearing", lawyerLevel: "BilledSenior", rateUsd: ORIGINAL_RATE });
+    expect(rc.status, JSON.stringify(rc.body)).toBe(201);
+    billedCardId = rc.body.id as number;
+
+    // 3. Log a 60-minute time entry — rate auto-filled from the card (700).
+    const entry = await agentBilled
+      .post(`/api/lit/matters/${billedMatterId}/time-entries`)
+      .send({
+        description: `Billed hearing ${RUN_ID}`,
+        minutes: 60,
+        activity_type: "BilledHearing",
+        lawyer_level: "BilledSenior",
+      });
+    expect(entry.status, JSON.stringify(entry.body)).toBe(201);
+    billedEntryId = entry.body.id as number;
+    expect(parseFloat(entry.body.rate_usd as string)).toBeCloseTo(ORIGINAL_RATE, 1);
+    expect(entry.body.rate_card_id).toBe(billedCardId);
+
+    // 4. Generate a draft invoice covering this entry.
+    const inv = await agentBilled
+      .post(`/api/lit/matters/${billedMatterId}/billing/invoices`)
+      .send({ includeTime: true, includeFees: false });
+    expect(inv.status, JSON.stringify(inv.body)).toBe(201);
+    billedInvoiceId = inv.body.id as number;
+    invoiceIds.push(billedInvoiceId);
+
+    // 5. Issue the invoice — this stamps invoice_id onto the time entry.
+    const issued = await agentBilled
+      .patch(`/api/lit/matters/billing/invoices/${billedInvoiceId}`)
+      .send({ status: "issued" });
+    expect(issued.status, JSON.stringify(issued.body)).toBe(200);
+    expect(issued.body.status).toBe("issued");
+  });
+
+  it("time entry carries invoice_id after invoicing (precondition)", async () => {
+    // Query the DB directly via the billing summary — billed entries still appear
+    // in timeEntries but with invoice_id set.
+    const billing = await agentBilled.get(
+      `/api/lit/matters/${billedMatterId}/billing`,
+    );
+    expect(billing.status).toBe(200);
+    const { timeEntries } = billing.body as {
+      timeEntries: Array<{
+        id: number;
+        rate: string | null;
+        invoice_id: number | null;
+      }>;
+    };
+    const te = timeEntries.find((e) => e.id === billedEntryId);
+    expect(te, "billed entry must appear in billing summary").toBeTruthy();
+    expect(te!.invoice_id).toBe(billedInvoiceId);
+    // Rate must still be the original 700.
+    expect(parseFloat(te!.rate as string)).toBeCloseTo(ORIGINAL_RATE, 1);
+  });
+
+  it("editing the rate card (PUT) does NOT reprice the billed entry", async () => {
+    const NEW_RATE = 1200;
+
+    // Update the rate card to 1200.
+    const put = await agentBilled
+      .put(`/api/lit/matters/billing/rate-cards/${billedCardId}`)
+      .send({ rateUsd: NEW_RATE });
+    expect(put.status, JSON.stringify(put.body)).toBe(200);
+    expect(parseFloat(put.body.rate_usd as string)).toBeCloseTo(NEW_RATE, 1);
+
+    // The billed entry must still carry the original 700.
+    const billing = await agentBilled.get(
+      `/api/lit/matters/${billedMatterId}/billing`,
+    );
+    expect(billing.status).toBe(200);
+    const { timeEntries } = billing.body as {
+      timeEntries: Array<{
+        id: number;
+        rate: string | null;
+        invoice_id: number | null;
+      }>;
+    };
+    const te = timeEntries.find((e) => e.id === billedEntryId);
+    expect(te, "billed entry must still appear").toBeTruthy();
+    expect(te!.invoice_id).toBe(billedInvoiceId);
+    expect(
+      parseFloat(te!.rate as string),
+      "billed entry rate must NOT change after rate-card edit",
+    ).toBeCloseTo(ORIGINAL_RATE, 1);
+  });
+
+  it("deleting the rate card does NOT nullify the billed entry's rate", async () => {
+    // Delete the rate card entirely.
+    const del = await agentBilled.delete(
+      `/api/lit/matters/billing/rate-cards/${billedCardId}`,
+    );
+    expect(del.status, JSON.stringify(del.body)).toBe(200);
+    expect(del.body.success).toBe(true);
+
+    // The billed entry must still carry the original 700 (not nullified).
+    const billing = await agentBilled.get(
+      `/api/lit/matters/${billedMatterId}/billing`,
+    );
+    expect(billing.status).toBe(200);
+    const { timeEntries } = billing.body as {
+      timeEntries: Array<{
+        id: number;
+        rate: string | null;
+        rate_source: string;
+        invoice_id: number | null;
+      }>;
+    };
+    const te = timeEntries.find((e) => e.id === billedEntryId);
+    expect(te, "billed entry must still appear after card deletion").toBeTruthy();
+    expect(te!.invoice_id).toBe(billedInvoiceId);
+    expect(
+      te!.rate,
+      "billed entry rate must NOT be nullified after rate-card deletion",
+    ).not.toBeNull();
+    expect(
+      parseFloat(te!.rate as string),
+      "billed entry rate must still equal the original 700",
+    ).toBeCloseTo(ORIGINAL_RATE, 1);
   });
 });
