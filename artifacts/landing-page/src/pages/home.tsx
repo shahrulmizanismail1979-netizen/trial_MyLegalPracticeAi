@@ -65,7 +65,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       <PoweredByBanner />
-      <div className="fixed inset-0 pointer-events-none z-0" style={{ top: "48px" }}>
+      <div className="fixed inset-0 pointer-events-none z-0" style={{ top: "64px" }}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background opacity-50" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
