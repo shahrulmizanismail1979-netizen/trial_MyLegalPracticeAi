@@ -80,18 +80,32 @@ async function registerPendingUpload(
   // Opportunistically prune expired rows and best-effort delete their
   // abandoned storage objects so the bucket doesn't accumulate orphans.
   await sweepExpiredCorpUploads();
+
+  // Object paths are generated with randomUUID() so two different upload
+  // sessions will never share the same path in practice.  However, as a
+  // defence-in-depth measure the INSERT uses ON CONFLICT DO UPDATE so that
+  // if a path *were* ever reused the newest registration always wins:
+  //   - accessCodeId is overwritten → the new session becomes the owner
+  //   - expiresAt is refreshed      → the TTL window restarts
+  //   - createdAt is updated        → ownership timestamp reflects the new session
+  // This guarantees consumePendingUpload will accept the newer session and
+  // correctly reject any stale reference from the previous session.
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + PENDING_TTL_MS);
   await db
     .insert(corpPendingUploads)
     .values({
       objectPath,
       accessCodeId,
-      expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+      expiresAt,
+      createdAt: now,
     })
     .onConflictDoUpdate({
       target: corpPendingUploads.objectPath,
       set: {
         accessCodeId,
-        expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+        expiresAt,
+        createdAt: now,
       },
     });
 }
