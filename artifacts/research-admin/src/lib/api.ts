@@ -335,6 +335,30 @@ export const pipelineApi = {
     ),
 };
 
+// ── Container Rights Approval ─────────────────────────────────────────────────
+
+export type BulkContainerApprovalStatus = {
+  running: boolean;
+  startedAt: string | null;
+  total: number;
+  approved: number;
+  skipped: number;
+  failed: number;
+  completed: number;
+  currentContainerId: number | null;
+  errors: { containerId: number; message: string }[];
+} | null;
+
+export const containerApprovalApi = {
+  status: () =>
+    apiFetch<BulkContainerApprovalStatus>("/drive/containers/approve-rights/status"),
+  start: () =>
+    apiFetch<{ started: boolean; total?: number; reason?: string; status?: BulkContainerApprovalStatus }>(
+      "/drive/containers/approve-rights",
+      { method: "POST" },
+    ),
+};
+
 // ── Queue ─────────────────────────────────────────────────────────────────────
 
 export const queueApi = {

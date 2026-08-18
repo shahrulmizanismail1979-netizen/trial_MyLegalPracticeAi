@@ -3,11 +3,13 @@ import {
   assetsApi,
   inventoryApi,
   pipelineApi,
+  containerApprovalApi,
   type DriveAsset,
   type DriveAssetsPage,
   type DriveProcessingStatus,
   type InventoryRun,
   type PipelineRunStatus,
+  type BulkContainerApprovalStatus,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import {
   ChevronRight,
   Zap,
   RotateCcw,
+  ShieldCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -102,9 +105,11 @@ export default function DriveInventoryPage() {
   const [page, setPage] = useState<DriveAssetsPage | null>(null);
   const [inventoryRun, setInventoryRun] = useState<InventoryRun | null>(null);
   const [pipelineRun, setPipelineRun] = useState<PipelineRunStatus>(null);
+  const [containerApproval, setContainerApproval] = useState<BulkContainerApprovalStatus>(null);
   const [loading, setLoading] = useState(false);
   const [startingInventory, setStartingInventory] = useState(false);
   const [startingPipeline, setStartingPipeline] = useState(false);
+  const [approvingContainers, setApprovingContainers] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [ingestingId, setIngestingId] = useState<number | null>(null);
 
@@ -140,23 +145,32 @@ export default function DriveInventoryPage() {
     pipelineApi.status().then(setPipelineRun).catch(() => null);
   };
 
+  const loadContainerApproval = () => {
+    containerApprovalApi.status().then(setContainerApproval).catch(() => null);
+  };
+
   useEffect(() => {
     loadAssets();
     loadInventoryRun();
     loadPipelineRun();
+    loadContainerApproval();
   }, [loadAssets]);
 
-  // Poll while either run is active
+  // Poll while any run is active
   useEffect(() => {
-    const anyActive = inventoryRun?.status === "RUNNING" || pipelineRun?.running;
+    const anyActive =
+      inventoryRun?.status === "RUNNING" ||
+      pipelineRun?.running ||
+      containerApproval?.running;
     if (!anyActive) return;
     const id = setInterval(() => {
       loadInventoryRun();
       loadPipelineRun();
+      loadContainerApproval();
       loadAssets();
     }, 4000);
     return () => clearInterval(id);
-  }, [inventoryRun?.status, pipelineRun?.running, loadAssets]);
+  }, [inventoryRun?.status, pipelineRun?.running, containerApproval?.running, loadAssets]);
 
   const startInventory = async () => {
     setStartingInventory(true);
@@ -198,6 +212,26 @@ export default function DriveInventoryPage() {
       toast({ title: "Sync failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const approveContainerRights = async () => {
+    setApprovingContainers(true);
+    try {
+      const r = await containerApprovalApi.start();
+      if (!r.started) {
+        toast({ title: "Nothing to approve", description: r.reason ?? "No containers need rights approval." });
+      } else {
+        toast({
+          title: "Container approval started",
+          description: `Approving rights for ${r.total?.toLocaleString() ?? "all"} pipeline containers and starting inventory jobs.`,
+        });
+        loadContainerApproval();
+      }
+    } catch (e: unknown) {
+      toast({ title: "Approval error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setApprovingContainers(false);
     }
   };
 
@@ -263,6 +297,17 @@ export default function DriveInventoryPage() {
             <Zap size={14} />
             {pipelineRun?.running ? `Processing ${pipelineRun.completed}/${pipelineRun.total}…` : "Run Pipeline"}
           </Button>
+          <Button
+            size="sm"
+            onClick={approveContainerRights}
+            disabled={approvingContainers || !!containerApproval?.running}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <ShieldCheck size={14} />
+            {containerApproval?.running
+              ? `Approving ${containerApproval.completed}/${containerApproval.total}…`
+              : "Approve Container Rights"}
+          </Button>
         </div>
       </div>
 
@@ -311,6 +356,41 @@ export default function DriveInventoryPage() {
                 <div key={e.assetId}>Asset #{e.assetId}: {e.message.slice(0, 120)}</div>
               ))}
               {pipelineRun.errors.length > 3 && <div>…and {pipelineRun.errors.length - 3} more errors</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Container approval status */}
+      {containerApproval && (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${
+          containerApproval.running
+            ? "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300"
+            : containerApproval.failed > 0
+              ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300"
+              : "border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300"
+        }`}>
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <span className="font-semibold">
+              {containerApproval.running && "⟳ "}
+              Container Rights Approval: {containerApproval.running ? "Running" : "Finished"}
+            </span>
+            <span>{containerApproval.approved.toLocaleString()} approved</span>
+            <span>{containerApproval.skipped.toLocaleString()} skipped</span>
+            {containerApproval.failed > 0 && <span>{containerApproval.failed.toLocaleString()} failed</span>}
+            <span>{containerApproval.completed}/{containerApproval.total} processed</span>
+          </div>
+          <p className="text-xs mt-1 opacity-75">
+            Containers approved here proceed to inventory → extraction → segmentation → editorial → publication.
+          </p>
+          {containerApproval.errors.length > 0 && (
+            <div className="mt-2 text-xs text-red-700 dark:text-red-400 space-y-0.5">
+              {containerApproval.errors.slice(0, 3).map((e) => (
+                <div key={e.containerId}>Container #{e.containerId}: {e.message.slice(0, 120)}</div>
+              ))}
+              {containerApproval.errors.length > 3 && (
+                <div>…and {containerApproval.errors.length - 3} more errors</div>
+              )}
             </div>
           )}
         </div>

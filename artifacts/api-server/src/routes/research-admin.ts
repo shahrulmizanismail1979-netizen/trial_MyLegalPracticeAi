@@ -17,6 +17,8 @@ import {
   researchCatchwords,
   researchVerifiedJudgments,
   researchCaseMetadata,
+  researchSourceContainers,
+  researchUploadBatchItems,
 } from "@workspace/db";
 import { and, asc, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { getAllFolderChildren, DRIVE_FOLDER_MIME } from "../research/drive/driveClient";
@@ -29,6 +31,8 @@ import {
 } from "../research/drive/ingestBridge";
 import { DRIVE_INGEST_JOB_KIND, DRIVE_INGEST_PROCESSOR_VERSION } from "../research/drive/driveIngestProcessor";
 import { enqueueHeadnotesJob, HEADNOTES_JOB_KIND, HEADNOTES_PROCESSOR_VERSION } from "../research/headnotes/processor";
+import { recordRightsDecision } from "../research/data/rights";
+import { startInventory } from "../research/ingestion/inventory";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_PASSWORD: string | null =
@@ -354,6 +358,132 @@ router.get("/drive/pipeline/status", requireAdminSession, (_req: Request, res: R
 router.post("/drive/pipeline/sync", requireAdminSession, async (_req: Request, res: Response) => {
   const updated = await syncPipelineStatuses();
   res.json({ updated });
+});
+
+// ── Bulk container rights approval ───────────────────────────────────────────
+
+/**
+ * Approve container-level rights for all drive-sourced containers that are
+ * still at RIGHTS_REVIEW_REQUIRED. Fires and forgets; progress is tracked in
+ * `activeContainerApproval` (same pattern as `activePipelineRun`).
+ *
+ * This is distinct from `/drive/assets/bulk-rights` which updates drive_assets
+ * rights (Drive ingestion gate). This endpoint clears the research pipeline's
+ * own rights gate so containers proceed: RIGHTS_REVIEW_REQUIRED → RIGHTS_APPROVED
+ * → INVENTORY_PENDING → full pipeline.
+ */
+
+interface BulkContainerApprovalStatus {
+  running: boolean;
+  startedAt: Date | null;
+  total: number;
+  approved: number;
+  skipped: number;
+  failed: number;
+  completed: number;
+  currentContainerId: number | null;
+  errors: { containerId: number; message: string }[];
+}
+
+let activeContainerApproval: BulkContainerApprovalStatus | null = null;
+
+router.get("/drive/containers/approve-rights/status", requireAdminSession, (_req: Request, res: Response) => {
+  res.json(activeContainerApproval ?? null);
+});
+
+router.post("/drive/containers/approve-rights", requireAdminSession, async (_req: Request, res: Response) => {
+  if (activeContainerApproval?.running) {
+    res.status(409).json({ error: "An approval run is already in progress", status: activeContainerApproval });
+    return;
+  }
+
+  // Find all drive-sourced containers that still need rights approval
+  const eligible = await db
+    .selectDistinct({ containerId: researchSourceContainers.id })
+    .from(researchSourceContainers)
+    .innerJoin(researchUploadBatchItems, eq(researchUploadBatchItems.containerId, researchSourceContainers.id))
+    .innerJoin(driveAssets, eq(driveAssets.sourceBatchItemId, researchUploadBatchItems.id))
+    .where(eq(researchSourceContainers.processingState, "RIGHTS_REVIEW_REQUIRED"));
+
+  if (eligible.length === 0) {
+    res.json({ started: false, reason: "No drive containers need rights approval" });
+    return;
+  }
+
+  activeContainerApproval = {
+    running: true,
+    startedAt: new Date(),
+    total: eligible.length,
+    approved: 0,
+    skipped: 0,
+    failed: 0,
+    completed: 0,
+    currentContainerId: null,
+    errors: [],
+  };
+
+  res.status(202).json({ started: true, total: eligible.length, status: activeContainerApproval });
+
+  const now = new Date();
+  const actor = "admin-bulk-container-approve";
+
+  (async () => {
+    for (const { containerId } of eligible) {
+      if (!activeContainerApproval) break;
+      activeContainerApproval.currentContainerId = containerId;
+      try {
+        await recordRightsDecision(
+          containerId,
+          {
+            status: "OFFICIAL_COURT_SOURCE",
+            reason: "Official court judgment — approved for research use (bulk Drive container approval)",
+            source: "google-drive",
+            dateObtained: now,
+            declaredSourceType: "official_court_judgment",
+            licenceReference: null,
+            approvedUsers: [],
+            approvedPurposes: ["research", "analysis", "ai_processing"],
+            storagePermitted: true,
+            analysisPermitted: true,
+            externalProcessingPermitted: true,
+            studentAccessPermitted: false,
+            printingPermitted: false,
+            exportPermitted: false,
+            retentionPeriod: null,
+            expiryDate: null,
+            reviewer: actor,
+            reviewDate: now,
+            notes: "Bulk-approved via Research Admin — Drive container rights approval",
+          },
+          { actor },
+        );
+        await startInventory(containerId, actor);
+        activeContainerApproval.approved++;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Skip containers that have already progressed past RIGHTS_REVIEW_REQUIRED
+        if (msg.includes("INVALID_STATE")) {
+          activeContainerApproval.skipped++;
+        } else {
+          activeContainerApproval.failed++;
+          if (activeContainerApproval.errors.length < 50) {
+            activeContainerApproval.errors.push({ containerId, message: msg });
+          }
+        }
+      }
+      activeContainerApproval.completed++;
+    }
+    if (activeContainerApproval) {
+      activeContainerApproval.running = false;
+      activeContainerApproval.currentContainerId = null;
+    }
+  })().catch((err) => {
+    console.error("[research-admin] Container approval run crashed:", err);
+    if (activeContainerApproval) {
+      activeContainerApproval.running = false;
+      activeContainerApproval.currentContainerId = null;
+    }
+  });
 });
 
 /** Re-queue a single failed or pending asset. */
