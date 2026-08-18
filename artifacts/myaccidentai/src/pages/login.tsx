@@ -246,13 +246,7 @@ export default function Login() {
         </div>
 
         <div className="text-center mt-8 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Created by <span className="font-medium text-foreground/70">Prof Madya Dr Shahrul Mizan Ismail</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Fakulti Undang-Undang, Universiti Kebangsaan Malaysia
-          </p>
-          <Link href="/" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-4" data-testid="link-back-home">
+          <Link href="/" className="inline-flex items-center gap-1 text-xs text-primary hover:underline" data-testid="link-back-home">
             <ArrowLeft className="h-3 w-3" /> Back to Home
           </Link>
         </div>

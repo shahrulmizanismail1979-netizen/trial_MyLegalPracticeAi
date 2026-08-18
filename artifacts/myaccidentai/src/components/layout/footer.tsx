@@ -13,7 +13,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-4 max-w-sm text-sm text-muted-foreground leading-relaxed">
-              The authoritative AI companion for Malaysian personal injury and accident law practitioners. Created by Prof Madya Dr Shahrul Mizan Ismail, Faculty of Law, Universiti Kebangsaan Malaysia.
+              The authoritative AI companion for Malaysian personal injury and accident law practitioners.
             </p>
             <p className="mt-4 text-xs text-muted-foreground/70 max-w-md">
               Disclaimer: MyAccidentAi is a practice companion tool. All AI-generated research, documents, and calculations should be independently verified against primary legal sources before use in actual practice.

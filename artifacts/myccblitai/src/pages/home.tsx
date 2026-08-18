@@ -235,9 +235,8 @@ export default function Home() {
               <div className="flex items-start gap-4">
                 <Scale className="w-8 h-8 text-primary flex-shrink-0" />
                 <div>
-                  <h4 className="font-serif font-bold text-lg mb-2">Created by Mohd Saufi Samsudin, Mohd Irwan Mohd Mubarak, Shahrul Mizan Ismail &amp; Mahmud Hamdi Mahmud Saedon</h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Faculty of Law, Universiti Kebangsaan Malaysia (UKM). This platform bridges the gap between cutting-edge artificial intelligence and the rigorous demands of Malaysian legal practice, establishing a new standard for computational law.
+                    This platform bridges the gap between cutting-edge artificial intelligence and the rigorous demands of Malaysian legal practice, establishing a new standard for computational law.
                   </p>
                 </div>
               </div>

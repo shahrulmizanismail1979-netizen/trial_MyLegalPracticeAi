@@ -22,10 +22,6 @@ export function Hero() {
           A comprehensive digital law library, AI-powered research suite, and interactive practice toolkit designed specifically for Malaysian practitioners handling complex motor vehicle accidents and workplace injuries.
         </p>
         
-        <p className="mt-4 text-sm font-medium text-muted-foreground/80">
-          Created by Prof Madya Dr Shahrul Mizan Ismail, Fakulti Undang-Undang, Universiti Kebangsaan Malaysia
-        </p>
-        
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/workspace" className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 text-base font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" data-testid="btn-access-workspace">
             Access Workspace

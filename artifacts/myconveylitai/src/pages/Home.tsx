@@ -313,26 +313,6 @@ export function Home() {
           />
 
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-            className="space-y-2 mb-12"
-          >
-            <p className="text-base md:text-lg text-slate-400 font-medium tracking-wide" data-testid="text-homepage-created-by">
-              Created by
-            </p>
-            <p className="text-xl md:text-2xl text-slate-200 font-semibold" data-testid="text-homepage-author-name">
-              Prof Madya Dr Shahrul Mizan Ismail
-            </p>
-            <p className="text-lg md:text-xl text-slate-300 font-medium" data-testid="text-homepage-author-faculty">
-              Fakulti Undang-Undang
-            </p>
-            <p className="text-lg md:text-xl text-slate-300 font-medium" data-testid="text-homepage-author-institution">
-              Universiti Kebangsaan Malaysia
-            </p>
-          </motion.div>
-
-          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55, ease: [0.16, 1, 0.3, 1] as const }}

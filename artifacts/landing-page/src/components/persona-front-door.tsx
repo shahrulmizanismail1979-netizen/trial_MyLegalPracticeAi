@@ -205,9 +205,9 @@ export function PersonaFrontDoor() {
                 skipFrontDoor();
                 window.scrollTo({ top: 0 });
               }}
-              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border/70 bg-card/60 text-sm font-medium text-foreground hover:bg-card hover:border-primary/40 hover:text-primary transition-all duration-200 shadow-sm"
             >
-              Skip for now — take me to the main page
+              Skip — browse all portals
             </button>
           </div>
         </div>
