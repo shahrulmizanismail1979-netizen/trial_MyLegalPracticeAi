@@ -315,3 +315,105 @@ describe("MySyariahAI rate-card propagation (PUT & DELETE)", () => {
     );
   });
 });
+
+// ── Billed-entry protection tests ─────────────────────────────────────────────
+//
+// Verify that PUT (rate update) and DELETE on a rate card do NOT touch time
+// entries that have already been placed on an invoice (invoice_id IS NOT NULL).
+// The WHERE invoice_id IS NULL guard in propagateRateCardUpdate /
+// propagateRateCardDelete is the only thing protecting accounting records from
+// silent corruption — this suite confirms it actually fires.
+
+describe("MySyariahAI rate-card propagation: billed entries are protected", () => {
+  let billedMatterId: number;
+  let billedCardId: number;
+  let billedEntryId: number;
+  let billedInvoiceId: number;
+  const originalRate = 350;
+
+  it("creates a matter for billed-entry protection tests", async () => {
+    billedMatterId = await createMatter(`Billed Protection Test ${RUN_ID}`);
+    expect(billedMatterId).toBeGreaterThan(0);
+  });
+
+  it("adds a rate card (research / senior, 350)", async () => {
+    const card = await addRateCard("research", "senior", originalRate);
+    expect(parseFloat(card.rate_usd as string)).toBeCloseTo(originalRate, 1);
+    billedCardId = card.id as number;
+    expect(billedCardId).toBeGreaterThan(0);
+  });
+
+  it("logs a time entry that auto-resolves to 350 from the rate card", async () => {
+    const body = {
+      description: `Billed protection research work (${RUN_ID})`,
+      minutes: 60,
+      activity_type: "research",
+      lawyer_level: "senior",
+    };
+    const res = await agentA
+      .post(`/api/sya/matters/${billedMatterId}/time-entries`)
+      .send(body);
+    expect(res.status, `log billed-protection entry: ${JSON.stringify(res.body)}`).toBe(201);
+    expect(parseFloat(res.body.rate_usd as string)).toBeCloseTo(originalRate, 1);
+    billedEntryId = res.body.id as number;
+    timeEntryIds.push(billedEntryId);
+  });
+
+  it("generates an invoice that includes the time entry (marks it as billed)", async () => {
+    const res = await agentA
+      .post(`/api/sya/matters/${billedMatterId}/billing/invoices`)
+      .send({});
+    expect(res.status, `generate invoice: ${JSON.stringify(res.body)}`).toBe(201);
+    billedInvoiceId = res.body.id as number;
+    expect(billedInvoiceId).toBeGreaterThan(0);
+  });
+
+  it("PUT rate card to 800: billed entry rate_usd remains unchanged at 350", async () => {
+    const updated = await updateRateCard(billedCardId, 800);
+    expect(parseFloat(updated.rate_usd as string)).toBeCloseTo(800, 1);
+
+    const billing = await getBillingForMatter(billedMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Billed protection research work"),
+    );
+    expect(entry, "billed entry should appear in billing").toBeTruthy();
+    // invoice_id IS NOT NULL → propagation must leave rate_usd at 350.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(originalRate, 1);
+  });
+
+  it("DELETE rate card: billed entry rate_usd remains unchanged at 350", async () => {
+    const result = await deleteRateCard(billedCardId);
+    expect(result.success).toBe(true);
+
+    const billing = await getBillingForMatter(billedMatterId);
+    const entry = billing.timeEntries.find((e) =>
+      (e.description as string).includes("Billed protection research work"),
+    );
+    expect(entry, "billed entry should still appear in billing after card delete").toBeTruthy();
+    // Billed entries must never be nullified — rate must still be 350.
+    expect(parseFloat(entry!.rate as string)).toBeCloseTo(originalRate, 1);
+  });
+
+  afterAll(async () => {
+    const ownerKey = `code:${codeId}`;
+    // Delete the invoice first (FK: case_invoice_lines cascades; time entry's
+    // invoice_id becomes stale but the column is nullable so the DELETE is safe).
+    if (billedInvoiceId) {
+      await pool.query(`DELETE FROM case_invoices WHERE id = $1`, [billedInvoiceId]);
+    }
+    if (billedEntryId) {
+      await pool.query(
+        `DELETE FROM case_time_entries WHERE portal = 'sya' AND id = $1`,
+        [billedEntryId],
+      );
+    }
+    await db
+      .delete(syaMattersTable)
+      .where(eq(syaMattersTable.id, billedMatterId));
+    // Guard: card was deleted by the test itself; clean up in case it wasn't.
+    await pool.query(
+      `DELETE FROM case_rate_cards WHERE portal = 'sya' AND owner_key = $1 AND activity_type = 'research' AND lawyer_level = 'senior'`,
+      [ownerKey],
+    );
+  });
+});
