@@ -72,7 +72,7 @@ export async function sweepExpiredCorpUploads(): Promise<void> {
   }
 }
 
-async function registerPendingUpload(
+export async function registerPendingUpload(
   objectPath: string,
   accessCodeId: number,
 ): Promise<void> {
@@ -112,7 +112,7 @@ async function registerPendingUpload(
 
 // Atomically consumes the pending-upload row for this path IF it belongs to
 // the caller and has not expired. Returns true when the caller owns it.
-async function consumePendingUpload(
+export async function consumePendingUpload(
   objectPath: string,
   accessCodeId: number,
 ): Promise<boolean> {
