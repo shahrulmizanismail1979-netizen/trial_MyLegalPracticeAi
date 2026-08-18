@@ -45,6 +45,11 @@ export const APP_NAME_BY_URL: Record<string, string> = {
   "/myaccidentai/": "MyAccidentAI",
   // The hosted MyLawFirmAi firm-management portal.
   "/mylawfirmai/": "MyLawFirmAi",
+  // Hosted relative portal paths (same canonical buckets as their domains).
+  "/mylitai/": "MyLitAI",
+  "/mylitai-irac/": "MyLitAI (Versi 2)",
+  "/mysyariahai/": "MySyalitAI",
+  "/myccblitai/": "MyCCBLitAI",
 };
 
 export const ALL_APP_NAMES = [

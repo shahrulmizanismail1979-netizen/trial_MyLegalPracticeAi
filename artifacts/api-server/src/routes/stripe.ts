@@ -30,6 +30,15 @@ const ALLOWED_APP_REDIRECTS = new Set([
   "https://myccblitai.life/",
   "https://myaccidentai.life/",
   "/myaccidentai/",
+  // Relative portal paths used by the landing page apps grid. Every portal the
+  // landing page can offer for subscription MUST be listed here, otherwise the
+  // checkout request is rejected with "Invalid appUrl" and the Subscribe
+  // button silently fails for that portal.
+  "/mylitai/",
+  "/mylitai-irac/",
+  "/mysyariahai/",
+  "/myccblitai/",
+  "/mylawfirmai/",
 ]);
 
 /**
@@ -89,8 +98,18 @@ async function findPriceInStripeForTier(
  * product + monthly USD price directly (idempotency keys make retries and
  * concurrent requests safe — dev and prod share one Stripe account).
  */
+/**
+ * Core individual tiers sold on the landing page. Auto-provisioned in live
+ * Stripe the same way as team bundles — the original products only ever
+ * existed in test mode, so live mode must be able to self-seed.
+ */
+const CORE_TIER_CATALOG: Record<string, { name: string; monthlyUsdCents: number; licenses: number }> = {
+  single: { name: "MyLegalPracticeAI — Single App", monthlyUsdCents: 2500, licenses: 1 },
+  bundle: { name: "MyLegalPracticeAI — Complete Bundle (All Portals)", monthlyUsdCents: 7900, licenses: 1 },
+};
+
 async function ensureBundleTierPrice(tier: string): Promise<string | null> {
-  const def = BUNDLE_TIER_CATALOG[tier];
+  const def = BUNDLE_TIER_CATALOG[tier] ?? CORE_TIER_CATALOG[tier];
   if (!def) return null;
 
   const stripe = await getUncachableStripeClient();
@@ -211,12 +230,22 @@ router.post("/checkout", async (req, res) => {
   const origin = resolveOrigin();
   const stripe = await getUncachableStripeClient();
 
-  let priceId = await getActivePriceIdForTier(tier as CheckoutTier);
-  if (!priceId && tier in BUNDLE_TIER_CATALOG) {
+  let priceId: string | null = null;
+  if (tier in BUNDLE_TIER_CATALOG || tier in CORE_TIER_CATALOG) {
+    // Catalog tiers resolve against live Stripe with an exact amount match
+    // (auto-provisioning the product/price if missing). Never trust the local
+    // DB cache here — it may hold stale test-mode prices or mistagged
+    // products with the wrong amount.
     try {
       priceId = await ensureBundleTierPrice(tier);
     } catch (err) {
-      req.log.error({ err, tier }, "Failed to auto-provision Stripe bundle tier");
+      req.log.error({ err, tier }, "Failed to resolve/auto-provision Stripe tier price");
+    }
+  } else {
+    priceId = await getActivePriceIdForTier(tier as CheckoutTier);
+    if (!priceId) {
+      // Local DB cache may hold only test-mode data — search live Stripe directly.
+      priceId = await findPriceInStripeForTier(stripe, tier);
     }
   }
   if (!priceId) {
@@ -270,7 +299,7 @@ router.post("/checkout", async (req, res) => {
     if (stripeErr?.code === "resource_missing") {
       req.log.warn({ tier, priceId }, "DB price invalid in current Stripe mode; searching Stripe directly");
       const livePriceId =
-        tier in BUNDLE_TIER_CATALOG
+        tier in BUNDLE_TIER_CATALOG || tier in CORE_TIER_CATALOG
           ? await ensureBundleTierPrice(tier).catch((e) => {
               req.log.error({ err: e, tier }, "ensureBundleTierPrice failed in fallback");
               return null;

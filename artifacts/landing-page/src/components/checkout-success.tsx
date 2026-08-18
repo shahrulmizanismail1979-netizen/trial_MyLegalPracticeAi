@@ -15,6 +15,11 @@ const ALLOWED_REDIRECTS = new Set([
   "https://myccblitai.life/",
   "https://myaccidentai.life/",
   "/myaccidentai/",
+  "/mylitai/",
+  "/mylitai-irac/",
+  "/mysyariahai/",
+  "/myccblitai/",
+  "/mylawfirmai/",
 ]);
 
 interface SessionInfo {
