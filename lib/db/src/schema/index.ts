@@ -21,6 +21,7 @@ export * from "./crim-glossary-terms";
 export * from "./crim-costs-fees";
 export * from "./crim-matters";
 export * from "./corp-access-codes";
+export * from "./corp-pending-uploads";
 export * from "./corp-sessions";
 export * from "./corp-conversations";
 export * from "./corp-messages";

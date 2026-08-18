@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import mammoth from "mammoth";
+import { db, corpPendingUploads } from "@workspace/db";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { logger } from "../../../lib/logger";
 import { ObjectStorageService } from "../../../lib/objectStorage";
 import { requireSession } from "../../lib/requireSession";
@@ -22,19 +24,81 @@ const MAX_CHARS_TOTAL = 600_000;
 
 // Bind each issued upload path to the session's access code so one subscriber
 // cannot extract (and thereby delete) another subscriber's pending upload.
-// Uploads are transient (extracted within minutes of issuance), so an
-// in-memory registry with a short TTL is sufficient.
+// The registry is DB-backed (corp_pending_uploads) so ownership survives
+// restarts and holds across multiple API instances. Rows are one-time use:
+// consumed atomically (owner-checked DELETE ... RETURNING) at extraction.
 const PENDING_TTL_MS = 30 * 60 * 1000;
-const pendingUploads = new Map<
-  string,
-  { accessCodeId: number; expiresAt: number }
->();
 
-function prunePending(): void {
-  const now = Date.now();
-  for (const [key, val] of pendingUploads) {
-    if (val.expiresAt < now) pendingUploads.delete(key);
+// Idempotent boot-time ensure: production applies SQL migrations additively,
+// so guarantee the registry table exists before the first upload request.
+const ensureTable = db
+  .execute(
+    sql`CREATE TABLE IF NOT EXISTS corp_pending_uploads (
+      id SERIAL PRIMARY KEY,
+      object_path TEXT NOT NULL UNIQUE,
+      access_code_id INTEGER NOT NULL
+        REFERENCES corp_access_codes(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+  )
+  .then(() => {})
+  .catch((err: unknown) =>
+    logger.error({ err }, "Failed to ensure corp_pending_uploads table"),
+  );
+
+async function registerPendingUpload(
+  objectPath: string,
+  accessCodeId: number,
+): Promise<void> {
+  await ensureTable;
+  // Opportunistically prune expired rows and best-effort delete their
+  // abandoned storage objects so the bucket doesn't accumulate orphans.
+  const expired = await db
+    .delete(corpPendingUploads)
+    .where(lt(corpPendingUploads.expiresAt, new Date()))
+    .returning({ objectPath: corpPendingUploads.objectPath });
+  for (const row of expired) {
+    try {
+      const file = await objectStorage.getObjectEntityFile(row.objectPath);
+      await file.delete({ ignoreNotFound: true });
+    } catch {
+      /* never uploaded or already gone — nothing to clean */
+    }
   }
+  await db
+    .insert(corpPendingUploads)
+    .values({
+      objectPath,
+      accessCodeId,
+      expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+    })
+    .onConflictDoUpdate({
+      target: corpPendingUploads.objectPath,
+      set: {
+        accessCodeId,
+        expiresAt: new Date(Date.now() + PENDING_TTL_MS),
+      },
+    });
+}
+
+// Atomically consumes the pending-upload row for this path IF it belongs to
+// the caller and has not expired. Returns true when the caller owns it.
+async function consumePendingUpload(
+  objectPath: string,
+  accessCodeId: number,
+): Promise<boolean> {
+  const deleted = await db
+    .delete(corpPendingUploads)
+    .where(
+      and(
+        eq(corpPendingUploads.objectPath, objectPath),
+        eq(corpPendingUploads.accessCodeId, accessCodeId),
+        gt(corpPendingUploads.expiresAt, new Date()),
+      ),
+    )
+    .returning({ id: corpPendingUploads.id });
+  return deleted.length > 0;
 }
 
 async function extractFromBuffer(
@@ -110,11 +174,7 @@ router.post(
         typeof req.body?.fileName === "string" ? req.body.fileName : "upload";
       const uploadURL = await objectStorage.getObjectEntityUploadURL();
       const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
-      prunePending();
-      pendingUploads.set(objectPath, {
-        accessCodeId: res.locals.accessCodeId as number,
-        expiresAt: Date.now() + PENDING_TTL_MS,
-      });
+      await registerPendingUpload(objectPath, res.locals.accessCodeId as number);
       logger.info({ fileName, objectPath }, "Issued corp doc upload URL");
       res.json({ uploadURL, objectPath });
     } catch (err) {
@@ -141,7 +201,6 @@ router.post(
         });
       }
 
-      prunePending();
       const callerCodeId = res.locals.accessCodeId as number;
 
       // Process sequentially so we hold at most one (up to 100MB) file in
@@ -166,14 +225,14 @@ router.post(
         try {
           if (!objectPath) throw new Error("Missing file reference.");
           // Ownership check: only the session that requested the upload URL
-          // may extract (and thereby delete) the stored object. One-time use.
-          const pending = pendingUploads.get(objectPath);
-          if (!pending || pending.accessCodeId !== callerCodeId) {
+          // may extract (and thereby delete) the stored object. One-time use,
+          // consumed atomically so concurrent requests cannot double-extract.
+          const owned = await consumePendingUpload(objectPath, callerCodeId);
+          if (!owned) {
             throw new Error(
               "File reference is invalid or has expired. Please upload the file again.",
             );
           }
-          pendingUploads.delete(objectPath);
           objectFile = await objectStorage.getObjectEntityFile(objectPath);
           const [metadata] = await objectFile.getMetadata();
           const size = Number(metadata.size ?? 0);
