@@ -80,12 +80,6 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <div className="mb-8 space-y-1">
-            <p className="text-lg md:text-xl font-serif font-semibold text-primary">Prof Madya Dr Shahrul Mizan Ismail</p>
-            <p className="text-base text-muted-foreground">Fakulti Undang-Undang</p>
-            <p className="text-base text-muted-foreground">Universiti Kebangsaan Malaysia</p>
-          </div>
-
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 mx-auto leading-relaxed">
             Built for senior practitioners, law students, and corporate advisors.
             Draft opinions, structure transactions, review contracts, navigate SSM filings,

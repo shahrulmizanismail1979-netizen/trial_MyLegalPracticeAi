@@ -43,13 +43,6 @@ export function LandingPage() {
               A comprehensive digital law library, AI-powered research suite, and interactive practice toolkit meticulously curated for criminal law practitioners in Malaysia.
             </p>
 
-            <div className="pt-2 pb-4">
-              <div className="max-w-xl mx-auto space-y-1">
-                <p className="text-lg font-serif font-semibold text-foreground tracking-wide">Curated by Prof Madya Dr Shahrul Mizan Ismail</p>
-                <p className="text-sm text-muted-foreground font-medium">Criminal Law Academic & Practitioner</p>
-              </div>
-            </div>
-
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <Button size="lg" className="w-full sm:w-auto text-base h-12 px-8" asChild>
                 <Link href="/workspace">Access Workspace</Link>
@@ -154,7 +147,6 @@ export function LandingPage() {
             <Scale className="h-5 w-5 text-primary/60" />
             <span className="font-serif font-bold text-lg text-muted-foreground">Mycrim<span className="text-primary/60">Ai</span></span>
           </div>
-          <p className="text-sm text-muted-foreground">Curated by Prof Madya Dr Shahrul Mizan Ismail</p>
           <p className="text-xs text-muted-foreground mt-3">
             &copy; {new Date().getFullYear()} MyCrimAi. Designed for Malaysian Criminal Law Practitioners.
           </p>

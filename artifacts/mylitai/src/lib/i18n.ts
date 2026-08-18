@@ -4,9 +4,6 @@ export const translations = {
     'brand.name': 'MyLitAi',
     'brand.tagline': 'Litigation Practice',
     'brand.fullTitle': 'Malaysian Litigation Legal Practice',
-    'brand.createdBy': 'Created by',
-    'brand.creator': 'Profesor Madya Dr Shahrul Mizan Ismail',
-    'brand.affiliation': 'Faculty of Law, Universiti Kebangsaan Malaysia',
 
     // Navigation
     'nav.practiceHub': 'Your Online LA',
@@ -113,9 +110,6 @@ export const translations = {
     'brand.name': 'MyLitAi',
     'brand.tagline': 'Amalan Litigasi',
     'brand.fullTitle': 'Amalan Guaman Litigasi Malaysia',
-    'brand.createdBy': 'Dihasilkan oleh',
-    'brand.creator': 'Profesor Madya Dr Shahrul Mizan Ismail',
-    'brand.affiliation': 'Fakulti Undang-Undang, Universiti Kebangsaan Malaysia',
 
     // Navigation
     'nav.practiceHub': 'Your Online LA',

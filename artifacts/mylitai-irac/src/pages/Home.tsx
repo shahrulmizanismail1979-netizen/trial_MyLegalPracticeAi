@@ -83,14 +83,6 @@ export default function Home() {
             MyLitigation<span className="text-gradient-gold">Practice</span>AI
           </h1>
           <div className="rule-gold w-40 mx-auto mb-6" />
-          <p className="text-sm text-[hsl(40_18%_62%)] mb-1 font-sans">{t("home.hero.createdBy")}</p>
-          <p className="font-sans font-semibold text-[hsl(40_30%_88%)] leading-snug">
-            Profesor Madya Dr Shahrul Mizan Ismail
-            <br />
-            <span className="text-[hsl(40_22%_70%)] font-medium">
-              {t("home.hero.affiliation")}
-            </span>
-          </p>
           <p className="mt-7 text-base md:text-lg text-[hsl(40_24%_78%)] leading-relaxed font-sans max-w-2xl mx-auto">
             {t("home.hero.intro")}
           </p>

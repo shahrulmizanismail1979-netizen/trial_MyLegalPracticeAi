@@ -335,20 +335,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-xs text-secondary/80 font-medium leading-relaxed">
-            Dibangunkan oleh
-          </p>
-          <p className="text-sm text-foreground font-serif font-semibold mt-1 leading-snug">
-            Prof Madya Dr Shahrul Mizan Ismail
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Fakulti Undang-Undang
-          </p>
-          <p className="text-xs text-muted-foreground font-semibold mt-0.5 tracking-wide">
-            UNIVERSITI KEBANGSAAN MALAYSIA
-          </p>
-        </div>
 
         <p className="text-xs text-muted-foreground text-center mt-6 px-4 leading-relaxed">
           Semua rujukan kes dan perundangan mesti disahkan secara bebas terhadap sumber primer /

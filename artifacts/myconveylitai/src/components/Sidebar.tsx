@@ -96,12 +96,6 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
 
         {/* Footer */}
         <div className="p-4 border-t border-gold-800 shrink-0">
-          <div className="bg-gold-900 rounded-xl p-4 border border-gold-800 mb-4">
-            <p className="text-xs text-slate-400 mb-1">Instructor</p>
-            <p className="text-sm font-bold text-slate-200 truncate">Dr Shahrul Mizan</p>
-            <p className="text-xs text-amber-500 font-mono mt-1">UKM Law Faculty</p>
-          </div>
-          
           <button 
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors border border-transparent hover:border-rose-500/20"

@@ -205,14 +205,6 @@ export function Login() {
             Malaysian Conveyancing<br />Legal Practice
           </h1>
 
-          <div className="space-y-1">
-            <p className="text-lg md:text-xl text-slate-400 font-medium">
-              by Prof Madya Dr Shahrul Mizan Ismail
-            </p>
-            <p className="text-sm text-amber-500 font-mono tracking-widest uppercase">
-              Fakulti Undang-Undang, UKM
-            </p>
-          </div>
         </div>
 
         {needsLink ? (

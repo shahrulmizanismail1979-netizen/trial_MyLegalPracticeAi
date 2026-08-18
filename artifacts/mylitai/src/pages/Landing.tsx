@@ -111,11 +111,6 @@ export default function Landing() {
 
         <div className="w-14 h-[2px] bg-amber-500/80 rounded-full mb-8" />
 
-        <p className="text-sm text-gray-400 font-medium mb-1">{t('brand.createdBy')}</p>
-        <p className="text-base md:text-lg font-bold text-white/90 mb-10">
-          {t('brand.creator')}<br className="hidden sm:block" /> {t('brand.affiliation')}
-        </p>
-
         <div className="flex flex-wrap items-center justify-center gap-2.5 mb-8">
           {featureTags.map(({ icon: Icon, label }) => (
             <div
