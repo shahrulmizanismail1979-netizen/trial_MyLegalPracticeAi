@@ -25,6 +25,7 @@ export function useStreamingChat() {
       const response = await fetch('/api/lit/ai/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ question, context })
       });
 

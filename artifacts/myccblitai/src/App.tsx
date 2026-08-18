@@ -2,7 +2,12 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
+import { SessionExpiredRedirect } from "@/components/SessionExpiredRedirect";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { setupFetchInterceptor } from "@/lib/fetch-interceptor";
+
+// Install the 401 interceptor at module evaluation time (once, before any fetch).
+setupFetchInterceptor();
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import AccessPage from "@/pages/access";
@@ -54,6 +59,7 @@ function App() {
         </WouterRouter>
         <Toaster />
         <RateLimitWarning />
+        <SessionExpiredRedirect />
       </TooltipProvider>
     </QueryClientProvider>
   );

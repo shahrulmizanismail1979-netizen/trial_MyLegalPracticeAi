@@ -7,7 +7,12 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/toaster";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
+import { SessionExpiredRedirect } from "@/components/SessionExpiredRedirect";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { setupFetchInterceptor } from "@/lib/fetch-interceptor";
+
+// Install the 401 interceptor at module evaluation time (once, before any fetch).
+setupFetchInterceptor();
 
 // Pages
 import Landing from "@/pages/Landing";
@@ -135,6 +140,7 @@ function App() {
           </WouterRouter>
           <Toaster />
           <RateLimitWarning />
+          <SessionExpiredRedirect />
         </TooltipProvider>
       </LanguageProvider>
     </QueryClientProvider>
