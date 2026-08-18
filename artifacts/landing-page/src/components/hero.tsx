@@ -63,7 +63,7 @@ export function Hero() {
   const activeContent = persona ? content[persona] : content.practitioner;
 
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
+    <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
       <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
           <span className="relative flex h-2 w-2">
