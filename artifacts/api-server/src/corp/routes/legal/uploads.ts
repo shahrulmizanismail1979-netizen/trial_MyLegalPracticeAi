@@ -47,13 +47,11 @@ const ensureTable = db
     logger.error({ err }, "Failed to ensure corp_pending_uploads table"),
   );
 
-async function registerPendingUpload(
-  objectPath: string,
-  accessCodeId: number,
-): Promise<void> {
+// Sweep all expired corp_pending_uploads rows and delete their storage objects.
+// Called opportunistically on each upload-url request, and also on a periodic
+// schedule so orphaned objects (from tab-closes mid-upload) are bounded.
+export async function sweepExpiredCorpUploads(): Promise<void> {
   await ensureTable;
-  // Opportunistically prune expired rows and best-effort delete their
-  // abandoned storage objects so the bucket doesn't accumulate orphans.
   const expired = await db
     .delete(corpPendingUploads)
     .where(lt(corpPendingUploads.expiresAt, new Date()))
@@ -66,6 +64,22 @@ async function registerPendingUpload(
       /* never uploaded or already gone — nothing to clean */
     }
   }
+  if (expired.length > 0) {
+    logger.info(
+      { count: expired.length },
+      "Swept expired corp pending uploads",
+    );
+  }
+}
+
+async function registerPendingUpload(
+  objectPath: string,
+  accessCodeId: number,
+): Promise<void> {
+  await ensureTable;
+  // Opportunistically prune expired rows and best-effort delete their
+  // abandoned storage objects so the bucket doesn't accumulate orphans.
+  await sweepExpiredCorpUploads();
   await db
     .insert(corpPendingUploads)
     .values({

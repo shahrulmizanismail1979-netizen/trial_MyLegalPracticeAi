@@ -46,6 +46,7 @@ import { registerHeadnotesProcessor } from "./research/headnotes/processor";
 import { registerDriveIngestProcessor } from "./research/drive/driveIngestProcessor";
 import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
 import { getStripeSync, getStripeMode, warnIfTestModeInProduction, purgeTestModeStripeData } from "./stripeClient";
+import { sweepExpiredCorpUploads } from "./corp/routes/legal/uploads";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -278,4 +279,27 @@ app.listen(port, (err) => {
 // down the HTTP server.
 void startResearchJobWorker().catch((err) =>
   logger.error({ err }, "Research job worker crashed"),
+);
+
+// Hourly sweep of expired corp_pending_uploads rows and their storage objects.
+// The opportunistic sweep in registerPendingUpload only runs when a NEW upload
+// URL is requested. Users who close the tab before calling extract-stored never
+// trigger that path, so without this loop orphaned objects accumulate
+// indefinitely. An hourly cadence bounds growth to at most TTL + 1 h.
+const CORP_UPLOAD_SWEEP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+async function startCorpUploadSweepWorker(): Promise<void> {
+  logger.info("Corp upload sweep worker started");
+  while (true) {
+    await new Promise((resolve) =>
+      setTimeout(resolve, CORP_UPLOAD_SWEEP_INTERVAL_MS),
+    );
+    try {
+      await sweepExpiredCorpUploads();
+    } catch (err) {
+      logger.error({ err }, "Corp upload sweep failed (non-fatal)");
+    }
+  }
+}
+void startCorpUploadSweepWorker().catch((err) =>
+  logger.error({ err }, "Corp upload sweep worker crashed"),
 );
