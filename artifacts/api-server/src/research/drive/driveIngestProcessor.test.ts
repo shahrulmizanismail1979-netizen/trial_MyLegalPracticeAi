@@ -15,16 +15,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockUpdate = vi.fn();
 const mockSelect = vi.fn();
+const mockTransaction = vi.fn();
 const mockFail = vi.fn();
 const mockEnqueueIngestJob = vi.fn();
 const mockDownloadDriveFile = vi.fn();
 const mockCreateBatch = vi.fn();
 const mockCreateBatchItem = vi.fn();
 const mockPut = vi.fn();
+const mockRemove = vi.fn();
 
 vi.mock("@workspace/db", () => ({
-  db: { update: mockUpdate, select: mockSelect },
+  db: { update: mockUpdate, select: mockSelect, transaction: mockTransaction },
   driveAssets: {},
+  researchUploadBatches: {},
   researchUploadBatchItems: {},
   researchJobs: {},
 }));
@@ -37,7 +40,7 @@ vi.mock("../data/uploads", () => ({
   transitionBatchItem: vi.fn(),
 }));
 vi.mock("../adapters", () => ({
-  getAdapters: () => ({ storage: { put: mockPut } }),
+  getAdapters: () => ({ storage: { put: mockPut, remove: mockRemove } }),
 }));
 vi.mock("../../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -108,8 +111,12 @@ describe("ingestDriveAsset forceReset", () => {
     // After forceReset, the asset is reset to PENDING.
     // The SELECT then returns PENDING so the idempotency guard passes.
     stubUpdate();
-    // First SELECT after forceReset returns PENDING (reset worked), no sourceBatchItemId
-    stubSelectSequence([[makeAsset({ processingStatus: "PENDING", sourceBatchItemId: null })]]);
+    // Select 1: asset (PENDING after reset); Select 2: cooperative cancel check
+    // returns INGESTION_QUEUED (not CANCELLED) so the download proceeds.
+    stubSelectSequence([
+      [makeAsset({ processingStatus: "PENDING", sourceBatchItemId: null })],
+      [{ processingStatus: "INGESTION_QUEUED" }],
+    ]);
     // Download then fails to terminate the test quickly
     mockDownloadDriveFile.mockRejectedValue(new Error("download fail"));
 
@@ -160,7 +167,9 @@ describe("ingestDriveAsset batch item reuse", () => {
     const deadItem = { id: 99, state: "DEAD_LETTER", retryCount: 3 };
 
     stubUpdate();
-    stubSelectSequence([[asset], [deadItem]]);
+    // Select 1: asset; Select 2: batch item (DEAD_LETTER); Select 3: cooperative
+    // cancel check returns INGESTION_QUEUED (not CANCELLED) so download proceeds.
+    stubSelectSequence([[asset], [deadItem], [{ processingStatus: "INGESTION_QUEUED" }]]);
     // Simulate download failure so the test terminates quickly
     mockDownloadDriveFile.mockRejectedValue(new Error("network error"));
 
@@ -172,6 +181,134 @@ describe("ingestDriveAsset batch item reuse", () => {
     expect(result.errorMessage).toMatch(/network error/);
     // sourceBatchItemId cleared via update
     expect(mockUpdate).toHaveBeenCalled();
+  });
+});
+
+// ── Tests: cooperative cancellation guards ────────────────────────────────────
+
+describe("ingestDriveAsset cooperative cancellation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("aborts before downloading when the asset is cancelled between the INGESTION_QUEUED write and the status re-check (layer-1 guard)", async () => {
+    stubUpdate();
+    // Select 1: PENDING asset (passes idempotency guard).
+    // Select 2: status re-check returns CANCELLED → early abort.
+    stubSelectSequence([
+      [makeAsset({ processingStatus: "PENDING", sourceBatchItemId: null })],
+      [{ processingStatus: "CANCELLED" }],
+    ]);
+
+    const { ingestDriveAsset } = await import("./ingestBridge");
+    const result = await ingestDriveAsset(1);
+
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toMatch(/cancel/i);
+    // Download must not start — commercial content must not be staged.
+    expect(mockDownloadDriveFile).not.toHaveBeenCalled();
+    expect(mockCreateBatch).not.toHaveBeenCalled();
+  });
+
+  it("removes staged bytes and cancels the batch when the asset is cancelled in the post-link/pre-enqueue window (layer-3 guard)", async () => {
+    stubUpdate();
+    // Selects: 1=PENDING asset, 2=layer-1 INGESTION_QUEUED, 3=pre-staging INGESTION_QUEUED,
+    // 4=layer-3 post-link check returns CANCELLED (rejection won the race after commit).
+    stubSelectSequence([
+      [makeAsset({ processingStatus: "PENDING", sourceBatchItemId: null })],
+      [{ processingStatus: "INGESTION_QUEUED" }],
+      [{ processingStatus: "INGESTION_QUEUED" }],
+      [{ processingStatus: "CANCELLED" }],
+    ]);
+    mockDownloadDriveFile.mockResolvedValue({ bytes: Buffer.from("pdf"), mimeType: "application/pdf" });
+    mockCreateBatch.mockResolvedValue({ id: 10 });
+    mockPut.mockResolvedValue("staged-key-l3");
+    mockRemove.mockResolvedValue(undefined);
+    mockCreateBatchItem.mockResolvedValue({ id: 20, state: "PENDING", retryCount: 0 });
+
+    // Transaction succeeds: tx.update returns a linked row (cancellation hasn't
+    // arrived yet at transaction time, only after commit).
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([{ id: 1 }]), // linked!
+            }),
+          }),
+        }),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      };
+      return fn(tx);
+    });
+
+    const { ingestDriveAsset } = await import("./ingestBridge");
+    const result = await ingestDriveAsset(1);
+
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toMatch(/cancel/i);
+    // Staged bytes must be removed — commercial content must not persist.
+    expect(mockRemove).toHaveBeenCalledWith("staged-key-l3");
+    // No downstream container.ingest job should be enqueued.
+    expect(mockEnqueueIngestJob).not.toHaveBeenCalled();
+  });
+
+  it("removes staged bytes and cancels the batch when the asset is cancelled while the download is in progress (layer-2 transaction guard)", async () => {
+    stubUpdate();
+    // Select 1: PENDING asset; Select 2: layer-1 check → INGESTION_QUEUED;
+    // Select 3: pre-staging check → INGESTION_QUEUED (both pass, staging proceeds).
+    stubSelectSequence([
+      [makeAsset({ processingStatus: "PENDING", sourceBatchItemId: null })],
+      [{ processingStatus: "INGESTION_QUEUED" }],
+      [{ processingStatus: "INGESTION_QUEUED" }],
+    ]);
+    mockDownloadDriveFile.mockResolvedValue({
+      bytes: Buffer.from("pdf-bytes"),
+      mimeType: "application/pdf",
+    });
+    mockCreateBatch.mockResolvedValue({ id: 10 });
+    mockPut.mockResolvedValue("staged-key");
+    mockRemove.mockResolvedValue(undefined);
+    mockCreateBatchItem.mockResolvedValue({ id: 20, state: "PENDING", retryCount: 0 });
+
+    // Transaction: the driveAssets UPDATE returns 0 rows because a concurrent
+    // rejection changed processingStatus to CANCELLED while the download ran.
+    // The transaction callback should throw CancelledDuringIngestionError,
+    // rolling back the batch item creation.
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      const tx = {
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([]), // 0 rows → cancellation wins
+            }),
+          }),
+        }),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            onConflictDoNothing: vi.fn().mockReturnValue({
+              returning: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+      };
+      return fn(tx);
+    });
+
+    const { ingestDriveAsset } = await import("./ingestBridge");
+    const result = await ingestDriveAsset(1);
+
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toMatch(/cancel/i);
+    // The staged object MUST be removed to prevent commercial content from
+    // remaining in object storage after a rights rejection.
+    expect(mockRemove).toHaveBeenCalledWith("staged-key");
+    // No downstream job should be enqueued.
+    expect(mockEnqueueIngestJob).not.toHaveBeenCalled();
   });
 });
 

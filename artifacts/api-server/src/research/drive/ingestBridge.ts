@@ -11,10 +11,11 @@ import {
   db,
   driveAssets,
   researchSourceContainers,
+  researchUploadBatches,
   researchUploadBatchItems,
   type DriveAsset,
 } from "@workspace/db";
-import { and, eq, inArray, isNull, isNotNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, isNotNull, ne, or, sql } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { downloadDriveFile } from "./driveClient";
 import { getAdapters } from "../adapters";
@@ -51,6 +52,21 @@ const CONTAINER_STATE_MAP: Record<string, DriveProcessingStatus> = {
   DELETION_PENDING: "CANCELLED",
   DELETED: "CANCELLED",
 };
+
+// ── Cooperative cancellation ──────────────────────────────────────────────────
+
+/**
+ * Thrown inside `db.transaction()` when the drive asset's processingStatus
+ * was changed to CANCELLED between our initial read and the batch-item link
+ * write. Throwing rolls back the batch item creation and surfaces as a skipped
+ * (not failed) result — the CANCELLED status on the asset is preserved.
+ */
+class CancelledDuringIngestionError extends Error {
+  constructor() {
+    super("Asset cancelled during ingestion");
+    this.name = "CancelledDuringIngestionError";
+  }
+}
 
 // ── Single-asset ingestion ────────────────────────────────────────────────────
 
@@ -161,8 +177,15 @@ export async function ingestDriveAsset(
       .where(eq(driveAssets.id, assetId));
   }
 
+  // Declared in outer scope so the catch block can clean them up if
+  // CancelledDuringIngestionError is thrown inside the transaction.
+  let stagingKey: string | undefined;
+  let batchId: number | undefined;
+
   try {
-    // Mark as queued immediately so concurrent runs don't double-ingest
+    // Mark as queued immediately so concurrent runs don't double-ingest.
+    // The WHERE predicate on processingStatus='PENDING' is already a guard
+    // against double-ingestion, but does not give us a signal if it's a no-op.
     await db
       .update(driveAssets)
       .set({ processingStatus: "INGESTION_QUEUED", updatedAt: new Date() })
@@ -172,6 +195,19 @@ export async function ingestDriveAsset(
           eq(driveAssets.processingStatus, "PENDING"),
         ),
       );
+
+    // Cooperative cancellation check (layer 1): re-read the asset status after
+    // the INGESTION_QUEUED write. If a concurrent rejection ran between our
+    // initial SELECT and this point, the update above was a no-op (WHERE
+    // processingStatus='PENDING' failed) and the asset is now CANCELLED. Abort
+    // before starting the expensive download.
+    const [statusCheck] = await db
+      .select({ processingStatus: driveAssets.processingStatus })
+      .from(driveAssets)
+      .where(eq(driveAssets.id, assetId));
+    if (!statusCheck || statusCheck.processingStatus === "CANCELLED") {
+      return { assetId, queued: false, skipped: true, reason: "Asset cancelled during ingestion" };
+    }
 
     // Download from Google Drive
     const { bytes, mimeType } = await downloadDriveFile(
@@ -193,9 +229,27 @@ export async function ingestDriveAsset(
         source: "drive-ingestion-bridge",
       },
     });
+    batchId = batch.id;
+
+    // Cooperative cancellation check (layer 1.5): check again right before
+    // staging bytes to object storage. Object storage writes are durable and
+    // must be explicitly cleaned up — avoiding the write is cheaper than
+    // deleting the object afterwards. If CANCELLED, mark the batch record as
+    // CANCELLED so it is not treated as an active record and return early.
+    const [preStagingCheck] = await db
+      .select({ processingStatus: driveAssets.processingStatus })
+      .from(driveAssets)
+      .where(eq(driveAssets.id, assetId));
+    if (!preStagingCheck || preStagingCheck.processingStatus === "CANCELLED") {
+      await db
+        .update(researchUploadBatches)
+        .set({ status: "CANCELLED" })
+        .where(eq(researchUploadBatches.id, batchId));
+      return { assetId, queued: false, skipped: true, reason: "Asset cancelled during ingestion" };
+    }
 
     // Stage bytes in object storage
-    const stagingKey = await getAdapters().storage.put(
+    stagingKey = await getAdapters().storage.put(
       `drive/${asset.driveFileId}/${sha256}`,
       bytes,
       mimeType,
@@ -216,14 +270,21 @@ export async function ingestDriveAsset(
           contentSha256: sha256,
           sizeBytes: bytes.length,
           mimeType,
-          stagingKey,
+          stagingKey: stagingKey!,
         },
         tx,
       );
 
       // Link immediately within the same transaction so both commit or
       // neither commits — no intermediate orphan state is possible.
-      await tx
+      //
+      // Cooperative cancellation guard (layer 2): only commit the link if the
+      // asset is not CANCELLED. A rights reviewer may have rejected the asset
+      // while the download was in progress (between layer-1.5 check and here).
+      // Throwing inside the transaction rolls back the batch item creation so
+      // no orphaned batch item or downstream job is created; the outer catch
+      // block then removes the already-staged object from object storage.
+      const [linked] = await tx
         .update(driveAssets)
         .set({
           processingStatus: "INGESTION_QUEUED",
@@ -231,10 +292,55 @@ export async function ingestDriveAsset(
           pipelineError: null,
           updatedAt: new Date(),
         })
-        .where(eq(driveAssets.id, assetId));
+        .where(
+          and(
+            eq(driveAssets.id, assetId),
+            ne(driveAssets.processingStatus, "CANCELLED" as DriveProcessingStatus),
+          ),
+        )
+        .returning({ id: driveAssets.id });
+
+      if (!linked) {
+        // Rejection won the race — roll back the batch item by throwing.
+        throw new CancelledDuringIngestionError();
+      }
 
       return newItem;
     });
+
+    // Cooperative cancellation check (layer 3): a rejection may have set
+    // processingStatus=CANCELLED in the narrow window after the transaction
+    // committed (batch item linked) but before the downstream job is enqueued.
+    // Re-read the asset one more time; if CANCELLED, remove staged bytes,
+    // cancel the batch item, and do NOT enqueue downstream work so commercial
+    // content never flows into the research pipeline.
+    const [postLinkCheck] = await db
+      .select({ processingStatus: driveAssets.processingStatus })
+      .from(driveAssets)
+      .where(eq(driveAssets.id, assetId));
+
+    if (!postLinkCheck || postLinkCheck.processingStatus === "CANCELLED") {
+      await getAdapters()
+        .storage.remove(stagingKey!)
+        .catch((e) =>
+          logger.warn(
+            { assetId, stagingKey, err: e },
+            "drive.ingest: failed to remove staged bytes after post-link cancellation — manual cleanup needed",
+          ),
+        );
+      await db
+        .update(researchUploadBatchItems)
+        .set({ state: "DEAD_LETTER" as never })
+        .where(eq(researchUploadBatchItems.id, item.id))
+        .catch(() => {});
+      await db
+        .update(researchUploadBatches)
+        .set({ status: "CANCELLED" })
+        .where(eq(researchUploadBatches.id, batchId!))
+        .catch(() => {});
+      logger.info({ assetId }, "drive.ingest: asset cancelled after batch-item link, downstream job not enqueued");
+      return { assetId, queued: false, skipped: true, reason: "Cancelled during ingestion" };
+    }
 
     // Enqueue the container.ingest job after the atomic commit.
     // A crash here leaves sourceBatchItemId set → the retry reuses the
@@ -248,6 +354,30 @@ export async function ingestDriveAsset(
 
     return { assetId, queued: true, skipped: false, batchItemId: item.id };
   } catch (err) {
+    // Honour a concurrent rejection: leave processingStatus as CANCELLED.
+    // Clean up any staged bytes and mark the batch so it is not an active record.
+    if (err instanceof CancelledDuringIngestionError) {
+      if (stagingKey) {
+        await getAdapters()
+          .storage.remove(stagingKey)
+          .catch((cleanupErr) =>
+            logger.warn(
+              { assetId, stagingKey, err: cleanupErr },
+              "drive.ingest: failed to remove staged bytes after cancellation — manual cleanup needed",
+            ),
+          );
+      }
+      if (batchId) {
+        await db
+          .update(researchUploadBatches)
+          .set({ status: "CANCELLED" })
+          .where(eq(researchUploadBatches.id, batchId))
+          .catch(() => {});
+      }
+      logger.info({ assetId, stagingKey }, "drive.ingest: asset cancelled mid-flight, ingestion aborted");
+      return { assetId, queued: false, skipped: true, reason: "Cancelled during ingestion" };
+    }
+
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ assetId, driveFileId: asset.driveFileId, err: msg }, "Drive asset ingestion failed");
 

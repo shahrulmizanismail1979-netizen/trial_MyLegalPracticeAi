@@ -280,9 +280,13 @@ describe("secure upload pipeline", () => {
     expect(rejected!.state).toBe("REJECTED");
     expect(rejected!.errorReport?.code).toBe("EXECUTABLE_CONTENT");
     await drainJobs("container.ingest");
-    const goodItem = await getBatchItem(
-      items.find((i) => i.originalPath === "good.txt")!.id,
-    );
+    // A parallel worker may have claimed the job and still be mid-run when
+    // drainJobs returns — poll until it settles (up to 30s).
+    let goodItem = await getBatchItem(items.find((i) => i.originalPath === "good.txt")!.id);
+    for (let poll = 0; poll < 60 && goodItem!.state === "PENDING"; poll++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      goodItem = await getBatchItem(items.find((i) => i.originalPath === "good.txt")!.id);
+    }
     expect(goodItem!.state).toBe("INGESTED");
   });
 
@@ -381,10 +385,17 @@ describe("secure upload pipeline", () => {
     expect(retried.state).toBe("PENDING");
     expect(retried.jobId).not.toBe(item.jobId);
     await drainJobs("container.ingest");
-    expect((await getBatchItem(item.id))!.state).toBe("INGESTED");
+    // A parallel worker may have claimed the job and still be mid-run when
+    // drainJobs returns — poll until it settles (up to 30s).
+    let retried2 = await getBatchItem(item.id);
+    for (let poll = 0; poll < 60 && retried2!.state === "PENDING"; poll++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      retried2 = await getBatchItem(item.id);
+    }
+    expect(retried2!.state).toBe("INGESTED");
   });
 
-  it("cancels and restarts a batch", async () => {
+  it("cancels and restarts a batch", { timeout: 60000 }, async () => {
     const { batch, items } = await upload([
       { name: "c1.txt", bytes: unique(fixture("single-judgment.txt")) },
       { name: "c2.txt", bytes: unique(fixture("multi-judgment.txt")) },

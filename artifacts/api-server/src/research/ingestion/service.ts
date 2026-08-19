@@ -39,10 +39,11 @@ import {
   driveAssets,
   researchSourceContainers,
   researchTransformations,
+  researchUploadBatchItems,
   type ResearchUploadBatch,
   type ResearchUploadBatchItem,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { logger } from "../../lib/logger";
 import { getAdapters } from "../adapters";
 import { recordAuditEvent } from "../domain/audit";
@@ -502,27 +503,64 @@ async function ingestProcessor({
   const batch = await getBatch(item.batchId, dbc);
   const uploadedBy = batch?.uploadedBy ?? null;
 
+  // Wrap registerContainer + routeToReview + transitionBatchItem in one
+  // transaction with a FOR UPDATE state recheck so a concurrent rejection
+  // that DEAD_LETTERs the batch item between our initial read (line above)
+  // and container creation cannot result in commercial content being
+  // registered in the pipeline.
   let container;
   try {
-    container = await registerContainer(
-      {
-        originalName: path.basename(item.originalPath),
-        sourceBatch: `upload-batch-${item.batchId}`,
-        contentSha256: item.contentSha256,
-        sizeBytes: item.sizeBytes ?? 0,
-        mimeType: item.mimeType,
-        storageKey: item.stagingKey,
-        uploadedBy,
-        provenance: {
-          enteredVia: "upload",
-          batchId: item.batchId,
-          batchItemId: item.id,
-          originalPath: item.originalPath,
-          uploadedAt: item.createdAt.toISOString(),
+    const containerOrNull = await dbc.transaction(async (tx) => {
+      // Re-read the batch item under a row lock. If it has been DEAD_LETTER'd
+      // by a rights rejection since our initial read, abort without creating
+      // a container — returning null signals the caller to exit cleanly.
+      const locked = await tx.execute(
+        sql`SELECT state FROM research_upload_batch_items WHERE id = ${item.id} FOR UPDATE`,
+      );
+      const currentState = (locked.rows[0] as { state: string } | undefined)?.state;
+      if (!currentState || currentState !== "PENDING") {
+        logger.info(
+          { batchItemId: item.id, currentState },
+          "container.ingest: batch item no longer PENDING at registration point — aborting to honour rights rejection",
+        );
+        return null; // Signal: do not create container
+      }
+
+      const c = await registerContainer(
+        {
+          originalName: path.basename(item.originalPath),
+          sourceBatch: `upload-batch-${item.batchId}`,
+          contentSha256: item.contentSha256,
+          sizeBytes: item.sizeBytes ?? 0,
+          mimeType: item.mimeType,
+          storageKey: item.stagingKey,
+          uploadedBy,
+          provenance: {
+            enteredVia: "upload",
+            batchId: item.batchId,
+            batchItemId: item.id,
+            originalPath: item.originalPath,
+            uploadedAt: item.createdAt.toISOString(),
+          },
         },
-      },
-      dbc,
-    );
+        tx,
+      );
+      await routeToReview(c.id, "New upload awaiting rights review", {
+        kind: "rights",
+        actor: `job:${job.id}`,
+        dbc: tx,
+      });
+      await transitionBatchItem(item.id, "INGESTED", {
+        actor: `job:${job.id}`,
+        detail: { containerId: c.id },
+        set: { containerId: c.id },
+        dbc: tx,
+      });
+      return c;
+    });
+
+    if (!containerOrNull) return {}; // Batch item DEAD_LETTER'd — exit cleanly
+    container = containerOrNull;
   } catch (err) {
     // Unique-violation on content_sha256: a concurrent job registered the
     // same bytes between our pre-check and insert. Resolve as DUPLICATE —
@@ -537,18 +575,6 @@ async function ingestProcessor({
     }
     throw err;
   }
-  // New containers go straight to the rights-review queue (UNREVIEWED).
-  await routeToReview(container.id, "New upload awaiting rights review", {
-    kind: "rights",
-    actor: `job:${job.id}`,
-    dbc,
-  });
-  await transitionBatchItem(item.id, "INGESTED", {
-    actor: `job:${job.id}`,
-    detail: { containerId: container.id },
-    set: { containerId: container.id },
-    dbc,
-  });
   return { outputChecksum: sha };
 }
 

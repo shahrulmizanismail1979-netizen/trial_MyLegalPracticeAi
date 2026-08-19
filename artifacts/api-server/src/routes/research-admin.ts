@@ -6,6 +6,7 @@
  * Mounted at /api/research-admin (outside the Clerk-gated /api/research prefix).
  */
 import { Router, type Request, type Response, type NextFunction } from "express";
+import { logger } from "../lib/logger";
 import { z } from "zod/v4";
 import {
   db,
@@ -20,9 +21,10 @@ import {
   researchSourceContainers,
   researchUploadBatchItems,
 } from "@workspace/db";
-import { and, asc, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import { getAllFolderChildren, DRIVE_FOLDER_MIME } from "../research/drive/driveClient";
 import { classifyDriveFile, rightsStatusForClassification } from "../research/drive/classify";
+import { getAdapters } from "../research/adapters";
 import {
   startBulkPipeline,
   getPipelineRunStatus,
@@ -330,14 +332,393 @@ router.patch("/drive/assets/:id/rights", requireAdminSession, async (req: Reques
     return;
   }
 
-  const [updated] = await db
-    .update(driveAssets)
-    .set({ rightsStatus: parsed.data.rightsStatus, updatedAt: new Date() })
-    .where(eq(driveAssets.id, id))
-    .returning();
+  if (parsed.data.rightsStatus !== "APPROVED") {
+    // Non-approval changes are simple updates (no job required).
+    const [updated] = await db
+      .update(driveAssets)
+      .set({ rightsStatus: parsed.data.rightsStatus, updatedAt: new Date() })
+      .where(eq(driveAssets.id, id))
+      .returning();
+    if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(updated);
+    return;
+  }
+
+  // APPROVED path: atomically update rights + reset processing status if
+  // the asset was cancelled (so the ingest bridge's PENDING guard is satisfied)
+  // + insert a durable ingest job — all in one transaction so a job-insert
+  // failure rolls back the rights change rather than leaving a stranded asset.
+  const updated = await db.transaction(async (tx) => {
+    const [asset] = await tx
+      .select({ id: driveAssets.id, processingStatus: driveAssets.processingStatus })
+      .from(driveAssets)
+      .where(eq(driveAssets.id, id))
+      .for("update");
+    if (!asset) return null;
+
+    const setFields: Record<string, unknown> = {
+      rightsStatus: "APPROVED",
+      updatedAt: new Date(),
+    };
+    // A previously-rejected (CANCELLED) asset must be reset to PENDING so the
+    // ingest bridge doesn't skip it — ingestBridge.ingestDriveAsset() requires
+    // processingStatus === 'PENDING'.
+    if (asset.processingStatus === "CANCELLED") {
+      setFields.processingStatus = "PENDING";
+      setFields.pipelineError = null;
+    }
+
+    const [row] = await tx
+      .update(driveAssets)
+      .set(setFields)
+      .where(eq(driveAssets.id, id))
+      .returning();
+
+    // Delete any terminal job (CANCELLED, FAILED_PERMANENT, SUCCEEDED) so that
+    // reapproval after a rejection creates a fresh runnable QUEUED row.
+    // onConflictDoNothing below handles non-terminal jobs (QUEUED, RUNNING,
+    // FAILED_RETRYABLE) — those are already active and need no replacement.
+    await tx
+      .delete(researchJobs)
+      .where(
+        and(
+          eq(researchJobs.idempotencyKey, `drive.ingest:asset:${id}`),
+          inArray(researchJobs.state as never, ["CANCELLED", "FAILED_PERMANENT", "SUCCEEDED"]),
+        ),
+      );
+
+    await tx
+      .insert(researchJobs)
+      .values({
+        kind: DRIVE_INGEST_JOB_KIND,
+        idempotencyKey: `drive.ingest:asset:${id}`,
+        payload: { driveAssetId: id } as Record<string, unknown>,
+        maxAttempts: 3,
+        processorVersion: DRIVE_INGEST_PROCESSOR_VERSION,
+        provenance: { actor: "admin-rights-approve" } as Record<string, unknown>,
+      })
+      .onConflictDoNothing({ target: researchJobs.idempotencyKey });
+
+    return row ?? null;
+  });
 
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
+});
+
+/**
+ * Reject a single RESTRICTED_REFERENCE_ONLY drive asset.
+ * Sets processingStatus = CANCELLED and cancels any active ingest job so the
+ * worker cannot process a rejected asset. Atomic: row-locked transaction with
+ * a WHERE predicate on rightsStatus so a concurrent approval cannot slip past.
+ */
+router.post("/drive/assets/:id/reject", requireAdminSession, async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = z.object({
+    reason: z.string().optional().default("Rejected by rights reviewer — no licence found"),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid body", details: parsed.error.issues });
+    return;
+  }
+
+  const result = await db.transaction(async (tx) => {
+    // Lock the row so a concurrent approve cannot commit between our read and
+    // write, and include rightsStatus in the UPDATE predicate as a final guard.
+    const [asset] = await tx
+      .select({
+        id: driveAssets.id,
+        rightsStatus: driveAssets.rightsStatus,
+        sourceBatchItemId: driveAssets.sourceBatchItemId,
+      })
+      .from(driveAssets)
+      .where(eq(driveAssets.id, id))
+      .for("update");
+
+    if (!asset) return { notFound: true } as const;
+    if (asset.rightsStatus !== "RESTRICTED_REFERENCE_ONLY") return { conflict: true } as const;
+
+    const [updated] = await tx
+      .update(driveAssets)
+      .set({ processingStatus: "CANCELLED", pipelineError: parsed.data.reason, updatedAt: new Date() })
+      // Double-predicate: even if approve wins the lock first, this UPDATE
+      // is a no-op because rightsStatus will no longer be RESTRICTED_REFERENCE_ONLY.
+      .where(and(eq(driveAssets.id, id), eq(driveAssets.rightsStatus, "RESTRICTED_REFERENCE_ONLY")))
+      .returning();
+
+    if (!updated) return { notFound: true } as const;
+
+    // Cancel any active ingest job so the worker cannot continue processing
+    // a just-rejected asset.
+    await tx
+      .update(researchJobs)
+      .set({ state: "CANCELLED" as never })
+      .where(
+        and(
+          eq(researchJobs.idempotencyKey, `drive.ingest:asset:${id}`),
+          inArray(researchJobs.state as never, ["QUEUED", "RUNNING", "FAILED_RETRYABLE"]),
+        ),
+      );
+
+    // Atomically DEAD_LETTER any linked batch item so that an ingestBridge
+    // worker that already committed the batch-item link (but hasn't enqueued
+    // the downstream container.ingest job yet) will find the item dead and not
+    // produce runnable downstream work. This closes the post-link/pre-enqueue
+    // race without requiring an unlocked status check in the bridge.
+    let stagingKey: string | null = null;
+    if (asset.sourceBatchItemId) {
+      const [deadItem] = await tx
+        .update(researchUploadBatchItems)
+        .set({ state: "DEAD_LETTER" as never, updatedAt: new Date() })
+        .where(
+          and(
+            eq(researchUploadBatchItems.id, asset.sourceBatchItemId),
+            inArray(researchUploadBatchItems.state as never, ["PENDING"]),
+          ),
+        )
+        .returning({ stagingKey: researchUploadBatchItems.stagingKey });
+      stagingKey = deadItem?.stagingKey ?? null;
+    }
+
+    return { updated, stagingKey } as const;
+  });
+
+  if ("notFound" in result) { res.status(404).json({ error: "Not found" }); return; }
+  if ("conflict" in result) {
+    res.status(409).json({ error: "Only RESTRICTED_REFERENCE_ONLY assets can be rejected via this endpoint" });
+    return;
+  }
+
+  // Best-effort: remove staged commercial bytes from object storage now that
+  // the batch item is DEAD_LETTER. Failure is logged but does not fail the
+  // request (the DB state is already consistent).
+  if (result.stagingKey) {
+    await getAdapters()
+      .storage.remove(result.stagingKey)
+      .catch((err) =>
+        logger.warn({ id, stagingKey: result.stagingKey, err }, "reject: failed to remove staged bytes — manual cleanup needed"),
+      );
+  }
+
+  res.json(result.updated);
+});
+
+/**
+ * Bulk-reject all RESTRICTED_REFERENCE_ONLY drive assets (or approve them all
+ * if action = "approve"). Bulk approve enqueues ingestion jobs for each asset.
+ * Body: { action: "approve" | "reject", ids?: number[] }
+ *
+ * `ids` is an optional allowlist that scopes the operation to specific asset
+ * IDs. When omitted, ALL RESTRICTED_REFERENCE_ONLY assets are targeted.
+ * Tests must supply `ids` so they only affect their own fixture rows — never
+ * rely on snapshot/restore to "undo" effects on pre-existing protected content.
+ */
+router.post("/drive/assets/bulk-restricted", requireAdminSession, async (req: Request, res: Response) => {
+  const BulkRestrictedSchema = z.object({
+    action: z.enum(["approve", "reject"]),
+    reason: z.string().optional().default("Bulk rejection — no licence found"),
+    /** Optional explicit allowlist of asset IDs to scope the operation. */
+    ids: z.array(z.number().int().positive()).optional(),
+  });
+
+  const parsed = BulkRestrictedSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid body", details: parsed.error.issues });
+    return;
+  }
+
+  const { action, reason, ids } = parsed.data;
+
+  // An explicitly supplied empty ids list means "nothing selected" — treat as
+  // a no-op rather than falling through to the global bulk operation, which
+  // would otherwise approve or cancel every restricted asset in the database.
+  if (ids !== undefined && ids.length === 0) {
+    res.json({ action, updated: 0, ...(action === "approve" ? { ingestionQueued: 0 } : {}) });
+    return;
+  }
+
+  // Build the id-scope clause (only when ids is a non-empty array).
+  const idScope = ids && ids.length > 0 ? inArray(driveAssets.id, ids) : undefined;
+
+  if (action === "reject") {
+    // Discover the assets to reject. This read is unlocked, but each chunk
+    // transaction re-checks the predicates atomically, so races are safe.
+    const discoverConditions = [
+      eq(driveAssets.rightsStatus, "RESTRICTED_REFERENCE_ONLY"),
+      ne(driveAssets.processingStatus, "CANCELLED" as never),
+    ];
+    if (idScope) discoverConditions.push(idScope);
+
+    const toReject = await db
+      .select({ id: driveAssets.id, sourceBatchItemId: driveAssets.sourceBatchItemId })
+      .from(driveAssets)
+      .where(and(...discoverConditions));
+
+    if (toReject.length === 0) {
+      res.json({ action: "reject", updated: 0 });
+      return;
+    }
+
+    // Process in chunks. Each chunk runs inside a single transaction so the
+    // asset cancellation, active-job cancellation, and linked-PENDING-item
+    // DEAD_LETTER all commit atomically. A bridge worker that already passed
+    // its post-link status read will find the batch item DEAD_LETTER before
+    // any downstream container.ingest processor can treat it as runnable.
+    const CHUNK = 100;
+    let totalUpdated = 0;
+    const stagedKeys: string[] = [];
+
+    for (let i = 0; i < toReject.length; i += CHUNK) {
+      const chunk = toReject.slice(i, i + CHUNK);
+      const chunkIds = chunk.map((r) => r.id);
+      const batchItemIds = chunk
+        .map((r) => r.sourceBatchItemId)
+        .filter((id): id is number => id !== null);
+      const chunkJobKeys = chunkIds.map((id) => `drive.ingest:asset:${id}`);
+
+      const chunkStagedKeys = await db.transaction(async (tx) => {
+        // 1. Cancel assets (re-checks predicates; no-op if condition no longer met).
+        //    RETURNING includes sourceBatchItemId so we capture the CURRENT linked
+        //    item, not a stale discovery snapshot. If a bridge committed a new link
+        //    between the discover SELECT and this UPDATE, the RETURNING value will
+        //    reflect it because UPDATE reads the committed row state at update time.
+        const cancelledAssets = await tx
+          .update(driveAssets)
+          .set({ processingStatus: "CANCELLED", pipelineError: reason, updatedAt: new Date() })
+          .where(
+            and(
+              inArray(driveAssets.id, chunkIds),
+              eq(driveAssets.rightsStatus, "RESTRICTED_REFERENCE_ONLY"),
+              ne(driveAssets.processingStatus, "CANCELLED" as never),
+            ),
+          )
+          .returning({ id: driveAssets.id, sourceBatchItemId: driveAssets.sourceBatchItemId });
+
+        totalUpdated += cancelledAssets.length;
+        if (cancelledAssets.length === 0) return [];
+
+        // 2. Cancel active drive.ingest jobs for every asset in this chunk.
+        const cancelledIds = cancelledAssets.map((r) => r.id);
+        const cancelledJobKeys = cancelledIds.map((id) => `drive.ingest:asset:${id}`);
+        await tx
+          .update(researchJobs)
+          .set({ state: "CANCELLED" as never })
+          .where(
+            and(
+              inArray(researchJobs.idempotencyKey, cancelledJobKeys),
+              inArray(researchJobs.state as never, ["QUEUED", "RUNNING", "FAILED_RETRYABLE"]),
+            ),
+          );
+
+        // 3. DEAD_LETTER any linked PENDING batch items in the same transaction.
+        //    Use the sourceBatchItemIds from RETURNING (live values) not from the
+        //    pre-discovery snapshot, so a bridge that linked an item after discovery
+        //    but before this UPDATE is also neutralised.
+        const currentBatchItemIds = cancelledAssets
+          .map((r) => r.sourceBatchItemId)
+          .filter((id): id is number => id !== null);
+        if (currentBatchItemIds.length === 0) return [];
+
+        const deadItems = await tx
+          .update(researchUploadBatchItems)
+          .set({ state: "DEAD_LETTER" as never })
+          .where(
+            and(
+              inArray(researchUploadBatchItems.id, currentBatchItemIds),
+              inArray(researchUploadBatchItems.state as never, ["PENDING"]),
+            ),
+          )
+          .returning({ stagingKey: researchUploadBatchItems.stagingKey });
+
+        return deadItems.filter((r) => r.stagingKey !== null).map((r) => r.stagingKey as string);
+      });
+
+      stagedKeys.push(...chunkStagedKeys);
+    }
+
+    // Best-effort: remove staged commercial bytes from object storage after all
+    // chunks commit. Failures are logged but do not roll back the DB state.
+    if (stagedKeys.length > 0) {
+      await Promise.allSettled(
+        stagedKeys.map((k) =>
+          getAdapters()
+            .storage.remove(k)
+            .catch((err) =>
+              logger.warn({ stagingKey: k, err }, "bulk-reject: failed to remove staged bytes — manual cleanup needed"),
+            ),
+        ),
+      );
+    }
+
+    res.json({ action: "reject", updated: totalUpdated });
+    return;
+  }
+
+  // action === "approve": set rightsStatus = APPROVED and enqueue ingestion.
+  // CANCELLED assets (previously rejected) are also reset to PENDING so the
+  // ingest bridge's processingStatus === 'PENDING' guard is satisfied.
+  const { updatedCount, ingestionQueued } = await db.transaction(async (tx) => {
+    const approveConditions = [eq(driveAssets.rightsStatus, "RESTRICTED_REFERENCE_ONLY")];
+    if (idScope) approveConditions.push(idScope);
+
+    const updated = await tx
+      .update(driveAssets)
+      .set({
+        rightsStatus: "APPROVED",
+        // Reset CANCELLED → PENDING; all other statuses are left unchanged.
+        processingStatus: sql<"PENDING">`CASE WHEN ${driveAssets.processingStatus} = 'CANCELLED' THEN 'PENDING'::drive_processing_status ELSE ${driveAssets.processingStatus} END`,
+        pipelineError: sql<string | null>`CASE WHEN ${driveAssets.processingStatus} = 'CANCELLED' THEN NULL ELSE ${driveAssets.pipelineError} END`,
+        updatedAt: new Date(),
+      })
+      .where(and(...approveConditions))
+      .returning({ id: driveAssets.id });
+
+    const updatedIds = updated.map((r) => r.id);
+    let queued = 0;
+
+    if (updatedIds.length > 0) {
+      const CHUNK = 200;
+      for (let i = 0; i < updatedIds.length; i += CHUNK) {
+        const chunk = updatedIds.slice(i, i + CHUNK);
+        const chunkKeys = chunk.map((id) => `drive.ingest:asset:${id}`);
+
+        // Delete any terminal job (CANCELLED, FAILED_PERMANENT, SUCCEEDED) for
+        // each asset in this chunk so reapproval always creates a fresh runnable
+        // job. onConflictDoNothing below handles non-terminal active jobs
+        // (QUEUED, RUNNING, FAILED_RETRYABLE) — those need no replacement.
+        await tx
+          .delete(researchJobs)
+          .where(
+            and(
+              inArray(researchJobs.idempotencyKey, chunkKeys),
+              inArray(researchJobs.state as never, ["CANCELLED", "FAILED_PERMANENT", "SUCCEEDED"]),
+            ),
+          );
+
+        const inserted = await tx
+          .insert(researchJobs)
+          .values(
+            chunk.map((assetId) => ({
+              kind: DRIVE_INGEST_JOB_KIND,
+              idempotencyKey: `drive.ingest:asset:${assetId}`,
+              payload: { driveAssetId: assetId } as Record<string, unknown>,
+              maxAttempts: 3,
+              processorVersion: DRIVE_INGEST_PROCESSOR_VERSION,
+              provenance: { actor: "admin-bulk-restricted-approve" } as Record<string, unknown>,
+            })),
+          )
+          .onConflictDoNothing({ target: researchJobs.idempotencyKey })
+          .returning({ id: researchJobs.id });
+        queued += inserted.length;
+      }
+    }
+
+    return { updatedCount: updatedIds.length, ingestionQueued: queued };
+  });
+
+  res.json({ action: "approve", updated: updatedCount, ingestionQueued });
 });
 
 // ── Drive Pipeline ────────────────────────────────────────────────────────────

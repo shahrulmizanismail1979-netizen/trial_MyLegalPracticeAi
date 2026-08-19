@@ -240,6 +240,23 @@ export const assetsApi = {
       method: "POST",
       body: JSON.stringify({ rightsStatus, sourceClassification }),
     }),
+  /** Reject a single RESTRICTED_REFERENCE_ONLY asset (sets processingStatus=CANCELLED). */
+  rejectRestricted: (id: number, reason?: string) =>
+    apiFetch<DriveAsset>(`/drive/assets/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  /**
+   * Bulk approve or reject RESTRICTED_REFERENCE_ONLY assets.
+   * approve: sets rightsStatus=APPROVED and queues ingestion.
+   * reject:  sets processingStatus=CANCELLED (queued for deletion).
+   * ids: optional allowlist — when omitted, ALL restricted assets are targeted.
+   */
+  bulkRestricted: (action: "approve" | "reject", reason?: string, ids?: number[]) =>
+    apiFetch<{ action: string; updated: number; ingestionQueued?: number }>("/drive/assets/bulk-restricted", {
+      method: "POST",
+      body: JSON.stringify({ action, reason, ...(ids ? { ids } : {}) }),
+    }),
 };
 
 // ── Headnotes & Catchwords ────────────────────────────────────────────────────

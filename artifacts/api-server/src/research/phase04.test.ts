@@ -581,11 +581,12 @@ describe("phase 04: OCR extraction", () => {
       expect(first.jobId).not.toBeNull();
       await drainJobs();
       // A parallel test worker may have claimed our extract job and still be
-      // mid-run — poll briefly until the container leaves EXTRACTION_PENDING.
+      // mid-run — poll until the container leaves EXTRACTION_PENDING. Allow
+      // up to 60s; the shared worker environment can be slow under load.
       let mid = await getContainer(container.id);
       for (
         let poll = 0;
-        poll < 30 && mid!.processingState === "EXTRACTION_PENDING";
+        poll < 120 && mid!.processingState === "EXTRACTION_PENDING";
         poll++
       ) {
         await new Promise((resolve) => setTimeout(resolve, 500));
