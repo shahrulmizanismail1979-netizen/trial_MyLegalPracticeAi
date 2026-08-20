@@ -54,7 +54,7 @@ const apps: App[] = [
     tag: "Corporate"
   },
   {
-    title: "MyConveyLitAI",
+    title: "MyConvey",
     description: "Draft sale & purchase agreements, conduct land title searches, and manage property transaction checklists.",
     url: "/myconveylitai/",
     tag: "Conveyancing"
