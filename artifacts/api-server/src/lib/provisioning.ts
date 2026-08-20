@@ -1280,11 +1280,9 @@ export async function handleStripeEventForProvisioning(payload: Buffer): Promise
     const isTerminal =
       event.type === "customer.subscription.deleted" || terminalStatuses.includes(sub.status);
     if (isTerminal) {
-      try {
-        await handleSubscriptionCancelled(sub.id);
-      } catch (err) {
-        logger.error({ err, subscriptionId: sub.id }, "Cancellation handling from webhook failed");
-      }
+      // Let failures reach the webhook route. It returns a non-2xx response so
+      // Stripe retries delivery instead of silently losing access revocation.
+      await handleSubscriptionCancelled(sub.id);
     }
     return;
   }

@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import ContributePage from "@/pages/contribute";
+import ManageSubscriptionPage from "@/pages/manage-subscription";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import AdminDashboard from "@/pages/admin/dashboard";
@@ -59,6 +60,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/contribute" component={ContributePage} />
+      <Route path="/manage-subscription" component={ManageSubscriptionPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
       <Route path="/admin">

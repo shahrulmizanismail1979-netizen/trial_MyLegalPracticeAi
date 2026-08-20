@@ -5,7 +5,6 @@
 import type Stripe from "stripe";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logger } from "./logger";
 import type { Tier } from "./access";
 
 function tierFromMetadata(meta: Stripe.Metadata | null | undefined): Tier | null {
@@ -52,11 +51,8 @@ export async function handleConveyStripeEvent(payload: Buffer): Promise<void> {
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
-      try {
-        await reconcileSubscription(event.data.object as Stripe.Subscription);
-      } catch (err) {
-        logger.error({ err }, "Convey Stripe subscription reconcile failed");
-      }
+      // Let failures reach the webhook route so Stripe retries lifecycle events.
+      await reconcileSubscription(event.data.object as Stripe.Subscription);
       break;
     }
     default:

@@ -1,4 +1,5 @@
-import { MessageCircle, CreditCard, ShieldCheck } from "lucide-react";
+import { MessageCircle, CreditCard, ShieldCheck, Settings } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
 const WHATSAPP_URL = `https://wa.me/60139725475?text=${encodeURIComponent(
@@ -43,6 +44,12 @@ export function Payment() {
             <ShieldCheck className="h-4 w-4 text-primary" />
             <span>Payments secured by Stripe</span>
           </div>
+          <Link href="/manage-subscription" className="mt-5 w-full">
+            <Button variant="outline" className="w-full gap-2">
+              <Settings className="h-4 w-4" />
+              Manage or cancel subscription
+            </Button>
+          </Link>
         </div>
 
         {/* WhatsApp */}

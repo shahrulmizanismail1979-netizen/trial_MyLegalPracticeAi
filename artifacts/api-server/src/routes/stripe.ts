@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
-import { sql } from "drizzle-orm";
-import { db } from "@workspace/db";
+import rateLimit from "express-rate-limit";
+import type Stripe from "stripe";
+import { and, eq, sql } from "drizzle-orm";
+import { db, subscribersTable } from "@workspace/db";
 import { getUncachableStripeClient, getStripeMode } from "../stripeClient";
 import {
   provisionFromCheckoutSession,
@@ -12,6 +14,17 @@ const router: IRouter = Router();
 
 const CHECKOUT_TIERS = ["bundle", "single", "standard", ...Object.keys(BUNDLE_TIER_CATALOG)];
 type CheckoutTier = string;
+
+const BILLING_PORTAL_ERROR =
+  "We couldn't verify those subscription details. Check your access code and billing email, or contact support if your plan was arranged manually.";
+
+const billingPortalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please wait a few minutes and try again." },
+});
 
 /**
  * Allowlist of app URLs that can be used as post-checkout redirect targets.
@@ -321,6 +334,79 @@ router.post("/checkout", async (req, res) => {
   }
 
   res.json({ url: session.url });
+});
+
+// Public self-service billing handoff. An access code is not enough on its own:
+// the purchaser's billing email must match the same subscriber row before a
+// short-lived Stripe Customer Portal session is created.
+router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
+  const accessCode =
+    typeof req.body?.accessCode === "string" ? req.body.accessCode.trim().toUpperCase() : "";
+  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  const action = req.body?.action === "cancel" ? "cancel" : "manage";
+
+  if (
+    accessCode.length < 8 ||
+    accessCode.length > 64 ||
+    email.length < 3 ||
+    email.length > 320 ||
+    !email.includes("@")
+  ) {
+    res.status(400).json({ error: BILLING_PORTAL_ERROR });
+    return;
+  }
+
+  const [subscriber] = await db
+    .select({
+      stripeCustomerId: subscribersTable.stripeCustomerId,
+      stripeSubscriptionId: subscribersTable.stripeSubscriptionId,
+    })
+    .from(subscribersTable)
+    .where(
+      and(
+        eq(subscribersTable.accessCode, accessCode),
+        sql`lower(${subscribersTable.email}) = ${email}`,
+      ),
+    )
+    .limit(1);
+
+  if (!subscriber?.stripeCustomerId || !subscriber.stripeSubscriptionId) {
+    res.status(400).json({ error: BILLING_PORTAL_ERROR });
+    return;
+  }
+
+  const origin = resolveOrigin();
+  if (!origin) {
+    req.log.error("Cannot create billing portal session without a trusted server origin");
+    res.status(503).json({ error: "Subscription management is temporarily unavailable." });
+    return;
+  }
+
+  const returnUrl = `${origin}/manage-subscription`;
+  const params: Stripe.BillingPortal.SessionCreateParams = {
+    customer: subscriber.stripeCustomerId,
+    return_url: returnUrl,
+  };
+
+  if (action === "cancel") {
+    params.flow_data = {
+      type: "subscription_cancel",
+      subscription_cancel: { subscription: subscriber.stripeSubscriptionId },
+      after_completion: {
+        type: "redirect",
+        redirect: { return_url: `${returnUrl}?status=cancelled` },
+      },
+    };
+  }
+
+  try {
+    const stripe = await getUncachableStripeClient();
+    const session = await stripe.billingPortal.sessions.create(params);
+    res.json({ url: session.url });
+  } catch (err) {
+    req.log.error({ err, action }, "Stripe billing portal session creation failed");
+    res.status(502).json({ error: "Could not open subscription management. Please try again." });
+  }
 });
 
 // Public: fetch access details for a completed checkout session so the

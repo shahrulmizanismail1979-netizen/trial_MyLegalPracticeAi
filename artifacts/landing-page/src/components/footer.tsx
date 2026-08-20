@@ -36,6 +36,11 @@ export function Footer() {
                     How to Subscribe
                   </a>
                 </li>
+                <li>
+                  <a href="/manage-subscription" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Manage or Cancel Subscription
+                  </a>
+                </li>
               </ul>
             </div>
 

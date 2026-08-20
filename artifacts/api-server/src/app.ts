@@ -74,14 +74,36 @@ app.post(
     }
 
     // ── Step 2: subscriber provisioning & Convey side-effects ─────────────────
-    // These run independently of the sync result so a non-fatal sync error can
-    // never block access-code generation for a paying customer.
-    void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
-      logger.error({ err }, "Stripe provisioning hook failed");
-    });
-    void handleConveyStripeEvent(req.body as Buffer).catch((err) => {
-      logger.error({ err }, "Convey Stripe hook failed");
-    });
+    // Subscription lifecycle events must finish before we acknowledge delivery:
+    // if cancellation deactivation fails, a 500 tells Stripe to retry instead of
+    // leaving a cancelled customer with active portal access indefinitely.
+    const isSubscriptionLifecycleEvent =
+      eventType === "customer.subscription.created" ||
+      eventType === "customer.subscription.updated" ||
+      eventType === "customer.subscription.deleted";
+
+    if (isSubscriptionLifecycleEvent) {
+      try {
+        await Promise.all([
+          handleStripeEventForProvisioning(req.body as Buffer),
+          handleConveyStripeEvent(req.body as Buffer),
+        ]);
+      } catch (err) {
+        logger.error({ err, eventType }, "Stripe subscription side-effects failed");
+        res.status(500).json({ error: "Subscription processing error" });
+        return;
+      }
+    } else {
+      // Checkout provisioning has its own retry/backoff and reconciliation safety
+      // net. Keep it off the webhook response path so Stripe is acknowledged
+      // promptly while customers receive access as soon as possible.
+      void handleStripeEventForProvisioning(req.body as Buffer).catch((err) => {
+        logger.error({ err }, "Stripe provisioning hook failed");
+      });
+      void handleConveyStripeEvent(req.body as Buffer).catch((err) => {
+        logger.error({ err }, "Convey Stripe hook failed");
+      });
+    }
 
     res.status(200).json({ received: true });
   },
