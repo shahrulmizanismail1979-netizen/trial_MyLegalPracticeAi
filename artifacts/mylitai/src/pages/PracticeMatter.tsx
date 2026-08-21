@@ -96,7 +96,11 @@ export default function PracticeMatter() {
       <PageHeader title={matter.name} description={matter.summary} />
 
       {linkedMatter && (
-        <div className="mb-6 -mt-2 bg-primary/5 border border-primary/25 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div
+          className="mb-6 -mt-2 bg-primary/5 border border-primary/25 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+          data-testid="case-home-handoff-target"
+          data-matter-id={linkedMatterId ?? undefined}
+        >
           <p className="text-sm text-foreground">
             <span className="text-muted-foreground">Working in file:</span>{' '}
             <span className="font-semibold text-primary">{linkedMatter.title}</span>

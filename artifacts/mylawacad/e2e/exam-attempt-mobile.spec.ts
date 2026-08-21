@@ -11,7 +11,13 @@
  *  - The attempt can be submitted and the summary page is reachable
  */
 
-import { test, expect, type Page, type BrowserContext } from "@playwright/test";
+import {
+  test,
+  expect,
+  type Page,
+  type BrowserContext,
+  type APIRequestContext,
+} from "@playwright/test";
 
 // iPhone 14 Pro logical resolution (portrait)
 const IPHONE_VIEWPORT = { width: 393, height: 852 };
@@ -37,6 +43,15 @@ test.beforeEach(async ({ page }) => {
 });
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+
+async function resetE2eLoginRateLimit(request: APIRequestContext): Promise<void> {
+  const resetToken = process.env.SESSION_SECRET;
+  if (!resetToken) throw new Error("SESSION_SECRET env var is required");
+  const response = await request.post("/api/internal/e2e/login-rate-limit/reset", {
+    headers: { "x-case-home-e2e-token": resetToken },
+  });
+  expect(response.status(), "E2E login limiter reset should succeed").toBe(204);
+}
 
 interface SetupResult {
   code: string;
@@ -69,6 +84,7 @@ async function setupAssessment(
   ).toContain(regResp.status());
 
   // 2. Login to get a session cookie
+  await resetE2eLoginRateLimit(request);
   const loginResp = await request.post("/api/acad/auth/login", {
     data: { email, password },
   });
@@ -686,6 +702,7 @@ async function setupAssessmentWithAudioMonitoring(
     `register failed: ${regResp.status()} ${await regResp.text()}`,
   ).toContain(regResp.status());
 
+  await resetE2eLoginRateLimit(request);
   const loginResp = await request.post("/api/acad/auth/login", {
     data: { email, password },
   });
@@ -1176,6 +1193,7 @@ test.describe("Proctor-cam overlay does not hide timer or finish button on 812×
     });
     expect([201, 409]).toContain(regResp.status());
 
+    await resetE2eLoginRateLimit(request);
     const loginResp = await request.post("/api/acad/auth/login", {
       data: { email, password },
     });
@@ -1468,6 +1486,7 @@ test.describe("Handwriting answer mode on iPhone 14 Pro viewport", () => {
     });
     expect([201, 409]).toContain(regResp.status());
 
+    await resetE2eLoginRateLimit(request);
     const loginResp = await request.post("/api/acad/auth/login", {
       data: { email, password },
     });
@@ -1663,6 +1682,7 @@ test.describe("Join page – assessment title card with very long title and educ
     });
     expect([201, 409]).toContain(regResp.status());
 
+    await resetE2eLoginRateLimit(request);
     const loginResp = await request.post("/api/acad/auth/login", {
       data: { email, password },
     });
@@ -2149,6 +2169,7 @@ test.describe("Both proctoring widgets on small landscape viewport (812×320)", 
     );
 
     // Login
+    await resetE2eLoginRateLimit(request);
     const loginResp = await (request as any).post("/api/acad/auth/login", {
       data: { email, password },
     });
@@ -2368,6 +2389,7 @@ test.describe("Both proctoring widgets on portrait phone viewport (393×852)", (
     );
 
     // Login
+    await resetE2eLoginRateLimit(request);
     const loginResp = await (request as any).post("/api/acad/auth/login", {
       data: { email, password },
     });

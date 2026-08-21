@@ -1043,7 +1043,11 @@ Special damages incurred: RM 24,500 medical, RM 8,200 vehicle repair (insurer pa
 Defendant has third-party insurance only. Police report lodged same day. Defendant pleaded guilty to careless driving in magistrates court and was fined RM 1,500.`;
 
   return (
-    <div className="max-w-5xl">
+    <div
+      className="max-w-5xl"
+      data-testid="case-home-handoff-target"
+      data-matter-id={targetMatterId ?? undefined}
+    >
       <div className="bg-muted/30 rounded-xl p-4 border border-border mb-6">
         <div className="flex items-start gap-2">
           <Gavel className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />

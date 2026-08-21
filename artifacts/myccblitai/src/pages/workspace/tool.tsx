@@ -381,7 +381,11 @@ export default function ToolPage() {
 
   return (
     <WorkspaceLayout>
-      <div className="p-6 md:p-10 max-w-7xl mx-auto flex flex-col h-[calc(100vh-64px)] md:h-full">
+      <div
+        className="p-6 md:p-10 max-w-7xl mx-auto flex flex-col h-[calc(100vh-64px)] md:h-full"
+        data-testid="case-home-handoff-target"
+        data-matter-id={activeMatterId ?? undefined}
+      >
         <div className="mb-6 flex-shrink-0">
           <Link href="/workspace/tools">
             <Button variant="ghost" size="sm" className="mb-4 -ml-3 text-muted-foreground hover:text-foreground">

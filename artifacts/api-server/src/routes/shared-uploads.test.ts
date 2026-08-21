@@ -58,6 +58,9 @@ vi.mock("@clerk/express", () => ({
 vi.mock("express-rate-limit", () => ({
   default: () => (_req: unknown, _res: unknown, next: () => void) => next(),
   rateLimit: () => (_req: unknown, _res: unknown, next: () => void) => next(),
+  MemoryStore: class {
+    resetAll(): void {}
+  },
 }));
 
 const { default: app } = await import("../app");

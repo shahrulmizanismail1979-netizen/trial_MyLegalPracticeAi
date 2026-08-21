@@ -1508,7 +1508,11 @@ export function AIPanel() {
   const MetaIcon = meta.icon;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-full sm:w-[22rem] md:static md:w-[22rem] flex flex-col bg-gold-900 border-l border-gold-800 shadow-2xl z-40 h-full shrink-0">
+    <div
+      className="fixed inset-y-0 right-0 w-full sm:w-[22rem] md:static md:w-[22rem] flex flex-col bg-gold-900 border-l border-gold-800 shadow-2xl z-40 h-full shrink-0"
+      data-testid="case-home-handoff-target"
+      data-matter-id={pickedMatter?.id}
+    >
       {/* Panel Header */}
       <div className="p-4 border-b border-gold-800 bg-gold-900/50 backdrop-blur-sm flex items-center shrink-0">
         <div className="p-2 bg-amber-500/10 rounded-lg mr-3 shrink-0">

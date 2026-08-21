@@ -62,7 +62,11 @@ export function AiCaseAnalyzerPage() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div
+      className="space-y-6 pb-8"
+      data-testid="case-home-handoff-target"
+      data-matter-id={matterId ?? undefined}
+    >
       {/* Back to matter link when launched from a matter */}
       {matterId != null && (
         <Link

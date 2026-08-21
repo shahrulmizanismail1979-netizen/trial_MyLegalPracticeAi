@@ -139,7 +139,10 @@ export function DraftCauseModal({ form, onClose, practiceMatter, linkedMatterId 
   return (
     <Modal isOpen={!!form} onClose={close} title={`AI Draft: ${form?.title ?? ''}`}>
       {form && (
-        <div>
+        <div
+          data-testid="case-home-handoff-target"
+          data-matter-id={linkedMatterId ?? undefined}
+        >
           {!hasDraft && !isStreaming && (
             <div className="space-y-6">
               <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl text-sm">
@@ -154,6 +157,7 @@ export function DraftCauseModal({ form, onClose, practiceMatter, linkedMatterId 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="pb-1">
                   <MatterPicker
+                    defaultMatterId={linkedMatterId}
                     onSelect={(m) => {
                       const summary = buildMatterSummary(m);
                       const parties = [m.plaintiff, m.defendant].filter(Boolean).join(' v. ')

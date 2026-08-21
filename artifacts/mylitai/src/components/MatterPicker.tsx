@@ -7,7 +7,7 @@
  * Usage:
  *   <MatterPicker onSelect={(m) => { setField('parties', `${m.plaintiff} v ${m.defendant}`); }} />
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FolderOpen, Search, ChevronDown, X } from 'lucide-react';
 import { useMatters, type Matter } from '@/hooks/use-matters';
 
@@ -15,11 +15,14 @@ interface MatterPickerProps {
   onSelect: (matter: Matter) => void;
   /** Optional label override. Default: "Load from case file" */
   label?: string;
+  /** Pre-select this matter once the list loads and fire onSelect. */
+  defaultMatterId?: number | null;
 }
 
 /** Build a compact formatted summary of a matter's key fields. */
 export function buildMatterSummary(m: Matter): string {
   const parts: string[] = [];
+  if (m.title) parts.push(`Matter: ${m.title}`);
   if (m.clientName) parts.push(`Client: ${m.clientName}`);
   if (m.actingFor) parts.push(`Acting for: ${m.actingFor}`);
   if (m.plaintiff) parts.push(`Plaintiff: ${m.plaintiff}`);
@@ -31,10 +34,21 @@ export function buildMatterSummary(m: Matter): string {
   return parts.join(' | ');
 }
 
-export function MatterPicker({ onSelect, label = 'Load from case file' }: MatterPickerProps) {
+export function MatterPicker({ onSelect, label = 'Load from case file', defaultMatterId }: MatterPickerProps) {
   const { data: matters, isLoading } = useMatters();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const defaultFired = useRef(false);
+
+  useEffect(() => {
+    if (defaultFired.current || defaultMatterId == null || !matters?.length) return;
+    const matter = matters.find((candidate) => candidate.id === defaultMatterId);
+    if (!matter) return;
+    defaultFired.current = true;
+    onSelect(matter);
+  // Fire only once when the requested matter becomes available.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultMatterId, matters]);
 
   const filtered = (matters ?? []).filter((m) => {
     if (!query.trim()) return true;

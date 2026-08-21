@@ -1,4 +1,23 @@
-import rateLimit from "express-rate-limit";
+import { timingSafeEqual } from "node:crypto";
+import rateLimit, { MemoryStore } from "express-rate-limit";
+
+const loginRateLimitStore = new MemoryStore();
+
+export function resetLoginRateLimitForE2e(candidate: string | undefined): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  const expected = process.env.SESSION_SECRET;
+  if (!candidate || !expected) return false;
+  const actualBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+  if (
+    actualBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(actualBuffer, expectedBuffer)
+  ) {
+    return false;
+  }
+  loginRateLimitStore.resetAll();
+  return true;
+}
 
 /**
  * Shared brute-force protection for portal login / access-code verification
@@ -12,6 +31,7 @@ import rateLimit from "express-rate-limit";
 export const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
+  store: loginRateLimitStore,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: { error: "Too many login attempts. Please try again in a few minutes." },

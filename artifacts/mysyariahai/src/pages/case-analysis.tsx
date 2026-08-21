@@ -184,7 +184,11 @@ export default function CaseAnalysisPage() {
   };
 
   return (
-    <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6">
+    <div
+      className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6"
+      data-testid="case-home-handoff-target"
+      data-matter-id={matterId ?? undefined}
+    >
       {/* Back to matter when launched from a matter */}
       {matterId != null && (
         <Link

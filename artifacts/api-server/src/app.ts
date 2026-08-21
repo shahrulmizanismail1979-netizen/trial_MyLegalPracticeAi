@@ -17,6 +17,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { handleStripeEventForProvisioning } from "./lib/provisioning";
 import { handleConveyStripeEvent } from "./lib/conveyStripe";
 import { attachUser } from "./middlewares/conveyAuth";
+import { resetLoginRateLimitForE2e } from "./lib/loginRateLimit";
 
 const app: Express = express();
 
@@ -291,6 +292,17 @@ for (const prefix of LIT_HEAVY_PREFIXES) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SESSION_SECRET ?? "dev-cookie-secret"));
+
+if (process.env.NODE_ENV !== "production") {
+  app.post("/api/internal/e2e/login-rate-limit/reset", (req, res) => {
+    const candidate = req.header("x-case-home-e2e-token");
+    if (!resetLoginRateLimitForE2e(candidate)) {
+      res.sendStatus(404);
+      return;
+    }
+    res.sendStatus(204);
+  });
+}
 
 // Resolve the publishable key from the incoming request host so the same
 // server can serve multiple Clerk custom domains. Falls back to

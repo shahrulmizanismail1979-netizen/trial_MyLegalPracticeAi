@@ -293,7 +293,11 @@ export default function ToolDetailPage() {
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Form Column */}
-          <div className="bg-card border border-purple-500/15 rounded-xl p-5 space-y-4">
+          <div
+            className="bg-card border border-purple-500/15 rounded-xl p-5 space-y-4"
+            data-testid="case-home-handoff-target"
+            data-matter-id={matterIdFromQuery ?? undefined}
+          >
             <h3 className="font-serif font-semibold text-foreground text-sm flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               Input Details

@@ -28,6 +28,10 @@ args = "artifacts/mylitai: web"
 task = "workflow.run"
 args = "artifacts/mylitai-irac: web"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-tests"
+
 [[workflows.workflow]]
 name = "api-tests"
 author = "agent"
@@ -43,12 +47,12 @@ isValidation = true
 name = "e2e-tests"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile && pnpm --filter @workspace/api-server run test:e2e:case-home"
 
 [[workflows.workflow]]
 name = "artifacts/mylitai: web"

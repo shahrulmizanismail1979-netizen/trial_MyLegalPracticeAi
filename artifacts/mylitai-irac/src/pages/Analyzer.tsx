@@ -153,7 +153,11 @@ export default function Analyzer() {
 
         {/* Linked lit matter banner — shown when ?matter=<id> is present */}
         {linkedMatter && (
-          <Card className="border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/5">
+          <Card
+            className="border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/5"
+            data-testid="case-home-handoff-target"
+            data-matter-id={linkedMatter.id}
+          >
             <CardContent className="p-4 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
