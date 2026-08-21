@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+
 export function Footer() {
   return (
     <footer className="border-t border-border/50 bg-card py-12 px-6 lg:px-8 mt-12">
@@ -37,9 +39,9 @@ export function Footer() {
                   </a>
                 </li>
                 <li>
-                  <a href="/manage-subscription" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    Manage or Cancel Subscription
-                  </a>
+                  <Link href="/unsubscribe" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Cancel Free Trial / Unsubscribe
+                  </Link>
                 </li>
               </ul>
             </div>

@@ -72,11 +72,12 @@ export default function ManageSubscriptionPage() {
 
           <div className="mb-7">
             <h1 className="font-serif text-3xl font-bold sm:text-4xl">
-              Manage your subscription
+              Cancel or manage your subscription
             </h1>
             <p className="mt-3 text-muted-foreground">
               Enter the access code and billing email from your LAWyes subscription. You will
-              continue securely in Stripe to manage payment details, view invoices, or cancel.
+              continue securely in Stripe to manage payment details, view invoices, cancel a free
+              trial, or unsubscribe.
             </p>
           </div>
 
@@ -138,7 +139,7 @@ export default function ManageSubscriptionPage() {
                 className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 {pendingAction === "cancel" && <Loader2 className="h-4 w-4 animate-spin" />}
-                Continue to cancellation
+                Cancel free trial / unsubscribe
               </Button>
             </div>
           </form>

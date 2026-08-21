@@ -45,9 +45,9 @@ export function Payment() {
             <span>Payments secured by Stripe</span>
           </div>
           <Link href="/manage-subscription" className="mt-5 w-full">
-            <Button variant="outline" className="w-full gap-2">
+            <Button variant="outline" className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
               <Settings className="h-4 w-4" />
-              Manage or cancel subscription
+              Cancel free trial / unsubscribe
             </Button>
           </Link>
         </div>

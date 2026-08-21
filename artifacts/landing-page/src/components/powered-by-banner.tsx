@@ -1,3 +1,5 @@
+import { CircleX } from "lucide-react";
+
 const BRANDS = [
   "ChatGPT",
   "Gemini",
@@ -42,6 +44,15 @@ export function PoweredByBanner() {
           ))}
         </div>
       </div>
+
+        <a
+          href={`${import.meta.env.BASE_URL}unsubscribe`}
+          className="flex shrink-0 items-center gap-1.5 border-l border-white/25 bg-black/15 px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-black/25 sm:px-5 sm:text-sm"
+          aria-label="Cancel free trial or unsubscribe"
+        >
+          <CircleX className="h-4 w-4" />
+          <span>Cancel trial / unsubscribe</span>
+        </a>
     </div>
   );
 }

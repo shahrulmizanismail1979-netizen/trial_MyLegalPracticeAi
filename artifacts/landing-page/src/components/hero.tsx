@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Scale, BookOpen, Shield, Building2, GraduationCap } from "lucide-react";
+import { ArrowRight, CircleX, Scale, BookOpen, Shield, Building2, GraduationCap } from "lucide-react";
 import { usePersona } from "@/lib/persona";
+import { Link } from "wouter";
 
 export function Hero() {
   const { persona } = usePersona();
@@ -98,6 +99,20 @@ export function Hero() {
             onClick={() => document.getElementById("apps")?.scrollIntoView({ behavior: "smooth" })}
           >
             Explore the AI Portals
+          </Button>
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span>Already subscribed or on a free trial?</span>
+          <Button
+            asChild
+            variant="link"
+            className="h-auto min-h-0 px-0 py-0 font-semibold text-primary"
+          >
+            <Link href="/unsubscribe">
+              <CircleX className="h-4 w-4" />
+              Cancel free trial / unsubscribe
+            </Link>
           </Button>
         </div>
       </div>
