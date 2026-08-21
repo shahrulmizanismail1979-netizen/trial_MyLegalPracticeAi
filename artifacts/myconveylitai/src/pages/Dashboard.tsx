@@ -87,7 +87,7 @@ export function Dashboard() {
   const [mobileMenuOpen, setMobileOpen] = useState(false);
   const [toolMenuOpen, setToolMenuOpen] = useState(false);
   const toolMenuRef = useRef<HTMLDivElement>(null);
-  const { activeSection, isAiPanelOpen, setIsAiPanelOpen, setAiMode, aiMode, currentUser, logout, refreshAccess } = useApp();
+  const { activeSection, isAiPanelOpen, setIsAiPanelOpen, setAiMode, aiMode, currentUser, logout, refreshAccess, setPendingMatterId } = useApp();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
@@ -131,6 +131,26 @@ export function Dashboard() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Open AIPanel pre-loaded with a specific matter when ?matter=<id> is in the URL.
+  // This is triggered by the CaseHomePanel "Continue in Case Home" action href.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const matterIdStr = params.get('matter');
+    if (!matterIdStr) return;
+    const matterId = parseInt(matterIdStr, 10);
+    if (!Number.isFinite(matterId)) return;
+    // Set the pending matter so AIPanel auto-picks it
+    setPendingMatterId(matterId);
+    // Open the AI panel (default to reviewer as most useful for Case Home continuation)
+    setAiMode('reviewer');
+    setIsAiPanelOpen(true);
+    // Clean the query param from the URL without triggering navigation
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete('matter');
+    window.history.replaceState({}, '', clean.toString());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToolClick = (mode: AiMode) => {

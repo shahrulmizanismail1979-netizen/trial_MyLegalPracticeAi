@@ -22,10 +22,13 @@ export function SaveToMatterPanel({
   title,
   kind,
   content,
+  defaultMatterId,
 }: {
   title: string;
   kind: string;
   content: string;
+  /** Pre-select an existing matter (e.g. when navigated from a matter's Case Home action). */
+  defaultMatterId?: number;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -33,13 +36,17 @@ export function SaveToMatterPanel({
   const createMatter = useCreateMatter();
   const saveWork = useSaveWork();
 
-  const [mode, setMode] = useState<'idle' | 'new' | 'existing'>('idle');
+  const [mode, setMode] = useState<'idle' | 'new' | 'existing'>(() =>
+    defaultMatterId ? 'existing' : 'idle'
+  );
   const [matterTitle, setMatterTitle] = useState(title);
   const [clientName, setClientName] = useState('');
   const [counterparty, setCounterparty] = useState('');
   const [matterType, setMatterType] = useState('SPA');
   const [propertyAddress, setPropertyAddress] = useState('');
-  const [existingId, setExistingId] = useState('');
+  const [existingId, setExistingId] = useState(
+    defaultMatterId ? String(defaultMatterId) : ''
+  );
   const [saved, setSaved] = useState<{ id: number; title: string } | null>(null);
 
   if (!content || !content.trim()) return null;

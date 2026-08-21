@@ -299,7 +299,7 @@ export default function MattersPage() {
                     </div>
                     {money && <Badge variant="outline" className="self-start">{money}</Badge>}
                     <div className="flex items-center gap-1.5 text-xs text-secondary font-medium pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {t("Open matter", "Buka fail")} <ArrowRight className="h-3.5 w-3.5" />
+                      {t("Continue in Case Home", "Teruskan di Rumah Kes")} <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </CardContent>
                 </Card>

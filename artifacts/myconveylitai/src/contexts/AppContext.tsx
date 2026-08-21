@@ -42,6 +42,12 @@ interface AppContextType {
   setAuthToken: (token: string | null) => void;
   refreshAccess: () => Promise<void>;
   logout: () => void;
+  /**
+   * When navigating to /dashboard?matter=<id> the Dashboard sets this so AIPanel
+   * can auto-load and pre-fill the originating matter. Cleared after AIPanel reads it.
+   */
+  pendingMatterId: number | null;
+  setPendingMatterId: (id: number | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,6 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [aiMode, setAiMode] = useState<AiMode>('tutor');
   const [selectedDocument, setSelectedDocument] = useState<DocumentDef | null>(null);
   const [drafterInitialType, setDrafterInitialType] = useState<string>('');
+  const [pendingMatterId, setPendingMatterId] = useState<number | null>(null);
 
   useEffect(() => {
     localStorage.setItem('convey_auth', isAuthenticated.toString());
@@ -124,6 +131,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAuthToken,
         refreshAccess,
         logout,
+        pendingMatterId,
+        setPendingMatterId,
       }}
     >
       {children}

@@ -356,7 +356,7 @@ function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: Matter
             <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
           </Button>
           <Link href={`/app/matters/${m.id}`} className="inline-flex items-center justify-center gap-1 rounded-md transition-all duration-200 bg-transparent hover:bg-secondary text-muted-foreground h-9 px-3 text-sm">
-            Open <ChevronRight className="h-3.5 w-3.5" />
+            Continue in Case Home <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </CardContent>
@@ -648,7 +648,7 @@ export default function Matters() {
                       <Badge variant="outline" className="self-start">{money}</Badge>
                     )}
                     <div className="flex items-center gap-1.5 text-xs text-primary font-medium pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Open matter <ArrowRight className="h-3.5 w-3.5" />
+                      Continue in Case Home <ArrowRight className="h-3.5 w-3.5" />
                     </div>
                   </CardContent>
                 </Card>

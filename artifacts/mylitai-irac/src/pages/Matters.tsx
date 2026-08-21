@@ -147,7 +147,7 @@ export default function Matters() {
                         <CalendarClock className="h-3.5 w-3.5" /> Updated {fmtDate(m.updatedAt)}
                       </p>
                       <span className="text-xs text-[hsl(var(--gold))] inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Open <ArrowRight className="h-3 w-3" />
+                        Continue in Case Home <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>
                   </CardContent>

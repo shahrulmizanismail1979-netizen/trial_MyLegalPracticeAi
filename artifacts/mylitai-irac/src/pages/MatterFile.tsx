@@ -36,6 +36,10 @@ import {
   useClients, useCreateClient, useUpdateClient, type MatterClient,
 } from '@/hooks/use-matters';
 import { useToast } from '@/hooks/use-toast';
+import { CaseHomePanel, type CaseHomeRequest } from '@workspace/case-home-ui';
+
+const caseHomeRequest: CaseHomeRequest = (path, init) =>
+  fetch(`/api/lit/matters${path}`, { credentials: 'include', ...init });
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const LIT_STAGES = ['Pre-Trial', 'Trial', 'Judgment', 'Appeal', 'Closed'] as const;
@@ -483,6 +487,14 @@ export default function MatterFile() {
 
       {/* Stage tracker */}
       <StageTracker matterId={matter.id} current={matter.status} onAdvance={handleAdvanceStage} />
+
+      {/* Case Home — prominent entry point before tabs */}
+      <CaseHomePanel
+        matterId={matter.id}
+        request={caseHomeRequest}
+        accent="hsl(var(--gold))"
+        action={{ label: 'Open IRAC Analyzer for this Matter', href: `/analyzer?matter=${matter.id}` }}
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="overview">

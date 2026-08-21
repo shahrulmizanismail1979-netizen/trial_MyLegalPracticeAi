@@ -147,6 +147,9 @@ export function Matters() {
                     {m.counterparty && <p className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {m.counterparty}</p>}
                     <p className="flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" /> Updated {fmtDate(m.updatedAt)}</p>
                   </div>
+                  <div className="flex items-center justify-end mt-3 pt-3 border-t border-gold-800">
+                    <span className="text-[11px] text-amber-400 flex items-center gap-1">Continue in Case Home →</span>
+                  </div>
               </Link>
             ))}
           </div>

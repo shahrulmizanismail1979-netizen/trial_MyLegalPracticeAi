@@ -19,12 +19,94 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, mapMatterToFormValues } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
 
+/**
+ * Explicit, field-name/label aware pre-fill for the editable single-purpose
+ * fields the generic `mapMatterToFormValues` helper deliberately skips
+ * (e.g. Client Name, Subject Matter, Questions of Law on the Legal Opinion
+ * tool). Returned values are seeds only — the fields stay fully editable.
+ */
+function buildExplicitMatterValues(
+  matter: Matter,
+  fields: Array<{ name: string; label: string; type: string }>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  const client = matter.clientName ?? "";
+  const counterparty = matter.counterparty ?? "";
+  const title = matter.title ?? "";
+  const ref = matter.reference ?? "";
+
+  for (const field of fields) {
+    const name = field.name.toLowerCase();
+    const label = field.label.toLowerCase();
+    const key = `${name} ${label}`;
+
+    // Client / party name fields
+    if (/client.?name|\bclient\b/.test(key)) {
+      if (client) result[field.name] = client;
+      continue;
+    }
+    // Subject matter / topic / issue fields
+    if (/subject|topic|\bissue\b|matter.?type|area.?of.?law/.test(key)) {
+      // Seed with the matter title (the case's subject) plus reference context.
+      const subject = [title, ref ? `(Ref: ${ref})` : ""].filter(Boolean).join(" ");
+      if (subject) result[field.name] = subject;
+      continue;
+    }
+    // Questions of law / issues to address fields
+    if (/questions?.?of.?law|legal.?questions?|issues?.?to.?address|questions?.?to.?be/.test(key)) {
+      const lines = [
+        `Legal questions arising in ${title || "this matter"}`,
+        client ? `for ${client}` : "",
+        counterparty ? `against ${counterparty}` : "",
+        ref ? `(Ref: ${ref})` : "",
+      ].filter(Boolean).join(" ");
+      if (lines) result[field.name] = `${lines}:\n1. `;
+      continue;
+    }
+    // Opposing / counterparty fields
+    if (/counterparty|opposing|defendant|respondent/.test(key)) {
+      if (counterparty) result[field.name] = counterparty;
+      continue;
+    }
+  }
+
+  return result;
+}
+
 export default function ToolPage() {
   const [, params] = useRoute("/workspace/tool/:toolId");
   const toolId = params?.toolId;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
+  // Parse matter context from query string (set by CaseHomePanel action href)
+  const queryParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
+  );
+  const qMatterId = queryParams.get("matter");
+  const qClient = queryParams.get("client") ?? "";
+  const qRef = queryParams.get("ref") ?? "";
+  const qCounterparty = queryParams.get("counterparty") ?? "";
+  const qMatterTitle = queryParams.get("title") ?? "";
+  const defaultMatterId = qMatterId ? parseInt(qMatterId, 10) : undefined;
+
+  // Synthetic Matter from query params for pre-filling form fields
+  const matterFromQuery: import("@/hooks/use-matters").Matter | null =
+    defaultMatterId
+      ? {
+          id: defaultMatterId,
+          title: qMatterTitle || `Matter #${defaultMatterId}`,
+          clientName: qClient || null,
+          counterparty: qCounterparty || null,
+          matterType: null,
+          reference: qRef || null,
+          status: "open",
+          notes: null,
+          createdAt: "",
+          updatedAt: "",
+        }
+      : null;
+
   const { data: tools, isLoading: isToolsLoading } = useQuery({
     queryKey: ["ccb-tools"],
     queryFn: async () => {
@@ -47,16 +129,34 @@ export default function ToolPage() {
     }
   }, [setLocation]);
 
-  // Initialize form fields
+  // Initialize form fields, then pre-fill from query-string matter context
   useEffect(() => {
-    if (tool && Object.keys(inputs).length === 0) {
-      const initialInputs: Record<string, string> = {};
-      tool.fields.forEach(field => {
-        initialInputs[field.name] = "";
-      });
-      setInputs(initialInputs);
+    if (!tool) return;
+    const initialInputs: Record<string, string> = {};
+    tool.fields.forEach(field => {
+      initialInputs[field.name] = "";
+    });
+    // Overlay query-param matter context if present
+    if (matterFromQuery) {
+      // 1) Generic mapping (fills facts/background/parties/reference-style fields)
+      const mapped = mapMatterToFormValues(matterFromQuery, tool.fields);
+      Object.assign(initialInputs, mapped);
+      // 2) Explicit field-name/label mapping so the editable text fields the
+      //    generic helper skips (e.g. Client Name, Subject Matter, Questions of
+      //    Law) are seeded too. Values remain fully editable — this only sets the
+      //    initial state. Only apply to fields that actually exist for this tool
+      //    and are still blank after the generic pass.
+      const explicit = buildExplicitMatterValues(matterFromQuery, tool.fields);
+      for (const [name, value] of Object.entries(explicit)) {
+        if (!initialInputs[name] && value) {
+          initialInputs[name] = value;
+        }
+      }
     }
-  }, [tool, inputs]);
+    setInputs(initialInputs);
+  // Only re-run when tool definition changes (not on every inputs change)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool?.id]);
 
   // Auto-scroll when generating
   useEffect(() => {
@@ -223,6 +323,14 @@ export default function ToolPage() {
     setInputs(prev => ({ ...prev, ...mapped }));
   };
 
+  // Track which matter is currently loaded (for defaulting SaveToMatterPanel)
+  const [activeMatterId, setActiveMatterId] = useState<number | undefined>(defaultMatterId);
+
+  const handleMatterSelectWithTrack = (matter: Matter) => {
+    handleMatterSelect(matter);
+    setActiveMatterId(matter.id);
+  };
+
   const handleLoadSample = () => {
     if (!tool) return;
     const sample = (tool as unknown as { example?: Record<string, string> }).example;
@@ -320,7 +428,10 @@ export default function ToolPage() {
               </div>
             )}
             <div className="p-4 overflow-y-auto flex-1">
-              <MatterPicker onSelect={handleMatterSelect} />
+              <MatterPicker
+                onSelect={handleMatterSelectWithTrack}
+                defaultMatterId={defaultMatterId}
+              />
               <form id="tool-form" onSubmit={handleSubmit} className="space-y-5">
                 {tool.fields.map(field => (
                   <div key={field.name} className="space-y-2">
@@ -447,11 +558,12 @@ export default function ToolPage() {
                     {output && !isGenerating && (
                       <div className="mt-6">
                         <SaveToMatterPanel
-                          key={tool.id}
+                          key={`${tool.id}-${activeMatterId ?? 0}`}
                           draftTitle={tool.name}
                           draftContent={output}
                           kind="draft"
                           refPrefix="CCB"
+                          defaultMatterId={activeMatterId}
                         />
                       </div>
                     )}

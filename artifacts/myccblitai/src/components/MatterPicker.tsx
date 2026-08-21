@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FolderOpen, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMatters, Matter } from "@/hooks/use-matters";
 
 interface MatterPickerProps {
   onSelect: (matter: Matter) => void;
+  /** Pre-select the matter with this id once the list is loaded. */
+  defaultMatterId?: number;
 }
 
-export function MatterPicker({ onSelect }: MatterPickerProps) {
+export function MatterPicker({ onSelect, defaultMatterId }: MatterPickerProps) {
   const { data: matters, isLoading } = useMatters();
   const [open, setOpen] = useState(false);
   const [selectedMatter, setSelectedMatter] = useState<Matter | null>(null);
+
+  // Auto-select when defaultMatterId is provided and matters list arrives
+  useEffect(() => {
+    if (!defaultMatterId || !matters || selectedMatter) return;
+    const found = matters.find((m) => m.id === defaultMatterId);
+    if (found) {
+      setSelectedMatter(found);
+      onSelect(found);
+    }
+  // Run once when matters first loads for this defaultMatterId
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matters, defaultMatterId]);
 
   const handleSelect = (matter: Matter) => {
     setSelectedMatter(matter);

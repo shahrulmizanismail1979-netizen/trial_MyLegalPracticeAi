@@ -201,7 +201,7 @@ function CaseRow({ m }: { m: MatterBriefing }) {
         <PrepareButton m={m} />
         <Button variant="ghost" size="sm" className="ml-auto gap-1.5 text-primary" data-testid={`my-case-open-${m.id}`} asChild>
           <Link href={`/workspace/matters/${m.id}`}>
-            Open matter <ArrowRight className="h-3.5 w-3.5" />
+            Continue in Case Home <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
       </div>

@@ -10,12 +10,26 @@ import { useMatters, type Matter } from "@/hooks/use-matters";
 
 interface MatterPickerProps {
   onSelect: (matter: Matter) => void;
+  /** Pre-select this matter id on mount and fire onSelect immediately. */
+  defaultMatterId?: number | null;
 }
 
-export function MatterPicker({ onSelect }: MatterPickerProps) {
+export function MatterPicker({ onSelect, defaultMatterId }: MatterPickerProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Matter | null>(null);
   const { data: matters, isLoading } = useMatters();
+
+  // Auto-select and fire onSelect when defaultMatterId and data arrive
+  const [defaultFired, setDefaultFired] = useState(false);
+  if (!defaultFired && defaultMatterId != null && matters && matters.length > 0) {
+    const dm = matters.find((m) => m.id === defaultMatterId) ?? null;
+    if (dm) {
+      setDefaultFired(true);
+      setSelected(dm);
+      // defer to avoid calling setState during render
+      setTimeout(() => onSelect(dm), 0);
+    }
+  }
 
   const handleSelect = (matter: Matter) => {
     setSelected(matter);

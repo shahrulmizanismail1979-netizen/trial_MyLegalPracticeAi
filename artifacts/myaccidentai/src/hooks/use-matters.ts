@@ -62,6 +62,7 @@ export interface ComputedDeadline {
 
 export type MatterInput = Partial<Omit<Matter, "id" | "createdAt" | "updatedAt">> & {
   title?: string;
+  hasDocuments?: boolean;
 };
 
 export type DeadlineInput = {

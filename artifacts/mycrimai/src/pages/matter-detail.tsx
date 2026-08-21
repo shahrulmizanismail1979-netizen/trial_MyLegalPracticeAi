@@ -69,11 +69,13 @@ import { useCrimListWorkflows } from "@workspace/api-client-react";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
+import { CaseHomePanel } from "@workspace/case-home-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/crim/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest = billingRequest;
 import {
   useMatter,
   useUpdateMatter,
@@ -1421,6 +1423,7 @@ export function MatterDetailPage() {
 
   // AI tool launch links with matter context
   const matterParams = new URLSearchParams();
+  matterParams.set("matterId", String(matter.id));
   if (matter.title) matterParams.set("matterTitle", matter.title);
   if (matter.accusedName) matterParams.set("accused", matter.accusedName);
   if (matter.charge) matterParams.set("charge", matter.charge);
@@ -1463,6 +1466,19 @@ export function MatterDetailPage() {
         <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">Case Stage</p>
         <StageStepper currentStatus={matter.status} matterId={matter.id} />
       </div>
+
+      {/* Case Home panel */}
+      <CaseHomePanel
+        matterId={matter.id}
+        request={caseHomeRequest}
+        accent="hsl(var(--primary))"
+        className="mb-6"
+        action={
+          aiTools.length > 0
+            ? { label: `Open ${aiTools[0].name}`, href: aiTools[0].href }
+            : undefined
+        }
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">

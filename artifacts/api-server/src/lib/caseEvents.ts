@@ -75,6 +75,7 @@ export const CASE_EVENT_KINDS = [
   "note",
   "payment",
   "meeting",
+  "task",
 ] as const;
 
 export type CaseEventKind = (typeof CASE_EVENT_KINDS)[number];

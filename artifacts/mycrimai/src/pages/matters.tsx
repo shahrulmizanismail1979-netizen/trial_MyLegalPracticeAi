@@ -297,7 +297,7 @@ function MyCaseCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: (m: Matter
           </Button>
           <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" asChild>
             <Link href={`/workspace/matters/${m.id}`}>
-              Open <ChevronRight className="h-3.5 w-3.5" />
+              Continue in Case Home <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>

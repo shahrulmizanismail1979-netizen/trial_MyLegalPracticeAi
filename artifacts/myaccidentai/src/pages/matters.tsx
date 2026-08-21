@@ -243,6 +243,7 @@ export default function MattersPage() {
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <Badge variant="outline">{m.status}</Badge>
+                      <span className="text-xs text-primary font-medium hidden sm:inline">Continue in Case Home</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>

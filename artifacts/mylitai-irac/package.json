@@ -73,7 +73,8 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:",
-    "@workspace/draft-export": "workspace:*"
+    "@workspace/draft-export": "workspace:*",
+    "@workspace/case-home-ui": "workspace:*"
   },
   "dependencies": {
     "@workspace/paralegal-widget": "workspace:*",

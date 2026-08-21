@@ -22,20 +22,27 @@ export function SaveToMatterPanel({
   draftContent,
   kind = "draft",
   refPrefix = "CCB",
+  defaultMatterId,
 }: {
   draftTitle: string;
   draftContent: string;
   kind?: string;
   refPrefix?: string;
+  /** Pre-select an existing matter (e.g. when navigated from a matter's Case Home action). */
+  defaultMatterId?: number;
 }) {
   const { toast } = useToast();
   const { data: matters } = useMatters();
   const createMatter = useCreateMatter();
   const saveWork = useSaveWork();
 
-  const [mode, setMode] = useState<"idle" | "new" | "existing">("idle");
+  const [mode, setMode] = useState<"idle" | "new" | "existing">(() =>
+    defaultMatterId ? "existing" : "idle"
+  );
   const [title, setTitle] = useState(draftTitle);
-  const [existingId, setExistingId] = useState<string>("");
+  const [existingId, setExistingId] = useState<string>(
+    defaultMatterId ? String(defaultMatterId) : ""
+  );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
 
   const busy = createMatter.isPending || saveWork.isPending;

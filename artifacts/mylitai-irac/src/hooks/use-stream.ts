@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { runStage, runDraft, runAnalyze, IracStage, Citation, StreamHandlers, DraftParams } from '@/lib/irac-api';
+import { runStage, runDraft, runAnalyze, IracStage, Citation, StreamHandlers, DraftParams, AnalyzeParams } from '@/lib/irac-api';
 
 export function useStreamStage() {
   const [content, setContent] = useState('');
@@ -96,7 +96,7 @@ export function useStreamAnalyze() {
   const [error, setError] = useState('');
   const cancelRef = useRef<() => void>(undefined);
 
-  const start = useCallback((caseId: string, pathway?: string) => {
+  const start = useCallback((caseIdOrParams: string | AnalyzeParams, pathway?: string) => {
     setContent('');
     setCitations([]);
     setDisclaimer('');
@@ -118,7 +118,7 @@ export function useStreamAnalyze() {
       }
     };
 
-    const control = runAnalyze(caseId, handlers, pathway);
+    const control = runAnalyze(caseIdOrParams, handlers, pathway);
     cancelRef.current = control.cancel;
   }, []);
 

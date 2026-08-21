@@ -44,6 +44,7 @@ vi.mock("@clerk/express", () => ({
 const { default: app } = await import("../../app");
 const { pool } = await import("@workspace/db");
 const { ensureMatterFileTables } = await import("../../lib/matterFiles");
+const { ensureCaseEventsTable } = await import("../../lib/caseEvents");
 
 // Two demo/static codes from the default ENV_CODES list (auth.ts).
 const CODE_DEMO_A = "CCBLIT2024";
@@ -72,6 +73,7 @@ const createdMatterIds: number[] = [];
 
 beforeAll(async () => {
   await ensureMatterFileTables();
+  await ensureCaseEventsTable();
 });
 
 afterAll(async () => {
@@ -89,6 +91,10 @@ afterAll(async () => {
   }
   // Belt-and-suspenders: also delete by the explicit matter ids we captured.
   if (createdMatterIds.length > 0) {
+    await pool.query(
+      `DELETE FROM case_events WHERE portal = 'ccb' AND matter_id = ANY($1::int[])`,
+      [createdMatterIds],
+    );
     await pool.query(`DELETE FROM ccb_matters WHERE id = ANY($1::int[])`, [createdMatterIds]);
   }
 });
@@ -227,5 +233,146 @@ describe("CCB master/demo code matter-file access", () => {
       `demo synthetic-row login response: ${JSON.stringify(loginRes.body)}`,
     ).toContain(loginRes.status);
     expect(loginRes.body.token).toBeUndefined();
+  });
+
+  // ── Chronology mirroring (Task #137) ──────────────────────────────────────
+  //
+  // Deadlines and matter-linked saved work must record best-effort case_events
+  // with stable "deadline:<id>" / "saved-work:<id>" source markers, scoped to
+  // the owning tenant (portal="ccb").
+
+  async function eventsForMatter(matterId: number) {
+    const { rows } = await pool.query<{ kind: string; source: string; title: string }>(
+      `SELECT kind, source, title FROM case_events WHERE portal = 'ccb' AND matter_id = $1`,
+      [matterId],
+    );
+    return rows;
+  }
+
+  // Chronology mirrors are best-effort (fire-and-forget void writes), so the
+  // background write may not have flushed by the time the HTTP response
+  // returns. Poll until the expected condition holds (or time out).
+  async function waitForEvents(
+    matterId: number,
+    predicate: (rows: Array<{ kind: string; source: string; title: string }>) => boolean,
+    attempts = 20,
+  ) {
+    let rows = await eventsForMatter(matterId);
+    for (let i = 0; i < attempts && !predicate(rows); i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      rows = await eventsForMatter(matterId);
+    }
+    return rows;
+  }
+
+  it("records, updates, and deletes a case_event mirror for a deadline", async () => {
+    const token = makeToken(TEST_MASTER_CODE);
+    const matterRes = await api("post", "/api/ccb/matters", token).send({
+      title: "Deadline Mirror Matter",
+    });
+    expect(matterRes.status).toBe(201);
+    const matterId = matterRes.body.id as number;
+    createdMatterIds.push(matterId);
+
+    // Create a deadline → expect a "deadline:<id>" event.
+    const dlRes = await api("post", `/api/ccb/matters/${matterId}/deadlines`, token).send({
+      title: "File statement of claim",
+      dueDate: "2031-03-01",
+    });
+    expect(dlRes.status, `create deadline: ${JSON.stringify(dlRes.body)}`).toBe(201);
+    const deadlineId = dlRes.body.id as number;
+
+    let events = await waitForEvents(matterId, (rows) =>
+      rows.some((e) => e.source === `deadline:${deadlineId}`),
+    );
+    const created = events.find((e) => e.source === `deadline:${deadlineId}`);
+    expect(created, `events: ${JSON.stringify(events)}`).toBeDefined();
+    expect(created!.kind).toBe("deadline");
+    expect(created!.title).toContain("File statement of claim");
+
+    // Update the deadline title → mirror event title updates.
+    const patchRes = await api(
+      "patch",
+      `/api/ccb/matters/${matterId}/deadlines/${deadlineId}`,
+      token,
+    ).send({ title: "File amended statement of claim" });
+    expect(patchRes.status).toBe(200);
+
+    events = await waitForEvents(matterId, (rows) =>
+      rows.some((e) => e.source === `deadline:${deadlineId}` && e.title.includes("amended")),
+    );
+    const updated = events.find((e) => e.source === `deadline:${deadlineId}`);
+    expect(updated).toBeDefined();
+    expect(updated!.title).toContain("amended");
+
+    // Delete the deadline → mirror event removed.
+    const delRes = await api(
+      "delete",
+      `/api/ccb/matters/${matterId}/deadlines/${deadlineId}`,
+      token,
+    );
+    expect(delRes.status).toBe(200);
+
+    events = await waitForEvents(
+      matterId,
+      (rows) => !rows.some((e) => e.source === `deadline:${deadlineId}`),
+    );
+    expect(events.find((e) => e.source === `deadline:${deadlineId}`)).toBeUndefined();
+  });
+
+  it("records case_event mirrors for bulk-created deadlines", async () => {
+    const token = makeToken(TEST_MASTER_CODE);
+    const matterRes = await api("post", "/api/ccb/matters", token).send({
+      title: "Bulk Deadline Mirror Matter",
+    });
+    expect(matterRes.status).toBe(201);
+    const matterId = matterRes.body.id as number;
+    createdMatterIds.push(matterId);
+
+    const bulkRes = await api("post", `/api/ccb/matters/${matterId}/deadlines/bulk`, token).send({
+      deadlines: [
+        { title: "First hearing", dueDate: "2031-04-01" },
+        { title: "Second hearing", dueDate: "2031-05-01" },
+      ],
+    });
+    expect(bulkRes.status, `bulk: ${JSON.stringify(bulkRes.body)}`).toBe(201);
+    const ids = (bulkRes.body as Array<{ id: number }>).map((r) => r.id);
+    expect(ids.length).toBe(2);
+
+    const events = await waitForEvents(matterId, (rows) =>
+      ids.every((id) => rows.some((e) => e.source === `deadline:${id}`)),
+    );
+    for (const id of ids) {
+      const ev = events.find((e) => e.source === `deadline:${id}`);
+      expect(ev, `missing event for deadline ${id}: ${JSON.stringify(events)}`).toBeDefined();
+      expect(ev!.kind).toBe("deadline");
+    }
+  });
+
+  it("records a case_event mirror for matter-linked saved work", async () => {
+    const token = makeToken(TEST_MASTER_CODE);
+    const matterRes = await api("post", "/api/ccb/matters", token).send({
+      title: "Saved Work Mirror Matter",
+    });
+    expect(matterRes.status).toBe(201);
+    const matterId = matterRes.body.id as number;
+    createdMatterIds.push(matterId);
+
+    const swRes = await api("post", "/api/ccb/saved-work", token).send({
+      kind: "memo",
+      title: "Board resolution draft",
+      matterId,
+      content: "Draft content",
+    });
+    expect(swRes.status, `saved work: ${JSON.stringify(swRes.body)}`).toBe(201);
+    const swId = swRes.body.id as number;
+
+    const events = await waitForEvents(matterId, (rows) =>
+      rows.some((e) => e.source === `saved-work:${swId}`),
+    );
+    const ev = events.find((e) => e.source === `saved-work:${swId}`);
+    expect(ev, `events: ${JSON.stringify(events)}`).toBeDefined();
+    expect(ev!.kind).toBe("saved-work");
+    expect(ev!.title).toContain("Board resolution draft");
   });
 });

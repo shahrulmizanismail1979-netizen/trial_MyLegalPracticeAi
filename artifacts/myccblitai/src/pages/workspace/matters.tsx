@@ -168,7 +168,7 @@ export default function MattersPage() {
                     </div>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
                       <span className="text-[11px] text-muted-foreground">Updated {fmtDate(m.updatedAt)}</span>
-                      <ArrowRight className="h-4 w-4 text-primary" />
+                      <span className="text-[11px] text-primary flex items-center gap-1">Continue in Case Home <ArrowRight className="h-3 w-3" /></span>
                     </div>
                   </CardContent>
                 </Card>

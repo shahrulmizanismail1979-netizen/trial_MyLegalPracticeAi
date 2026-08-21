@@ -24,11 +24,14 @@ import { useQueryClient } from "@tanstack/react-query";
  * Shown after an AI output completes: turns the working session into a matter
  * file (create new or file into existing), so the draft/analysis is kept with
  * the client's brief instead of being lost when the page closes.
+ *
+ * Pass `defaultMatterId` to pre-select the originating matter (e.g. from Case Home).
  */
 export function SaveToMatterPanel({
   draftTitle,
   draftContent,
   defaultMatterTitle,
+  defaultMatterId,
   kind = "draft",
   inputJson,
   sourceLabel = "Document Drafter",
@@ -36,6 +39,7 @@ export function SaveToMatterPanel({
   draftTitle: string;
   draftContent: string;
   defaultMatterTitle?: string;
+  defaultMatterId?: number | null;
   kind?: string;
   inputJson?: unknown;
   sourceLabel?: string;
@@ -46,9 +50,15 @@ export function SaveToMatterPanel({
   const createMatter = useCreateMatter();
   const saveWork = useSaveWork();
 
-  const [mode, setMode] = useState<"idle" | "new" | "existing">("idle");
+  // If a defaultMatterId is provided (arrived from Case Home), start in existing mode
+  // pre-selecting that matter so saving requires only one click.
+  const [mode, setMode] = useState<"idle" | "new" | "existing">(
+    defaultMatterId ? "existing" : "idle",
+  );
   const [title, setTitle] = useState(defaultMatterTitle ?? "");
-  const [existingId, setExistingId] = useState<string>("");
+  const [existingId, setExistingId] = useState<string>(
+    defaultMatterId ? String(defaultMatterId) : "",
+  );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
 
   const busy = createMatter.isPending || saveWork.isPending;

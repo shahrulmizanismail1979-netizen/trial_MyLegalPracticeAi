@@ -36,6 +36,7 @@ import {
 import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
+import { CaseHomePanel, type CaseHomeRequest } from "@workspace/case-home-ui";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const billingRequest: BillingRequest = (path, init) => {
@@ -52,6 +53,17 @@ export const billingRequest: BillingRequest = (path, init) => {
 
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest: CaseHomeRequest = (path, init) => {
+  const token = localStorage.getItem("auth_token");
+  return fetch(`${API_BASE}/api/corp/matters${path}`, {
+    credentials: "include",
+    ...init,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...((init as RequestInit & { headers?: Record<string, string> })?.headers || {}),
+    },
+  });
+};
 
 const CORP_STAGES = ["Instruction", "Due Diligence", "Advisory", "Opinion Delivered", "Closed"];
 const STATUS_OPTIONS = [...CORP_STAGES];
@@ -1150,6 +1162,18 @@ export default function MatterDetailPage() {
             <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
+
+        {/* Case Home Panel */}
+        <CaseHomePanel
+          matterId={matter.id}
+          request={caseHomeRequest}
+          accent="#8b5cf6"
+          className="mb-2"
+          action={{
+            href: `/tools/legal-opinion?matterId=${matter.id}${matter.clientName ? `&client=${encodeURIComponent(matter.clientName)}` : ""}${matter.reference ? `&ref=${encodeURIComponent(matter.reference)}` : ""}${matter.title ? `&matterTitle=${encodeURIComponent(matter.title)}` : ""}`,
+            label: "Continue in Case Home",
+          }}
+        />
 
         {/* Tabs */}
         <div className="flex items-center gap-1 border-b border-border overflow-x-auto">

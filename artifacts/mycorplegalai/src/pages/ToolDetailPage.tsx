@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
-import { useLocation, useParams, Link } from "wouter";
+import { useLocation, useParams, useSearchParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PRACTITIONER_TOOLS } from "@/data/ai-tools-data";
 import { ArrowLeft, Send, Loader2, RotateCcw, Sparkles, Lock, Volume2, Square } from "lucide-react";
@@ -24,6 +24,7 @@ const TIER_LABELS: Record<string, string> = {
 export default function ToolDetailPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
+  const [searchParams] = useSearchParams();
   const tier = useTier();
   const tts = useTts();
   const [formValues, setFormValues] = useState<Record<string, string>>({});
@@ -31,6 +32,10 @@ export default function ToolDetailPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  // Matter context from query string (e.g. coming from Case Home panel)
+  const matterIdFromQuery = searchParams.get("matterId")
+    ? parseInt(searchParams.get("matterId")!, 10)
+    : null;
   const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,6 +61,32 @@ export default function ToolDetailPage() {
       </AppLayout>
     );
   }
+
+  // Pre-fill fields from Case Home query params (matterId, client, ref, matterTitle).
+  // Runs once per tool/query combination; user can edit freely afterwards.
+  useEffect(() => {
+    if (!tool) return;
+    const qClient = searchParams.get("client") ?? "";
+    const qRef = searchParams.get("ref") ?? "";
+    const qMatterTitle = searchParams.get("matterTitle") ?? "";
+    // Only prefill if at least one query value is present
+    if (!qClient && !qRef && !qMatterTitle) return;
+
+    const updates: Record<string, string> = {};
+    for (const field of tool.formFields) {
+      if (field.type === "files" || field.type === "select") continue;
+      const lc = (field.label + " " + field.id).toLowerCase();
+      if (/client|company|addressee/.test(lc) && qClient && !updates[field.id]) {
+        updates[field.id] = qClient;
+      } else if (/matter|subject|title|reference|ref/.test(lc) && (qMatterTitle || qRef) && !updates[field.id]) {
+        updates[field.id] = qMatterTitle || qRef;
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      setFormValues((prev) => ({ ...updates, ...prev }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool?.id]);
 
   const locked = !canAccessTool(tier, tool.id);
   if (locked) {
@@ -268,6 +299,24 @@ export default function ToolDetailPage() {
               Input Details
             </h3>
 
+            {/* If we arrived from Case Home, show the originating matter context */}
+            {matterIdFromQuery && (searchParams.get("client") || searchParams.get("matterTitle") || searchParams.get("ref")) && (
+              <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>
+                  Fields pre-filled from matter
+                  {searchParams.get("matterTitle") ? ` "${searchParams.get("matterTitle")}"` : ` #${matterIdFromQuery}`}.
+                  {" "}Edit freely before generating.
+                </span>
+                <Link
+                  href={`/matters/${matterIdFromQuery}`}
+                  className="ml-auto text-primary hover:underline shrink-0"
+                >
+                  Back to matter
+                </Link>
+              </div>
+            )}
+
             {/* Matter picker — pre-fills form fields from an existing case file */}
             <MatterPicker onSelect={handleMatterSelect} />
 
@@ -414,7 +463,11 @@ export default function ToolDetailPage() {
 
         {/* Save the completed draft into a matter file */}
         {output && !isLoading && (
-          <SaveToMatterPanel draftTitle={tool.name} draftContent={output} />
+          <SaveToMatterPanel
+            draftTitle={tool.name}
+            draftContent={output}
+            defaultMatterId={matterIdFromQuery}
+          />
         )}
       </div>
     </AppLayout>

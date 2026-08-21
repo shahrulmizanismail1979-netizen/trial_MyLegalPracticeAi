@@ -78,10 +78,12 @@ import {
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
 import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
 import { DraftsPanel, type LettersRequest } from '@workspace/letters-ui';
+import { CaseHomePanel, type CaseHomeRequest } from '@workspace/case-home-ui';
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/lit/matters${path}`, { credentials: 'include', ...init });
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest: CaseHomeRequest = billingRequest;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1057,6 +1059,14 @@ export default function MatterDetail() {
         matterId={matter.id}
         current={matter.status}
         onAdvance={handleAdvanceStage}
+      />
+
+      {/* Case Home — prominent entry point before tabs */}
+      <CaseHomePanel
+        matterId={matter.id}
+        request={caseHomeRequest}
+        accent="hsl(var(--primary))"
+        action={hubEntry ? { label: 'Open AI Tool for this Matter', href: `/app/practice/${hubEntry.matter.id}?matter=${matter.id}` } : undefined}
       />
 
       {/* Tabbed content */}

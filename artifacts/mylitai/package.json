@@ -77,6 +77,7 @@
     "@workspace/draft-export": "workspace:*",
     "@workspace/billing-ui": "workspace:*",
     "@workspace/vault-ui": "workspace:*",
-    "@workspace/letters-ui": "workspace:*"
+    "@workspace/letters-ui": "workspace:*",
+    "@workspace/case-home-ui": "workspace:*"
   }
 }

@@ -12,6 +12,11 @@ import { logger } from "./logger";
 import { type Portal } from "./caseStages";
 import { makeClientsRouter } from "./caseClients";
 import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "./attachCaseIntelligence";
+import {
+  recordCaseEvent,
+  updateCaseEventBySource,
+  deleteCaseEventBySource,
+} from "./caseEvents";
 
 /**
  * Matter-file route factory for the corporate portals (Task #110), mirroring
@@ -89,6 +94,81 @@ export function createMatterFileRouters(
   const getOwnerKey = (req: Request, res: Response): string | null => {
     const id = getOwnerId(req, res);
     return typeof id === "number" ? String(id) : null;
+  };
+
+  // Chronology mirroring is only meaningful when the portal is known (the
+  // shared case_events table is keyed by portal). When unset these become
+  // no-ops so the corp/ccb/convey factory keeps working in isolation.
+  const ownerKeyOf = (req: Request): string | null =>
+    portal ? String(ownerOf(req)) : null;
+
+  // Format a JS date (or ISO string) to the YYYY-MM-DD event_date the
+  // chronology expects. Returns null when unparseable.
+  const toEventDate = (value: unknown): string | null => {
+    if (value == null) return null;
+    const d = value instanceof Date ? value : new Date(value as string | number);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  };
+
+  // Best-effort deadline → chronology mirror. Never throws; failures are logged
+  // inside recordCaseEvent. Stable source marker: "deadline:<id>".
+  const mirrorDeadlineCreated = (
+    req: Request,
+    matterId: number,
+    deadline: { id: number; title: unknown; dueDate: unknown; status?: unknown },
+  ): void => {
+    const ownerKey = ownerKeyOf(req);
+    if (!ownerKey || !portal) return;
+    const eventDate = toEventDate(deadline.dueDate);
+    if (!eventDate) return;
+    const title = typeof deadline.title === "string" ? deadline.title : "Deadline";
+    void recordCaseEvent(portal, matterId, ownerKey, {
+      event_date: eventDate,
+      title: `Deadline: ${title}`,
+      kind: "deadline",
+      source: `deadline:${deadline.id}`,
+    });
+  };
+
+  const mirrorDeadlineUpdated = (
+    req: Request,
+    matterId: number,
+    deadline: { id: number; title: unknown; dueDate: unknown },
+  ): void => {
+    const ownerKey = ownerKeyOf(req);
+    if (!ownerKey || !portal) return;
+    const eventDate = toEventDate(deadline.dueDate);
+    const title = typeof deadline.title === "string" ? deadline.title : undefined;
+    void updateCaseEventBySource(portal, matterId, ownerKey, `deadline:${deadline.id}`, {
+      ...(eventDate ? { event_date: eventDate } : {}),
+      ...(title !== undefined ? { title: `Deadline: ${title}` } : {}),
+    });
+  };
+
+  const mirrorDeadlineDeleted = (req: Request, matterId: number, deadlineId: number): void => {
+    const ownerKey = ownerKeyOf(req);
+    if (!ownerKey || !portal) return;
+    void deleteCaseEventBySource(portal, matterId, ownerKey, `deadline:${deadlineId}`);
+  };
+
+  // Best-effort saved-work creation → chronology mirror. Stable source marker:
+  // "saved-work:<id>". Only fires when the saved work is linked to a matter.
+  const mirrorSavedWorkCreated = (
+    req: Request,
+    matterId: number,
+    work: { id: number; title: unknown; kind?: unknown },
+  ): void => {
+    const ownerKey = ownerKeyOf(req);
+    if (!ownerKey || !portal) return;
+    const eventDate = toEventDate(new Date());
+    if (!eventDate) return;
+    const title = typeof work.title === "string" ? work.title : "Saved work";
+    void recordCaseEvent(portal, matterId, ownerKey, {
+      event_date: eventDate,
+      title,
+      kind: "saved-work",
+      source: `saved-work:${work.id}`,
+    });
   };
 
   // Fetch a matter and assert it belongs to the caller. Foreign / missing
@@ -258,6 +338,12 @@ export function createMatterFileRouters(
       .insert(deadlines)
       .values({ ...(data as { title: string; dueDate: Date }), matterId: matter.id, ownerId })
       .returning();
+    mirrorDeadlineCreated(req, matter.id, {
+      id: row.id as number,
+      title: row.title,
+      dueDate: row.dueDate,
+      status: row.status,
+    });
     res.status(201).json(row);
   });
 
@@ -279,6 +365,14 @@ export function createMatterFileRouters(
       return;
     }
     const rows = await db.insert(deadlines).values(values).returning();
+    for (const row of rows) {
+      mirrorDeadlineCreated(req, matter.id, {
+        id: row.id as number,
+        title: row.title,
+        dueDate: row.dueDate,
+        status: row.status,
+      });
+    }
     res.status(201).json(rows);
   });
 
@@ -300,6 +394,11 @@ export function createMatterFileRouters(
       res.status(404).json({ error: "Deadline not found" });
       return;
     }
+    mirrorDeadlineUpdated(req, matter.id, {
+      id: row.id as number,
+      title: row.title,
+      dueDate: row.dueDate,
+    });
     res.json(row);
   });
 
@@ -319,6 +418,7 @@ export function createMatterFileRouters(
       res.status(404).json({ error: "Deadline not found" });
       return;
     }
+    mirrorDeadlineDeleted(req, matter.id, did);
     res.json({ success: true });
   });
 
@@ -402,6 +502,13 @@ export function createMatterFileRouters(
         content: typeof content === "string" ? content : "",
       })
       .returning();
+    if (linkedMatterId != null) {
+      mirrorSavedWorkCreated(req, linkedMatterId, {
+        id: row.id as number,
+        title: row.title,
+        kind: row.kind,
+      });
+    }
     res.status(201).json(row);
   });
 

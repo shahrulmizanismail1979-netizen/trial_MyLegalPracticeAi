@@ -11,7 +11,7 @@ import {
   Download, FileDown, Lock,
 } from 'lucide-react';
 import { MatterPicker } from '@/components/MatterPicker';
-import { type Matter } from '@/lib/matters';
+import { type Matter, useMatter } from '@/lib/matters';
 import { useLocation } from 'wouter';
 import { downloadDocx, downloadAndOpenInGoogleDocs } from '@/lib/exportDocx';
 import { exportTxt, exportMarkdown, exportPdf } from '@workspace/draft-export';
@@ -594,7 +594,7 @@ const MODE_META: Record<string, { icon: React.ComponentType<{className?: string}
 
 // ════════════════════════════════════════════════════════════════════════════
 export function AIPanel() {
-  const { aiMode, isAiPanelOpen, setIsAiPanelOpen, drafterInitialType, setDrafterInitialType } = useApp();
+  const { aiMode, isAiPanelOpen, setIsAiPanelOpen, drafterInitialType, setDrafterInitialType, pendingMatterId, setPendingMatterId } = useApp();
   const { toast } = useToast();
 
   // ── Tutor ──────────────────────────────────────────────────────────────────
@@ -885,6 +885,15 @@ export function AIPanel() {
 
   // ── Matter picker ──────────────────────────────────────────────────────────
   const [pickedMatter, setPickedMatter] = useState<Matter | null>(null);
+
+  // Auto-load pending matter from context (set by Dashboard on ?matter=<id> navigation)
+  const { data: pendingMatterData } = useMatter(pendingMatterId);
+  useEffect(() => {
+    if (!pendingMatterData || pickedMatter) return;
+    setPickedMatter(pendingMatterData);
+    setPendingMatterId(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMatterData]);
 
   // When a matter is picked (or the tool changes), pre-fill the active tool's fields.
   useEffect(() => {
@@ -1561,6 +1570,7 @@ export function AIPanel() {
                       .filter(m => m.role === 'model' || m.role === 'user')
                       .map(m => `${m.role === 'user' ? 'Q' : 'A'}: ${m.content}`)
                       .join('\n\n')}
+                    defaultMatterId={pickedMatter?.id}
                   />
                 )}
                 <div ref={chatEndRef} />
@@ -1728,7 +1738,7 @@ export function AIPanel() {
                 {generatedDraft && (
                   <>
                     <OutputBlock title="Generated Draft" content={generatedDraft} onCopy={() => copyText(generatedDraft)} />
-                    <SaveToMatterPanel title={draftType || 'Generated Draft'} kind="draft" content={generatedDraft} />
+                    <SaveToMatterPanel title={draftType || 'Generated Draft'} kind="draft" content={generatedDraft} defaultMatterId={pickedMatter?.id} />
                   </>
                 )}
               </div>
@@ -1760,7 +1770,7 @@ export function AIPanel() {
               {riskResult && (
                 <>
                   <OutputBlock title="Risk Analysis" content={riskResult} onCopy={() => copyText(riskResult)} />
-                  <SaveToMatterPanel title={riskTxType ? `Risk Analysis — ${riskTxType}` : 'Risk Analysis'} kind="analysis" content={riskResult} />
+                  <SaveToMatterPanel title={riskTxType ? `Risk Analysis — ${riskTxType}` : 'Risk Analysis'} kind="analysis" content={riskResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -1791,7 +1801,7 @@ export function AIPanel() {
               {checklistResult && (
                 <>
                   <OutputBlock title="Practitioner Checklist" content={checklistResult} onCopy={() => copyText(checklistResult)} />
-                  <SaveToMatterPanel title={checklistTxType ? `Checklist — ${checklistTxType}` : 'Practitioner Checklist'} kind="checklist" content={checklistResult} />
+                  <SaveToMatterPanel title={checklistTxType ? `Checklist — ${checklistTxType}` : 'Practitioner Checklist'} kind="checklist" content={checklistResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -1832,7 +1842,7 @@ export function AIPanel() {
               {deadlinesResult && (
                 <>
                   <OutputBlock title="Deadline Schedule" content={deadlinesResult} onCopy={() => copyText(deadlinesResult)} />
-                  <SaveToMatterPanel title={deadlinesTxType ? `Deadline Schedule — ${deadlinesTxType}` : 'Deadline Schedule'} kind="deadlines" content={deadlinesResult} />
+                  <SaveToMatterPanel title={deadlinesTxType ? `Deadline Schedule — ${deadlinesTxType}` : 'Deadline Schedule'} kind="deadlines" content={deadlinesResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -1888,7 +1898,7 @@ export function AIPanel() {
               {reviewResult && (
                 <>
                 <OutputBlock title="Clause Review" content={reviewResult} onCopy={() => copyText(reviewResult)} />
-                <SaveToMatterPanel title="Clause Review" kind="analysis" content={reviewResult} />
+                <SaveToMatterPanel title="Clause Review" kind="analysis" content={reviewResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -1934,7 +1944,7 @@ export function AIPanel() {
               {compareResult && (
                 <>
                   <OutputBlock title="Clause Comparison" content={compareResult} onCopy={() => copyText(compareResult)} />
-                  <SaveToMatterPanel title="Clause Comparison" kind="analysis" content={compareResult} />
+                  <SaveToMatterPanel title="Clause Comparison" kind="analysis" content={compareResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -1985,7 +1995,7 @@ export function AIPanel() {
               {titleResult && (
                 <>
                   <OutputBlock title="Title Interpretation" content={titleResult} onCopy={() => copyText(titleResult)} />
-                  <SaveToMatterPanel title="Title Interpretation" kind="analysis" content={titleResult} />
+                  <SaveToMatterPanel title="Title Interpretation" kind="analysis" content={titleResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2040,7 +2050,7 @@ export function AIPanel() {
               {quoteResult && (
                 <>
                   <OutputBlock title="Fee Quotation Letter" content={quoteResult} onCopy={() => copyText(quoteResult)} />
-                  <SaveToMatterPanel title="Fee Quotation Letter" kind="letter" content={quoteResult} />
+                  <SaveToMatterPanel title="Fee Quotation Letter" kind="letter" content={quoteResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2085,7 +2095,7 @@ export function AIPanel() {
               {adviceResult && (
                 <>
                   <OutputBlock title="Client Advice Letter" content={adviceResult} onCopy={() => copyText(adviceResult)} />
-                  <SaveToMatterPanel title="Client Advice Letter" kind="letter" content={adviceResult} />
+                  <SaveToMatterPanel title="Client Advice Letter" kind="letter" content={adviceResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2123,7 +2133,7 @@ export function AIPanel() {
               {ddResult && (
                 <>
                   <OutputBlock title="Due Diligence Report" content={ddResult} onCopy={() => copyText(ddResult)} />
-                  <SaveToMatterPanel title="Due Diligence Report" kind="report" content={ddResult} />
+                  <SaveToMatterPanel title="Due Diligence Report" kind="report" content={ddResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2164,7 +2174,7 @@ export function AIPanel() {
               {opinionResult && (
                 <>
                   <OutputBlock title="Legal Opinion" content={opinionResult} onCopy={() => copyText(opinionResult)} />
-                  <SaveToMatterPanel title="Legal Opinion" kind="opinion" content={opinionResult} />
+                  <SaveToMatterPanel title="Legal Opinion" kind="opinion" content={opinionResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2205,7 +2215,7 @@ export function AIPanel() {
               {reqResult && (
                 <>
                   <OutputBlock title="Requisition Letter" content={reqResult} onCopy={() => copyText(reqResult)} />
-                  <SaveToMatterPanel title="Requisition Letter" kind="letter" content={reqResult} />
+                  <SaveToMatterPanel title="Requisition Letter" kind="letter" content={reqResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2249,7 +2259,7 @@ export function AIPanel() {
               {compResult && (
                 <>
                   <OutputBlock title="Completion Statement" content={compResult} onCopy={() => copyText(compResult)} />
-                  <SaveToMatterPanel title="Completion Statement" kind="statement" content={compResult} />
+                  <SaveToMatterPanel title="Completion Statement" kind="statement" content={compResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2300,7 +2310,7 @@ export function AIPanel() {
               {caseResult && (
                 <>
                   <OutputBlock title="Case Law Research" content={caseResult} onCopy={() => copyText(caseResult)} />
-                  <SaveToMatterPanel title="Case Law Research" kind="research" content={caseResult} />
+                  <SaveToMatterPanel title="Case Law Research" kind="research" content={caseResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2344,7 +2354,7 @@ export function AIPanel() {
               {sdResult && (
                 <>
                   <OutputBlock title="Stamp Duty Calculation" content={sdResult} onCopy={() => copyText(sdResult)} />
-                  <SaveToMatterPanel title="Stamp Duty Calculation" kind="calculation" content={sdResult} />
+                  <SaveToMatterPanel title="Stamp Duty Calculation" kind="calculation" content={sdResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2389,7 +2399,7 @@ export function AIPanel() {
               {rpgtResult && (
                 <>
                   <OutputBlock title="RPGT Analysis" content={rpgtResult} onCopy={() => copyText(rpgtResult)} />
-                  <SaveToMatterPanel title="RPGT Analysis" kind="calculation" content={rpgtResult} />
+                  <SaveToMatterPanel title="RPGT Analysis" kind="calculation" content={rpgtResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2424,7 +2434,7 @@ export function AIPanel() {
               {tenResult && (
                 <>
                   <OutputBlock title="Tenancy Agreement Draft" content={tenResult} onCopy={() => copyText(tenResult)} />
-                  <SaveToMatterPanel title="Tenancy Agreement Draft" kind="draft" content={tenResult} />
+                  <SaveToMatterPanel title="Tenancy Agreement Draft" kind="draft" content={tenResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2464,7 +2474,7 @@ export function AIPanel() {
               {poaResult && (
                 <>
                   <OutputBlock title="Power of Attorney Draft" content={poaResult} onCopy={() => copyText(poaResult)} />
-                  <SaveToMatterPanel title="Power of Attorney Draft" kind="draft" content={poaResult} />
+                  <SaveToMatterPanel title="Power of Attorney Draft" kind="draft" content={poaResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2499,7 +2509,7 @@ export function AIPanel() {
               {cavResult && (
                 <>
                   <OutputBlock title="Caveat Advice" content={cavResult} onCopy={() => copyText(cavResult)} />
-                  <SaveToMatterPanel title="Caveat Advice" kind="advice" content={cavResult} />
+                  <SaveToMatterPanel title="Caveat Advice" kind="advice" content={cavResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2529,7 +2539,7 @@ export function AIPanel() {
               {lsResult && (
                 <>
                   <OutputBlock title="Land Search Analysis" content={lsResult} onCopy={() => copyText(lsResult)} />
-                  <SaveToMatterPanel title="Land Search Analysis" kind="analysis" content={lsResult} />
+                  <SaveToMatterPanel title="Land Search Analysis" kind="analysis" content={lsResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2572,7 +2582,7 @@ export function AIPanel() {
               {dcResult && (
                 <>
                   <OutputBlock title="Developer Claim Advice" content={dcResult} onCopy={() => copyText(dcResult)} />
-                  <SaveToMatterPanel title="Developer Claim Advice" kind="advice" content={dcResult} />
+                  <SaveToMatterPanel title="Developer Claim Advice" kind="advice" content={dcResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2602,7 +2612,7 @@ export function AIPanel() {
               {bsResult && (
                 <>
                   <OutputBlock title="Bankruptcy Search Advice" content={bsResult} onCopy={() => copyText(bsResult)} />
-                  <SaveToMatterPanel title="Bankruptcy Search Advice" kind="advice" content={bsResult} />
+                  <SaveToMatterPanel title="Bankruptcy Search Advice" kind="advice" content={bsResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2649,7 +2659,7 @@ export function AIPanel() {
               {fpResult && (
                 <>
                   <OutputBlock title="Foreign Purchase Advice" content={fpResult} onCopy={() => copyText(fpResult)} />
-                  <SaveToMatterPanel title="Foreign Purchase Advice" kind="advice" content={fpResult} />
+                  <SaveToMatterPanel title="Foreign Purchase Advice" kind="advice" content={fpResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2696,7 +2706,7 @@ export function AIPanel() {
               {ldResult && (
                 <>
                   <OutputBlock title="Loan Document Review" content={ldResult} onCopy={() => copyText(ldResult)} />
-                  <SaveToMatterPanel title="Loan Document Review" kind="analysis" content={ldResult} />
+                  <SaveToMatterPanel title="Loan Document Review" kind="analysis" content={ldResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2730,7 +2740,7 @@ export function AIPanel() {
               {tcResult && (
                 <>
                   <OutputBlock title="Tax Compliance Advice" content={tcResult} onCopy={() => copyText(tcResult)} />
-                  <SaveToMatterPanel title="Tax Compliance Advice" kind="advice" content={tcResult} />
+                  <SaveToMatterPanel title="Tax Compliance Advice" kind="advice" content={tcResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2778,7 +2788,7 @@ export function AIPanel() {
               {strResult && (
                 <>
                   <OutputBlock title="Strata Management Advice" content={strResult} onCopy={() => copyText(strResult)} />
-                  <SaveToMatterPanel title="Strata Management Advice" kind="advice" content={strResult} />
+                  <SaveToMatterPanel title="Strata Management Advice" kind="advice" content={strResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2818,7 +2828,7 @@ export function AIPanel() {
               {quizResult && (
                 <>
                   <OutputBlock title="Generated Quiz" content={quizResult} onCopy={() => copyText(quizResult)} />
-                  <SaveToMatterPanel title="Generated Quiz" kind="quiz" content={quizResult} />
+                  <SaveToMatterPanel title="Generated Quiz" kind="quiz" content={quizResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2870,7 +2880,7 @@ export function AIPanel() {
               {simResult && (
                 <>
                   <OutputBlock title="Transaction Simulation" content={simResult} onCopy={() => copyText(simResult)} />
-                  <SaveToMatterPanel title="Transaction Simulation" kind="analysis" content={simResult} />
+                  <SaveToMatterPanel title="Transaction Simulation" kind="analysis" content={simResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2900,7 +2910,7 @@ export function AIPanel() {
               {clauseResult && (
                 <>
                   <OutputBlock title="Clause Library Results" content={clauseResult} onCopy={() => copyText(clauseResult)} />
-                  <SaveToMatterPanel title="Clause Library Results" kind="draft" content={clauseResult} />
+                  <SaveToMatterPanel title="Clause Library Results" kind="draft" content={clauseResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2939,7 +2949,7 @@ export function AIPanel() {
               {docResult && (
                 <>
                   <OutputBlock title="Document Analysis" content={docResult} onCopy={() => copyText(docResult)} />
-                  <SaveToMatterPanel title="Document Analysis" kind="analysis" content={docResult} />
+                  <SaveToMatterPanel title="Document Analysis" kind="analysis" content={docResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -2975,7 +2985,7 @@ export function AIPanel() {
               {compChkResult && (
                 <>
                   <OutputBlock title="Compliance Audit Report" content={compChkResult} onCopy={() => copyText(compChkResult)} />
-                  <SaveToMatterPanel title="Compliance Audit Report" kind="report" content={compChkResult} />
+                  <SaveToMatterPanel title="Compliance Audit Report" kind="report" content={compChkResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3019,7 +3029,7 @@ export function AIPanel() {
               {tlResult && (
                 <>
                   <OutputBlock title="Transaction Timeline" content={tlResult} onCopy={() => copyText(tlResult)} />
-                  <SaveToMatterPanel title="Transaction Timeline" kind="deadlines" content={tlResult} />
+                  <SaveToMatterPanel title="Transaction Timeline" kind="deadlines" content={tlResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3060,7 +3070,7 @@ export function AIPanel() {
               {examResult && (
                 <>
                   <OutputBlock title="Mock Examination Paper" content={examResult} onCopy={() => copyText(examResult)} />
-                  <SaveToMatterPanel title="Mock Examination Paper" kind="exam" content={examResult} />
+                  <SaveToMatterPanel title="Mock Examination Paper" kind="exam" content={examResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3095,7 +3105,7 @@ export function AIPanel() {
               {caResult && (
                 <>
                   <OutputBlock title="Case Law Analysis" content={caResult} onCopy={() => copyText(caResult)} />
-                  <SaveToMatterPanel title="Case Law Analysis" kind="analysis" content={caResult} />
+                  <SaveToMatterPanel title="Case Law Analysis" kind="analysis" content={caResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3157,7 +3167,7 @@ export function AIPanel() {
               {crResult && (
                 <>
                   <OutputBlock title="Corporate Resolution" content={crResult} onCopy={() => copyText(crResult)} />
-                  <SaveToMatterPanel title="Corporate Resolution" kind="draft" content={crResult} />
+                  <SaveToMatterPanel title="Corporate Resolution" kind="draft" content={crResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3201,7 +3211,7 @@ export function AIPanel() {
               {cddResult && (
                 <>
                   <OutputBlock title="Corporate Property DD Report" content={cddResult} onCopy={() => copyText(cddResult)} />
-                  <SaveToMatterPanel title="Corporate Property DD Report" kind="report" content={cddResult} />
+                  <SaveToMatterPanel title="Corporate Property DD Report" kind="report" content={cddResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3261,7 +3271,7 @@ export function AIPanel() {
               {jvResult && (
                 <>
                   <OutputBlock title="JV / JDA Draft" content={jvResult} onCopy={() => copyText(jvResult)} />
-                  <SaveToMatterPanel title="JV / JDA Draft" kind="draft" content={jvResult} />
+                  <SaveToMatterPanel title="JV / JDA Draft" kind="draft" content={jvResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>
@@ -3328,7 +3338,7 @@ export function AIPanel() {
               {grnResult && (
                 <>
                   <OutputBlock title="Guarantee Draft" content={grnResult} onCopy={() => copyText(grnResult)} />
-                  <SaveToMatterPanel title="Guarantee Draft" kind="draft" content={grnResult} />
+                  <SaveToMatterPanel title="Guarantee Draft" kind="draft" content={grnResult} defaultMatterId={pickedMatter?.id} />
                 </>
               )}
             </div>

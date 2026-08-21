@@ -135,7 +135,7 @@ function MatterBriefingCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: ()
             </Button>
             <Link href={`/workspace/matters/${m.id}`}>
               <span className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer">
-                Open <ArrowRight className="h-3 w-3" />
+                Continue in Case Home <ArrowRight className="h-3 w-3" />
               </span>
             </Link>
           </div>

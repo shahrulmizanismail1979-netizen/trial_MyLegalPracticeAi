@@ -25,6 +25,9 @@
     },
     {
       "path": "../../lib/billing-ui"
+    },
+    {
+      "path": "../../lib/case-home-ui"
     }
   ]
 }

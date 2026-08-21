@@ -88,11 +88,14 @@ import {
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
+import { CaseHomePanel, type CaseHomeRequest } from "@workspace/case-home-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/accident/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest: CaseHomeRequest = (path, init) =>
+  fetch(`/api/accident/matters${path}`, { credentials: "include", ...init });
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -190,7 +193,19 @@ export default function MatterDetailPage() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-6 pt-4">
+      <div className="max-w-4xl mx-auto px-6 pt-4 pb-3">
+        <CaseHomePanel
+          matterId={matterId!}
+          request={caseHomeRequest}
+          accent="#f59e0b"
+          action={{
+            href: `/workspace?tab=analyzer&matterId=${matterId}${matter.clientName ? `&client=${encodeURIComponent(matter.clientName)}` : ""}${matter.plaintiff ? `&plaintiff=${encodeURIComponent(matter.plaintiff)}` : ""}${matter.title ? `&matterTitle=${encodeURIComponent(matter.title)}` : ""}`,
+            label: "Continue in Case Home",
+          }}
+        />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6">
         <div className="flex gap-1 border-b border-border overflow-x-auto">
           {tabs.map((t) => (
             <button

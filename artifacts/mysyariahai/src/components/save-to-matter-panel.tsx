@@ -31,12 +31,15 @@ export function SaveToMatterPanel({
   parties,
   kind = "draft",
   matterType,
+  defaultMatterId,
 }: {
   draftTitle: string;
   draftContent: string;
   parties?: string;
   kind?: string;
   matterType?: string;
+  /** When set, pre-selects "existing" mode with this matter id. */
+  defaultMatterId?: number | null;
 }) {
   const { t, ts } = useLanguage();
   const { toast } = useToast();
@@ -44,9 +47,13 @@ export function SaveToMatterPanel({
   const createMatter = useCreateMatter();
   const fileWork = useFileWork();
 
-  const [mode, setMode] = useState<"idle" | "new" | "existing">("idle");
+  const [mode, setMode] = useState<"idle" | "new" | "existing">(
+    defaultMatterId != null ? "existing" : "idle"
+  );
   const [title, setTitle] = useState(parties || draftTitle);
-  const [existingId, setExistingId] = useState<string>("");
+  const [existingId, setExistingId] = useState<string>(
+    defaultMatterId != null ? String(defaultMatterId) : ""
+  );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
 
   const busy = createMatter.isPending || fileWork.isPending;

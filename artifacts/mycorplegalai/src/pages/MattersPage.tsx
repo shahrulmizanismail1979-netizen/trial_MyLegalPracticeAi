@@ -170,7 +170,7 @@ export default function MattersPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-primary font-medium pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Open matter <ArrowRight className="h-3.5 w-3.5" />
+                        Continue in Case Home <ArrowRight className="h-3.5 w-3.5" />
                       </div>
                     </CardContent>
                   </Card>

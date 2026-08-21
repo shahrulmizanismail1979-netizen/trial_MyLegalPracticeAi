@@ -119,11 +119,13 @@ import {
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
+import { CaseHomePanel } from "@workspace/case-home-ui";
 
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/sya/matters${path}`, { credentials: "include", ...init });
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest = billingRequest;
 
 function fmtDate(iso: string, mode: string) {
   return new Date(iso).toLocaleDateString(mode === "bm" ? "ms-MY" : "en-MY", {
@@ -1246,6 +1248,7 @@ export default function MatterDetailPage() {
 
   // AI tool launch links with matter context
   const matterParams = new URLSearchParams();
+  matterParams.set("matterId", String(matter.id));
   if (matter.title) matterParams.set("matterTitle", matter.title);
   if (matter.plaintiff) matterParams.set("plaintiff", matter.plaintiff);
   if (matter.defendant) matterParams.set("defendant", matter.defendant);
@@ -1309,6 +1312,22 @@ export default function MatterDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Case Home panel */}
+      <CaseHomePanel
+        matterId={matter.id}
+        request={caseHomeRequest}
+        accent="hsl(var(--secondary))"
+        className="my-2"
+        action={
+          aiTools.length > 0
+            ? {
+                label: `${ts("Open", "Buka")} ${aiTools[0].name}`,
+                href: aiTools[0].href,
+              }
+            : undefined
+        }
+      />
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">

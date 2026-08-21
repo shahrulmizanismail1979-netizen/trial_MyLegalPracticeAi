@@ -798,6 +798,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1008,6 +1011,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1215,6 +1221,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1422,6 +1431,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -1632,6 +1644,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2267,6 +2282,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2484,6 +2502,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2679,6 +2700,9 @@ importers:
       '@workspace/billing-ui':
         specifier: workspace:*
         version: link:../../lib/billing-ui
+      '@workspace/case-home-ui':
+        specifier: workspace:*
+        version: link:../../lib/case-home-ui
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
@@ -2975,6 +2999,15 @@ importers:
         version: 3.25.76
 
   lib/billing-ui:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
+
+  lib/case-home-ui:
     devDependencies:
       '@types/react':
         specifier: 'catalog:'

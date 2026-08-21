@@ -308,14 +308,27 @@ export function runPathwayChat(
   return { cancel: () => controller.abort() };
 }
 
+export interface AnalyzeParams {
+  caseId: string;
+  pathway?: string;
+  /** Optional matter context (title, parties, court, etc.) pre-filled by the
+   *  lawyer from a linked lit-matter record. When present it is embedded into
+   *  the analysis prompt so the AI can reference the matter throughout. */
+  matterContext?: string;
+}
+
 /** Analyze previously-uploaded document(s) (by caseId) in a single grounded pass. */
 export function runAnalyze(
-  caseId: string,
+  caseIdOrParams: string | AnalyzeParams,
   handlers: StreamHandlers,
   pathway?: string,
 ): StreamControl {
+  const params: AnalyzeParams =
+    typeof caseIdOrParams === "string"
+      ? { caseId: caseIdOrParams, pathway }
+      : caseIdOrParams;
   const controller = new AbortController();
-  void streamSSE("/analyze", { caseId, pathway }, handlers, controller.signal);
+  void streamSSE("/analyze", { ...params }, handlers, controller.signal);
   return { cancel: () => controller.abort() };
 }
 

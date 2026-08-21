@@ -1518,10 +1518,13 @@ router.post("/analyze", async (req, res): Promise<void> => {
   if (!rec) return void res.status(404).json({ error: "Document not found or expired — please upload again." });
   if (req.body?.pathway) rec.pathway = String(req.body.pathway);
 
-  const prompt = `${GROUNDING_DIRECTIVE}${pathwayContext(rec.pathway)}
+  // Optional matter context pre-filled by the lawyer (editable in the Analyzer UI)
+  const matterContext = req.body?.matterContext ? String(req.body.matterContext).trim() : "";
 
+  const prompt = `${GROUNDING_DIRECTIVE}${pathwayContext(rec.pathway)}
+${matterContext ? `\n=== MATTER CONTEXT (supplied by the solicitor) ===\n${matterContext}\n` : ""}
 TASK — DOCUMENT ANALYSIS:
-A Malaysian advocate & solicitor has uploaded the document(s) below for analysis. Read them carefully and produce a clear, practitioner-ready analysis. Use LIVE grounded search to confirm any law you state.
+A Malaysian advocate & solicitor has uploaded the document(s) below for analysis. Read them carefully and produce a clear, practitioner-ready analysis.${matterContext ? " The MATTER CONTEXT above identifies the matter and parties — incorporate it throughout your analysis." : ""} Use LIVE grounded search to confirm any law you state.
 
 ## 1. Document Identification
 For each document: its nature/type (e.g. Statement of Claim, agreement, letter of demand, affidavit, notice), who issued it, the date, and any court / suit / reference number.

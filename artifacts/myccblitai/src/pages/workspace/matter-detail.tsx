@@ -66,6 +66,7 @@ import { authHeaders } from "@/lib/auth";
 import { BillingTab, type BillingRequest } from "@workspace/billing-ui";
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
+import { CaseHomePanel, type CaseHomeRequest } from "@workspace/case-home-ui";
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/ccb/matters${path}`, {
     ...init,
@@ -73,6 +74,7 @@ const billingRequest: BillingRequest = (path, init) =>
   });
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest: CaseHomeRequest = billingRequest;
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
 const STATUS_OPTIONS = [...CCB_STAGES];
@@ -983,6 +985,18 @@ export default function MatterDetailPage() {
             <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
+
+        {/* Case Home Panel */}
+        <CaseHomePanel
+          matterId={matter.id}
+          request={caseHomeRequest}
+          accent="#d99e1f"
+          className="mb-2"
+          action={{
+            label: "Continue in AI Tools →",
+            href: `/workspace/tool/legal-opinion?matter=${matter.id}&title=${encodeURIComponent(matter.title)}&client=${encodeURIComponent(matter.clientName ?? "")}&counterparty=${encodeURIComponent(matter.counterparty ?? "")}&ref=${encodeURIComponent(matter.reference ?? "")}`,
+          }}
+        />
 
         {/* Tabs */}
         <div className="flex items-center gap-1 border-b border-border overflow-x-auto">

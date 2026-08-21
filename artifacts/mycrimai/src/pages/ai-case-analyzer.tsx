@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Scale, Loader2, RotateCcw, Sparkles, Send } from "lucide-react";
+import { Scale, Loader2, RotateCcw, Sparkles, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,10 +14,41 @@ import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
 
 const EXAMPLE_FACTS = `On 15 March 2024, the accused, a 28-year-old male Malaysian citizen, was arrested at a roadblock in Petaling Jaya, Selangor. A search of his vehicle uncovered 50 grams of methamphetamine hidden in a modified compartment in the car boot. The accused claimed the car belonged to his friend and he was unaware of the drugs. He has no prior criminal record. The arresting officer noted that the accused appeared nervous and attempted to flee before being apprehended. A mobile phone found on the accused contained text messages discussing drug pricing.`;
 
+/** Parse a single query-string integer param; returns null if missing/invalid. */
+function parseIntParam(search: string, key: string): number | null {
+  const v = new URLSearchParams(search).get(key);
+  if (!v) return null;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function AiCaseAnalyzerPage() {
   const [facts, setFacts] = useState("");
   const voice = useVoice();
   const { response, isStreaming, error, stream, reset } = useAiStream();
+
+  // --- matter context from URL ------------------------------------------------
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const matterId = parseIntParam(search, "matterId");
+
+  // Pre-fill facts from URL params (matterTitle / accused / charge / caseNo / court)
+  // so even without a loaded matter list we have some context.
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const parts: string[] = [];
+    const matterTitle = params.get("matterTitle");
+    const accused = params.get("accused");
+    const charge = params.get("charge");
+    const caseNo = params.get("caseNo");
+    const court = params.get("court");
+    if (matterTitle) parts.push(`Matter: ${matterTitle}`);
+    if (accused) parts.push(`Accused: ${accused}`);
+    if (charge) parts.push(`Charge: ${charge}`);
+    if (caseNo) parts.push(`Case No: ${caseNo}`);
+    if (court) parts.push(`Court: ${court}`);
+    if (parts.length > 0) setFacts(parts.join(" | "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   useEffect(() => {
     if (!isStreaming && response) voice.speak(response);
@@ -31,6 +63,16 @@ export function AiCaseAnalyzerPage() {
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Back to matter link when launched from a matter */}
+      {matterId != null && (
+        <Link
+          href={`/workspace/matters/${matterId}`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to matter
+        </Link>
+      )}
+
       <div className="space-y-1">
         <h1 className="font-serif text-3xl font-bold tracking-tight flex items-center gap-2">
           <Scale className="h-8 w-8 text-primary" />
@@ -50,6 +92,7 @@ export function AiCaseAnalyzerPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <MatterPicker
+                defaultMatterId={matterId}
                 onSelect={(matter) => setFacts(matterToCaseDetails(matter))}
               />
               <Textarea
@@ -109,6 +152,7 @@ export function AiCaseAnalyzerPage() {
                     <SaveToMatterPanel
                       draftTitle="Case Fact Analysis"
                       draftContent={response}
+                      defaultMatterId={matterId}
                       kind="case-analysis"
                       sourceLabel="Case Fact Analyzer"
                       inputJson={{ facts }}

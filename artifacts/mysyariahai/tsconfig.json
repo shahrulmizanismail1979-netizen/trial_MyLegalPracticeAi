@@ -20,6 +20,9 @@
     { "path": "../../lib/billing-ui" },
     {
       "path": "../../lib/paralegal-widget"
+    },
+    {
+      "path": "../../lib/case-home-ui"
     }
   ]
 }

@@ -21,13 +21,17 @@ function generateFileRef(): string {
  * Shown after an AI draft completes: turns the drafting output into a matter
  * file (create new with an auto file reference, or file into an existing one),
  * so the draft is stored against the matter.
+ *
+ * Pass `defaultMatterId` to pre-select an originating matter in "existing" mode.
  */
 export function SaveToMatterPanel({
   draftTitle,
   draftContent,
+  defaultMatterId,
 }: {
   draftTitle: string;
   draftContent: string;
+  defaultMatterId?: number | null;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -35,9 +39,15 @@ export function SaveToMatterPanel({
   const createMatter = useCreateMatter();
   const saveWork = useSaveWork();
 
-  const [mode, setMode] = useState<"idle" | "new" | "existing">("idle");
+  // If a defaultMatterId is supplied (came from Case Home), start in existing mode
+  // pre-selecting that matter so the user only needs one click to file.
+  const [mode, setMode] = useState<"idle" | "new" | "existing">(
+    defaultMatterId ? "existing" : "idle",
+  );
   const [title, setTitle] = useState(draftTitle);
-  const [existingId, setExistingId] = useState<string>("");
+  const [existingId, setExistingId] = useState<string>(
+    defaultMatterId ? String(defaultMatterId) : "",
+  );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
 
   const busy = createMatter.isPending || saveWork.isPending;

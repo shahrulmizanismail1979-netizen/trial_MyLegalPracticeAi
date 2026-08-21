@@ -6,18 +6,21 @@ import { FolderOpen, ChevronDown, X } from "lucide-react";
 
 interface MatterPickerProps {
   onSelect: (matter: Matter) => void;
+  /** Pre-select this matter id on mount and fire onSelect immediately. */
+  defaultMatterId?: number | null;
 }
 
 /**
  * Compact "Load from case file" dropdown that lists all matters and fires
  * onSelect(matter) when the user picks one.  Appears above AI tool forms.
  */
-export function MatterPicker({ onSelect }: MatterPickerProps) {
+export function MatterPicker({ onSelect, defaultMatterId }: MatterPickerProps) {
   const { ts } = useLanguage();
   const { data: matters, isLoading } = useMatters();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Matter | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const defaultFiredRef = useRef(false);
 
   // Close on outside click
   useEffect(() => {
@@ -29,6 +32,18 @@ export function MatterPicker({ onSelect }: MatterPickerProps) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Auto-select default matter when data arrives (fires once)
+  useEffect(() => {
+    if (defaultFiredRef.current) return;
+    if (defaultMatterId == null || !matters || matters.length === 0) return;
+    const dm = matters.find((m) => m.id === defaultMatterId);
+    if (!dm) return;
+    defaultFiredRef.current = true;
+    setSelected(dm);
+    onSelect(dm);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matters, defaultMatterId]);
 
   const handleSelect = (matter: Matter) => {
     setSelected(matter);

@@ -28,13 +28,15 @@ import { getMatterInsights, invalidateMatterInsights } from "./caseInsights";
 import { getIntakeBriefing, generateAndSaveIntakeBriefing } from "./caseIntakeBriefing";
 import { generateAndSaveChecklist, makeChecklistRouter } from "./caseChecklist";
 import { makeTimeRecordingRouter } from "./caseTimeRecording";
-import { buildCaseEventsRouter, type CaseEventHooks } from "./caseEvents";
+import { buildCaseEventsRouter, recordCaseEvent, type CaseEventHooks } from "./caseEvents";
 import { makeMatterClientsRouter } from "./caseClients";
 import { buildCaseReviewRouter, type DeadlineItem, type SavedWorkItem } from "./caseReview";
 import { buildCaseBriefingRouter } from "./caseBriefing";
 import { attachBilling } from "./caseBilling";
 import { attachDocumentVault } from "./caseDocuments";
 import { attachDraftWorkspace } from "./caseDrafts";
+import { makeCaseTasksRouter } from "./caseTasks";
+import { attachCaseHome } from "./caseHome";
 import { aiRateLimit } from "./aiRateLimit";
 import { logger } from "./logger";
 
@@ -233,11 +235,25 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
       `UPDATE ${tableName} SET status = $1, updated_at = now() WHERE id = $2`,
       [stage, matterId],
     );
-    await pool.query(
-      `INSERT INTO case_stage_history (portal, matter_id, from_stage, to_stage) VALUES ($1, $2, $3, $4)`,
+    const { rows: stageRows } = await pool.query(
+      `INSERT INTO case_stage_history (portal, matter_id, from_stage, to_stage) VALUES ($1, $2, $3, $4) RETURNING id`,
       [portal, matterId, fromStage, stage],
     );
     void invalidateMatterInsights(portal, matterId);
+
+    // Record the stage change as a case_event (best-effort, non-blocking)
+    const stageHistoryId = stageRows[0]?.id as number | undefined;
+    const ownerKeyForEvent = getOwnerKey(req, res);
+    if (ownerKeyForEvent) {
+      void recordCaseEvent(portal, matterId, ownerKeyForEvent, {
+        event_date: new Date().toISOString().slice(0, 10),
+        title: fromStage
+          ? `Stage changed: ${fromStage} → ${stage}`
+          : `Stage set to: ${stage}`,
+        kind: "stage",
+        source: stageHistoryId != null ? `stage:${stageHistoryId}` : null,
+      }).catch((err) => logger.warn({ err, portal, matterId }, "stage event record failed (non-fatal)"));
+    }
 
     res.json({ success: true, status: stage, allowedStages: PORTAL_STAGES[portal] });
   });
@@ -326,6 +342,13 @@ export function attachCaseIntelligence(opts: IntelligenceOptions): void {
   attachDocumentVault({ router, portal, pathPrefix: P, getOwnerKey });
 
   attachDraftWorkspace({ router, portal, pathPrefix: P, getOwnerKey });
+
+  // ── Tasks (sub-router with mergeParams) ──────────────────────────────────────
+  const tasksRouter = makeCaseTasksRouter(portal, getOwnerKey);
+  router.use(`${P}/:matterId/tasks`, tasksRouter);
+
+  // ── Case Home (single-matter dashboard summary) ───────────────────────────
+  attachCaseHome({ router, portal, pathPrefix: P, getOwnerKey, getMatter });
 }
 
 /**

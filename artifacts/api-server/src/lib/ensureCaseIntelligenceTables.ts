@@ -104,6 +104,24 @@ CREATE TABLE IF NOT EXISTS case_intake_briefing (
   generated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_case_intake_briefing_unique ON case_intake_briefing (portal, matter_id);
+
+CREATE TABLE IF NOT EXISTS case_tasks (
+  id serial PRIMARY KEY,
+  portal text NOT NULL,
+  matter_id integer NOT NULL,
+  owner_key text NOT NULL,
+  title text NOT NULL,
+  assignee text,
+  due_date date,
+  priority text NOT NULL DEFAULT 'medium',
+  status text NOT NULL DEFAULT 'open',
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_case_tasks_matter ON case_tasks (portal, matter_id, owner_key);
+CREATE INDEX IF NOT EXISTS idx_case_tasks_status ON case_tasks (portal, matter_id, owner_key, status);
+CREATE INDEX IF NOT EXISTS idx_case_tasks_due ON case_tasks (portal, matter_id, owner_key, due_date);
 `;
 
 let ensured: Promise<void> | null = null;

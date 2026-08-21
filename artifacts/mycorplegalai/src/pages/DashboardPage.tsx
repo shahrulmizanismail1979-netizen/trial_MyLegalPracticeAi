@@ -421,7 +421,7 @@ function MatterBriefingCard({ m, onPrepare }: { m: MatterBriefing; onPrepare: ()
             <Sparkles className="h-3.5 w-3.5" /> Prepare with AI
           </Button>
           <Link href={`/matters/${m.id}`} className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1">
-            Open <ArrowRight className="h-3 w-3" />
+            Continue in Case Home <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
       </CardContent>

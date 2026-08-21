@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { Link } from "wouter";
+import React, { useEffect, useState } from "react";
+import { Link, useSearch } from "wouter";
 import { usePathways, useCase } from "@/hooks/use-irac-api";
 import { useStreamAnalyze } from "@/hooks/use-stream";
 import { extractDocuments, CaseFileMeta } from "@/lib/irac-api";
 import { useMatter } from "@/contexts/MatterContext";
+import { useMatter as useLitMatter, fileWorkIntoMatter } from "@/hooks/use-matters";
 import { FileUpload } from "@/components/FileUpload";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { CitationsList } from "@/components/CitationsList";
@@ -12,9 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScanSearch, Loader2, Copy, Check, FileText, RefreshCw, FolderOpen } from "lucide-react";
+import { ScanSearch, Loader2, Copy, Check, FileText, RefreshCw, FolderOpen, FolderKanban, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AnalyzedSource {
   caseId: string;
@@ -34,6 +36,41 @@ export default function Analyzer() {
   const [isUploading, setIsUploading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // ── ?matter=<lit matter id> wiring ─────────────────────────────────────────
+  const search = useSearch();
+  const linkedMatterId = (() => {
+    const v = new URLSearchParams(search).get("matter");
+    const n = v ? parseInt(v, 10) : NaN;
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+  const { data: linkedMatter } = useLitMatter(linkedMatterId);
+
+  // Prefill instructions with matter context once loaded
+  const [instructions, setInstructions] = useState<string>("");
+  const [prefilled, setPrefilled] = useState(false);
+  useEffect(() => {
+    if (linkedMatter && !prefilled) {
+      const parts: string[] = [];
+      if (linkedMatter.title) parts.push(`Matter: ${linkedMatter.title}`);
+      if (linkedMatter.plaintiff && linkedMatter.defendant)
+        parts.push(`Parties: ${linkedMatter.plaintiff} v ${linkedMatter.defendant}`);
+      else if (linkedMatter.clientName)
+        parts.push(`Client: ${linkedMatter.clientName}`);
+      if (linkedMatter.court) parts.push(`Court: ${linkedMatter.court}`);
+      if (linkedMatter.suitNo) parts.push(`Suit no: ${linkedMatter.suitNo}`);
+      if (linkedMatter.matterType) parts.push(`Type: ${linkedMatter.matterType}`);
+      if (parts.length > 0) {
+        setInstructions(parts.join("\n"));
+        setPrefilled(true);
+      }
+    }
+  }, [linkedMatter, prefilled]);
+
+  // ── Direct file-into-linked-matter save control ─────────────────────────────
+  const qc = useQueryClient();
+  const [savingToMatter, setSavingToMatter] = useState(false);
+  const [savedToMatter, setSavedToMatter] = useState(false);
+
   const analyze = useStreamAnalyze();
 
   const hasActiveMatter = Boolean(activeCaseId && activeCase && activeCase.files.length > 0);
@@ -42,7 +79,7 @@ export default function Analyzer() {
     if (!activeCaseId || !activeCase) return;
     const p = activeCase.pathway || activePathwayId || pathway;
     setAnalyzed({ caseId: activeCaseId, pathway: p, files: activeCase.files });
-    analyze.start(activeCaseId, p);
+    analyze.start({ caseId: activeCaseId, pathway: p, matterContext: instructions.trim() || undefined });
   };
 
   const handleUpload = async (files: File[]) => {
@@ -50,7 +87,7 @@ export default function Analyzer() {
     try {
       const result = await extractDocuments({ files, pathway });
       setAnalyzed({ caseId: result.caseId, pathway, files: result.files });
-      analyze.start(result.caseId, pathway);
+      analyze.start({ caseId: result.caseId, pathway, matterContext: instructions.trim() || undefined });
     } catch (e) {
       toast({
         title: t("tool.analyzer.toast.uploadFailed"),
@@ -63,7 +100,7 @@ export default function Analyzer() {
   };
 
   const handleReanalyze = () => {
-    if (analyzed) analyze.start(analyzed.caseId, analyzed.pathway);
+    if (analyzed) analyze.start({ caseId: analyzed.caseId, pathway: analyzed.pathway, matterContext: instructions.trim() || undefined });
   };
 
   const handleCopy = () => {
@@ -71,6 +108,31 @@ export default function Analyzer() {
     setCopied(true);
     toast({ title: t("tool.analyzer.toast.copied") });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveToLinkedMatter = async () => {
+    if (!linkedMatter || !analyze.content) return;
+    setSavingToMatter(true);
+    try {
+      await fileWorkIntoMatter({
+        kind: "irac-analysis",
+        title: `IRAC Analysis — ${linkedMatter.title}`,
+        matter: linkedMatter.title,
+        matterId: linkedMatter.id,
+        content: analyze.content,
+      });
+      qc.invalidateQueries({ queryKey: ["matters", "work", linkedMatter.id] });
+      setSavedToMatter(true);
+      toast({ title: "Filed into matter", description: `Saved to ${linkedMatter.title}.` });
+    } catch (e) {
+      toast({
+        title: "Could not file into matter",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingToMatter(false);
+    }
   };
 
   const showUploadCard = !hasActiveMatter || showUpload;
@@ -88,6 +150,55 @@ export default function Analyzer() {
             {t("tool.analyzer.desc")}
           </p>
         </div>
+
+        {/* Linked lit matter banner — shown when ?matter=<id> is present */}
+        {linkedMatter && (
+          <Card className="border-[hsl(var(--gold))]/40 bg-[hsl(var(--gold))]/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4 text-[hsl(var(--gold))] shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">Working in matter file</span>
+                </div>
+                <Link href={`/matters/${linkedMatter.id}`}>
+                  <span className="text-xs text-[hsl(var(--gold))] hover:underline cursor-pointer">
+                    <ArrowLeft className="inline w-3 h-3 mr-0.5" /> Back to file
+                  </span>
+                </Link>
+              </div>
+              <p className="text-sm font-medium text-foreground leading-snug">{linkedMatter.title}</p>
+              {(linkedMatter.plaintiff || linkedMatter.clientName) && (
+                <p className="text-xs text-muted-foreground">
+                  {linkedMatter.plaintiff && linkedMatter.defendant
+                    ? `${linkedMatter.plaintiff} v ${linkedMatter.defendant}`
+                    : linkedMatter.clientName}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground/70">
+                Analysis output can be filed directly into this matter.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Prefilled instructions from linked matter */}
+        {linkedMatter && (
+          <Card className="bg-card shadow-sm border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Matter Context (editable)</CardTitle>
+              <CardDescription className="text-xs">Pre-filled from your matter file. Edit as needed before analyzing.</CardDescription>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <textarea
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[hsl(var(--gold))] resize-none"
+                rows={5}
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Matter context…"
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Active matter — analyze already-uploaded documents directly */}
         {hasActiveMatter && (
@@ -235,10 +346,35 @@ export default function Analyzer() {
               )}
             </div>
             {analyze.content && !analyze.isStreaming && (
-              <Button variant="ghost" size="sm" onClick={handleCopy}>
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? t("common.copied") : t("tool.analyzer.copyText")}
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {/* Direct file-into-linked-matter control */}
+                {linkedMatter && (
+                  savedToMatter ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400">
+                      <Check className="w-4 h-4" /> Filed into {linkedMatter.title}
+                    </span>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 border-[hsl(var(--gold))]/40 text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold))]/10"
+                      onClick={handleSaveToLinkedMatter}
+                      disabled={savingToMatter}
+                    >
+                      {savingToMatter
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <FolderKanban className="w-4 h-4" />}
+                      File into {linkedMatter.title.length > 20
+                        ? linkedMatter.title.slice(0, 20) + "…"
+                        : linkedMatter.title}
+                    </Button>
+                  )
+                )}
+                <Button variant="ghost" size="sm" onClick={handleCopy}>
+                  {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                  {copied ? t("common.copied") : t("tool.analyzer.copyText")}
+                </Button>
+              </div>
             )}
           </CardHeader>
 

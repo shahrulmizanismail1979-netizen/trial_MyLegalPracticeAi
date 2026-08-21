@@ -43,19 +43,25 @@ import { useToast } from '@/hooks/use-toast';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
 import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
 import { DraftsPanel, type LettersRequest } from '@workspace/letters-ui';
+import { CaseHomePanel, type CaseHomeRequest } from '@workspace/case-home-ui';
+
+const conveyAuthHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem('convey_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const billingRequest: BillingRequest = (path, init) =>
   fetch(`/api/convey/matters${path}`, {
     ...init,
     headers: {
-      ...(localStorage.getItem('convey_token')
-        ? { Authorization: `Bearer ${localStorage.getItem('convey_token')}` }
-        : {}),
+      ...conveyAuthHeaders(),
       ...(init?.headers || {}),
     },
   });
 
 const vaultRequest: VaultRequest = billingRequest;
 const lettersRequest: LettersRequest = billingRequest;
+const caseHomeRequest: CaseHomeRequest = billingRequest;
 
 const CONVEY_STAGES = ['Instruction', 'SPA Execution', 'Financing', 'Stamping', 'Completion', 'Registration', 'Closed'];
 const STATUS_OPTIONS = ['open', 'closed'];
@@ -732,6 +738,17 @@ export function MatterDetail() {
             <button onClick={openEdit} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-300 bg-gold-800 hover:bg-gold-700 border border-gold-700 px-3 py-2 rounded-lg transition-colors"><Pencil className="w-4 h-4" /> Edit</button>
             <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-400 bg-gold-800 hover:bg-gold-700 border border-gold-700 px-3 py-2 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
           </div>
+        </div>
+
+        {/* Case Home Panel */}
+        <div className="mb-6">
+          <CaseHomePanel
+            matterId={matter.id}
+            request={caseHomeRequest}
+            accent="#f59e0b"
+            className="text-slate-200"
+            action={{ label: "Continue in AI Tools →", href: `/dashboard?matter=${matter.id}` }}
+          />
         </div>
 
         {/* Tabs */}

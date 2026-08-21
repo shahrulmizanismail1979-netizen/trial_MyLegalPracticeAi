@@ -1,10 +1,12 @@
 import { aiStreamFetch } from "@/lib/ai-stream-fetch";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/lib/language-context";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import {
   Select,
   SelectContent,
@@ -18,6 +20,14 @@ import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
 
 const API_BASE = "/api/sya";
+
+/** Parse a single query-string integer param; returns null if missing/invalid. */
+function parseIntParam(search: string, key: string): number | null {
+  const v = new URLSearchParams(search).get(key);
+  if (!v) return null;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
+}
 
 function formatAnalysisText(result: any, t: (en: string, bm: string) => string): string {
   const lines: string[] = [];
@@ -71,6 +81,10 @@ export default function CaseAnalysisPage() {
   const { mode } = useLanguage();
   const t = (en: string, bm: string) => mode === "bm" ? bm : en;
 
+  // --- matter context from URL ------------------------------------------------
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const matterId = parseIntParam(search, "matterId");
+
   const [caseType, setCaseType] = useState("");
   const [facts, setFacts] = useState("");
   const [parties, setParties] = useState("");
@@ -79,6 +93,43 @@ export default function CaseAnalysisPage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+
+  // Pre-fill from URL params on mount (before MatterPicker fires — gives
+  // immediate context even before the matters list loads).
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const partsParts: string[] = [];
+    const matterTitle = params.get("matterTitle");
+    const plaintiff = params.get("plaintiff");
+    const defendant = params.get("defendant");
+    const matterTypeParam = params.get("matterType");
+    const caseNo = params.get("caseNo");
+    const court = params.get("court");
+
+    if (matterTitle) partsParts.push(`Kes: ${matterTitle}`);
+    if (plaintiff) partsParts.push(`Plaintif: ${plaintiff}`);
+    if (defendant) partsParts.push(`Defendan: ${defendant}`);
+    if (court) partsParts.push(`Mahkamah: ${court}`);
+    if (caseNo) partsParts.push(`No. Kes: ${caseNo}`);
+    if (matterTypeParam) partsParts.push(`Jenis: ${matterTypeParam}`);
+
+    if (partsParts.length > 0) {
+      setFacts(partsParts.join(" | "));
+    }
+
+    // Also pre-select case type from matterType param
+    if (matterTypeParam) {
+      const matched = CASE_TYPES.find((ct) => ct.value === matterTypeParam);
+      if (matched) setCaseType(matched.value);
+    }
+
+    // Pre-fill parties
+    const pp: string[] = [];
+    if (plaintiff) pp.push(`Plaintif: ${plaintiff}`);
+    if (defendant) pp.push(`Defendan: ${defendant}`);
+    if (pp.length > 0) setParties(pp.join("; "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
 
   const handleAnalyze = async () => {
     if (!facts.trim()) return;
@@ -134,6 +185,17 @@ export default function CaseAnalysisPage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6">
+      {/* Back to matter when launched from a matter */}
+      {matterId != null && (
+        <Link
+          href={`/matters/${matterId}`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-secondary transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {t("Back to matter", "Kembali ke fail kes")}
+        </Link>
+      )}
+
       <div>
         <h1 className="text-2xl font-serif font-bold text-foreground">{t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t("AI analyzes your case facts against precedent cases to predict likely outcomes", "AI menganalisis fakta kes anda terhadap kes-kes terdahulu untuk meramalkan keputusan yang mungkin")}</p>
@@ -144,16 +206,24 @@ export default function CaseAnalysisPage() {
           <Card>
             <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-foreground">{t("Case Details", "Butiran Kes")}</h2></CardHeader>
             <CardContent className="space-y-4">
-              <MatterPicker onSelect={(m: Matter) => {
-                // facts ← formatted summary
-                setFacts(buildMatterSummary(m));
-                // parties ← plaintiff + defendant (or clientName)
-                const pp: string[] = [];
-                if (m.plaintiff) pp.push(`Plaintif: ${m.plaintiff}`);
-                if (m.defendant) pp.push(`Defendan: ${m.defendant}`);
-                if (pp.length === 0 && m.clientName) pp.push(m.clientName);
-                setParties(pp.join("; "));
-              }} />
+              <MatterPicker
+                defaultMatterId={matterId}
+                onSelect={(m: Matter) => {
+                  // facts ← formatted summary
+                  setFacts(buildMatterSummary(m));
+                  // parties ← plaintiff + defendant (or clientName)
+                  const pp: string[] = [];
+                  if (m.plaintiff) pp.push(`Plaintif: ${m.plaintiff}`);
+                  if (m.defendant) pp.push(`Defendan: ${m.defendant}`);
+                  if (pp.length === 0 && m.clientName) pp.push(m.clientName);
+                  setParties(pp.join("; "));
+                  // case type from matterType
+                  if (m.matterType) {
+                    const matched = CASE_TYPES.find((ct) => ct.value === m.matterType);
+                    if (matched) setCaseType(matched.value);
+                  }
+                }}
+              />
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">{t("Case Type", "Jenis Kes")}</label>
                 <Select value={caseType} onValueChange={setCaseType}>
@@ -310,6 +380,7 @@ export default function CaseAnalysisPage() {
                 parties={parties || undefined}
                 kind="analysis"
                 matterType={caseType || undefined}
+                defaultMatterId={matterId}
               />
             </div>
           )}

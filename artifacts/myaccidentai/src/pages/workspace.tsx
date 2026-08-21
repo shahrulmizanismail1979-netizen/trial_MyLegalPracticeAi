@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { DraftExportButtons } from "@workspace/draft-export/react";
-import { useLocation, Link } from "wouter";
+import { useLocation, useSearchParams, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccidentCheckSession, useAccidentLogout, getAccidentCheckSessionQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,22 @@ function buildMatterSummary(m: Matter): string {
 }
 
 export default function Workspace() {
-  const [activeTab, setActiveTab] = useState<Tab>("my-cases");
+  const [searchParams] = useSearchParams();
+
+  // Parse Case Home query params: ?tab=analyzer&matterId=X&client=Y&plaintiff=Z&matterTitle=T
+  const tabFromQuery = searchParams.get("tab") as Tab | null;
+  const matterIdFromQuery = searchParams.get("matterId")
+    ? parseInt(searchParams.get("matterId")!, 10)
+    : null;
+  const clientFromQuery = searchParams.get("client") ?? "";
+  const plaintiffFromQuery = searchParams.get("plaintiff") ?? "";
+  const matterTitleFromQuery = searchParams.get("matterTitle") ?? "";
+
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabFromQuery && ["my-cases","theory","cases","workflows","documents","glossary","calculator","assistant","statutes","checklists","applications","generator","analyzer","drafter"].includes(tabFromQuery)
+      ? tabFromQuery
+      : "my-cases",
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [generatorTemplateId, setGeneratorTemplateId] = useState<string | undefined>(undefined);
   const [pickedMatter, setPickedMatter] = useState<Matter | null>(null);
@@ -230,7 +245,18 @@ export default function Workspace() {
           {activeTab === "glossary" && <GlossaryTab search={searchQuery} />}
           {activeTab === "calculator" && <CalculatorTab matter={pickedMatter} />}
           {activeTab === "assistant" && <AssistantTab matter={pickedMatter} />}
-          {activeTab === "analyzer" && <CaseAnalyzerTab matter={pickedMatter} />}
+          {activeTab === "analyzer" && (
+            <CaseAnalyzerTab
+              matter={pickedMatter}
+              matterIdFromQuery={!pickedMatter ? matterIdFromQuery : null}
+              prefillContext={!pickedMatter && (matterTitleFromQuery || clientFromQuery || plaintiffFromQuery)
+                ? [
+                    matterTitleFromQuery && `Matter: ${matterTitleFromQuery}`,
+                    (clientFromQuery || plaintiffFromQuery) && `Client / Plaintiff: ${clientFromQuery || plaintiffFromQuery}`,
+                  ].filter(Boolean).join("\n")
+                : undefined}
+            />
+          )}
           {activeTab === "drafter" && <AiDrafterTab matter={pickedMatter} />}
         </div>
       </main>
@@ -954,11 +980,26 @@ function AssistantTab({ matter }: { matter?: Matter | null }) {
   );
 }
 
-function CaseAnalyzerTab({ matter }: { matter?: Matter | null }) {
-  const [facts, setFacts] = useState(() => matter ? buildMatterSummary(matter) : "");
+function CaseAnalyzerTab({
+  matter,
+  matterIdFromQuery,
+  prefillContext,
+}: {
+  matter?: Matter | null;
+  matterIdFromQuery?: number | null;
+  prefillContext?: string;
+}) {
+  // Build initial facts: picked matter > query-param context > empty
+  const [facts, setFacts] = useState(() => {
+    if (matter) return buildMatterSummary(matter);
+    if (prefillContext) return prefillContext + "\n\n[Add full accident facts here — the more detail, the better the analysis.]";
+    return "";
+  });
   const [analysis, setAnalysis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The matter to file into: prefer explicitly picked matter id over query param
+  const targetMatterId = matter?.id ?? matterIdFromQuery ?? null;
 
   const analyze = async () => {
     if (facts.trim().length < 20) {
@@ -1012,6 +1053,22 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
         </div>
       </div>
 
+      {/* Banner when opened from Case Home with matter context */}
+      {targetMatterId && !matter && (
+        <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 mb-4 text-xs text-muted-foreground">
+          <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span>
+            Case facts pre-filled from your matter file. Edit freely before analysing.
+          </span>
+          <Link
+            href={`/workspace/matters/${targetMatterId}`}
+            className="ml-auto text-primary hover:underline shrink-0"
+          >
+            Back to matter
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
@@ -1055,6 +1112,7 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
                 draftContent={analysis}
                 kind="analysis"
                 sourceLabel="AI Case Analyzer"
+                defaultMatterId={targetMatterId}
               />
             </div>
           )}

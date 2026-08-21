@@ -24,6 +24,7 @@ export function SaveToMatterPanel({
   draftTitle,
   draftContent,
   defaultMatterTitle,
+  defaultMatterId,
   kind = "draft",
   inputJson,
   sourceLabel = "Document Drafter",
@@ -31,6 +32,8 @@ export function SaveToMatterPanel({
   draftTitle: string;
   draftContent: string;
   defaultMatterTitle?: string;
+  /** When set, pre-selects "existing" mode with this matter id. */
+  defaultMatterId?: number | null;
   kind?: string;
   inputJson?: unknown;
   sourceLabel?: string;
@@ -41,9 +44,13 @@ export function SaveToMatterPanel({
   const createMatter = useCreateMatter();
   const saveWork = useSaveWork();
 
-  const [mode, setMode] = useState<"idle" | "new" | "existing">("idle");
+  const [mode, setMode] = useState<"idle" | "new" | "existing">(
+    defaultMatterId != null ? "existing" : "idle"
+  );
   const [title, setTitle] = useState(defaultMatterTitle ?? "");
-  const [existingId, setExistingId] = useState<string>("");
+  const [existingId, setExistingId] = useState<string>(
+    defaultMatterId != null ? String(defaultMatterId) : ""
+  );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
 
   const busy = createMatter.isPending || saveWork.isPending;

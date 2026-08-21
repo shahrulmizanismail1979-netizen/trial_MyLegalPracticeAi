@@ -38,6 +38,9 @@
     },
     {
       "path": "./lib/letters-ui"
+    },
+    {
+      "path": "./lib/case-home-ui"
     }
   ]
 }
