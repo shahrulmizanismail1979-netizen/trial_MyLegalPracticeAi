@@ -216,9 +216,19 @@ async function enrichForSearch(ids: number[]): Promise<SearchResultItem[]> {
   return ids.map((id) => {
     const meta = metaMaps.get(id) ?? new Map<string, unknown>();
     const si = indexByJudgment.get(id);
-    const rawSnippet = si?.documentText ?? null;
-    const snippet = rawSnippet
-      ? rawSnippet.slice(0, 500).trimEnd() + (rawSnippet.length > 500 ? "…" : "")
+    // Put accepted editorial summaries first in the preview. They are
+    // appended to the indexed document, but a judicial document can be long
+    // enough that a simple first-500-character slice would hide them.
+    const acceptedPreview = [
+      ...(cwByJudgment.get(id) ?? []).map((c) => c.catchwordLine),
+      ...(hnByJudgment.get(id) ?? []).map((h) => h.text),
+    ].join("\n");
+    const judicialPreview = si?.documentText ?? "";
+    const snippetSource = acceptedPreview
+      ? `${acceptedPreview}\n\n${judicialPreview}`
+      : judicialPreview;
+    const snippet = snippetSource
+      ? snippetSource.slice(0, 500).trimEnd() + (snippetSource.length > 500 ? "…" : "")
       : null;
 
     return {

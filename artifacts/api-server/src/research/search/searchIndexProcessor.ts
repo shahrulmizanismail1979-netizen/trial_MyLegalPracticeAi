@@ -11,11 +11,14 @@ import {
   researchCaseMetadata,
   researchUploadBatchItems,
   driveAssets,
+  researchHeadnotes,
+  researchCatchwords,
 } from "@workspace/db";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
-import { registerProcessor } from "../processing";
+import { enqueue, registerProcessor } from "../processing";
 import { ProcessorFailure } from "../processing/handlers";
 import type { ProcessorContext } from "../processing/handlers";
+import type { DbClient } from "../domain/types";
 import { indexJudgment } from "./postgresFtsAdapter";
 import { practiceAreaForContributorFolder } from "../drive/classify";
 import { logger } from "../../lib/logger";
@@ -153,6 +156,57 @@ async function searchIndexProcessor(ctx: ProcessorContext): Promise<{}> {
       .join("\n\n");
   }
 
+  // Accepted editorial summaries are searchable content, but drafts and
+  // rejected material must never enter the public FTS document. Keep the
+  // judicial corpus first and append these summaries so the source text is
+  // preserved verbatim and snippets can distinguish the added material.
+  const [acceptedHeadnotes, acceptedCatchwords] = await Promise.all([
+    dbc
+      .select({ number: researchHeadnotes.number, text: researchHeadnotes.text })
+      .from(researchHeadnotes)
+      .where(
+        and(
+          eq(researchHeadnotes.judgmentId, judgmentId),
+          eq(researchHeadnotes.status, "accepted"),
+        ),
+      )
+      .orderBy(researchHeadnotes.number),
+    dbc
+      .select({
+        sortOrder: researchCatchwords.sortOrder,
+        catchwordLine: researchCatchwords.catchwordLine,
+      })
+      .from(researchCatchwords)
+      .where(
+        and(
+          eq(researchCatchwords.judgmentId, judgmentId),
+          eq(researchCatchwords.status, "accepted"),
+        ),
+      )
+      .orderBy(researchCatchwords.sortOrder),
+  ]);
+
+  const editorialParts: string[] = [];
+  if (acceptedHeadnotes.length > 0) {
+    editorialParts.push(
+      "ACCEPTED HEADNOTES:\n" +
+        acceptedHeadnotes
+          .map((headnote) => `${headnote.number}. ${headnote.text}`)
+          .join("\n"),
+    );
+  }
+  if (acceptedCatchwords.length > 0) {
+    editorialParts.push(
+      "ACCEPTED CATCHWORDS:\n" +
+        acceptedCatchwords.map((catchword) => catchword.catchwordLine).join("\n"),
+    );
+  }
+  if (editorialParts.length > 0) {
+    documentText = [documentText, ...editorialParts]
+      .filter((part) => part.length > 0)
+      .join("\n\n");
+  }
+
   // Resolve denormalised metadata for filter predicates.
   const [courtMeta] = await dbc
     .select({ value: researchCaseMetadata.value })
@@ -265,4 +319,36 @@ export function registerSearchIndexProcessor(): () => void {
   return registerProcessor(SEARCH_INDEX_JOB_KIND, searchIndexProcessor, {
     touchesContent: true,
   });
+}
+
+/**
+ * Queue a fresh search-index pass after accepted editorial content changes.
+ * The timestamp is supplied by the caller so an acceptance transaction can
+ * use one idempotency key for its whole batch. Repeated requests that accept
+ * no new rows do not call this helper.
+ */
+export async function enqueueAcceptedContentReindex(
+  judgmentId: number,
+  containerId: number,
+  acceptedRevision: number,
+  opts: {
+    actor?: string;
+    dbc?: DbClient;
+  } = {},
+): Promise<void> {
+  await enqueue(
+    SEARCH_INDEX_JOB_KIND,
+    `${SEARCH_INDEX_JOB_KIND}:accepted-content:${judgmentId}:${acceptedRevision}`,
+    { judgmentId, containerId },
+    {
+      actor: opts.actor ?? "headnotes-acceptance",
+      processorVersion: SEARCH_INDEX_VERSION,
+      provenance: {
+        judgmentId,
+        containerId,
+        trigger: "accepted-headnotes-or-catchwords",
+      },
+      dbc: opts.dbc,
+    },
+  );
 }

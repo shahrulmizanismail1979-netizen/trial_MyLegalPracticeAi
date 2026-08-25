@@ -33,6 +33,7 @@ import {
 } from "../research/drive/ingestBridge";
 import { DRIVE_INGEST_JOB_KIND, DRIVE_INGEST_PROCESSOR_VERSION } from "../research/drive/driveIngestProcessor";
 import { enqueueHeadnotesJob, HEADNOTES_JOB_KIND, HEADNOTES_PROCESSOR_VERSION } from "../research/headnotes/processor";
+import { enqueueAcceptedContentReindex } from "../research/search/searchIndexProcessor";
 import { recordRightsDecision } from "../research/data/rights";
 import { startInventory } from "../research/ingestion/inventory";
 
@@ -1039,30 +1040,73 @@ const PatchHeadnoteSchema = z.object({
 
 /** Update a single headnote (edit text, accept, or reject). */
 router.patch("/headnotes/:judgmentId/headnotes/:id", requireAdminSession, async (req: Request, res: Response) => {
+  const judgmentId = Number(req.params.judgmentId);
   const id = Number(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(judgmentId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const parsed = PatchHeadnoteSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
 
-  const update: Record<string, unknown> = { updatedAt: new Date() };
-  if (parsed.data.text !== undefined) update.text = parsed.data.text;
-  if (parsed.data.paragraphRef !== undefined) update.paragraphRef = parsed.data.paragraphRef;
-  if (parsed.data.status !== undefined) {
-    update.status = parsed.data.status;
-    update.reviewedBy = "admin";
-    update.reviewedAt = new Date();
-  }
+  const now = new Date();
+  const updated = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({
+        id: researchHeadnotes.id,
+        judgmentId: researchHeadnotes.judgmentId,
+        status: researchHeadnotes.status,
+      })
+      .from(researchHeadnotes)
+      .where(and(
+        eq(researchHeadnotes.id, id),
+        eq(researchHeadnotes.judgmentId, judgmentId),
+      ));
+    if (!existing) return null;
 
-  const [updated] = await db.update(researchHeadnotes).set(update).where(eq(researchHeadnotes.id, id)).returning();
+    const update: Record<string, unknown> = { updatedAt: now };
+    if (parsed.data.text !== undefined) update.text = parsed.data.text;
+    if (parsed.data.paragraphRef !== undefined) update.paragraphRef = parsed.data.paragraphRef;
+    if (parsed.data.status !== undefined) {
+      update.status = parsed.data.status;
+      update.reviewedBy = "admin";
+      update.reviewedAt = now;
+    }
+
+    const [row] = await tx
+      .update(researchHeadnotes)
+      .set(update)
+      .where(eq(researchHeadnotes.id, id))
+      .returning();
+    if (!row) return null;
+
+    const statusChanged =
+      parsed.data.status !== undefined && parsed.data.status !== existing.status;
+    const searchableContentChanged = parsed.data.text !== undefined || statusChanged;
+    const requiresReindex =
+      searchableContentChanged &&
+      (existing.status === "accepted" || row.status === "accepted");
+    if (requiresReindex) {
+      const [judgment] = await tx
+        .select({ containerId: researchVerifiedJudgments.containerId })
+        .from(researchVerifiedJudgments)
+        .where(eq(researchVerifiedJudgments.id, judgmentId));
+      if (judgment) {
+        await enqueueAcceptedContentReindex(judgmentId, judgment.containerId, now.getTime(), {
+          actor: "admin-headnote-acceptance",
+          dbc: tx,
+        });
+      }
+    }
+    return row;
+  });
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
 });
 
 /** Accept or reject a catchword. */
 router.patch("/headnotes/:judgmentId/catchwords/:id", requireAdminSession, async (req: Request, res: Response) => {
+  const judgmentId = Number(req.params.judgmentId);
   const id = Number(req.params.id);
-  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (isNaN(judgmentId) || isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const parsed = z.object({
     catchwordLine: z.string().min(3).optional(),
@@ -1070,15 +1114,57 @@ router.patch("/headnotes/:judgmentId/catchwords/:id", requireAdminSession, async
   }).safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
 
-  const update: Record<string, unknown> = { updatedAt: new Date() };
-  if (parsed.data.catchwordLine !== undefined) update.catchwordLine = parsed.data.catchwordLine;
-  if (parsed.data.status !== undefined) {
-    update.status = parsed.data.status;
-    update.reviewedBy = "admin";
-    update.reviewedAt = new Date();
-  }
+  const now = new Date();
+  const updated = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({
+        id: researchCatchwords.id,
+        judgmentId: researchCatchwords.judgmentId,
+        status: researchCatchwords.status,
+      })
+      .from(researchCatchwords)
+      .where(and(
+        eq(researchCatchwords.id, id),
+        eq(researchCatchwords.judgmentId, judgmentId),
+      ));
+    if (!existing) return null;
 
-  const [updated] = await db.update(researchCatchwords).set(update).where(eq(researchCatchwords.id, id)).returning();
+    const update: Record<string, unknown> = { updatedAt: now };
+    if (parsed.data.catchwordLine !== undefined) update.catchwordLine = parsed.data.catchwordLine;
+    if (parsed.data.status !== undefined) {
+      update.status = parsed.data.status;
+      update.reviewedBy = "admin";
+      update.reviewedAt = now;
+    }
+
+    const [row] = await tx
+      .update(researchCatchwords)
+      .set(update)
+      .where(eq(researchCatchwords.id, id))
+      .returning();
+    if (!row) return null;
+
+    const statusChanged =
+      parsed.data.status !== undefined && parsed.data.status !== existing.status;
+    const searchableContentChanged =
+      parsed.data.catchwordLine !== undefined || statusChanged;
+    const requiresReindex =
+      searchableContentChanged &&
+      (existing.status === "accepted" || row.status === "accepted");
+    if (requiresReindex) {
+      const [judgment] = await tx
+        .select({ containerId: researchVerifiedJudgments.containerId })
+        .from(researchVerifiedJudgments)
+        .where(eq(researchVerifiedJudgments.id, judgmentId));
+      if (judgment) {
+        await enqueueAcceptedContentReindex(judgmentId, judgment.containerId, now.getTime(), {
+          actor: "admin-catchword-acceptance",
+          dbc: tx,
+        });
+      }
+    }
+    return row;
+  });
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
   res.json(updated);
 });
@@ -1089,18 +1175,35 @@ router.post("/headnotes/:judgmentId/accept-all", requireAdminSession, async (req
   if (isNaN(judgmentId)) { res.status(400).json({ error: "Invalid judgmentId" }); return; }
 
   const now = new Date();
-  const [h, c] = await Promise.all([
-    db.update(researchHeadnotes)
-      .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
-      .where(and(eq(researchHeadnotes.judgmentId, judgmentId), eq(researchHeadnotes.status, "ai_draft")))
-      .returning({ id: researchHeadnotes.id }),
-    db.update(researchCatchwords)
-      .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
-      .where(and(eq(researchCatchwords.judgmentId, judgmentId), eq(researchCatchwords.status, "ai_draft")))
-      .returning({ id: researchCatchwords.id }),
-  ]);
+  const result = await db.transaction(async (tx) => {
+    const [judgment] = await tx
+      .select({ containerId: researchVerifiedJudgments.containerId })
+      .from(researchVerifiedJudgments)
+      .where(eq(researchVerifiedJudgments.id, judgmentId));
+    if (!judgment) return null;
 
-  res.json({ acceptedHeadnotes: h.length, acceptedCatchwords: c.length });
+    const [h, c] = await Promise.all([
+      tx.update(researchHeadnotes)
+        .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
+        .where(and(eq(researchHeadnotes.judgmentId, judgmentId), eq(researchHeadnotes.status, "ai_draft")))
+        .returning({ id: researchHeadnotes.id }),
+      tx.update(researchCatchwords)
+        .set({ status: "accepted", reviewedBy: "admin", reviewedAt: now, updatedAt: now })
+        .where(and(eq(researchCatchwords.judgmentId, judgmentId), eq(researchCatchwords.status, "ai_draft")))
+        .returning({ id: researchCatchwords.id }),
+    ]);
+
+    if (h.length > 0 || c.length > 0) {
+      await enqueueAcceptedContentReindex(judgmentId, judgment.containerId, now.getTime(), {
+        actor: "admin-headnotes-accept-all",
+        dbc: tx,
+      });
+    }
+    return { headnotes: h, catchwords: c };
+  });
+
+  if (!result) { res.status(404).json({ error: "Judgment not found" }); return; }
+  res.json({ acceptedHeadnotes: result.headnotes.length, acceptedCatchwords: result.catchwords.length });
 });
 
 /** Regenerate headnotes for a judgment — deletes ai_draft output + re-enqueues. */
