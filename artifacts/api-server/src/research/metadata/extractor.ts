@@ -24,7 +24,7 @@ export interface ExtractedField {
   method: MetadataMethod;
 }
 
-export const METADATA_EXTRACTOR_VERSION = "metadata_extract@1";
+export const METADATA_EXTRACTOR_VERSION = "metadata_extract@2";
 
 // ── Regex patterns ─────────────────────────────────────────────────────────
 
@@ -170,7 +170,10 @@ function extractProceedingNumber(pages: PageText[]): ExtractedField | null {
 function extractNeutralCitation(pages: PageText[]): ExtractedField | null {
   for (const page of pages.slice(0, 3)) {
     for (const pat of NEUTRAL_CITATION_PATTERNS) {
-      const m = page.text.match(pat);
+      // These patterns are global so String.match() discards the match offset.
+      // exec() preserves it, which is required for citation provenance.
+      pat.lastIndex = 0;
+      const m = pat.exec(page.text);
       if (m && m.index !== undefined) {
         return {
           fieldName: "neutralCitation",
@@ -188,7 +191,10 @@ function extractNeutralCitation(pages: PageText[]): ExtractedField | null {
 function extractReportCitation(pages: PageText[]): ExtractedField | null {
   for (const page of pages.slice(0, 3)) {
     for (const pat of REPORT_CITATION_PATTERNS) {
-      const m = page.text.match(pat);
+      // These patterns are global so String.match() discards the match offset.
+      // exec() preserves it, which is required for citation provenance.
+      pat.lastIndex = 0;
+      const m = pat.exec(page.text);
       if (m && m.index !== undefined) {
         return {
           fieldName: "reportCitation",

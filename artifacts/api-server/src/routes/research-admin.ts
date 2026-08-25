@@ -36,6 +36,8 @@ import { enqueueHeadnotesJob, HEADNOTES_JOB_KIND, HEADNOTES_PROCESSOR_VERSION } 
 import { enqueueAcceptedContentReindex } from "../research/search/searchIndexProcessor";
 import { recordRightsDecision } from "../research/data/rights";
 import { startInventory } from "../research/ingestion/inventory";
+import { transitionContainer } from "../research/domain/containerStateMachine";
+import type { DbClient } from "../research/domain/types";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_PASSWORD: string | null =
@@ -66,6 +68,50 @@ function requireAdminSession(
 
 // ── Router ───────────────────────────────────────────────────────────────────
 const router = Router();
+
+/**
+ * Promote a fully verified judgment only after at least one headnote has been
+ * accepted. Callers pass their open transaction so accepting review content
+ * and making it visible in portal search either commit together or roll back.
+ */
+async function promoteVerifiedJudgmentWhenHeadnoted(
+  dbc: DbClient,
+  judgmentId: number,
+  acceptancePath: "individual-headnote" | "individual-catchword" | "accept-all",
+): Promise<boolean> {
+  const [[judgment], [acceptedHeadnote]] = await Promise.all([
+    dbc
+      .select({ containerId: researchVerifiedJudgments.containerId })
+      .from(researchVerifiedJudgments)
+      .where(eq(researchVerifiedJudgments.id, judgmentId))
+      .limit(1),
+    dbc
+      .select({ id: researchHeadnotes.id })
+      .from(researchHeadnotes)
+      .where(
+        and(
+          eq(researchHeadnotes.judgmentId, judgmentId),
+          eq(researchHeadnotes.status, "accepted"),
+        ),
+      )
+      .limit(1),
+  ]);
+  if (!judgment || !acceptedHeadnote) return false;
+
+  const [container] = await dbc
+    .select({ processingState: researchSourceContainers.processingState })
+    .from(researchSourceContainers)
+    .where(eq(researchSourceContainers.id, judgment.containerId))
+    .limit(1);
+  if (container?.processingState !== "VERIFIED") return false;
+
+  await transitionContainer(judgment.containerId, "SEARCHABLE", {
+    dbc,
+    actor: "research-admin:headnotes-acceptance",
+    detail: { judgmentId, acceptancePath },
+  });
+  return true;
+}
 
 // ── Auth endpoints (no session required) ─────────────────────────────────────
 
@@ -1048,43 +1094,34 @@ router.patch("/headnotes/:judgmentId/headnotes/:id", requireAdminSession, async 
   if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
 
   const now = new Date();
-  const updated = await db.transaction(async (tx) => {
+  const update: Record<string, unknown> = { updatedAt: now };
+  if (parsed.data.text !== undefined) update.text = parsed.data.text;
+  if (parsed.data.paragraphRef !== undefined) update.paragraphRef = parsed.data.paragraphRef;
+  if (parsed.data.status !== undefined) {
+    update.status = parsed.data.status;
+    update.reviewedBy = "admin";
+    update.reviewedAt = now;
+  }
+
+  const result = await db.transaction(async (tx) => {
     const [existing] = await tx
-      .select({
-        id: researchHeadnotes.id,
-        judgmentId: researchHeadnotes.judgmentId,
-        status: researchHeadnotes.status,
-      })
+      .select({ status: researchHeadnotes.status })
       .from(researchHeadnotes)
-      .where(and(
-        eq(researchHeadnotes.id, id),
-        eq(researchHeadnotes.judgmentId, judgmentId),
-      ));
+      .where(and(eq(researchHeadnotes.id, id), eq(researchHeadnotes.judgmentId, judgmentId)));
     if (!existing) return null;
 
-    const update: Record<string, unknown> = { updatedAt: now };
-    if (parsed.data.text !== undefined) update.text = parsed.data.text;
-    if (parsed.data.paragraphRef !== undefined) update.paragraphRef = parsed.data.paragraphRef;
-    if (parsed.data.status !== undefined) {
-      update.status = parsed.data.status;
-      update.reviewedBy = "admin";
-      update.reviewedAt = now;
-    }
-
-    const [row] = await tx
+    const [updated] = await tx
       .update(researchHeadnotes)
       .set(update)
-      .where(eq(researchHeadnotes.id, id))
+      .where(and(eq(researchHeadnotes.id, id), eq(researchHeadnotes.judgmentId, judgmentId)))
       .returning();
-    if (!row) return null;
-
+    if (!updated) return null;
     const statusChanged =
       parsed.data.status !== undefined && parsed.data.status !== existing.status;
-    const searchableContentChanged = parsed.data.text !== undefined || statusChanged;
-    const requiresReindex =
-      searchableContentChanged &&
-      (existing.status === "accepted" || row.status === "accepted");
-    if (requiresReindex) {
+    const acceptedContentChanged =
+      (parsed.data.text !== undefined || statusChanged) &&
+      (existing.status === "accepted" || updated.status === "accepted");
+    if (acceptedContentChanged) {
       const [judgment] = await tx
         .select({ containerId: researchVerifiedJudgments.containerId })
         .from(researchVerifiedJudgments)
@@ -1096,10 +1133,14 @@ router.patch("/headnotes/:judgmentId/headnotes/:id", requireAdminSession, async 
         });
       }
     }
-    return row;
+    const promotedToSearchable =
+      parsed.data.status === "accepted"
+        ? await promoteVerifiedJudgmentWhenHeadnoted(tx, judgmentId, "individual-headnote")
+        : false;
+    return { updated, promotedToSearchable };
   });
-  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(updated);
+  if (!result) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ...result.updated, promotedToSearchable: result.promotedToSearchable });
 });
 
 /** Accept or reject a catchword. */
@@ -1115,43 +1156,33 @@ router.patch("/headnotes/:judgmentId/catchwords/:id", requireAdminSession, async
   if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
 
   const now = new Date();
-  const updated = await db.transaction(async (tx) => {
+  const update: Record<string, unknown> = { updatedAt: now };
+  if (parsed.data.catchwordLine !== undefined) update.catchwordLine = parsed.data.catchwordLine;
+  if (parsed.data.status !== undefined) {
+    update.status = parsed.data.status;
+    update.reviewedBy = "admin";
+    update.reviewedAt = now;
+  }
+
+  const result = await db.transaction(async (tx) => {
     const [existing] = await tx
-      .select({
-        id: researchCatchwords.id,
-        judgmentId: researchCatchwords.judgmentId,
-        status: researchCatchwords.status,
-      })
+      .select({ status: researchCatchwords.status })
       .from(researchCatchwords)
-      .where(and(
-        eq(researchCatchwords.id, id),
-        eq(researchCatchwords.judgmentId, judgmentId),
-      ));
+      .where(and(eq(researchCatchwords.id, id), eq(researchCatchwords.judgmentId, judgmentId)));
     if (!existing) return null;
 
-    const update: Record<string, unknown> = { updatedAt: now };
-    if (parsed.data.catchwordLine !== undefined) update.catchwordLine = parsed.data.catchwordLine;
-    if (parsed.data.status !== undefined) {
-      update.status = parsed.data.status;
-      update.reviewedBy = "admin";
-      update.reviewedAt = now;
-    }
-
-    const [row] = await tx
+    const [updated] = await tx
       .update(researchCatchwords)
       .set(update)
-      .where(eq(researchCatchwords.id, id))
+      .where(and(eq(researchCatchwords.id, id), eq(researchCatchwords.judgmentId, judgmentId)))
       .returning();
-    if (!row) return null;
-
+    if (!updated) return null;
     const statusChanged =
       parsed.data.status !== undefined && parsed.data.status !== existing.status;
-    const searchableContentChanged =
-      parsed.data.catchwordLine !== undefined || statusChanged;
-    const requiresReindex =
-      searchableContentChanged &&
-      (existing.status === "accepted" || row.status === "accepted");
-    if (requiresReindex) {
+    const acceptedContentChanged =
+      (parsed.data.catchwordLine !== undefined || statusChanged) &&
+      (existing.status === "accepted" || updated.status === "accepted");
+    if (acceptedContentChanged) {
       const [judgment] = await tx
         .select({ containerId: researchVerifiedJudgments.containerId })
         .from(researchVerifiedJudgments)
@@ -1163,10 +1194,14 @@ router.patch("/headnotes/:judgmentId/catchwords/:id", requireAdminSession, async
         });
       }
     }
-    return row;
+    const promotedToSearchable =
+      parsed.data.status === "accepted"
+        ? await promoteVerifiedJudgmentWhenHeadnoted(tx, judgmentId, "individual-catchword")
+        : false;
+    return { updated, promotedToSearchable };
   });
-  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(updated);
+  if (!result) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ...result.updated, promotedToSearchable: result.promotedToSearchable });
 });
 
 /** Accept ALL ai_draft headnotes + catchwords for a judgment in one click. */
@@ -1192,18 +1227,26 @@ router.post("/headnotes/:judgmentId/accept-all", requireAdminSession, async (req
         .where(and(eq(researchCatchwords.judgmentId, judgmentId), eq(researchCatchwords.status, "ai_draft")))
         .returning({ id: researchCatchwords.id }),
     ]);
-
     if (h.length > 0 || c.length > 0) {
       await enqueueAcceptedContentReindex(judgmentId, judgment.containerId, now.getTime(), {
         actor: "admin-headnotes-accept-all",
         dbc: tx,
       });
     }
-    return { headnotes: h, catchwords: c };
+    const promotedToSearchable = await promoteVerifiedJudgmentWhenHeadnoted(
+      tx,
+      judgmentId,
+      "accept-all",
+    );
+    return { h, c, promotedToSearchable };
   });
-
   if (!result) { res.status(404).json({ error: "Judgment not found" }); return; }
-  res.json({ acceptedHeadnotes: result.headnotes.length, acceptedCatchwords: result.catchwords.length });
+
+  res.json({
+    acceptedHeadnotes: result.h.length,
+    acceptedCatchwords: result.c.length,
+    promotedToSearchable: result.promotedToSearchable,
+  });
 });
 
 /** Regenerate headnotes for a judgment — deletes ai_draft output + re-enqueues. */

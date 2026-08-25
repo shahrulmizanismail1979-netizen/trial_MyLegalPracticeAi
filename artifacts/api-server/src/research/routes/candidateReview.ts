@@ -639,41 +639,70 @@ router.post(
     }
 
     await db.transaction(async (tx) => {
-      // Mark both originals as rejected
-      await tx.update(researchCaseCandidates).set({ reviewStatus: "rejected", reviewedBy: actor, reviewedAt: new Date() }).where(inArray(researchCaseCandidates.id, [candidateId, targetCandidateId]));
-
-      // New merged candidate spans both — use page-ordered boundaries
+      // Retain the earlier candidate and widen its span. A unique key prevents
+      // creating a second candidate for the same run/container/start page, so
+      // marking the original rejected before inserting a replacement would
+      // still violate that key.
       const startBoundId = mergedStartBoundId ?? cbA?.startBoundaryId ?? cbB?.startBoundaryId;
       const endBoundId = mergedEndBoundId ?? cbB?.endBoundaryId ?? cbA?.endBoundaryId;
       const startPageId = mergedStartPageId;
+      const retainedCandidateId =
+        candidate.startPageId === startPageId ? candidateId : targetCandidateId;
+      const rejectedCandidateId =
+        retainedCandidateId === candidateId ? targetCandidateId : candidateId;
 
-      const [merged] = await tx.insert(researchCaseCandidates).values({
-        containerId: candidate.containerId,
-        runId: candidate.runId,
-        startPageId: startPageId ?? null,
-        strength: candidate.strength,
-        pageCount: null,
-        reviewStatus: "review_required",
-        spans: [{ mergedFrom: [candidateId, targetCandidateId] }],
-        detail: { mergedFrom: [candidateId, targetCandidateId], reason },
-      }).returning({ id: researchCaseCandidates.id });
+      await tx
+        .update(researchCaseCandidates)
+        .set({
+          startPageId: startPageId ?? null,
+          strength: candidate.strength,
+          pageCount: null,
+          reviewStatus: "review_required",
+          reviewedBy: actor,
+          reviewedAt: new Date(),
+          spans: [{ mergedFrom: [candidateId, targetCandidateId] }],
+          detail: { mergedFrom: [candidateId, targetCandidateId], reason },
+        })
+        .where(eq(researchCaseCandidates.id, retainedCandidateId));
+      await tx
+        .update(researchCaseCandidates)
+        .set({ reviewStatus: "rejected", reviewedBy: actor, reviewedAt: new Date() })
+        .where(eq(researchCaseCandidates.id, rejectedCandidateId));
 
-      mergedCandidateId = merged.id;
+      mergedCandidateId = retainedCandidateId;
 
-      if (merged && startBoundId && endBoundId) {
-        await tx.insert(researchCaseCandidateBoundaries).values({ candidateId: merged.id, startBoundaryId: startBoundId, endBoundaryId: endBoundId }).onConflictDoNothing();
+      if (startBoundId && endBoundId) {
+        const [existingBoundary] = await tx
+          .select({ candidateId: researchCaseCandidateBoundaries.candidateId })
+          .from(researchCaseCandidateBoundaries)
+          .where(eq(researchCaseCandidateBoundaries.candidateId, retainedCandidateId));
+        if (existingBoundary) {
+          await tx
+            .update(researchCaseCandidateBoundaries)
+            .set({ startBoundaryId: startBoundId, endBoundaryId: endBoundId })
+            .where(eq(researchCaseCandidateBoundaries.candidateId, retainedCandidateId));
+        } else {
+          await tx
+            .insert(researchCaseCandidateBoundaries)
+            .values({
+              candidateId: retainedCandidateId,
+              startBoundaryId: startBoundId,
+              endBoundaryId: endBoundId,
+            })
+            .onConflictDoNothing();
+        }
       }
 
       const [transformation] = await tx.insert(researchTransformations).values({
         containerId: candidate.containerId,
         kind: "candidate.merge",
-        detail: { originalIds: [candidateId, targetCandidateId], mergedCandidateId: merged.id, reason },
+        detail: { originalIds: [candidateId, targetCandidateId], mergedCandidateId, reason },
         actor,
       }).returning({ id: researchTransformations.id });
 
       // One action row per invocation (the source candidate initiated the merge)
-      await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "MERGE", actor, detail: { targetCandidateId, mergedCandidateId: merged.id, reason }, transformationId: transformation.id });
-      await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MERGE", actor, detail: { containerId: candidate.containerId, targetCandidateId, mergedCandidateId: merged.id, reason } });
+      await tx.insert(researchCandidateReviewActions).values({ candidateId, actionType: "MERGE", actor, detail: { targetCandidateId, mergedCandidateId, reason }, transformationId: transformation.id });
+      await recordAuditEvent(tx, { entityType: "case_candidate", entityId: candidateId, event: "review:MERGE", actor, detail: { containerId: candidate.containerId, targetCandidateId, mergedCandidateId, reason } });
     });
 
     // Enqueue re-validation so the merged candidate gets coherence checks

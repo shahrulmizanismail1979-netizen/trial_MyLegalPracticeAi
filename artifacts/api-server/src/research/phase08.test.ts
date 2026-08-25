@@ -536,6 +536,23 @@ describe("extractMetadata — pure function", () => {
     expect(caseName).toBeDefined();
   });
 
+  it("extracts Malaysian report citations with source offsets", () => {
+    const fields = extractMetadata([
+      {
+        id: 3,
+        pageNumber: 1,
+        text: "TAN KIM HOR & ORS v TAN HENG CHEW & ORS\n[2004] 4 MLJ 118",
+      },
+    ]);
+    const citation = fields.find((f) => f.fieldName === "reportCitation");
+    expect(citation?.value).toBe("[2004] 4 MLJ 118");
+    expect(citation?.sourceRef).toEqual({
+      pageId: 3,
+      charStart: 40,
+      charEnd: 56,
+    });
+  });
+
   it("returns source references with page id and char offsets", () => {
     const fields = extractMetadata(pages);
     const court = fields.find((f) => f.fieldName === "court");
