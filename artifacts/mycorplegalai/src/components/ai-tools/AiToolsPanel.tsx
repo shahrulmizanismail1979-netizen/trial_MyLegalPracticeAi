@@ -532,10 +532,46 @@ function MarkdownLike({ text }: { text: string }) {
   let key = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
 
+    if (isMarkdownTableStart(lines, i)) {
+      const header = splitMarkdownTableRow(line);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i]!)) {
+        rows.push(splitMarkdownTableRow(lines[i]!));
+        i += 1;
+      }
+      i -= 1;
+      elements.push(
+        <div key={key++} className="my-2 overflow-x-auto rounded border border-border">
+          <table className="w-full min-w-[440px] border-collapse text-left text-xs">
+            <thead className="bg-secondary/50">
+              <tr>{header.map((cell, cellIndex) => <th key={cellIndex} className="border-b border-border px-2 py-1.5 font-semibold">{formatInline(cell)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr key={rowIndex} className="border-b border-border/70 last:border-0">
+                  {header.map((_, cellIndex) => <td key={cellIndex} className="align-top px-2 py-1.5 text-muted-foreground">{formatInline(row[cellIndex] ?? "")}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+    }
+    // Markdown headings
+    else if (/^#{1,3}\s/.test(line)) {
+      const level = (line.match(/^#+/) ?? [""])[0].length;
+      const content = line.replace(/^#+\s*/, "");
+      elements.push(
+        level === 1
+          ? <h3 key={key++} className="font-serif text-base font-bold text-primary mt-3">{content}</h3>
+          : <h4 key={key++} className="font-semibold text-primary mt-3 text-sm">{content}</h4>,
+      );
+    }
     // Bold headings: **text** on its own line
-    if (/^\*\*[^*]+\*\*$/.test(line.trim())) {
+    else if (/^\*\*[^*]+\*\*$/.test(line.trim())) {
       elements.push(
         <p key={key++} className="font-semibold text-primary mt-3 mb-0.5 text-sm">
           {line.trim().replace(/\*\*/g, "")}
@@ -569,12 +605,29 @@ function MarkdownLike({ text }: { text: string }) {
   return <div className="space-y-0.5">{elements}</div>;
 }
 
+function isMarkdownTableStart(lines: string[], index: number): boolean {
+  const header = lines[index];
+  const divider = lines[index + 1];
+  return Boolean(
+    header &&
+    divider &&
+    /^\s*\|.*\|\s*$/.test(header) &&
+    /^\s*\|?[\s:|-]+\|[\s:|-]+/.test(divider),
+  );
+}
+
+function splitMarkdownTableRow(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+}
+
 function formatInline(text: string): React.ReactNode {
-  // Handle **bold** inline
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
     }
     return part;
   });

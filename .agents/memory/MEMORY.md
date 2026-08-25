@@ -55,3 +55,4 @@
 - [Concurrent validation resource exhaustion](validation-resource-exhaustion.md) — full Vitest and Playwright validations can exhaust PID/thread limits when run together; verify in isolated low-worker runs.
 - [Research corpus status](research-corpus-status.md) — never market Drive file totals as searchable cases; distinguish intake, verification, indexing, and publication.
 - [Public information sources](public-information-sources.md) — subscriber claims come only from admin-published records; keep live availability separate from checkout eligibility.
+- [MyCorpAI drafting contract](mycorp-ai-drafting-contract.md) — specialist tool identity and a terminal-completion stream are required before presenting a corporate draft as final.

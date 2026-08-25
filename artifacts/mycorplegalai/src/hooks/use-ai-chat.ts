@@ -52,64 +52,67 @@ export function useAiChat() {
       setMessages((prev) => [...prev, { role: "ai", content: "" }]);
 
       let buffer = "";
-      let streamDone = false;
-      while (!streamDone) {
+      let sawDone = false;
+
+      const appendContent = (content: string) => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.role === "ai") {
+            updated[updated.length - 1] = { ...last, content: last.content + content };
+          }
+          return updated;
+        });
+      };
+
+      const processEvent = (event: string) => {
+        const data = event
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.replace(/^data:\s?/, ""))
+          .join("\n")
+          .trim();
+        if (!data) return;
+        if (data === "[DONE]") {
+          sawDone = true;
+          return;
+        }
+
+        let parsed: { content?: string; error?: string; done?: boolean; complete?: boolean };
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          throw new Error("The AI response was malformed. No response has been marked as complete.");
+        }
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.content) appendContent(parsed.content);
+        if (parsed.done) {
+          sawDone = parsed.complete !== false;
+          if (parsed.complete === false) {
+            throw new Error("The AI response stopped before the draft was complete. Please generate it again.");
+          }
+        }
+      };
+
+      while (!sawDone) {
         const { value, done } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const data = trimmed.slice(6);
-          if (data === "[DONE]") { streamDone = true; break; }
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.error) {
-              setError(parsed.error);
-              streamDone = true;
-              break;
-            }
-            if (parsed.done) { streamDone = true; break; }
-            const chunk = parsed.content ?? "";
-            if (chunk) {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last?.role === "ai") {
-                  updated[updated.length - 1] = { ...last, content: last.content + chunk };
-                }
-                return updated;
-              });
-            }
-          } catch {
-            // ignore parse errors
-          }
+        const events = buffer.split(/\r?\n\r?\n/);
+        buffer = events.pop() ?? "";
+        for (const event of events) {
+          processEvent(event);
+          if (sawDone) break;
         }
       }
+
+      buffer += decoder.decode();
       if (buffer.trim()) {
-        const trimmed = buffer.trim();
-        if (trimmed.startsWith("data: ")) {
-          const data = trimmed.slice(6);
-          if (data !== "[DONE]") {
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last?.role === "ai") {
-                    updated[updated.length - 1] = { ...last, content: last.content + parsed.content };
-                  }
-                  return updated;
-                });
-              }
-            } catch { /* ignore */ }
-          }
-        }
+        processEvent(buffer);
+      }
+      if (!sawDone) {
+        throw new Error("The AI connection ended before the draft was complete. Please generate it again.");
       }
       reader.cancel().catch(() => {});
     } catch (err: unknown) {

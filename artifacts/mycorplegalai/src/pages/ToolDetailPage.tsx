@@ -194,7 +194,6 @@ export default function ToolDetailPage() {
     setOutput("");
 
     const prompt = tool.buildPrompt(formValues);
-    const backendTool = mapToBackendTool(tool.id);
 
     try {
       const authToken = localStorage.getItem("auth_token");
@@ -204,7 +203,10 @@ export default function ToolDetailPage() {
           "Content-Type": "application/json",
           ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
-        body: JSON.stringify({ tool: backendTool, message: prompt }),
+        // Tool IDs are shared with the backend registry. Never downgrade an
+        // unrecognised specialist tool to a generic tutor prompt: a rejected
+        // request is safer and more useful than the wrong kind of work product.
+        body: JSON.stringify({ tool: tool.id, message: prompt }),
       });
 
       if (!response.ok) {
@@ -219,39 +221,56 @@ export default function ToolDetailPage() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
-      let streamDone = false;
+      let sawDone = false;
 
-      while (!streamDone) {
+      const processEvent = (event: string) => {
+        const data = event
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.replace(/^data:\s?/, ""))
+          .join("\n")
+          .trim();
+        if (!data) return;
+        if (data === "[DONE]") {
+          sawDone = true;
+          return;
+        }
+
+        let parsed: { content?: string; error?: string; done?: boolean; complete?: boolean };
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          throw new Error("The AI response was malformed. No draft has been marked as complete.");
+        }
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.content) setOutput((prev) => prev + parsed.content);
+        if (parsed.done) {
+          sawDone = parsed.complete !== false;
+          if (parsed.complete === false) {
+            throw new Error("The AI response stopped before the draft was complete. Please generate it again.");
+          }
+        }
+      };
+
+      while (!sawDone) {
         const { value, done } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const data = trimmed.slice(6);
-          if (data === "[DONE]") { streamDone = true; break; }
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.error) { setError(parsed.error); streamDone = true; break; }
-            if (parsed.done) { streamDone = true; break; }
-            if (parsed.content) {
-              setOutput((prev) => prev + parsed.content);
-            }
-          } catch { /* ignore */ }
+        const events = buffer.split(/\r?\n\r?\n/);
+        buffer = events.pop() ?? "";
+        for (const event of events) {
+          processEvent(event);
+          if (sawDone) break;
         }
       }
-      if (buffer.trim()) {
-        const trimmed = buffer.trim();
-        if (trimmed.startsWith("data: ") && trimmed.slice(6) !== "[DONE]") {
-          try {
-            const parsed = JSON.parse(trimmed.slice(6));
-            if (parsed.content) setOutput((prev) => prev + parsed.content);
-          } catch { /* ignore */ }
-        }
+
+      buffer += decoder.decode();
+      if (buffer.trim() && !sawDone) {
+        processEvent(buffer);
+      }
+      if (!sawDone) {
+        throw new Error("The AI connection ended before the draft was complete. Please generate it again.");
       }
       reader.cancel().catch(() => {});
     } catch (err: unknown) {
@@ -478,20 +497,6 @@ export default function ToolDetailPage() {
   );
 }
 
-function mapToBackendTool(toolId: string): string {
-  const directTools = [
-    "legal-opinion", "transaction-advisor", "dd-report", "spa-reviewer",
-    "board-resolution", "macc-17a", "ssm-filing", "stamp-duty",
-    "compliance-calendar", "client-letter", "sha-builder", "aml-checker",
-    "corporate-secretary", "ipo-readiness", "employment-advisor", "cross-border",
-    "dispute-resolution", "contract-review", "islamic-finance", "negotiation-points",
-    "negotiation-simulator", "mediation-simulator", "arbitration-simulator",
-    "client-consultation-trainer", "board-presentation-simulator",
-  ];
-  if (directTools.includes(toolId)) return toolId;
-  return "tutor";
-}
-
 function OutputRenderer({ text }: { text: string }) {
   if (!text) return null;
 
@@ -499,8 +504,42 @@ function OutputRenderer({ text }: { text: string }) {
   const elements: React.ReactNode[] = [];
   let key = 0;
 
-  for (const line of lines) {
-    if (/^#{1,3}\s/.test(line)) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex]!;
+    if (isTableStart(lines, lineIndex)) {
+      const header = splitTableRow(line);
+      lineIndex += 2; // Skip the Markdown table divider.
+      const rows: string[][] = [];
+      while (lineIndex < lines.length && /^\s*\|.*\|\s*$/.test(lines[lineIndex]!)) {
+        rows.push(splitTableRow(lines[lineIndex]!));
+        lineIndex += 1;
+      }
+      lineIndex -= 1;
+      elements.push(
+        <div key={key++} className="my-3 overflow-x-auto rounded-md border border-border">
+          <table className="w-full min-w-[520px] border-collapse text-left text-xs">
+            <thead className="bg-secondary/50 text-foreground">
+              <tr>{header.map((cell, index) => <th key={index} className="border-b border-border px-3 py-2 font-semibold">{renderInline(cell)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr key={rowIndex} className="border-b border-border/70 last:border-0">
+                  {header.map((_, cellIndex) => <td key={cellIndex} className="align-top px-3 py-2 text-muted-foreground">{renderInline(row[cellIndex] ?? "")}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+    } else if (/^```/.test(line.trim())) {
+      const codeLines: string[] = [];
+      lineIndex += 1;
+      while (lineIndex < lines.length && !/^```/.test(lines[lineIndex]!.trim())) {
+        codeLines.push(lines[lineIndex]!);
+        lineIndex += 1;
+      }
+      elements.push(<pre key={key++} className="my-3 overflow-x-auto rounded-md bg-secondary/60 p-3 text-xs text-foreground whitespace-pre-wrap">{codeLines.join("\n")}</pre>);
+    } else if (/^#{1,3}\s/.test(line)) {
       const level = (line.match(/^#+/) || [""])[0].length;
       const content = line.replace(/^#+\s*/, "");
       if (level === 1) {
@@ -545,11 +584,29 @@ function OutputRenderer({ text }: { text: string }) {
   return <div className="space-y-0.5">{elements}</div>;
 }
 
+function isTableStart(lines: string[], index: number): boolean {
+  const header = lines[index];
+  const divider = lines[index + 1];
+  return Boolean(
+    header &&
+    divider &&
+    /^\s*\|.*\|\s*$/.test(header) &&
+    /^\s*\|?[\s:|-]+\|[\s:|-]+/.test(divider),
+  );
+}
+
+function splitTableRow(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
+}
+
 function renderInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
     }
     return part;
   });
