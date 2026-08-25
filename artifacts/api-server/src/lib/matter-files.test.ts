@@ -19,6 +19,8 @@ vi.mock("@clerk/express", () => ({
 // Object storage depends on the Replit sidecar + GCS; the app imports it
 // transitively via the lit/other routers, so stub it out the same way.
 vi.mock("../lib/objectStorage", () => {
+  const deletedObjects = new Set<string>();
+  const unsafeContentPaths = new Set<string>();
   class FakeObjectStorageService {
     async getObjectEntityUploadURL(): Promise<string> {
       return `https://storage.example.com/bucket/.private/uploads/${randomUUID()}?sig=x`;
@@ -27,19 +29,41 @@ vi.mock("../lib/objectStorage", () => {
       const m = rawPath.match(/uploads\/([0-9a-f-]+)/);
       return `/objects/uploads/${m ? m[1] : rawPath}`;
     }
-    async getObjectEntityFile(): Promise<never> {
-      const err = new Error("Object not found") as Error & { name: string };
-      err.name = "ObjectNotFoundError";
-      throw err;
+    async getObjectEntityFile(path: string) {
+      if (!path.startsWith("/objects/uploads/")) {
+        const err = new Error("Object not found") as Error & { name: string };
+        err.name = "ObjectNotFoundError";
+        throw err;
+      }
+      return {
+        async getMetadata() {
+          return [{
+            size: "5242880",
+            contentType: unsafeContentPaths.has(path) ? "text/html; charset=utf-8" : "text/markdown; charset=utf-8",
+          }];
+        },
+        async delete() {
+          deletedObjects.add(path);
+        },
+      };
+    }
+    async downloadObject(): Promise<Response> {
+      return new Response("# Stored test draft\n\nA private generated work product.", {
+        headers: { "Content-Type": "text/markdown; charset=utf-8" },
+      });
     }
   }
   return {
     ObjectStorageService: FakeObjectStorageService,
     ObjectNotFoundError: class extends Error {},
+    storageTestState: { deletedObjects, unsafeContentPaths },
   };
 });
 
 const { default: app } = await import("../app");
+const { ensureDocumentTables } = await import("../lib/caseDocuments");
+const { ensureMatterFileTables } = await import("../lib/matterFiles");
+const { storageTestState } = await import("../lib/objectStorage");
 const {
   db,
   corpAccessCodes,
@@ -89,6 +113,8 @@ const ccb = { aId: 0, bId: 0, tokenA: "", tokenB: "", masterToken: "" };
 const convey = { aId: 0, bId: 0, tokenA: "", tokenB: "" };
 
 beforeAll(async () => {
+  await ensureMatterFileTables();
+  await ensureDocumentTables();
   // ── Corp: two access codes + one active session each ──────────────────────
   const corpRows = await db
     .insert(corpAccessCodes)
@@ -359,5 +385,158 @@ describe("ccb static/master code", () => {
         .delete(`/api/ccb/saved-work/${work.body.id}`)
         .set("Authorization", master);
     }
+  });
+});
+
+describe("private generated draft storage", () => {
+  it("files a large draft through a one-time grant, supports retry/open/download, and remains owner-scoped", async () => {
+    const A = `Bearer ${corp.tokenA}`;
+    const B = `Bearer ${corp.tokenB}`;
+    const matter = await request(app)
+      .post("/api/corp/matters")
+      .set("Authorization", A)
+      .send({ title: `Stored draft matter ${RUN_ID}` });
+    expect(matter.status).toBe(201);
+
+    const grant = await request(app)
+      .post("/api/corp/saved-work/upload-url")
+      .set("Authorization", A)
+      .send({});
+    expect(grant.status).toBe(200);
+    expect(grant.body.objectPath).toMatch(/^\/objects\/uploads\//);
+
+    const body = {
+      kind: "draft",
+      title: `Stored draft ${RUN_ID}`,
+      matterId: matter.body.id,
+      objectPath: grant.body.objectPath,
+      fileName: "board-resolution.md",
+      contentType: "text/markdown; charset=utf-8",
+      clientRequestId: `saved-${RUN_ID}`,
+    };
+    const filed = await request(app)
+      .post("/api/corp/saved-work")
+      .set("Authorization", A)
+      .send(body);
+    expect(filed.status).toBe(201);
+    expect(filed.body.storageStatus).toBe("stored");
+    expect(filed.body.content).toBe("");
+    expect(filed.body.sizeBytes).toBe(5_242_880);
+    const workId = filed.body.id as number;
+
+    // A lost response can be retried without consuming the one-time grant
+    // again or creating a second saved-work row.
+    const retried = await request(app)
+      .post("/api/corp/saved-work")
+      .set("Authorization", A)
+      .send(body);
+    expect(retried.status).toBe(200);
+    expect(retried.body.id).toBe(workId);
+
+    const reopened = await request(app)
+      .get(`/api/corp/saved-work/${workId}/content`)
+      .set("Authorization", A);
+    expect(reopened.status).toBe(200);
+    expect(reopened.text).toContain("Stored test draft");
+    expect(reopened.headers["content-type"]).toContain("text/plain");
+    expect(reopened.headers["content-disposition"]).toContain("attachment");
+
+    const downloaded = await request(app)
+      .get(`/api/corp/saved-work/${workId}/download`)
+      .set("Authorization", A);
+    expect(downloaded.status).toBe(200);
+    expect(downloaded.headers["content-disposition"]).toContain("attachment");
+
+    const foreignOpen = await request(app)
+      .get(`/api/corp/saved-work/${workId}/content`)
+      .set("Authorization", B);
+    expect(foreignOpen.status).toBe(404);
+
+    const deleted = await request(app)
+      .delete(`/api/corp/saved-work/${workId}`)
+      .set("Authorization", A);
+    expect(deleted.status).toBe(200);
+    expect(storageTestState.deletedObjects.has(grant.body.objectPath)).toBe(true);
+  });
+
+  it("forces hostile stored content to download as plain text", async () => {
+    const A = `Bearer ${corp.tokenA}`;
+    const grant = await request(app)
+      .post("/api/corp/saved-work/upload-url")
+      .set("Authorization", A)
+      .send({});
+    storageTestState.unsafeContentPaths.add(grant.body.objectPath);
+    const filed = await request(app)
+      .post("/api/corp/saved-work")
+      .set("Authorization", A)
+      .send({
+        kind: "draft",
+        title: "hostile content",
+        objectPath: grant.body.objectPath,
+        fileName: "unsafe.html",
+        clientRequestId: `unsafe-${RUN_ID}`,
+      });
+    expect(filed.status).toBe(201);
+    const opened = await request(app)
+      .get(`/api/corp/saved-work/${filed.body.id}/content`)
+      .set("Authorization", A);
+    expect(opened.status).toBe(200);
+    expect(opened.headers["content-type"]).toContain("text/plain");
+    expect(opened.headers["content-disposition"]).toContain("attachment");
+  });
+
+  it("confirms simultaneous retries once without duplicate saved-work rows", async () => {
+    const A = `Bearer ${corp.tokenA}`;
+    const [firstGrant, secondGrant] = await Promise.all([
+      request(app)
+        .post("/api/corp/saved-work/upload-url")
+        .set("Authorization", A)
+        .send({}),
+      request(app)
+        .post("/api/corp/saved-work/upload-url")
+        .set("Authorization", A)
+        .send({}),
+    ]);
+    expect(firstGrant.status).toBe(200);
+    expect(secondGrant.status).toBe(200);
+    const body = (objectPath: string) => ({
+      kind: "draft",
+      title: "concurrent confirmation",
+      objectPath,
+      fileName: "concurrent.md",
+      clientRequestId: `race-${RUN_ID}`,
+    });
+    const [first, second] = await Promise.all([
+      request(app).post("/api/corp/saved-work").set("Authorization", A).send(body(firstGrant.body.objectPath)),
+      request(app).post("/api/corp/saved-work").set("Authorization", A).send(body(secondGrant.body.objectPath)),
+    ]);
+    expect([first.status, second.status].sort()).toEqual([200, 201]);
+    expect(first.body.id).toBe(second.body.id);
+    const paths = [firstGrant.body.objectPath, secondGrant.body.objectPath];
+    expect(paths.some((path) => storageTestState.deletedObjects.has(path))).toBe(true);
+  });
+
+  it("rejects oversized legacy JSON drafts and unissued storage paths", async () => {
+    const A = `Bearer ${corp.tokenA}`;
+    const tooLarge = await request(app)
+      .post("/api/corp/saved-work")
+      .set("Authorization", A)
+      .send({ kind: "draft", title: "too large", content: "x".repeat(500_001) });
+    expect(tooLarge.status).toBe(413);
+
+    const grant = await request(app)
+      .post("/api/corp/saved-work/upload-url")
+      .set("Authorization", A)
+      .send({});
+    const unissued = await request(app)
+      .post("/api/corp/saved-work")
+      .set("Authorization", A)
+      .send({
+        kind: "draft",
+        title: "unissued",
+        objectPath: `${grant.body.objectPath}-not-issued`,
+        fileName: "unissued.md",
+      });
+    expect(unissued.status).toBe(400);
   });
 });

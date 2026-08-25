@@ -10,6 +10,7 @@ import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiContext } from "@/contexts/AiContext";
 import { cn } from "@/lib/utils";
 import { DraftExportButtons } from "@workspace/draft-export/react";
+import { SaveToMatterPanel } from "@/components/SaveToMatterPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
@@ -407,6 +408,17 @@ export function AiToolsPanel() {
                           ? <MarkdownLike text={msg.content} />
                           : <span className="whitespace-pre-wrap">{msg.content}</span>
                         }
+                        {msg.role === "ai" &&
+                          msg.content &&
+                          !isLoading &&
+                          (activeTool === "drafter" || activeTool === "minutes-drafter") && (
+                            <div className="mt-3">
+                              <SaveToMatterPanel
+                                draftTitle={activeToolDef?.name ?? "AI Draft"}
+                                draftContent={msg.content}
+                              />
+                            </div>
+                          )}
                       </div>
                     </div>
                   ))}

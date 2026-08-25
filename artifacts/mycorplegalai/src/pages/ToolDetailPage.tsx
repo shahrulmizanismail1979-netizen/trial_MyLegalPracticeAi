@@ -454,7 +454,7 @@ export default function ToolDetailPage() {
                       {tts.isPlaying ? "Stop" : "Read aloud"}
                     </button>
                   )}
-                  <DraftExportButtons title={tool?.name || "Document"} content={output} hideMarkdown />
+                  <DraftExportButtons title={tool?.name || "Document"} content={output} />
                 </div>
               )}
             </div>

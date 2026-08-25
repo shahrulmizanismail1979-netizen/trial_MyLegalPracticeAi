@@ -92,9 +92,12 @@ export async function ensureDocumentTables(): Promise<void> {
       portal TEXT NOT NULL,
       owner_key TEXT NOT NULL,
       object_path TEXT NOT NULL UNIQUE,
+       purpose TEXT NOT NULL DEFAULT 'document',
       expires_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+     ALTER TABLE case_pending_uploads
+       ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'document';
   `);
 }
 
@@ -195,8 +198,8 @@ export function attachDocumentVault(opts: {
       const uploadURL = await objectStorage.getObjectEntityUploadURL();
       const objectPath = objectStorage.normalizeObjectEntityPath(uploadURL);
       await pool.query(
-        `INSERT INTO case_pending_uploads (portal, owner_key, object_path, expires_at)
-         VALUES ($1, $2, $3, $4) ON CONFLICT (object_path) DO NOTHING`,
+        `INSERT INTO case_pending_uploads (portal, owner_key, object_path, purpose, expires_at)
+         VALUES ($1, $2, $3, 'document', $4) ON CONFLICT (object_path) DO NOTHING`,
         [portal, ownerKey, objectPath, new Date(Date.now() + UPLOAD_GRANT_TTL_MS)],
       );
       // Opportunistic cleanup of long-expired grants.
@@ -237,7 +240,8 @@ export function attachDocumentVault(opts: {
     // used) — reject and do NOT touch the object.
     const consumed = await pool.query(
       `DELETE FROM case_pending_uploads
-       WHERE object_path = $1 AND portal = $2 AND owner_key = $3 AND expires_at > now()
+       WHERE object_path = $1 AND portal = $2 AND owner_key = $3
+         AND purpose = 'document' AND expires_at > now()
        RETURNING id`,
       [objectPath, portal, ownerKey],
     );

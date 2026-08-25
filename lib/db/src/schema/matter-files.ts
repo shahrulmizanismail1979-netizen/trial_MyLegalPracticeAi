@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   timestamp,
+  bigint,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { corpAccessCodes } from "./corp-access-codes";
@@ -72,7 +73,15 @@ function makeMatterFileTables(
     title: text("title").notNull(),
     matter: text("matter"),
     inputJson: jsonb("input_json"),
+    // Large work products live in private object storage. `content` remains
+    // for legacy/small saved items so existing matter files stay readable.
     content: text("content").notNull().default(""),
+    objectPath: text("object_path"),
+    fileName: text("file_name"),
+    contentType: text("content_type"),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull().default(0),
+    storageStatus: text("storage_status").notNull().default("inline"),
+    clientRequestId: text("client_request_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   });

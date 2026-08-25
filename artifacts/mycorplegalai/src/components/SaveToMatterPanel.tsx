@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FolderKanban, FolderPlus, Check, Loader2, ArrowRight } from "lucide-react";
 import { useMatters, useCreateMatter } from "@/hooks/use-matters";
-import { useSaveWork } from "@/hooks/use-saved-work";
+import { saveGeneratedDraft } from "@/hooks/use-saved-work";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -37,7 +37,6 @@ export function SaveToMatterPanel({
   const qc = useQueryClient();
   const { data: matters } = useMatters();
   const createMatter = useCreateMatter();
-  const saveWork = useSaveWork();
 
   // If a defaultMatterId is supplied (came from Case Home), start in existing mode
   // pre-selecting that matter so the user only needs one click to file.
@@ -49,20 +48,49 @@ export function SaveToMatterPanel({
     defaultMatterId ? String(defaultMatterId) : "",
   );
   const [savedMatter, setSavedMatter] = useState<{ id: number; title: string } | null>(null);
+  const [pendingMatter, setPendingMatter] = useState<{ id: number; title: string } | null>(null);
+  const [saveStage, setSaveStage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const requestIdRef = useRef<string | null>(null);
+  const pendingUploadRef = useRef<{ objectPath: string; fileName: string } | null>(null);
 
-  const busy = createMatter.isPending || saveWork.isPending;
+  const busy = createMatter.isPending || isSaving;
 
   const fileDraft = async (matterId: number, matterTitle: string) => {
-    await saveWork.mutateAsync({
-      kind: "draft",
-      title: draftTitle,
-      matter: matterTitle,
-      matterId,
-      content: draftContent,
-    });
-    qc.invalidateQueries({ queryKey: ["matters", "work", matterId] });
-    setSavedMatter({ id: matterId, title: matterTitle });
-    toast({ title: "Filed into matter", description: `Saved “${draftTitle}” to ${matterTitle}.` });
+    const target = { id: matterId, title: matterTitle };
+    setPendingMatter(target);
+    setSaveError(null);
+    setIsSaving(true);
+    requestIdRef.current ??= crypto.randomUUID();
+    try {
+      await saveGeneratedDraft(
+        {
+          kind: "draft",
+          title: draftTitle,
+          matter: matterTitle,
+          matterId,
+          content: draftContent,
+          clientRequestId: requestIdRef.current,
+          pendingUpload: pendingUploadRef.current,
+        },
+        setSaveStage,
+        (upload) => {
+          pendingUploadRef.current = upload;
+        },
+      );
+      qc.invalidateQueries({ queryKey: ["matters", "work", matterId] });
+      setSavedMatter(target);
+      setPendingMatter(null);
+      setSaveStage(null);
+      pendingUploadRef.current = null;
+      toast({ title: "Filed into matter", description: `Saved “${draftTitle}” to ${matterTitle}.` });
+    } catch (err) {
+      setSaveStage(null);
+      setSaveError(err instanceof Error ? err.message : "The draft was not saved. Please retry.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -76,8 +104,14 @@ export function SaveToMatterPanel({
         notes: `Opened from ${draftTitle} (AI drafting).`,
       });
       await fileDraft(matter.id, matter.title);
-    } catch {
-      toast({ title: "Could not create matter", description: "Please try again.", variant: "destructive" });
+    } catch (err) {
+      if (!pendingMatter) {
+        toast({
+          title: "Could not create matter",
+          description: err instanceof Error ? err.message : "Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -87,9 +121,7 @@ export function SaveToMatterPanel({
     const m = (matters ?? []).find((x) => x.id === id);
     try {
       await fileDraft(id, m?.title ?? `Matter #${id}`);
-    } catch {
-      toast({ title: "Could not save to matter", description: "Please try again.", variant: "destructive" });
-    }
+    } catch { /* fileDraft renders a retryable error state */ }
   };
 
   if (savedMatter) {
@@ -113,8 +145,26 @@ export function SaveToMatterPanel({
         <FolderKanban className="h-4 w-4" /> Save this draft into a matter file?
       </p>
       <p className="text-xs text-muted-foreground">
-        The matter file keeps all your drafts together against the client, counterparty and reference, and tracks its deadlines.
+        The completed draft is stored privately in the matter file. Large documents upload directly to secure storage.
       </p>
+      {saveStage && (
+        <div className="flex items-center gap-2 text-xs text-primary">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> {saveStage}
+        </div>
+      )}
+      {saveError && pendingMatter && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-2">
+          <p className="text-xs text-destructive">{saveError}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void fileDraft(pendingMatter.id, pendingMatter.title)}
+          >
+            Retry secure save
+          </Button>
+        </div>
+      )}
 
       {mode === "idle" && (
         <div className="flex gap-2 flex-wrap">

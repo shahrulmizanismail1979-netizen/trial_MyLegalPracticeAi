@@ -56,3 +56,4 @@
 - [Research corpus status](research-corpus-status.md) — never market Drive file totals as searchable cases; distinguish intake, verification, indexing, and publication.
 - [Public information sources](public-information-sources.md) — subscriber claims come only from admin-published records; keep live availability separate from checkout eligibility.
 - [MyCorpAI drafting contract](mycorp-ai-drafting-contract.md) — specialist tool identity and a terminal-completion stream are required before presenting a corporate draft as final.
+- [Private saved-draft upload safety](private-saved-draft-upload-safety.md) — direct-upload drafts must be attachment-only, atomically confirmed, and reclaim all redundant objects.

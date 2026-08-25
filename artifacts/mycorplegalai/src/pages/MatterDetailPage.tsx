@@ -37,6 +37,7 @@ import { BillingTab, BillingPage as SharedBillingPage, type BillingRequest } fro
 import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 import { CaseHomePanel, type CaseHomeRequest } from "@workspace/case-home-ui";
+import { downloadSavedWork, fetchSavedWorkContent } from "@/hooks/use-saved-work";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const billingRequest: BillingRequest = (path, init) => {
@@ -1060,6 +1061,8 @@ export default function MatterDetailPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [dForm, setDForm] = useState({ title: "", dueDate: "", category: "custom", basis: "", notes: "" });
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [loadedWork, setLoadedWork] = useState<Record<number, string>>({});
+  const [loadingWorkId, setLoadingWorkId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!localStorage.getItem("auth_token")) setLocation("/login");
@@ -1120,8 +1123,51 @@ export default function MatterDetailPage() {
     catch (e) { toast({ title: "Could not update", variant: "destructive" }); }
   };
 
-  const copyDoc = (w: MatterWorkItem) => { navigator.clipboard.writeText(w.content); toast({ title: "Copied to clipboard" }); };
-  const downloadDoc = (w: MatterWorkItem) => {
+  const openWork = async (w: MatterWorkItem) => {
+    if (expanded === w.id) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(w.id);
+    if (w.storageStatus !== "stored" || loadedWork[w.id] !== undefined) return;
+    setLoadingWorkId(w.id);
+    try {
+      const content = await fetchSavedWorkContent(w.id);
+      setLoadedWork((current) => ({ ...current, [w.id]: content }));
+    } catch (err) {
+      toast({
+        title: "Could not open stored draft",
+        description: err instanceof Error ? err.message : "",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingWorkId(null);
+    }
+  };
+
+  const workText = (w: MatterWorkItem) => loadedWork[w.id] ?? w.content;
+  const copyDoc = async (w: MatterWorkItem) => {
+    try {
+      let content = workText(w);
+      if (w.storageStatus === "stored" && loadedWork[w.id] === undefined) {
+        content = await fetchSavedWorkContent(w.id);
+        setLoadedWork((current) => ({ ...current, [w.id]: content }));
+      }
+      await navigator.clipboard.writeText(content);
+      toast({ title: "Copied to clipboard" });
+    } catch (err) {
+      toast({ title: "Could not copy draft", description: err instanceof Error ? err.message : "", variant: "destructive" });
+    }
+  };
+  const downloadDoc = async (w: MatterWorkItem) => {
+    if (w.storageStatus === "stored") {
+      try {
+        await downloadSavedWork(w.id, w.fileName ?? `${w.title}.md`);
+      } catch (err) {
+        toast({ title: "Could not download draft", description: err instanceof Error ? err.message : "", variant: "destructive" });
+      }
+      return;
+    }
     const blob = new Blob([w.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1320,7 +1366,7 @@ export default function MatterDetailPage() {
                   return (
                     <Card key={w.id}>
                       <CardContent className="p-0">
-                        <button onClick={() => setExpanded(isOpen ? null : w.id)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent/5 transition-colors">
+                        <button onClick={() => void openWork(w)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-accent/5 transition-colors">
                           <FileText className="h-4 w-4 text-primary shrink-0" />
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-sm text-foreground truncate">{w.title}</p>
@@ -1331,10 +1377,16 @@ export default function MatterDetailPage() {
                         {isOpen && (
                           <div className="border-t border-border p-4 space-y-3">
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copyDoc(w)}><Copy className="h-3.5 w-3.5" /> Copy</Button>
-                              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => downloadDoc(w)}><Download className="h-3.5 w-3.5" /> Download .txt</Button>
+                              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void copyDoc(w)}><Copy className="h-3.5 w-3.5" /> Copy</Button>
+                              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void downloadDoc(w)}><Download className="h-3.5 w-3.5" /> Download</Button>
                             </div>
-                            <pre className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed font-sans max-h-[400px] overflow-y-auto bg-background border border-border rounded-md p-3">{w.content}</pre>
+                            {loadingWorkId === w.id ? (
+                              <div className="flex items-center gap-2 rounded-md border border-border bg-background p-3 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Opening securely stored draft…
+                              </div>
+                            ) : (
+                              <pre className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed font-sans max-h-[400px] overflow-y-auto bg-background border border-border rounded-md p-3">{workText(w)}</pre>
+                            )}
                           </div>
                         )}
                       </CardContent>

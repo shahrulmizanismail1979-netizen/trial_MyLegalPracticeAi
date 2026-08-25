@@ -43,6 +43,11 @@ export interface MatterWorkItem {
   title: string;
   matter: string | null;
   content: string;
+  objectPath: string | null;
+  fileName: string | null;
+  contentType: string | null;
+  sizeBytes: number;
+  storageStatus: "inline" | "stored";
   createdAt: string;
   updatedAt: string;
 }
