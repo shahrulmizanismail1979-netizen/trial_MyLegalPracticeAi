@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { SessionExpiredRedirect } from "@/components/SessionExpiredRedirect";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -139,6 +140,7 @@ function App() {
               <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                 <AuthGate />
               </WouterRouter>
+              <CaseCorpusStatus />
             </GateProvider>
           </AuthProvider>
         </LanguageProvider>

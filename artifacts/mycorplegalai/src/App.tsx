@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AiContextProvider } from "@/contexts/AiContext";
@@ -49,6 +50,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
+            <CaseCorpusStatus />
           <Toaster />
           <RateLimitWarning />
         </AiContextProvider>

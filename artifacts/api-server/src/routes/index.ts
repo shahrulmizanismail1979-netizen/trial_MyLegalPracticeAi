@@ -38,6 +38,7 @@ import { buildPersonasRouter } from "../lib/personas";
 import sharedUploadsRouter from "./shared-uploads";
 import casesRouter from "./cases";
 import { requireAnyPortalAuth } from "../middlewares/requireAnyPortalAuth";
+import corpusStatusRouter from "./corpus-status";
 
 const router: IRouter = Router();
 
@@ -65,6 +66,9 @@ router.use("/research-admin", researchAdminRouter);
 // Accepts any active portal session (Lit, Crim, Sya, Acad, CCB JWT, Corp Bearer,
 // Convey JWT, Accident session_id, or MASTER_ACCESS_CODE).
 // No Clerk required — subscriber-only, approved+headnoted cases only.
+// The corpus numbers are intentionally public so every portal (including its
+// signed-out pages) can state the current, non-sensitive research status.
+router.use("/cases", corpusStatusRouter);
 router.use("/cases", requireAnyPortalAuth, casesRouter);
 // MyConveyLitAI (conveyancing app) routes: /convey/*, /convey-admin/*.
 // The convey admin router carries its own password auth (x-admin-token).

@@ -34,6 +34,75 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type CaseHomeRequest = (path: string, init?: RequestInit) => Promise<Response>;
 
+export interface CaseCorpusStatus {
+  driveDocuments: number;
+  verifiedJudgments: number;
+  indexedJudgments: number;
+  searchableJudgments: number;
+}
+
+/**
+ * A compact, app-wide indicator of the research corpus. Consumers mount it
+ * beside their root router so the same live number is present on every screen.
+ * The API distinguishes catalogued Drive files from judgments so the UI never
+ * presents document uploads as customer-searchable cases.
+ */
+export function CaseCorpusStatus() {
+  const [status, setStatus] = useState<CaseCorpusStatus | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch("/api/cases/status", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Unable to load case-law corpus status");
+        return (await res.json()) as CaseCorpusStatus;
+      })
+      .then((next) => setStatus(next))
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setStatus(null);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  if (!status) return null;
+
+  const number = new Intl.NumberFormat("en-MY");
+  return (
+    <aside
+      aria-label="Research corpus status"
+      data-testid="case-corpus-status"
+      title={`${number.format(status.driveDocuments)} Google Drive documents catalogued. ${number.format(status.searchableJudgments)} judgments are currently published to customer search.`}
+      style={{
+        position: "fixed",
+        left: 12,
+        bottom: 12,
+        zIndex: 40,
+        maxWidth: "calc(100vw - 24px)",
+        padding: "7px 10px",
+        borderRadius: 9,
+        background: "var(--background, #ffffff)",
+        border: "1px solid color-mix(in srgb, var(--border, #d1d5db) 88%, transparent)",
+        boxShadow: "0 6px 20px rgba(15, 23, 42, 0.13)",
+        color: "var(--foreground, #111827)",
+        fontSize: 11,
+        lineHeight: 1.35,
+      }}
+    >
+      <strong style={{ display: "block", fontSize: 11 }}>Research corpus status</strong>
+      <span>
+        {number.format(status.verifiedJudgments)} verified judgments · {number.format(status.indexedJudgments)} indexed
+      </span>
+      <span style={{ display: "block", color: "var(--muted-foreground, #64748b)" }}>
+        {number.format(status.driveDocuments)} Drive documents catalogued · {number.format(status.searchableJudgments)} published
+      </span>
+    </aside>
+  );
+}
+
 export type TaskStatus = "open" | "in_progress" | "done" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high";
 

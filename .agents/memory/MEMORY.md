@@ -53,3 +53,4 @@
 - [Signed cookie / cookie-parser interaction](signed-cookie-parser-interaction.md) — cookieParser(SECRET) moves verified cookies to req.signedCookies and deletes from req.cookies; always check signedCookies first in portal auth.
 - [Practice-area case scoping](practice-area-tagging.md) — /api/cases scope comes from portal identity server-side, never the query param; all practice portals locked (convey/sya empty until content); only master/acad unrestricted.
 - [Concurrent validation resource exhaustion](validation-resource-exhaustion.md) — full Vitest and Playwright validations can exhaust PID/thread limits when run together; verify in isolated low-worker runs.
+- [Research corpus status](research-corpus-status.md) — never market Drive file totals as searchable cases; distinguish intake, verification, indexing, and publication.

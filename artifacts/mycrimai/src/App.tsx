@@ -2,6 +2,7 @@ import React from "react";
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -188,6 +189,7 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>
+          <CaseCorpusStatus />
         <Toaster />
         <RateLimitWarning />
       </TooltipProvider>

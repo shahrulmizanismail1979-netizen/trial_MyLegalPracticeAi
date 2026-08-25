@@ -125,6 +125,11 @@ export default function AccountPage() {
               : isBm ? "Urus Langganan" : "Manage Subscription"}
           </Button>
         )}
+        <Button variant="outline" className="flex-1" asChild>
+          <a href="/unsubscribe" data-testid="link-unsubscribe-from-profile">
+            {isBm ? "Batalkan percubaan / nyahlanggan" : "Cancel free trial / unsubscribe"}
+          </a>
+        </Button>
       </div>
 
       {user.accountType === "code" && (

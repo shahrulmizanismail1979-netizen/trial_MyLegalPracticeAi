@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 // Layout & UI
 import { Layout } from "@/components/Layout";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitWarning } from "@/components/RateLimitWarning";
 import { SessionExpiredRedirect } from "@/components/SessionExpiredRedirect";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -138,6 +139,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
+          <CaseCorpusStatus />
           <Toaster />
           <RateLimitWarning />
           <SessionExpiredRedirect />

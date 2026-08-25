@@ -835,6 +835,19 @@ export function BillingTab({
 
   return (
     <div>
+      <div style={{ ...S.card, background: "#fff8f3", borderColor: "#f2d6c5" }}>
+        <h3 style={S.h}>Subscription</h3>
+        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#5f554f", lineHeight: 1.5 }}>
+          Need to cancel a free trial or unsubscribe from your LAWyes plan?
+        </p>
+        <a
+          href="/unsubscribe"
+          data-testid="link-unsubscribe-from-billing"
+          style={{ color: "#b45309", fontWeight: 700, fontSize: 13 }}
+        >
+          Cancel free trial / unsubscribe
+        </a>
+      </div>
       {error && <div style={S.err}>{error}</div>}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
@@ -1297,6 +1310,19 @@ export function BillingPage({
 
   return (
     <div>
+      <div style={{ ...S.card, background: "#fff8f3", borderColor: "#f2d6c5" }}>
+        <h3 style={S.h}>Subscription</h3>
+        <p style={{ margin: "0 0 10px", fontSize: 13, color: "#5f554f", lineHeight: 1.5 }}>
+          Need to cancel a free trial or unsubscribe from your LAWyes plan?
+        </p>
+        <a
+          href="/unsubscribe"
+          data-testid="link-unsubscribe-from-billing"
+          style={{ color: "#b45309", fontWeight: 700, fontSize: 13 }}
+        >
+          Cancel free trial / unsubscribe
+        </a>
+      </div>
       {error && <div style={S.err}>{error}</div>}
 
       {summary && (

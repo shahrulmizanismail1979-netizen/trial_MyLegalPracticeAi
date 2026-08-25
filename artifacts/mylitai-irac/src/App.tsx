@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter, Link, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitBanner } from "@/lib/rate-limit-monitor";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Scale, FileText, PenTool, Library as LibraryIcon, BookOpen, ScanSearch, Crown, AudioLines, Gavel, FolderLock, FolderKanban, FileSignature, GitBranch, Mic, FolderOpen, CalendarClock, MessagesSquare, ChevronDown } from "lucide-react";
@@ -324,6 +325,7 @@ function App() {
                 <Router />
               </AuthGate>
             </WouterRouter>
+          <CaseCorpusStatus />
             <Toaster />
             <RateLimitBanner />
           </TooltipProvider>
