@@ -26,3 +26,17 @@ uri = "file://poster-assets/poster-A1-melaka.pdf"
 type = "pdf"
 title = "Poster A1 (Potret) — Paralegal Maya Pertama di Malaysia · Edisi Melaka"
 description = "Poster HIK@M 2026 saiz A1 potret (594mm × 841mm), reka bentuk baharu dengan fokus Melaka — Melaka Maju Fasa II, Bandar Pintar, IPT Melaka, PKS & B40/M40 Melaka. Sedia untuk cetak."
+
+[[outputs]]
+id = "QTb_ZKS7R01S7hnRjLKe6"
+uri = "file://research/notes.md"
+type = "text"
+title = "Research Notes: Malaysian Corporate Legal Needs"
+description = "Research plan and running findings log for the Malaysia corporate-law practitioner and in-house counsel study."
+
+[[outputs]]
+id = "Bv6FhCm8DGF1CJ7mg_u2d"
+uri = "file://research/malaysia-corporate-legal-needs.md"
+type = "text"
+title = "Malaysian Corporate Legal Needs Research"
+description = "Deep evidence-backed report on practitioner problem statements, real needs, product priorities, and research limits."
