@@ -5,8 +5,7 @@ import { useCurrency } from "@/lib/currency";
 import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
 import { ComplimentaryPerks } from "@/components/complimentary-perks";
-
-const INDIVIDUAL_BUNDLE_PRICE = 79;
+import { getCatalogUsdAmount, useStripeCatalogPrices } from "@/lib/stripe-catalog-prices";
 
 const tiers = [
   {
@@ -14,7 +13,7 @@ const tiers = [
     icon: Briefcase,
     description: "Small firms & chambers",
     seats: 5,
-    monthlyPrice: 355,
+    catalogTier: "firm-boutique" as const,
     solarKwp: null as number | null,
     features: [
       "Access to every portal included in the Complete Bundle",
@@ -29,7 +28,7 @@ const tiers = [
     icon: Building,
     description: "Mid-sized law firms",
     seats: 15,
-    monthlyPrice: 1005,
+    catalogTier: "firm-practice" as const,
     featured: true,
     solarKwp: 4,
     features: [
@@ -46,7 +45,7 @@ const tiers = [
     icon: Building2,
     description: "Large firms & legal departments",
     seats: 30,
-    monthlyPrice: 1890,
+    catalogTier: "firm-firm" as const,
     solarKwp: 7,
     features: [
       "Access to every portal included in the Complete Bundle",
@@ -63,7 +62,7 @@ const tiers = [
     icon: Crown,
     description: "Organisations needing 50+ seats",
     seats: null,
-    monthlyPrice: null,
+    catalogTier: null,
     solarKwp: 9.45,
     features: [
       "Access to every portal included in the Complete Bundle",
@@ -88,7 +87,9 @@ const CHECKOUT_TIER_BY_NAME: Record<string, string> = {
 
 export function FirmBundles() {
   const { format } = useCurrency();
+  const { prices, isLoading: isPricesLoading } = useStripeCatalogPrices();
   const { startCheckout, loadingTier, error } = useBundleCheckout();
+  const individualBundlePrice = getCatalogUsdAmount(prices, "bundle");
   const bundleWhatsAppUrl = (tierName: string) =>
     `https://wa.me/60139725475?text=${encodeURIComponent(
       `Hi, I'd like to subscribe to the ${tierName} firm bundle. Please help me get set up.`,
@@ -114,17 +115,25 @@ the larger your firm, the lower the equivalent per-user cost.
         {tiers.map((tier) => {
           const Icon = tier.icon;
           const isEnterprise = tier.name === "Enterprise";
+          const monthlyPrice = tier.catalogTier
+            ? getCatalogUsdAmount(prices, tier.catalogTier)
+            : null;
+          const priceState = isPricesLoading
+            ? "Loading price…"
+            : monthlyPrice == null && !isEnterprise
+              ? "Price unavailable"
+              : null;
 
-          const perUser = tier.seats
-            ? Math.round((tier.monthlyPrice! / tier.seats) * 100) / 100
+          const perUser = tier.seats && monthlyPrice != null
+            ? Math.round((monthlyPrice / tier.seats) * 100) / 100
             : null;
 
-          const individualTotal = tier.seats
-            ? tier.seats * INDIVIDUAL_BUNDLE_PRICE
+          const individualTotal = tier.seats && individualBundlePrice != null
+            ? tier.seats * individualBundlePrice
             : null;
 
-          const yearlySavings = tier.seats && tier.monthlyPrice
-            ? (individualTotal! - tier.monthlyPrice) * 12
+          const yearlySavings = tier.seats && monthlyPrice != null && individualTotal != null
+            ? (individualTotal - monthlyPrice) * 12
             : null;
 
           return (
@@ -155,13 +164,23 @@ the larger your firm, the lower the equivalent per-user cost.
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-bold text-foreground">{format(tier.monthlyPrice!)}</span>
-                        <span className="text-sm text-muted-foreground">/month</span>
+                         <span
+                           className="text-3xl font-bold text-foreground"
+                           data-testid={`subscription-price-${tier.catalogTier}`}
+                           data-tier={tier.catalogTier}
+                         >
+                           {priceState ?? format(monthlyPrice!)}
+                         </span>
+                         {monthlyPrice != null && <span className="text-sm text-muted-foreground">/month</span>}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {format(tier.monthlyPrice! * 12)} / year
-                      </p>
-                      <BilledInUsdNote />
+                       {monthlyPrice != null && (
+                         <>
+                           <p className="text-sm text-muted-foreground mt-0.5">
+                             {format(monthlyPrice * 12)} / year
+                           </p>
+                           <BilledInUsdNote />
+                         </>
+                       )}
                     </>
                   )}
                 </div>
@@ -172,7 +191,9 @@ the larger your firm, the lower the equivalent per-user cost.
                       {tier.seats} user licences · every Complete Bundle portal each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses
+                       {perUser != null
+                         ? <>Equivalent to ~{format(perUser)}/user when shared across {tier.seats} licenses</>
+                         : priceState}
                     </p>
                   </>
                 )}
@@ -180,7 +201,7 @@ the larger your firm, the lower the equivalent per-user cost.
                 {yearlySavings && yearlySavings > 0 && (
                   <p className="text-xs text-primary mt-3 mb-6">
                     Save {format(yearlySavings!)}/yr vs {tier.seats} individual Complete Bundle
-                    subscriptions at {format(INDIVIDUAL_BUNDLE_PRICE)}/mo each
+                    subscriptions at {individualBundlePrice != null ? format(individualBundlePrice) : "the current Complete Bundle price"}/mo each
                   </p>
                 )}
                 {isEnterprise && <div className="mt-2 mb-6" />}
@@ -215,7 +236,7 @@ the larger your firm, the lower the equivalent per-user cost.
                       className={`w-full ${
                         tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
                       }`}
-                      disabled={loadingTier !== null}
+                       disabled={loadingTier !== null || monthlyPrice == null || isPricesLoading}
                       onClick={() => startCheckout(CHECKOUT_TIER_BY_NAME[tier.name]!)}
                     >
                       {loadingTier === CHECKOUT_TIER_BY_NAME[tier.name]

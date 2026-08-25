@@ -47,6 +47,7 @@ import { registerDriveIngestProcessor } from "./research/drive/driveIngestProces
 import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
 import { getStripeSync, getStripeMode, warnIfTestModeInProduction, purgeTestModeStripeData } from "./stripeClient";
 import { startCorpUploadSweepWorker } from "./corp/corpUploadSweepWorker";
+import { ensureLandingCatalogPrices } from "./routes/stripe";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -178,6 +179,26 @@ async function initStripe(): Promise<void> {
   }
 }
 
+function startLandingCatalogSeedWorker(): void {
+  // A Stripe outage must not take down the entire API. Until this succeeds the
+  // public pricing endpoint reports an unavailable state and the landing page
+  // keeps paid checkout disabled; once Stripe recovers, all tiers are seeded
+  // without a deploy/restart and first-time checkout becomes available.
+  void (async () => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        await ensureLandingCatalogPrices();
+        logger.info("Landing Stripe catalog seeded");
+        return;
+      } catch (err) {
+        logger.error({ err }, "Landing Stripe catalog seed failed; retrying in one minute");
+        await new Promise((resolve) => setTimeout(resolve, 60_000));
+      }
+    }
+  })();
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {
@@ -193,6 +214,11 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
+
+// Start this as early as possible, but never let a temporary Stripe outage
+// prevent the shared API from serving its other portals. The worker retries
+// until it has provisioned every sellable landing-page tier.
+startLandingCatalogSeedWorker();
 
 // Corporate-portal matter files (corp/ccb/convey): direct SQL CREATE IF NOT
 // EXISTS so production gets the tables on the next publish. Awaited before

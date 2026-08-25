@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/lib/currency";
 import { CurrencySelector, BilledInUsdNote } from "@/components/currency-selector";
+import { getCatalogUsdAmount, useStripeCatalogPrices } from "@/lib/stripe-catalog-prices";
 import {
   Select,
   SelectContent,
@@ -58,6 +59,12 @@ export function Pricing() {
   const [trialPortal, setTrialPortal] = useState<string>("");
   const [singlePortal, setSinglePortal] = useState<string>("");
   const { format } = useCurrency();
+  const { prices, isLoading: isPricesLoading } = useStripeCatalogPrices();
+  const singlePrice = getCatalogUsdAmount(prices, "single");
+  const bundlePrice = getCatalogUsdAmount(prices, "bundle");
+  const priceUnavailable = (amount: number | null) => (isPricesLoading ? "Loading price…" : amount == null ? "Price unavailable" : null);
+  const singlePriceState = priceUnavailable(singlePrice);
+  const bundlePriceState = priceUnavailable(bundlePrice);
 
   const startCheckout = async (tier: CheckoutTier, trial = false, appUrl?: string) => {
     setCheckoutError(null);
@@ -123,9 +130,11 @@ export function Pricing() {
                   <span className="text-4xl font-bold text-foreground">{format(0)}</span>
                   <span className="text-lg text-muted-foreground">/ 7 days</span>
                 </div>
-                <p className="text-muted-foreground mb-1">
-                  Then {format(25)}/month unless cancelled
-                </p>
+                 <p className="text-muted-foreground mb-1">
+                   {singlePriceState
+                     ? singlePriceState
+                     : <>Then {format(singlePrice!)}/month unless cancelled</>}
+                 </p>
                 <BilledInUsdNote />
 
                 <ul className="space-y-3 mb-6 mt-5">
@@ -133,7 +142,9 @@ export function Pricing() {
                     "Instant access — code emailed the moment you sign up",
                     "7-day full access to 1 AI Portal",
                     "Card required — not charged during trial",
-                    `Auto-bills ${format(25)}/mo after 7 days unless you cancel`,
+                     singlePriceState
+                       ? `${singlePriceState} after 7 days unless you cancel`
+                       : `Auto-bills ${format(singlePrice!)}/mo after 7 days unless you cancel`,
                   ].map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -149,7 +160,7 @@ export function Pricing() {
                 variant="outline"
                 className="w-full text-lg h-12 border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-400"
                 onClick={() => startCheckout("single", true, trialPortal)}
-                disabled={loadingTier !== null || !trialPortal}
+                 disabled={loadingTier !== null || !trialPortal || singlePrice == null || isPricesLoading}
               >
                 {loadingTier === "trial" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
@@ -177,8 +188,14 @@ export function Pricing() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">{format(25)}</span>
-                  <span className="text-lg text-muted-foreground">/month</span>
+                   <span
+                     className="text-4xl font-bold text-foreground"
+                     data-testid="subscription-price-single"
+                     data-tier="single"
+                   >
+                     {singlePriceState ?? format(singlePrice!)}
+                   </span>
+                   {singlePrice != null && <span className="text-lg text-muted-foreground">/month</span>}
                 </div>
                 <p className="text-muted-foreground mb-1">Billed monthly · cancel anytime</p>
                 <BilledInUsdNote />
@@ -205,7 +222,7 @@ export function Pricing() {
                 variant="outline"
                 className="w-full text-lg h-12"
                 onClick={() => startCheckout("single", false, singlePortal)}
-                disabled={loadingTier !== null || !singlePortal}
+                 disabled={loadingTier !== null || !singlePortal || singlePrice == null || isPricesLoading}
               >
                 {loadingTier === "single" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>
@@ -227,7 +244,7 @@ export function Pricing() {
               <div className="flex items-center gap-2 mb-3">
                 <Crown className="h-5 w-5 text-primary" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
-                  Save 48%
+                  Best Value
                 </span>
               </div>
               <CardTitle className="font-serif text-3xl mb-2">Complete Bundle</CardTitle>
@@ -235,14 +252,23 @@ export function Pricing() {
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-5xl font-bold text-foreground">{format(79)}</span>
-                <span className="text-lg text-muted-foreground">/month</span>
+                 <span
+                   className="text-5xl font-bold text-foreground"
+                   data-testid="subscription-price-bundle"
+                   data-tier="bundle"
+                 >
+                   {bundlePriceState ?? format(bundlePrice!)}
+                 </span>
+                 {bundlePrice != null && <span className="text-lg text-muted-foreground">/month</span>}
               </div>
               <p className="text-muted-foreground mb-1">Billed monthly · cancel anytime</p>
               <BilledInUsdNote />
-              <p className="text-sm text-muted-foreground mb-6 mt-2">
-                <span className="line-through opacity-60">{format(175)}</span> if bought individually — you save {format(96)}
-              </p>
+               {singlePrice != null && bundlePrice != null && (
+                 <p className="text-sm text-muted-foreground mb-6 mt-2">
+                   <span className="line-through opacity-60">{format(singlePrice * 7)}</span> if bought individually — you save{" "}
+                   {format(singlePrice * 7 - bundlePrice)}
+                 </p>
+               )}
 
               <ul className="space-y-3 mb-6">
                 {[
@@ -263,7 +289,7 @@ export function Pricing() {
               <Button
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12"
                 onClick={() => startCheckout("bundle")}
-                disabled={loadingTier !== null}
+                 disabled={loadingTier !== null || bundlePrice == null || isPricesLoading}
               >
                 {loadingTier === "bundle" ? (
                   <><Loader2 className="h-5 w-5 animate-spin" /> Redirecting…</>

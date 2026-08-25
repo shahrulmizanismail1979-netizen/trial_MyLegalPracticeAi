@@ -92,7 +92,7 @@ export function CaseCorpusStatus({
         left: variant === "floating" ? 12 : undefined,
         bottom: variant === "floating" ? 12 : undefined,
         zIndex: variant === "floating" ? 40 : undefined,
-        pointerEvents: "none",
+        pointerEvents: variant === "floating" ? "none" : undefined,
         maxWidth: variant === "floating" ? "calc(100vw - 24px)" : 540,
         padding: "7px 10px",
         borderRadius: 9,

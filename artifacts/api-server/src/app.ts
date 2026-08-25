@@ -18,6 +18,7 @@ import { handleStripeEventForProvisioning } from "./lib/provisioning";
 import { handleConveyStripeEvent } from "./lib/conveyStripe";
 import { attachUser } from "./middlewares/conveyAuth";
 import { resetLoginRateLimitForE2e } from "./lib/loginRateLimit";
+import { invalidateCatalogPriceCache } from "./routes/stripe";
 
 const app: Express = express();
 
@@ -72,6 +73,17 @@ app.post(
         res.status(400).json({ error: "Webhook processing error" });
         return;
       }
+    }
+
+    if (
+      eventType === "price.created" ||
+      eventType === "price.updated" ||
+      eventType === "price.deleted" ||
+      eventType === "product.created" ||
+      eventType === "product.updated" ||
+      eventType === "product.deleted"
+    ) {
+      invalidateCatalogPriceCache();
     }
 
     // ── Step 2: subscriber provisioning & Convey side-effects ─────────────────

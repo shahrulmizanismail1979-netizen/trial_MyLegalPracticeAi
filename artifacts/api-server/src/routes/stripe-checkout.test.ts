@@ -20,6 +20,8 @@ const state = vi.hoisted(() => ({
     { product: string; currency: string; unit_amount: number; recurring: { interval: string } }
   >(),
   counter: 0,
+  productSearches: 0,
+  failingTiers: new Set<string>(),
 }));
 
 vi.mock("../stripeClient", () => ({
@@ -31,6 +33,10 @@ vi.mock("../stripeClient", () => ({
       // the flow behaves like the real (idempotent) one.
       search: vi.fn().mockImplementation(async ({ query }: { query: string }) => {
         const tier = /metadata\['tier'\]:'([^']+)'/.exec(query)?.[1];
+        state.productSearches += 1;
+        if (tier && state.failingTiers.has(tier)) {
+          throw new Error("Stripe rate limit");
+        }
         for (const [id, p] of state.createdProducts) {
           if (p.metadata.tier === tier) return { data: [{ id }] };
         }
@@ -71,6 +77,11 @@ vi.mock("../stripeClient", () => ({
 }));
 
 const { default: app } = await import("../app");
+const {
+  ensureLandingCatalogPrices,
+  invalidateCatalogPriceCache,
+  resetCatalogPriceCacheForTests,
+} = await import("./stripe");
 const { BUNDLE_TIER_CATALOG } = await import("../lib/provisioning");
 const { db } = await import("@workspace/db");
 
@@ -84,6 +95,19 @@ const TIERS = [
   "corp-startup",
   "corp-growth",
   "edu-faculty-starter",
+  "edu-campus",
+] as const;
+const CATALOG_TIERS = [
+  "single",
+  "bundle",
+  "firm-boutique",
+  "firm-practice",
+  "firm-firm",
+  "corp-startup",
+  "corp-growth",
+  "corp-corporate",
+  "edu-faculty-starter",
+  "edu-faculty-plus",
   "edu-campus",
 ] as const;
 
@@ -132,6 +156,12 @@ async function assertPriceMatchesCatalog(priceId: string, tier: string): Promise
 describe("POST /api/stripe/checkout carries the plan tier", () => {
   beforeEach(() => {
     state.sessionsCreated.length = 0;
+    state.createdProducts.clear();
+    state.createdPrices.clear();
+    state.counter = 0;
+    state.productSearches = 0;
+    state.failingTiers.clear();
+    resetCatalogPriceCacheForTests();
   });
 
   for (const tier of TIERS) {
@@ -155,6 +185,147 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
       await assertPriceMatchesCatalog(session.line_items[0].price, tier);
     });
   }
+
+  it("returns the same Stripe price IDs and USD amounts that checkout uses for every sellable tier", async () => {
+    // Checkout is the controlled auto-provisioning path. Seed every tier first
+    // so the public catalog read can prove it does not create Stripe records.
+    for (const tier of CATALOG_TIERS) {
+      const seedResponse = await request(app)
+        .post("/api/stripe/checkout")
+        .send(tier === "single" ? { tier, appUrl: "/mylitai/" } : { tier });
+      expect(seedResponse.status, `seed checkout failed for ${tier}`).toBe(200);
+    }
+
+    const catalogResponse = await request(app).get("/api/stripe/catalog-prices");
+
+    expect(catalogResponse.status).toBe(200);
+    const catalog = catalogResponse.body.data as Record<
+      string,
+      { id: string; unitAmount: number; currency: string; recurring: { interval: string } }
+    >;
+
+    for (const tier of CATALOG_TIERS) {
+      const catalogPrice = catalog[tier];
+      expect(catalogPrice, `catalog price missing for ${tier}`).toBeDefined();
+      expect(catalogPrice.currency).toBe("usd");
+      expect(catalogPrice.recurring).toEqual({ interval: "month" });
+
+      const expectedAmount =
+        tier === "single"
+          ? 2500
+          : tier === "bundle"
+            ? 7900
+            : BUNDLE_TIER_CATALOG[tier]!.monthlyUsdCents;
+      expect(catalogPrice.unitAmount).toBe(expectedAmount);
+
+      const checkoutResponse = await request(app)
+        .post("/api/stripe/checkout")
+        .send(tier === "single" ? { tier, appUrl: "/mylitai/" } : { tier });
+      expect(checkoutResponse.status, `checkout failed for ${tier}`).toBe(200);
+
+      const checkoutSession = state.sessionsCreated.at(-1);
+      expect(checkoutSession?.line_items[0]?.price).toBe(catalogPrice.id);
+      expect(checkoutSession?.metadata?.tier).toBe(tier);
+    }
+  });
+
+  it("seeds every sellable tier before a fresh landing page can need its first checkout", async () => {
+    await ensureLandingCatalogPrices();
+
+    expect(state.createdProducts.size).toBe(CATALOG_TIERS.length);
+    expect(state.createdPrices.size).toBe(CATALOG_TIERS.length);
+
+    const catalogResponse = await request(app).get("/api/stripe/catalog-prices");
+    expect(catalogResponse.status).toBe(200);
+    for (const tier of CATALOG_TIERS) {
+      expect(catalogResponse.body.data[tier], `seeded catalog price missing for ${tier}`).toMatchObject({
+        currency: "usd",
+        recurring: { interval: "month" },
+      });
+    }
+  });
+
+  it("coalesces concurrent read-only catalog requests without provisioning missing tiers", async () => {
+    const searchesBefore = state.productSearches;
+    const [first, second] = await Promise.all([
+      request(app).get("/api/stripe/catalog-prices"),
+      request(app).get("/api/stripe/catalog-prices"),
+    ]);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(state.createdProducts.size).toBe(0);
+    expect(state.createdPrices.size).toBe(0);
+    expect(state.productSearches - searchesBefore).toBe(CATALOG_TIERS.length);
+    expect(first.body.data).toEqual(second.body.data);
+    expect(first.body.data.single).toBeNull();
+  });
+
+  it("drops a retired price snapshot after an active Stripe price replacement", async () => {
+    await ensureLandingCatalogPrices();
+    const beforeReplacement = await request(app).get("/api/stripe/catalog-prices");
+    const retiredPrice = beforeReplacement.body.data["corp-growth"];
+    const retiredRecord = state.createdPrices.get(retiredPrice.id);
+    expect(retiredRecord).toBeDefined();
+
+    state.createdPrices.delete(retiredPrice.id);
+    state.createdPrices.set("price_replacement_corp_growth", {
+      product: retiredRecord!.product,
+      currency: "usd",
+      unit_amount: retiredRecord!.unit_amount,
+      recurring: { interval: "month" },
+    });
+    invalidateCatalogPriceCache();
+
+    const afterReplacement = await request(app).get("/api/stripe/catalog-prices");
+    expect(afterReplacement.status).toBe(200);
+    expect(afterReplacement.headers["cache-control"]).toBe("no-store");
+    expect(afterReplacement.body.data["corp-growth"].id).toBe("price_replacement_corp_growth");
+
+    const checkoutResponse = await request(app).post("/api/stripe/checkout").send({ tier: "corp-growth" });
+    expect(checkoutResponse.status).toBe(200);
+    expect(state.sessionsCreated.at(-1)?.line_items[0]?.price).toBe("price_replacement_corp_growth");
+  });
+
+  it("keeps last-known-good prices visible during a transient Stripe rate limit", async () => {
+    for (const tier of CATALOG_TIERS) {
+      const seedResponse = await request(app)
+        .post("/api/stripe/checkout")
+        .send(tier === "single" ? { tier, appUrl: "/mylitai/" } : { tier });
+      expect(seedResponse.status, `seed checkout failed for ${tier}`).toBe(200);
+    }
+
+    const healthyResponse = await request(app).get("/api/stripe/catalog-prices");
+    expect(healthyResponse.status).toBe(200);
+    const knownPrice = healthyResponse.body.data["corp-growth"];
+
+    resetCatalogPriceCacheForTests(true);
+    state.failingTiers.add("corp-growth");
+    const rateLimitedResponse = await request(app).get("/api/stripe/catalog-prices");
+
+    expect(rateLimitedResponse.status).toBe(200);
+    expect(rateLimitedResponse.body.data["corp-growth"]).toEqual(knownPrice);
+    expect(rateLimitedResponse.body.data["firm-boutique"]).toEqual(
+      healthyResponse.body.data["firm-boutique"],
+    );
+
+    // A failed public catalog refresh must not alter checkout's controlled
+    // provisioning path or leave a buyer unable to subscribe.
+    state.failingTiers.clear();
+    const checkoutResponse = await request(app).post("/api/stripe/checkout").send({ tier: "corp-growth" });
+    expect(checkoutResponse.status).toBe(200);
+    expect(state.sessionsCreated.at(-1)?.line_items[0]?.price).toBe(knownPrice.id);
+  });
+
+  it("rate-limits the public catalog endpoint", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 70 }, () => request(app).get("/api/stripe/catalog-prices")),
+    );
+    const throttled = responses.find((response) => response.status === 429);
+
+    expect(throttled).toBeDefined();
+    expect(throttled?.body.error).toMatch(/too many pricing requests/i);
+  });
 
   it("rejects an unknown tier with a 4xx and creates no session", async () => {
     const res = await request(app)

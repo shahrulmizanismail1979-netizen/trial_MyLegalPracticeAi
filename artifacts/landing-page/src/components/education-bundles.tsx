@@ -5,8 +5,7 @@ import { useCurrency } from "@/lib/currency";
 import { useBundleCheckout } from "@/lib/use-bundle-checkout";
 import { BilledInUsdNote } from "@/components/currency-selector";
 import { ComplimentaryPerks } from "@/components/complimentary-perks";
-
-const INDIVIDUAL_BUNDLE_PRICE = 79;
+import { getCatalogUsdAmount, useStripeCatalogPrices } from "@/lib/stripe-catalog-prices";
 
 const tiers = [
   {
@@ -14,7 +13,7 @@ const tiers = [
     icon: BookOpen,
     description: "Small law faculties & departments",
     seats: 20,
-    monthlyPrice: 1340,
+    catalogTier: "edu-faculty-starter" as const,
     headline: "Foundational classroom access for small cohorts",
     includes: null,
     solarKwp: null as number | null,
@@ -32,7 +31,7 @@ const tiers = [
     icon: School,
     description: "Mid-sized law schools",
     seats: 50,
-    monthlyPrice: 3250,
+    catalogTier: "edu-faculty-plus" as const,
     featured: true,
     headline: "Adds lecturer onboarding & priority support",
     includes: "Faculty Starter",
@@ -49,7 +48,7 @@ const tiers = [
     icon: Library,
     description: "Large universities & colleges",
     seats: 150,
-    monthlyPrice: 9450,
+    catalogTier: "edu-campus" as const,
     headline: "Adds library-wide access & dedicated training",
     includes: "Faculty Plus",
     solarKwp: 7,
@@ -66,7 +65,7 @@ const tiers = [
     icon: GraduationCap,
     description: "Multi-campus & nationwide programmes",
     seats: null,
-    monthlyPrice: null,
+    catalogTier: null,
     headline: "Adds multi-campus deployment, SSO & API access",
     includes: "Campus",
     solarKwp: 9.45,
@@ -91,7 +90,9 @@ const CHECKOUT_TIER_BY_NAME: Record<string, string> = {
 
 export function EducationBundles() {
   const { format } = useCurrency();
+  const { prices, isLoading: isPricesLoading } = useStripeCatalogPrices();
   const { startCheckout, loadingTier } = useBundleCheckout();
+  const individualBundlePrice = getCatalogUsdAmount(prices, "bundle");
   const bundleWhatsAppUrl = (tierName: string) =>
     `https://wa.me/60139725475?text=${encodeURIComponent(
       `Hi, I'd like to subscribe to the ${tierName} academic bundle. Please help me get set up.`,
@@ -119,17 +120,25 @@ and lecturers.
         {tiers.map((tier) => {
           const Icon = tier.icon;
           const isInstitution = tier.name === "Institution";
+          const monthlyPrice = tier.catalogTier
+            ? getCatalogUsdAmount(prices, tier.catalogTier)
+            : null;
+          const priceState = isPricesLoading
+            ? "Loading price…"
+            : monthlyPrice == null && !isInstitution
+              ? "Price unavailable"
+              : null;
 
-          const perUser = tier.seats && tier.monthlyPrice
-            ? Math.round((tier.monthlyPrice / tier.seats) * 100) / 100
+          const perUser = tier.seats && monthlyPrice != null
+            ? Math.round((monthlyPrice / tier.seats) * 100) / 100
             : null;
 
-          const individualTotal = tier.seats
-            ? tier.seats * INDIVIDUAL_BUNDLE_PRICE
+          const individualTotal = tier.seats && individualBundlePrice != null
+            ? tier.seats * individualBundlePrice
             : null;
 
-          const yearlySavings = tier.seats && tier.monthlyPrice
-            ? (individualTotal! - tier.monthlyPrice) * 12
+          const yearlySavings = tier.seats && monthlyPrice != null && individualTotal != null
+            ? (individualTotal - monthlyPrice) * 12
             : null;
 
           return (
@@ -160,13 +169,23 @@ and lecturers.
                   ) : (
                     <>
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-bold text-foreground">{format(tier.monthlyPrice!)}</span>
-                        <span className="text-sm text-muted-foreground">/month</span>
+                         <span
+                           className="text-3xl font-bold text-foreground"
+                           data-testid={`subscription-price-${tier.catalogTier}`}
+                           data-tier={tier.catalogTier}
+                         >
+                           {priceState ?? format(monthlyPrice!)}
+                         </span>
+                         {monthlyPrice != null && <span className="text-sm text-muted-foreground">/month</span>}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {format(tier.monthlyPrice! * 12)} / year
-                      </p>
-                      <BilledInUsdNote />
+                       {monthlyPrice != null && (
+                         <>
+                           <p className="text-sm text-muted-foreground mt-0.5">
+                             {format(monthlyPrice * 12)} / year
+                           </p>
+                           <BilledInUsdNote />
+                         </>
+                       )}
                     </>
                   )}
                 </div>
@@ -177,7 +196,9 @@ and lecturers.
                       {tier.seats} user licences · every Complete Bundle portal each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses
+                       {perUser != null
+                         ? <>Equivalent to ~{format(perUser)}/user when shared across {tier.seats} licenses</>
+                         : priceState}
                     </p>
                   </>
                 )}
@@ -185,7 +206,7 @@ and lecturers.
                 {yearlySavings && yearlySavings > 0 && (
                   <p className="text-xs text-primary mt-3 mb-4">
                     Save {format(yearlySavings!)}/yr vs {tier.seats} individual Complete Bundle
-                    subscriptions at {format(INDIVIDUAL_BUNDLE_PRICE)}/mo each
+                    subscriptions at {individualBundlePrice != null ? format(individualBundlePrice) : "the current Complete Bundle price"}/mo each
                   </p>
                 )}
                 {isInstitution && <div className="mt-2 mb-4" />}
@@ -235,7 +256,7 @@ and lecturers.
                       className={`w-full ${
                         tier.featured ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""
                       }`}
-                      disabled={loadingTier !== null}
+                       disabled={loadingTier !== null || monthlyPrice == null || isPricesLoading}
                       onClick={() => startCheckout(CHECKOUT_TIER_BY_NAME[tier.name]!)}
                     >
                       {loadingTier === CHECKOUT_TIER_BY_NAME[tier.name]
