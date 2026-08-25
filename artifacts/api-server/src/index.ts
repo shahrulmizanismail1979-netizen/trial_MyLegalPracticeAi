@@ -21,6 +21,7 @@ import { ensureDraftTables } from "./lib/caseDrafts";
 import { ensureCaseClientMatterTable } from "./lib/caseClients";
 import { ensureHrTables } from "./firm/routes/hr";
 import { ensureAccountsTables } from "./firm/routes/accounts";
+import { ensureCorpWorkflowTables } from "./corp/routes/workflow";
 import { ensurePracticeAreaSchema } from "./research/search/postgresFtsAdapter";
 import { ensureAlertDeliveryAttemptsTable } from "./lib/alertStatus";
 
@@ -247,6 +248,7 @@ await ensureDocumentTables();
 await ensureCaseClientMatterTable();
 await ensureHrTables();
 await ensureAccountsTables();
+await ensureCorpWorkflowTables();
 
 // Case-law practice-area tagging: column + index on research_search_index and
 // backfill from Drive contributor folders. Awaited — /api/cases queries the

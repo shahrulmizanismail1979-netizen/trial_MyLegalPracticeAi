@@ -33,6 +33,12 @@ interface CaseDetail extends SearchResult {
   metadata: Record<string, unknown>;
 }
 interface Matter { id: number; title: string; reference?: string; fileRef?: string }
+interface CorpusStatus {
+  driveDocuments: number;
+  verifiedJudgments: number;
+  indexedJudgments: number;
+  searchableJudgments: number;
+}
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
 function fmt(d: string | null) {
@@ -69,6 +75,7 @@ export default function CaseLawPage() {
   const [mattersLoading, setMattersLoading] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
   const [toast, setToast] = useState("");
+  const [corpusStatus, setCorpusStatus] = useState<CorpusStatus | null>(null);
 
   /* search */
   const doSearch = useCallback(async (q: string, ct: string, df: string, dt: string, off: number, srt: string = "relevance") => {
@@ -91,6 +98,12 @@ export default function CaseLawPage() {
   }, []);
 
   useEffect(() => { doSearch("", "", "", "", 0, "relevance"); }, [doSearch]);
+  useEffect(() => {
+    void fetch("/api/cases/status")
+      .then((response) => response.ok ? response.json() : null)
+      .then((status: CorpusStatus | null) => setCorpusStatus(status))
+      .catch(() => setCorpusStatus(null));
+  }, []);
 
   const handleSearch = () => { setOffset(0); setSelectedId(null); setDetail(null); setSubmitted(query); doSearch(query, court, dateFrom, dateTo, 0, sort); };
   const handlePage = (o: number) => { setOffset(o); doSearch(submitted, court, dateFrom, dateTo, o, sort); };
@@ -377,7 +390,19 @@ export default function CaseLawPage() {
         {!loading && results.length === 0 && !err && (
           <div className="text-center py-16">
             <BookOpen className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">{submitted ? `No cases found for "${submitted}".` : "No approved cases available yet."}</p>
+            {submitted ? (
+              <p className="text-muted-foreground text-sm">No cases found for "{submitted}".</p>
+            ) : corpusStatus?.searchableJudgments === 0 ? (
+              <div className="max-w-lg mx-auto space-y-2">
+                <p className="text-foreground text-sm font-medium">The customer case-law library is not published yet.</p>
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  {corpusStatus.verifiedJudgments} judgments have been verified and {corpusStatus.indexedJudgments} indexed,
+                  but none have completed the rights-cleared editorial approval needed for customer search.
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">No approved cases are available for this practice area yet.</p>
+            )}
           </div>
         )}
 

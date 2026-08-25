@@ -38,6 +38,7 @@ import { DocumentsPanel, type VaultRequest } from "@workspace/vault-ui";
 import { DraftsPanel, type LettersRequest } from "@workspace/letters-ui";
 import { CaseHomePanel, type CaseHomeRequest } from "@workspace/case-home-ui";
 import { downloadSavedWork, fetchSavedWorkContent } from "@/hooks/use-saved-work";
+import { CorporateWorkflowPanel } from "@/components/CorporateWorkflowPanel";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export const billingRequest: BillingRequest = (path, init) => {
@@ -72,11 +73,12 @@ const CATEGORY_OPTIONS = ["filing", "compliance", "meeting", "closing", "hearing
 const inputCls =
   "w-full bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary";
 
-type Tab = "overview" | "chronology" | "timeline" | "documents" | "vault" | "checklist" | "team" | "time" | "billing" | "letters";
+type Tab = "overview" | "chronology" | "workflow" | "timeline" | "documents" | "vault" | "checklist" | "team" | "time" | "billing" | "letters";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Overview", icon: Sparkles },
   { id: "chronology", label: "Chronology", icon: History },
+  { id: "workflow", label: "Workflow", icon: Building2 },
   { id: "timeline", label: "Timeline", icon: CalendarClock },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "vault", label: "Vault", icon: FolderLock },
@@ -1281,6 +1283,8 @@ export default function MatterDetailPage() {
         )}
 
         {activeTab === "chronology" && <ChronologyTab matterId={matter.id} />}
+
+        {activeTab === "workflow" && <CorporateWorkflowPanel matterId={matter.id} />}
 
         {activeTab === "timeline" && (
           <div className="space-y-4">

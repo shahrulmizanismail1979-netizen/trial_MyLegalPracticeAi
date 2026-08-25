@@ -3,7 +3,7 @@ import { loginRateLimit } from "../../../lib/loginRateLimit";
 import { aiRateLimit } from "../../../lib/aiRateLimit";
 import crypto from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
-import { db, corpAccessCodes, corpSessions } from "@workspace/db";
+import { db, corpAccessCodes, corpMatterFiles, corpSessions } from "@workspace/db";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { canAccessTool, canUseVoice, type AccessTier } from "@workspace/tiers";
 import {
@@ -2344,7 +2344,7 @@ ${message}
 }
 
 router.post("/legal/ai-tools/chat", requireSession, aiRateLimit, async (req, res): Promise<void> => {
-  const { tool, message, context } = req.body ?? {};
+  const { tool, message, context, matterId } = req.body ?? {};
 
   if (typeof tool !== "string" || !tool.trim() || typeof message !== "string" || !message.trim()) {
     res.status(400).json({ error: "tool and message are required" });
@@ -2372,7 +2372,36 @@ router.post("/legal/ai-tools/chat", requireSession, aiRateLimit, async (req, res
     return;
   }
 
-  const userMessage = wrapPractitionerRequest(message, typeof context === "string" ? context : undefined);
+  let resolvedMatterContext: string | undefined;
+  if (matterId !== undefined) {
+    const numericMatterId = typeof matterId === "number" ? matterId : Number(matterId);
+    const ownerId = res.locals.accessCodeId;
+    if (!Number.isInteger(numericMatterId) || numericMatterId <= 0 || typeof ownerId !== "number") {
+      res.status(400).json({ error: "Invalid matter context" });
+      return;
+    }
+    const [matter] = await db
+      .select()
+      .from(corpMatterFiles.matters)
+      .where(and(eq(corpMatterFiles.matters.id, numericMatterId), eq(corpMatterFiles.matters.ownerId, ownerId)))
+      .limit(1);
+    if (!matter) {
+      res.status(404).json({ error: "Matter not found" });
+      return;
+    }
+    resolvedMatterContext = [
+      `Matter ID: ${matter.id}`,
+      `Matter: ${matter.title}`,
+      matter.clientName ? `Client: ${matter.clientName}` : null,
+      matter.counterparty ? `Counterparty: ${matter.counterparty}` : null,
+      matter.matterType ? `Matter type: ${matter.matterType}` : null,
+      matter.reference ? `Reference: ${matter.reference}` : null,
+      matter.notes ? `Matter notes: ${matter.notes.slice(0, 6000)}` : null,
+    ].filter(Boolean).join("\n");
+  }
+  const suppliedContext = typeof context === "string" ? context : undefined;
+  const combinedContext = [resolvedMatterContext, suppliedContext].filter(Boolean).join("\n\n");
+  const userMessage = wrapPractitionerRequest(message, combinedContext || undefined);
   const effectiveSystemPrompt = `${systemPrompt}\n\n${draftCompletionInstruction(tool)}`;
 
   res.setHeader("Content-Type", "text/event-stream");

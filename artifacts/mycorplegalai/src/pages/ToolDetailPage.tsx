@@ -33,8 +33,9 @@ export default function ToolDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
   // Matter context from query string (e.g. coming from Case Home panel)
-  const matterIdFromQuery = searchParams.get("matterId")
-    ? parseInt(searchParams.get("matterId")!, 10)
+  const matterIdParam = searchParams.get("matterId") ?? searchParams.get("matter");
+  const matterIdFromQuery = matterIdParam && Number.isInteger(Number(matterIdParam))
+    ? Number(matterIdParam)
     : null;
   const outputRef = useRef<HTMLDivElement>(null);
 
@@ -206,7 +207,7 @@ export default function ToolDetailPage() {
         // Tool IDs are shared with the backend registry. Never downgrade an
         // unrecognised specialist tool to a generic tutor prompt: a rejected
         // request is safer and more useful than the wrong kind of work product.
-        body: JSON.stringify({ tool: tool.id, message: prompt }),
+        body: JSON.stringify({ tool: tool.id, message: prompt, matterId: matterIdFromQuery ?? undefined }),
       });
 
       if (!response.ok) {
