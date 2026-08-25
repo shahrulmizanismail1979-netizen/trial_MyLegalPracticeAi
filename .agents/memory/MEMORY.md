@@ -54,3 +54,4 @@
 - [Practice-area case scoping](practice-area-tagging.md) — /api/cases scope comes from portal identity server-side, never the query param; all practice portals locked (convey/sya empty until content); only master/acad unrestricted.
 - [Concurrent validation resource exhaustion](validation-resource-exhaustion.md) — full Vitest and Playwright validations can exhaust PID/thread limits when run together; verify in isolated low-worker runs.
 - [Research corpus status](research-corpus-status.md) — never market Drive file totals as searchable cases; distinguish intake, verification, indexing, and publication.
+- [Public information sources](public-information-sources.md) — subscriber claims come only from admin-published records; keep live availability separate from checkout eligibility.

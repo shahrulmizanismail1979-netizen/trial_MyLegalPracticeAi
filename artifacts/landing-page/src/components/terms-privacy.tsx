@@ -5,7 +5,7 @@ export function TermsPrivacy() {
         <h2 className="font-serif text-3xl font-bold mb-6 text-foreground">Terms of Service</h2>
         <div className="space-y-5 text-muted-foreground leading-relaxed text-sm">
           <p>
-            <strong className="text-foreground">Last updated: July 2026.</strong> These Terms of Service govern your access to and use of the AI Portals platform (&ldquo;Platform&rdquo;), operated by Shahrul Mizan Ismail (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By purchasing a subscription or accessing any AI Portal, you agree to these terms.
+            <strong className="text-foreground">Last updated: August 2026.</strong> These Terms of Service govern your access to and use of the AI Portals platform (&ldquo;Platform&rdquo;), operated by Shahrul Mizan Ismail (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;). By purchasing a subscription or accessing any AI Portal, you agree to these terms.
           </p>
 
           <div>
@@ -75,7 +75,7 @@ export function TermsPrivacy() {
         <h2 className="font-serif text-3xl font-bold mb-6 text-foreground">Privacy Policy</h2>
         <div className="space-y-5 text-muted-foreground leading-relaxed text-sm">
           <p>
-            <strong className="text-foreground">Last updated: July 2026.</strong> This Privacy Policy explains how AI Portals, operated by Shahrul Mizan Ismail, collects, uses, and protects your personal data in accordance with the Personal Data Protection Act 2010 (PDPA) of Malaysia.
+            <strong className="text-foreground">Last updated: August 2026.</strong> This Privacy Policy explains how AI Portals, operated by Shahrul Mizan Ismail, collects, uses, and protects your personal data in accordance with the Personal Data Protection Act 2010 (PDPA) of Malaysia.
           </p>
 
           <div>

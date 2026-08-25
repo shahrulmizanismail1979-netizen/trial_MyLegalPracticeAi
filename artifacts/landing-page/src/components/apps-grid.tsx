@@ -1,119 +1,10 @@
 import { useState } from "react";
 import { ExternalLink, Sparkles, ChevronDown, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCurrency } from "@/lib/currency";
 import { usePersona } from "@/lib/persona";
+import { COMING_SOON_PORTALS, LIVE_PORTALS, type PortalCatalogEntry } from "@/lib/product-catalog";
 
-type AppVersion = {
-  label: string;
-  url: string;
-  badge: string;
-  description: string;
-};
-
-type App = {
-  title: string;
-  description: string;
-  url: string;
-  tag: string;
-  comingSoon?: boolean;
-  versions?: AppVersion[];
-};
-
-const apps: App[] = [
-  {
-    title: "MyLitAI",
-    description: "Draft cause papers, analyse case strategies, and navigate Malaysian civil procedure with an AI litigation assistant.",
-    url: "/mylitai/",
-    tag: "Litigation",
-    versions: [
-      {
-        label: "Standard",
-        badge: "Version 1",
-        url: "/mylitai/",
-        description: "Classic AI litigation assistant. Ask any question, get instant guidance on civil procedure, pleadings, case strategy, and court practice — conversational and open-ended.",
-      },
-      {
-        label: "IRAC Method",
-        badge: "Version 2",
-        url: "/mylitai-irac/",
-        description: "Structured legal analysis using the IRAC framework (Issue → Rule → Application → Conclusion). Best for systematically breaking down legal problems, preparing written submissions, and structured advocacy.",
-      },
-    ],
-  },
-  {
-    title: "MySyalitAI",
-    description: "Draft syarie pleadings, check Syariah procedure rules, and prepare submissions for Syariah Court matters.",
-    url: "/mysyariahai/",
-    tag: "Syariah"
-  },
-  {
-    title: "MyCorpAI",
-    description: "Prepare board resolutions, manage Companies Act compliance, and handle corporate secretarial workflows.",
-    url: "/mycorplegalai/",
-    tag: "Corporate"
-  },
-  {
-    title: "MyConvey",
-    description: "Draft sale & purchase agreements, conduct land title searches, and manage property transaction checklists.",
-    url: "/myconveylitai/",
-    tag: "Conveyancing"
-  },
-  {
-    title: "MyCrimAI",
-    description: "Draft criminal submissions, research sentencing precedents, and navigate Rules of the Subordinate Courts.",
-    url: "/mycrimai/",
-    tag: "Criminal"
-  },
-  {
-    title: "MyCorpCommBankLitAi",
-    description: "Handle corporate disputes, draft commercial agreements, and manage banking litigation matters.",
-    url: "/myccblitai/",
-    tag: "Corp/Comm/Banking"
-  },
-  {
-    title: "MyAccidentAi",
-    description: "Draft personal injury claims, assess quantum of damages, and manage running-down cases.",
-    url: "/myaccidentai/",
-    tag: "Accident & PI"
-  },
-  {
-    title: "MyLawFirmAi",
-    description: "Run your firm's operations — AI-triaged tasks, meeting minutes, staff recognition, goals, and voice-driven workflows.",
-    url: "/mylawfirmai/",
-    tag: "Firm Management",
-  },
-  {
-    title: "MyJudicialAi",
-    description: "Schedule hearings, draft judgments, prepare bench notes, and manage chambers administration.",
-    url: "#",
-    tag: "Judiciary",
-    comingSoon: true,
-  },
-  {
-    title: "MyClientAi",
-    description: "Handle client intake, manage case files, draft advisory notes, and track communication.",
-    url: "#",
-    tag: "Client Mgmt",
-    comingSoon: true,
-  },
-  {
-    title: "MyLawAcad",
-    description: "AI-proctored exams and educator-built assessments — plan lessons, draft assessments, and manage academic administration.",
-    url: "/mylawacad/",
-    tag: "Lecturers",
-  },
-  {
-    title: "MyLawResearch",
-    description: "Draft articles, manage citations, conduct literature reviews, and prepare journal submissions.",
-    url: "#",
-    tag: "Publications",
-    comingSoon: true,
-  },
-];
-
-function VersionCard({ version }: { version: AppVersion }) {
-  const { format } = useCurrency();
+function VersionCard({ version }: { version: NonNullable<PortalCatalogEntry["versions"]>[number] }) {
 
   return (
     <div className="w-full flex flex-col gap-2 rounded-xl border border-border/60 bg-background/60 p-4 transition-all duration-200">
@@ -121,9 +12,7 @@ function VersionCard({ version }: { version: AppVersion }) {
         <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full border border-primary/30 bg-primary/10">
           {version.badge}
         </span>
-        <span className="text-xs font-semibold text-foreground">
-          {format(25)}<span className="text-muted-foreground font-normal">/month</span>
-        </span>
+        <span className="text-xs font-semibold text-foreground">Subscription access</span>
       </div>
       <p className="text-sm font-semibold text-foreground">{version.label}</p>
       <p className="text-xs text-muted-foreground leading-relaxed">
@@ -151,25 +40,25 @@ export function AppsGrid() {
   const { persona } = usePersona();
 
   // Reorder apps based on persona
-  const orderedApps = [...apps].sort((a, b) => {
-    const getScore = (app: App) => {
+  const orderedApps = [...LIVE_PORTALS, ...COMING_SOON_PORTALS].sort((a, b) => {
+    const getScore = (app: PortalCatalogEntry) => {
       if (persona === "inhouse") {
         if (app.tag === "Corporate") return 100;
-        if (app.tag === "Corp/Comm/Banking") return 90;
+        if (app.tag === "Corporate, Commercial & Banking") return 90;
         if (app.tag === "Firm Management") return 10;
-        if (app.tag === "Lecturers") return 5;
+        if (app.tag === "Legal Education") return 5;
         if (app.tag === "Publications") return 5;
         return 50;
       }
       if (persona === "academic") {
-        if (app.tag === "Lecturers") return 100;
+        if (app.tag === "Legal Education") return 100;
         if (app.tag === "Publications") return 90;
         if (app.tag === "Litigation") return 80; // Good for teaching
         if (app.tag === "Firm Management") return 10;
         return 50;
       }
       if (persona === "student") {
-        if (app.tag === "Lecturers") return 100; // IRAC / learning tools live here
+        if (app.tag === "Legal Education") return 100; // IRAC / learning tools live here
         if (app.tag === "Publications") return 90;
         if (app.tag === "Litigation") return 85; // Learn on real drafting tools
         if (app.tag === "Criminal") return 70;
@@ -180,7 +69,7 @@ export function AppsGrid() {
         if (app.tag === "Litigation") return 100; // Case-law research first
         if (app.tag === "Criminal") return 95;
         if (app.tag === "Syariah") return 90;
-        if (app.tag === "Corp/Comm/Banking") return 80;
+        if (app.tag === "Corporate, Commercial & Banking") return 80;
         if (app.tag === "Firm Management") return 5;
         if (app.tag === "Conveyancing") return 40;
         return 50;
@@ -194,7 +83,7 @@ export function AppsGrid() {
       if (app.tag === "Conveyancing") return 80;
       if (app.tag === "Criminal") return 70;
       if (app.tag === "Firm Management") return 60;
-      if (app.tag === "Lecturers") return 10;
+       if (app.tag === "Legal Education") return 10;
       if (app.tag === "Publications") return 10;
       return 50;
     };
@@ -208,13 +97,13 @@ export function AppsGrid() {
           The <span className="text-primary">AI Portals</span> Collection
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl">
-          Specialized intelligence platforms tailored for the diverse needs of the Malaysian legal ecosystem. Click on any live preview to explore the application.
+          {LIVE_PORTALS.length} live portals for the Malaysian legal ecosystem. {COMING_SOON_PORTALS.length} additional portals are in development. Click a live portal to explore it.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {orderedApps.map((app, index) => {
-          if (app.comingSoon) {
+          if (app.availability === "coming-soon") {
             return (
               <div key={app.title} className="block" style={{ animationDelay: `${index * 100}ms` }}>
                 <Card className="h-full flex flex-col bg-card/50 border-border/50 backdrop-blur-sm transition-all duration-300 hover:border-amber-400/40 hover:bg-card">

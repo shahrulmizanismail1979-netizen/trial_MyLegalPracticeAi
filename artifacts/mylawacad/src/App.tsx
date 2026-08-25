@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { RateLimitBanner } from "@/lib/rate-limit-monitor";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "lucide-react";
@@ -154,6 +155,7 @@ function App() {
             <Router />
           </AuthProvider>
         </WouterRouter>
+        <CaseCorpusStatus />
         <Toaster />
             <RateLimitBanner />
       </TooltipProvider>

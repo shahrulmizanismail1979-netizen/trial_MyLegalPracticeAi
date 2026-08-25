@@ -227,7 +227,7 @@ export default function Dashboard() {
           <CardHeader className="border-b border-border bg-secondary/30">
             <CardTitle className="text-lg flex items-center gap-2">
               <Gavel className="h-5 w-5 text-purple-400" />
-              Case Laws (105 cases)
+               Curated case-law reference
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 divide-y divide-border">

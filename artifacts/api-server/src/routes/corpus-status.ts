@@ -19,6 +19,13 @@ router.get("/status", async (_req, res): Promise<void> => {
         ORDER BY completed_at DESC NULLS LAST, id DESC
         LIMIT 1
       ), 0)::int AS drive_documents,
+      (
+        SELECT completed_at
+        FROM drive_inventory_runs
+        WHERE status = 'COMPLETED'
+        ORDER BY completed_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      ) AS inventory_completed_at,
       (SELECT COUNT(*) FROM research_verified_judgments)::int AS verified_judgments,
       (SELECT COUNT(*) FROM research_search_index)::int AS indexed_judgments,
       (
@@ -43,6 +50,7 @@ router.get("/status", async (_req, res): Promise<void> => {
         verified_judgments: number;
         indexed_judgments: number;
         searchable_judgments: number;
+        inventory_completed_at: Date | string | null;
       }
     | undefined;
 
@@ -52,6 +60,9 @@ router.get("/status", async (_req, res): Promise<void> => {
     verifiedJudgments: Number(row?.verified_judgments ?? 0),
     indexedJudgments: Number(row?.indexed_judgments ?? 0),
     searchableJudgments: Number(row?.searchable_judgments ?? 0),
+    inventoryCompletedAt: row?.inventory_completed_at
+      ? new Date(row.inventory_completed_at).toISOString()
+      : null,
   });
 });
 

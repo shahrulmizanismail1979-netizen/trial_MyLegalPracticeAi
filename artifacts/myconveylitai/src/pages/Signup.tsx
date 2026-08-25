@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Scale, Mail, IdCard, Loader2, Gift, KeyRound, Copy, Check } from 'lucide-react';
+import { Scale, Mail, IdCard, Loader2, KeyRound, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { signup, type AccessUser } from '@/lib/subscription';
-
-// Grandfather cutoff (must match backend): end of 7 June 2026, Malaysia time.
-const CUTOFF = new Date('2026-06-07T23:59:59+08:00');
 
 export function Signup() {
   const [email, setEmail] = useState('');
@@ -20,7 +17,6 @@ export function Signup() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const beforeCutoff = Date.now() <= CUTOFF.getTime();
   const emailValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,17 +125,6 @@ export function Signup() {
               </h1>
               <p className="text-slate-400">Malaysian Conveyancing Legal Practice</p>
             </div>
-
-            {beforeCutoff && (
-              <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25">
-                <Gift className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-200/90 leading-relaxed">
-                  <b className="text-amber-300">Founding-member offer:</b> sign up by 7 June 2026 and
-                  get full <b>Firm-tier</b> access — every section, all 39 AI tools, document export and
-                  AI audio narration — <b>free, forever.</b>
-                </p>
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
               <div className="relative group">

@@ -12,8 +12,10 @@ const KNOWN_APPS = [
   "MyCorpAI",
   "MyConveyAI",
   "MyCrimAI",
-  "MyCorpCommBankLitAi",
-  "MyAccidentAi",
+  "MyCCBLitAI",
+  "MyAccidentAI",
+  "MyLawFirmAi",
+  "MyLawAcad",
 ];
 
 const router: IRouter = Router();

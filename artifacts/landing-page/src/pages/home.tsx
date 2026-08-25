@@ -18,6 +18,7 @@ import { PersonaFrontDoor } from "@/components/persona-front-door";
 import { PersonaSwitcher } from "@/components/persona-switch";
 import { PoweredByBanner } from "@/components/powered-by-banner";
 import { usePersona } from "@/lib/persona";
+import { CaseCorpusStatus } from "@workspace/case-home-ui";
 
 export default function Home() {
   const { persona, skipped } = usePersona();
@@ -78,6 +79,11 @@ export default function Home() {
         <ReceptionChat />
         <ContributeCTA />
         <AppsGrid />
+        <section className="px-6 pb-8 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <CaseCorpusStatus variant="inline" />
+          </div>
+        </section>
         <SubscriberStats />
         <Pricing />
         

@@ -19,7 +19,7 @@ const tiers = [
     includes: null,
     solarKwp: null as number | null,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "Contract review & drafting templates",
       "3 user licenses",
       "Monthly subscription — cancel anytime",
@@ -176,7 +176,7 @@ your organisation.
                 {!isEnterprise && (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      {tier.seats} user licenses · all 7 portals each
+                      {tier.seats} user licences · every Complete Bundle portal each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses

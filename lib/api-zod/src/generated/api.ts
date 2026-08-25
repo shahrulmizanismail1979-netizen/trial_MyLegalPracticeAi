@@ -59,6 +59,7 @@ export const HealthCheckResponse = zod.object({
 export const GetAppSubscriberStatsResponseItem = zod.object({
   appName: zod.string(),
   count: zod.number(),
+  updatedAt: zod.coerce.date().nullable(),
 });
 export const GetAppSubscriberStatsResponse = zod.array(
   GetAppSubscriberStatsResponseItem,
@@ -631,6 +632,19 @@ export const ResendDeliveryFailureSmsResponse = zod.object({
   resolvedAt: zod.coerce.date().nullish(),
   createdAt: zod.coerce.date(),
 });
+
+/**
+ * Returns the most recent alert delivery outcome for each notification channel (gmail, webhook). An empty array means no alert has been attempted since the last server restart (e.g. Stripe is in live mode). Staff-only — secured at the admin router mount point.
+
+ * @summary Get the last Stripe alert delivery attempt per channel
+ */
+export const GetAlertStatusResponseItem = zod.object({
+  channel: zod.enum(["gmail", "webhook"]),
+  outcome: zod.enum(["success", "failure", "skipped"]),
+  attemptedAt: zod.coerce.date(),
+  detail: zod.string(),
+});
+export const GetAlertStatusResponse = zod.array(GetAlertStatusResponseItem);
 
 /**
  * @summary Get revenue breakdown by app
@@ -2098,19 +2112,3 @@ export const CorpAiToolsChatBody = zod.object({
     .nullish()
     .describe("Optional additional context for the tool"),
 });
-
-/**
- * @summary Get the last Stripe alert delivery attempt per channel
- */
-export const AlertAttemptChannel = zod.enum(["gmail", "webhook"]);
-
-export const AlertAttemptOutcome = zod.enum(["success", "failure", "skipped"]);
-
-export const AlertAttemptItem = zod.object({
-  channel: AlertAttemptChannel,
-  outcome: AlertAttemptOutcome,
-  attemptedAt: zod.coerce.date(),
-  detail: zod.string(),
-});
-
-export const GetAlertStatusResponse = zod.array(AlertAttemptItem);

@@ -14,7 +14,7 @@ export function Hero() {
     practitioner: {
       tag: "For Law Firms & Practitioners",
       titleSuffix: "for Malaysian Legal Practitioners",
-      desc: "The future of Malaysian legal practice is here. Seven AI-powered virtual paralegal assistants that help lawyers work faster, draft smarter, and navigate complex litigation and conveyancing matters with confidence.",
+       desc: "The future of Malaysian legal practice is here. Specialist AI-powered virtual paralegal assistants help lawyers work faster, draft smarter, and navigate complex litigation and conveyancing matters with confidence.",
       icon1: <Scale className="h-6 w-6" />,
       title1: "Authority",
       desc1: "Built for the rigorous demands of Malaysian legal practice.",
@@ -22,7 +22,7 @@ export function Hero() {
     inhouse: {
       tag: "For Corporate Legal Departments",
       titleSuffix: "for Malaysian In-House Counsel",
-      desc: "The future of corporate legal work is here. Seven AI-powered virtual assistants that help in-house counsel and corporate secretaries manage compliance, draft agreements, and reduce business risk.",
+       desc: "The future of corporate legal work is here. Specialist AI-powered virtual assistants help in-house counsel and corporate secretaries manage compliance, draft agreements, and reduce business risk.",
       icon1: <Building2 className="h-6 w-6" />,
       title1: "Commercial Edge",
       desc1: "Practical advisory intelligence for business risk and compliance.",

@@ -335,6 +335,30 @@ export interface ActivityEntry {
   createdAt: string;
 }
 
+export type AlertAttemptChannel =
+  (typeof AlertAttemptChannel)[keyof typeof AlertAttemptChannel];
+
+export const AlertAttemptChannel = {
+  gmail: "gmail",
+  webhook: "webhook",
+} as const;
+
+export type AlertAttemptOutcome =
+  (typeof AlertAttemptOutcome)[keyof typeof AlertAttemptOutcome];
+
+export const AlertAttemptOutcome = {
+  success: "success",
+  failure: "failure",
+  skipped: "skipped",
+} as const;
+
+export interface AlertAttempt {
+  channel: AlertAttemptChannel;
+  outcome: AlertAttemptOutcome;
+  attemptedAt: string;
+  detail: string;
+}
+
 export type DeliveryFailureType =
   (typeof DeliveryFailureType)[keyof typeof DeliveryFailureType];
 
@@ -476,6 +500,8 @@ export interface KnowledgeBaseEntry {
 export interface AppSubscriberStat {
   appName: string;
   count: number;
+  /** @nullable */
+  updatedAt: string | null;
 }
 
 export interface AppStat {

@@ -3336,9 +3336,15 @@ components:
           type: string
         count:
           type: integer
+        updatedAt:
+          type:
+            - string
+            - "null"
+          format: date-time
       required:
         - appName
         - count
+        - updatedAt
     AppStat:
       type: object
       properties:

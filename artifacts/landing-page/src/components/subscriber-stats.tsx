@@ -8,8 +8,10 @@ const APP_META: Record<string, { label: string; shortName: string; color: string
   MyCorpAI:            { label: "Corporate Secretary",     shortName: "MyCorpAI",       color: "#E0C050" },
   MyConveyAI:          { label: "Conveyancing",            shortName: "MyConveyLitAI",  color: "#D4AF37" },
   MyCrimAI:            { label: "Criminal Law",            shortName: "MyCrimAI",       color: "#C8A02A" },
-  MyCorpCommBankLitAi: { label: "Corp / Comm / Banking",  shortName: "MyCCBLitAI",     color: "#E0C050" },
-  MyAccidentAi:        { label: "Accident & PI",           shortName: "MyAccidentAI",   color: "#D4AF37" },
+  MyCCBLitAI:          { label: "Corp / Comm / Banking",  shortName: "MyCCBLitAI",     color: "#E0C050" },
+  MyAccidentAI:        { label: "Accident & PI",           shortName: "MyAccidentAI",   color: "#D4AF37" },
+  MyLawFirmAi:         { label: "Firm Management",         shortName: "MyLawFirmAI",   color: "#C8A02A" },
+  MyLawAcad:           { label: "Legal Education",         shortName: "MyLawAcad",     color: "#E0C050" },
 };
 
 const ORDER = [
@@ -18,21 +20,11 @@ const ORDER = [
   "MyCorpAI",
   "MyConveyAI",
   "MyCrimAI",
-  "MyCorpCommBankLitAi",
-  "MyAccidentAi",
+  "MyCCBLitAI",
+  "MyAccidentAI",
+  "MyLawFirmAi",
+  "MyLawAcad",
 ];
-
-/** Fallback defaults used when the admin-managed app_stats table is empty.
- *  Ensures the landing page always looks convincing until real numbers are entered. */
-const FALLBACK_COUNTS: Record<string, number> = {
-  MyLitAI: 351,
-  MySyalitAI: 132,
-  MyCorpAI: 220,
-  MyConveyAI: 194,
-  MyCrimAI: 161,
-  MyCorpCommBankLitAi: 101,
-  MyAccidentAi: 209,
-};
 
 function AnimatedBar({ pct, color, delay }: { pct: number; color: string; delay: number }) {
   const [width, setWidth] = useState(0);
@@ -56,17 +48,18 @@ export function SubscriberStats() {
   const { data, isLoading } = useGetAppSubscriberStats();
 
   const stats: AppSubscriberStat[] = data ?? [];
-  const apiMap = Object.fromEntries(stats.map((s) => [s.appName, s.count]));
-
-  // Merge admin-managed API data with fallback defaults so the page always looks populated.
-  // Admin can override via /admin/app-stats at any time.
+  const apiMap = Object.fromEntries(stats.map((s) => [s.appName, s]));
   const mergedMap: Record<string, number> = {};
   for (const appName of ORDER) {
-    mergedMap[appName] = apiMap[appName] ?? FALLBACK_COUNTS[appName] ?? 0;
+    mergedMap[appName] = apiMap[appName]?.count ?? 0;
   }
   const total = ORDER.reduce((sum, appName) => sum + mergedMap[appName], 0);
   const maxCount = Math.max(...ORDER.map((appName) => mergedMap[appName]), 1);
-  const isEarlyDays = false; // Fallbacks guarantee we never show empty state
+  const publishedUpdates = stats
+    .map((stat) => stat.updatedAt)
+    .filter((value): value is string => typeof value === "string");
+  const latestUpdate = publishedUpdates.sort().at(-1) ?? null;
+  const isEarlyDays = publishedUpdates.length === 0;
 
   return (
     <section className="py-24 px-6 lg:px-8 relative overflow-hidden">
@@ -86,7 +79,7 @@ export function SubscriberStats() {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             {isEarlyDays
               ? "Be among the founding members shaping the future of Malaysian legal practice."
-              : `Join ${total.toLocaleString()} legal professionals already using the AI Portals.`}
+              : `${total.toLocaleString()} active subscribers across the portals, based on the latest admin-published totals.`}
           </p>
         </div>
 
@@ -106,6 +99,11 @@ export function SubscriberStats() {
               <p className="text-muted-foreground text-sm">
                 {isEarlyDays ? "Founding members awaited" : "Active subscribers across all portals"}
               </p>
+              {!isEarlyDays && latestUpdate && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Last updated {new Intl.DateTimeFormat("en-MY", { dateStyle: "medium" }).format(new Date(latestUpdate))}
+                </p>
+              )}
             </div>
 
             {isEarlyDays && (
@@ -120,7 +118,8 @@ export function SubscriberStats() {
           </div>
 
           <div className="lg:col-span-2 rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-8">
-            <h3 className="text-lg font-semibold text-foreground mb-6">Subscribers per Portal</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Subscribers per Portal</h3>
+            <p className="mb-6 text-xs text-muted-foreground">Only administrator-published totals appear here.</p>
 
             {isLoading ? (
               <div className="space-y-5">

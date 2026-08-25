@@ -19,7 +19,7 @@ const tiers = [
     includes: null,
     solarKwp: null as number | null,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "MyLawSimEduAi simulation platform included",
       "20 user licenses",
       "Monthly academic subscription — cancel anytime",
@@ -110,7 +110,7 @@ export function EducationBundles() {
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           Empower the next generation of Malaysian legal practitioners. Every academic bundle
 comes with <span className="text-primary font-medium">MyLawSimEduAi</span> — our AI-powered
-legal simulation platform — bundled together with all 7 AI Portals for both students
+legal simulation platform — bundled together with every portal included in the Complete Bundle for both students
 and lecturers.
         </p>
       </div>
@@ -174,7 +174,7 @@ and lecturers.
                 {!isInstitution && (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      {tier.seats} user licenses · all 7 portals each
+                      {tier.seats} user licences · every Complete Bundle portal each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses

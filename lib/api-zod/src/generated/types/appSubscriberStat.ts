@@ -9,4 +9,6 @@
 export interface AppSubscriberStat {
   appName: string;
   count: number;
+  /** @nullable */
+  updatedAt: Date | null;
 }

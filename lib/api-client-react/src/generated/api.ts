@@ -41,6 +41,7 @@ import type {
   AdviseStrataResponse,
   AdviseTaxComplianceBody,
   AdviseTaxComplianceResponse,
+  AlertAttempt,
   AnalyzeCaseBody,
   AnalyzeCaseResponse,
   AnalyzeDocumentBody,
@@ -2631,6 +2632,83 @@ export const useResendDeliveryFailureSms = <
 > => {
   return useMutation(getResendDeliveryFailureSmsMutationOptions(options));
 };
+
+/**
+ * Returns the most recent alert delivery outcome for each notification channel (gmail, webhook). An empty array means no alert has been attempted since the last server restart (e.g. Stripe is in live mode). Staff-only — secured at the admin router mount point.
+
+ * @summary Get the last Stripe alert delivery attempt per channel
+ */
+export const getGetAlertStatusUrl = () => {
+  return `/api/admin/alert-status`;
+};
+
+export const getAlertStatus = async (
+  options?: RequestInit,
+): Promise<AlertAttempt[]> => {
+  return customFetch<AlertAttempt[]>(getGetAlertStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAlertStatusQueryKey = () => {
+  return [`/api/admin/alert-status`] as const;
+};
+
+export const getGetAlertStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAlertStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAlertStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlertStatus>>> = ({
+    signal,
+  }) => getAlertStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAlertStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAlertStatus>>
+>;
+export type GetAlertStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the last Stripe alert delivery attempt per channel
+ */
+
+export function useGetAlertStatus<
+  TData = Awaited<ReturnType<typeof getAlertStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAlertStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get revenue breakdown by app

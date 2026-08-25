@@ -9,31 +9,36 @@ const KNOWN_APPS = [
   "MyCorpAI",
   "MyConveyAI",
   "MyCrimAI",
-  "MyCorpCommBankLitAi",
-  "MyAccidentAi",
+  "MyCCBLitAI",
+  "MyAccidentAI",
+  "MyLawFirmAi",
+  "MyLawAcad",
 ];
 
-/** Fallback subscriber counts used when the admin has not yet entered real data.
- *  If a row exists in the DB (even with count 0), that value is honoured —
- *  fallbacks only apply to missing rows. */
-const FALLBACK_COUNTS: Record<string, number> = {
-  MyLitAI: 351,
-  MySyalitAI: 132,
-  MyCorpAI: 220,
-  MyConveyAI: 194,
-  MyCrimAI: 161,
-  MyCorpCommBankLitAi: 101,
-  MyAccidentAi: 209,
+const LEGACY_APP_NAME_ALIASES: Record<string, string> = {
+  MyCorpCommBankLitAi: "MyCCBLitAI",
+  MyAccidentAi: "MyAccidentAI",
 };
 
 router.get("/stats/subscribers-by-app", async (_req, res): Promise<void> => {
   const rows = await db.select().from(appStatsTable);
-  const rowMap = new Map(rows.map((r) => [r.appName, r.subscriberCount]));
+  const rowMap = new Map<string, (typeof rows)[number]>();
+  for (const row of rows) {
+    const canonicalName = LEGACY_APP_NAME_ALIASES[row.appName] ?? row.appName;
+    const existing = rowMap.get(canonicalName);
+    // An administrator may have subsequently updated the canonical record.
+    // Keep the newest record rather than counting aliases twice.
+    if (!existing || row.updatedAt > existing.updatedAt) {
+      rowMap.set(canonicalName, row);
+    }
+  }
 
   const result = KNOWN_APPS.map((appName) => ({
     appName,
-    // If a row exists (even count 0), use it. Otherwise use fallback default.
-    count: rowMap.has(appName) ? rowMap.get(appName)! : (FALLBACK_COUNTS[appName] ?? 0),
+    // Counts are only published from the admin-maintained database. Never use
+    // invented fallback values in customer-facing community claims.
+    count: rowMap.get(appName)?.subscriberCount ?? 0,
+    updatedAt: rowMap.get(appName)?.updatedAt?.toISOString() ?? null,
   }));
 
   res.setHeader("Cache-Control", "no-store, max-age=0");

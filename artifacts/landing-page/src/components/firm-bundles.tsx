@@ -17,7 +17,7 @@ const tiers = [
     monthlyPrice: 355,
     solarKwp: null as number | null,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "5 user licenses",
       "Monthly subscription — cancel anytime",
       "Centralised billing",
@@ -33,7 +33,7 @@ const tiers = [
     featured: true,
     solarKwp: 4,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "15 user licenses",
       "Monthly subscription — cancel anytime",
       "Centralised billing & admin",
@@ -49,7 +49,7 @@ const tiers = [
     monthlyPrice: 1890,
     solarKwp: 7,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "30 user licenses",
       "Monthly subscription — cancel anytime",
       "Dedicated account manager",
@@ -66,7 +66,7 @@ const tiers = [
     monthlyPrice: null,
     solarKwp: 9.45,
     features: [
-      "Access to all 7 AI Portals",
+      "Access to every portal included in the Complete Bundle",
       "50+ user licenses",
       "Flexible subscription terms",
       "Dedicated account manager",
@@ -105,7 +105,7 @@ export function FirmBundles() {
           Bundles for <span className="text-primary">Teams of Every Size</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Every team member gets full access to all 7 AI Portals. Volume pricing scales with your team —
+          Every team member gets full access to every portal included in the Complete Bundle. Volume pricing scales with your team —
 the larger your firm, the lower the equivalent per-user cost.
         </p>
       </div>
@@ -169,7 +169,7 @@ the larger your firm, the lower the equivalent per-user cost.
                 {!isEnterprise && (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      {tier.seats} user licenses · all 7 portals each
+                      {tier.seats} user licences · every Complete Bundle portal each
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Equivalent to ~{format(perUser!)}/user when shared across {tier.seats} licenses

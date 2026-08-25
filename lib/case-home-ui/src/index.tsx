@@ -39,6 +39,7 @@ export interface CaseCorpusStatus {
   verifiedJudgments: number;
   indexedJudgments: number;
   searchableJudgments: number;
+  inventoryCompletedAt: string | null;
 }
 
 /**
@@ -47,7 +48,12 @@ export interface CaseCorpusStatus {
  * The API distinguishes catalogued Drive files from judgments so the UI never
  * presents document uploads as customer-searchable cases.
  */
-export function CaseCorpusStatus() {
+export function CaseCorpusStatus({
+  variant = "floating",
+}: {
+  /** Use inline on a landing/dashboard section; floating is for portal shells. */
+  variant?: "floating" | "inline";
+}) {
   const [status, setStatus] = useState<CaseCorpusStatus | null>(null);
 
   useEffect(() => {
@@ -71,17 +77,22 @@ export function CaseCorpusStatus() {
   if (!status) return null;
 
   const number = new Intl.NumberFormat("en-MY");
+  const refreshed = status.inventoryCompletedAt
+    ? new Intl.DateTimeFormat("en-MY", { dateStyle: "medium" }).format(
+        new Date(status.inventoryCompletedAt),
+      )
+    : null;
   return (
     <aside
       aria-label="Research corpus status"
       data-testid="case-corpus-status"
       title={`${number.format(status.driveDocuments)} Google Drive documents catalogued. ${number.format(status.searchableJudgments)} judgments are currently published to customer search.`}
       style={{
-        position: "fixed",
-        left: 12,
-        bottom: 12,
-        zIndex: 40,
-        maxWidth: "calc(100vw - 24px)",
+        position: variant === "floating" ? "fixed" : "relative",
+        left: variant === "floating" ? 12 : undefined,
+        bottom: variant === "floating" ? 12 : undefined,
+        zIndex: variant === "floating" ? 40 : undefined,
+        maxWidth: variant === "floating" ? "calc(100vw - 24px)" : 540,
         padding: "7px 10px",
         borderRadius: 9,
         background: "var(--background, #ffffff)",
@@ -99,6 +110,11 @@ export function CaseCorpusStatus() {
       <span style={{ display: "block", color: "var(--muted-foreground, #64748b)" }}>
         {number.format(status.driveDocuments)} Drive documents catalogued · {number.format(status.searchableJudgments)} published
       </span>
+      {refreshed && (
+        <span style={{ display: "block", marginTop: 3, color: "var(--muted-foreground, #64748b)" }}>
+          Source inventory last completed {refreshed}
+        </span>
+      )}
     </aside>
   );
 }

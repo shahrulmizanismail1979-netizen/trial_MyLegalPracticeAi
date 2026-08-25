@@ -275,7 +275,7 @@ export default function CaseAnalysisPage() {
               <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center animate-pulse">
                 <svg className="w-7 h-7 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
               </div>
-              <p className="text-sm text-muted-foreground">{t("AI is analyzing against 149+ precedent cases...", "AI sedang menganalisis terhadap 149+ kes terdahulu...")}</p>
+               <p className="text-sm text-muted-foreground">{t("AI is analysing the facts you provided. Verify every authority against primary sources.", "AI sedang menganalisis fakta yang anda berikan. Sahkan setiap autoriti dengan sumber primer.")}</p>
             </div>
           )}
 
@@ -305,7 +305,7 @@ export default function CaseAnalysisPage() {
 
               {result.predictedOutcomes?.length > 0 && (
                 <Card>
-                  <CardHeader className="pb-3"><h3 className="font-serif font-semibold text-foreground">{t("Predicted Outcomes", "Keputusan Yang Diramalkan")}</h3></CardHeader>
+                   <CardHeader className="pb-3"><h3 className="font-serif font-semibold text-foreground">{t("Illustrative considerations", "Pertimbangan ilustratif")}</h3></CardHeader>
                   <CardContent className="space-y-3">
                     {result.predictedOutcomes.map((po: any, i: number) => (
                       <div key={i} className="border border-border/50 rounded-lg p-3">
@@ -395,8 +395,8 @@ export default function CaseAnalysisPage() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/10 border border-secondary/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-secondary/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                 </div>
-                <h3 className="font-serif font-semibold text-foreground mb-2">{t("AI Case Prediction", "Ramalan Kes AI")}</h3>
-                <p className="text-sm text-muted-foreground">{t("Enter your case details on the left. The AI will analyze against 149+ precedent cases and predict likely outcomes.", "Masukkan butiran kes anda di sebelah kiri. AI akan menganalisis terhadap 149+ kes terdahulu dan meramalkan keputusan.")}</p>
+                 <h3 className="font-serif font-semibold text-foreground mb-2">{t("AI Case Analysis", "Analisis Kes AI")}</h3>
+                 <p className="text-sm text-muted-foreground">{t("Enter your case details on the left. The AI will provide illustrative analysis; independently verify every authority and do not treat it as a predicted outcome.", "Masukkan butiran kes anda di sebelah kiri. AI akan memberikan analisis ilustratif; sahkan setiap autoriti secara bebas dan jangan anggap ia sebagai ramalan keputusan.")}</p>
               </CardContent>
             </Card>
           )}

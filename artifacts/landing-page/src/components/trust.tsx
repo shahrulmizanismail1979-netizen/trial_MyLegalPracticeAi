@@ -38,7 +38,7 @@ export function Trust() {
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Editorial Methodology</h3>
               <p className="text-muted-foreground leading-relaxed text-justify">
-                Every AI Portal is built on a curated, practitioner-reviewed knowledge base drawn from Malaysian statutes, case law, procedural rules, and practice guides. Content is structured for professional legal practice, not general-purpose answers — ensuring practitioners can rely on the outputs for day-to-day legal work.
+                Every AI Portal is built around curated materials drawn from Malaysian statutes, case law, procedural rules, and practice guides. Content is structured to support professional legal practice, not general-purpose answers. Users must independently verify all legal authorities and AI outputs before reliance.
               </p>
             </div>
           </div>
