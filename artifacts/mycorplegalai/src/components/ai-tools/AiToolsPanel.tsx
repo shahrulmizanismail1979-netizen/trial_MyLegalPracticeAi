@@ -202,7 +202,7 @@ export function AiToolsPanel() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, isLoading, clearMessages } = useAiChat();
+  const { messages, sendMessage, isLoading, error, clearMessages } = useAiChat();
 
   const activeToolDef = TOOLS.find(t => t.id === activeTool);
   const activeLocked = activeTool ? !canAccessTool(tier, activeTool) : false;
@@ -433,6 +433,15 @@ export function AiToolsPanel() {
               )}
             </ScrollArea>
 
+            {error && (
+              <div
+                role="alert"
+                className="mx-3 mb-2 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive"
+              >
+                {error}
+              </div>
+            )}
+
             {/* Input area */}
             <div className="p-3 border-t border-border bg-card shrink-0">
               {/* Context actions row */}
@@ -550,7 +559,7 @@ function MarkdownLike({ text }: { text: string }) {
       const header = splitMarkdownTableRow(line);
       i += 2;
       const rows: string[][] = [];
-      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i]!)) {
+      while (i < lines.length && isMarkdownTableRow(lines[i]!)) {
         rows.push(splitMarkdownTableRow(lines[i]!));
         i += 1;
       }
@@ -623,9 +632,17 @@ function isMarkdownTableStart(lines: string[], index: number): boolean {
   return Boolean(
     header &&
     divider &&
-    /^\s*\|.*\|\s*$/.test(header) &&
-    /^\s*\|?[\s:|-]+\|[\s:|-]+/.test(divider),
+    isMarkdownTableRow(header) &&
+    isMarkdownTableDivider(divider),
   );
+}
+
+function isMarkdownTableRow(line: string): boolean {
+  return /^\s*\|/.test(line) && splitMarkdownTableRow(line).length >= 2;
+}
+
+function isMarkdownTableDivider(line: string): boolean {
+  return isMarkdownTableRow(line) && splitMarkdownTableRow(line).every((cell) => /^:?-{1,}:?$/.test(cell));
 }
 
 function splitMarkdownTableRow(line: string): string[] {

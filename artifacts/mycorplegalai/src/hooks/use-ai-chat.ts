@@ -117,6 +117,12 @@ export function useAiChat() {
       reader.cancel().catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An error occurred";
+      // A partial AI message must not remain in the transcript as if it were
+      // a finished answer after a malformed or interrupted stream.
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        return last?.role === "ai" ? prev.slice(0, -1) : prev;
+      });
       setError(msg);
     } finally {
       setIsLoading(false);

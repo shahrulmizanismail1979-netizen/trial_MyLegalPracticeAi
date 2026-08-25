@@ -274,6 +274,8 @@ export default function ToolDetailPage() {
       }
       reader.cancel().catch(() => {});
     } catch (err: unknown) {
+      // Never leave a truncated response looking exportable or complete.
+      setOutput("");
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
@@ -510,7 +512,7 @@ function OutputRenderer({ text }: { text: string }) {
       const header = splitTableRow(line);
       lineIndex += 2; // Skip the Markdown table divider.
       const rows: string[][] = [];
-      while (lineIndex < lines.length && /^\s*\|.*\|\s*$/.test(lines[lineIndex]!)) {
+      while (lineIndex < lines.length && isTableRow(lines[lineIndex]!)) {
         rows.push(splitTableRow(lines[lineIndex]!));
         lineIndex += 1;
       }
@@ -590,9 +592,17 @@ function isTableStart(lines: string[], index: number): boolean {
   return Boolean(
     header &&
     divider &&
-    /^\s*\|.*\|\s*$/.test(header) &&
-    /^\s*\|?[\s:|-]+\|[\s:|-]+/.test(divider),
+    isTableRow(header) &&
+    isTableDivider(divider),
   );
+}
+
+function isTableRow(line: string): boolean {
+  return /^\s*\|/.test(line) && splitTableRow(line).length >= 2;
+}
+
+function isTableDivider(line: string): boolean {
+  return isTableRow(line) && splitTableRow(line).every((cell) => /^:?-{1,}:?$/.test(cell));
 }
 
 function splitTableRow(line: string): string[] {
