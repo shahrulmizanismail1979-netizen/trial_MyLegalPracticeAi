@@ -4,9 +4,11 @@ import { useMatters, Matter } from "@/hooks/use-matters";
 
 interface MatterPickerProps {
   onSelect: (matter: Matter) => void;
+  onClear?: () => void;
+  resetKey?: number;
 }
 
-export function MatterPicker({ onSelect }: MatterPickerProps) {
+export function MatterPicker({ onSelect, onClear, resetKey }: MatterPickerProps) {
   const { data: matters, isLoading } = useMatters();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Matter | null>(null);
@@ -23,6 +25,13 @@ export function MatterPicker({ onSelect }: MatterPickerProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    if (resetKey !== undefined) {
+      setSelected(null);
+      setOpen(false);
+    }
+  }, [resetKey]);
+
   function handleSelect(matter: Matter) {
     setSelected(matter);
     setOpen(false);
@@ -32,6 +41,7 @@ export function MatterPicker({ onSelect }: MatterPickerProps) {
   function handleClear(e: React.MouseEvent) {
     e.stopPropagation();
     setSelected(null);
+    onClear?.();
   }
 
   function matterLabel(m: Matter): string {

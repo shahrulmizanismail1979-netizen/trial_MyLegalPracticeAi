@@ -38,7 +38,12 @@ export default function ToolDetailPage() {
   const matterIdFromQuery = matterIdParam && Number.isInteger(Number(matterIdParam))
     ? Number(matterIdParam)
     : null;
+  const [selectedMatterId, setSelectedMatterId] = useState<number | null>(matterIdFromQuery);
   const outputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSelectedMatterId(matterIdFromQuery);
+  }, [matterIdFromQuery]);
 
   useEffect(() => {
     if (!localStorage.getItem("auth_token")) {
@@ -133,6 +138,7 @@ export default function ToolDetailPage() {
 
   /** Pre-fill form fields from a selected matter. */
   const handleMatterSelect = (matter: Matter) => {
+    setSelectedMatterId(matter.id);
     const updates: Record<string, string> = {};
 
     // Build a formatted summary for any leading textarea
@@ -209,7 +215,7 @@ export default function ToolDetailPage() {
         // Tool IDs are shared with the backend registry. Never downgrade an
         // unrecognised specialist tool to a generic tutor prompt: a rejected
         // request is safer and more useful than the wrong kind of work product.
-        body: JSON.stringify({ tool: tool.id, message: prompt, matterId: matterIdFromQuery ?? undefined }),
+        body: JSON.stringify({ tool: tool.id, message: prompt, matterId: selectedMatterId ?? undefined }),
       });
 
       if (!response.ok) {
@@ -290,6 +296,7 @@ export default function ToolDetailPage() {
   const handleReset = () => {
     tts.stop();
     setFormValues({});
+    setSelectedMatterId(null);
     setOutput("");
     setIsOutputComplete(false);
     setError(null);
@@ -349,7 +356,11 @@ export default function ToolDetailPage() {
             )}
 
             {/* Matter picker — pre-fills form fields from an existing case file */}
-            <MatterPicker onSelect={handleMatterSelect} />
+            <MatterPicker
+              onSelect={handleMatterSelect}
+              onClear={() => setSelectedMatterId(null)}
+              resetKey={resetKey}
+            />
 
             {tool.formFields.map((field) => (
               <div key={field.id} className="space-y-1.5">
