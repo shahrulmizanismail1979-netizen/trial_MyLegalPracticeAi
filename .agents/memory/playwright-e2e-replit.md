@@ -22,3 +22,12 @@ description: How browser e2e tests run here without downloading browsers, and au
 **How to apply:** any new e2e suite in api-server or portals — copy
 `artifacts/api-server/playwright.config.ts` pattern; run via
 `pnpm --filter <pkg> run test:e2e`.
+
+- Preview artifact workflows may be `NOT_STARTED` even when the deployment
+  sidecar is present. Start or restart the API and target frontend workflows
+  before browser validation if the shared proxy returns 502.
+- **Why:** Playwright cannot reach a static artifact or API route until its
+  owning managed workflow is serving, and the resulting navigation error looks
+  like a test failure rather than an application assertion failure.
+- **How to apply:** check workflow status and restart only the API plus the
+  target artifact before rerunning a failed browser suite.

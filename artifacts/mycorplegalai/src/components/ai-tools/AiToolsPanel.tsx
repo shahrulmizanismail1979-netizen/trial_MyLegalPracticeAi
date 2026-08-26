@@ -384,11 +384,11 @@ export function AiToolsPanel() {
                     >
                       <div className="text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-60 flex items-center gap-2">
                         {msg.role === "user" ? "You" : activeToolDef?.name}
-                        {msg.role === "ai" && msg.content && <CopyButton text={msg.content} />}
-                        {msg.role === "ai" && msg.content && canUseVoice(tier) && (
+                        {msg.role === "ai" && msg.content && msg.isComplete && <CopyButton text={msg.content} />}
+                        {msg.role === "ai" && msg.content && msg.isComplete && canUseVoice(tier) && (
                           <ReadAloudButton text={msg.content} tts={tts} />
                         )}
-                        {msg.role === "ai" && msg.content && (
+                        {msg.role === "ai" && msg.content && msg.isComplete && (
                           <DraftExportButtons
                             title={activeToolDef?.name || "AI Response"}
                             content={msg.content}
@@ -410,6 +410,7 @@ export function AiToolsPanel() {
                         }
                         {msg.role === "ai" &&
                           msg.content &&
+                          msg.isComplete &&
                           !isLoading &&
                           (activeTool === "drafter" || activeTool === "minutes-drafter") && (
                             <div className="mt-3">

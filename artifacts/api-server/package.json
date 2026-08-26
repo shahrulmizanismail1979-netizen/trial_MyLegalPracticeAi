@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:case-home": "playwright test e2e/case-home-handoffs.spec.ts",
+    "test:e2e:corp-drafts": "playwright test e2e/corp-draft-completion.spec.ts",
     "test:e2e:fab": "playwright test e2e/fab-stacking.spec.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

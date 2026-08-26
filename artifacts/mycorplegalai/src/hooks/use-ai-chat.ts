@@ -6,6 +6,7 @@ type AiTool = "tutor" | "drafter" | "risk-scanner" | "checklist" | "deadline-cal
 export interface AiMessage {
   role: "user" | "ai";
   content: string;
+  isComplete?: boolean;
 }
 
 export function useAiChat() {
@@ -114,6 +115,14 @@ export function useAiChat() {
       if (!sawDone) {
         throw new Error("The AI connection ended before the draft was complete. Please generate it again.");
       }
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === "ai") {
+          updated[updated.length - 1] = { ...last, isComplete: true };
+        }
+        return updated;
+      });
       reader.cancel().catch(() => {});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An error occurred";

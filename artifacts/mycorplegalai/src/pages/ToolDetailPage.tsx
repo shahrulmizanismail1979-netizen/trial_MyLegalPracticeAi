@@ -29,6 +29,7 @@ export default function ToolDetailPage() {
   const tts = useTts();
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [output, setOutput] = useState("");
+  const [isOutputComplete, setIsOutputComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -193,6 +194,7 @@ export default function ToolDetailPage() {
     setIsLoading(true);
     setError(null);
     setOutput("");
+    setIsOutputComplete(false);
 
     const prompt = tool.buildPrompt(formValues);
 
@@ -273,10 +275,12 @@ export default function ToolDetailPage() {
       if (!sawDone) {
         throw new Error("The AI connection ended before the draft was complete. Please generate it again.");
       }
+      setIsOutputComplete(true);
       reader.cancel().catch(() => {});
     } catch (err: unknown) {
       // Never leave a truncated response looking exportable or complete.
       setOutput("");
+      setIsOutputComplete(false);
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setIsLoading(false);
@@ -287,6 +291,7 @@ export default function ToolDetailPage() {
     tts.stop();
     setFormValues({});
     setOutput("");
+    setIsOutputComplete(false);
     setError(null);
     setResetKey((k) => k + 1); // remounts file dropzones so their file lists clear
   };
@@ -438,7 +443,7 @@ export default function ToolDetailPage() {
           <div className="bg-card border border-purple-500/15 rounded-xl flex flex-col min-h-[500px]">
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
               <h3 className="font-serif font-semibold text-foreground text-sm">AI Output</h3>
-              {output && (
+              {output && isOutputComplete && (
                 <div className="flex items-center gap-1.5">
                   {canUseVoice(tier) && (
                     <button
@@ -488,7 +493,7 @@ export default function ToolDetailPage() {
         </div>
 
         {/* Save the completed draft into a matter file */}
-        {output && !isLoading && (
+        {output && isOutputComplete && !isLoading && (
           <SaveToMatterPanel
             draftTitle={tool.name}
             draftContent={output}
