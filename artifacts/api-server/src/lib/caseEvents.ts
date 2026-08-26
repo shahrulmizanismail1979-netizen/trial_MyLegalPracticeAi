@@ -150,6 +150,10 @@ export async function recordCaseEvent(
  * Update the chronology event linked to an external record (identified by its
  * `source` marker, e.g. "deadline:12"). Best-effort: never throws. Used to keep
  * a mirrored event in step with its origin (e.g. a Diary deadline edit).
+ *
+ * Returns whether an existing event was updated. Callers that support an
+ * origin being re-dated after it had no date can use a false result to create
+ * the event again.
  */
 export async function updateCaseEventBySource(
   portal: Portal,
@@ -157,9 +161,9 @@ export async function updateCaseEventBySource(
   ownerKey: string,
   source: string,
   patch: { event_date?: string; title?: string; description?: string | null },
-): Promise<void> {
+): Promise<boolean> {
   try {
-    if (!ownerKey || !source) return;
+    if (!ownerKey || !source) return false;
     const sets: string[] = [];
     const params: unknown[] = [portal, matterId, ownerKey, source];
     if (patch.event_date !== undefined && isValidDate(patch.event_date)) {
@@ -174,14 +178,16 @@ export async function updateCaseEventBySource(
       params.push(typeof patch.description === "string" ? patch.description.slice(0, 5000) : null);
       sets.push(`description = $${params.length}`);
     }
-    if (sets.length === 0) return;
-    await pool.query(
+    if (sets.length === 0) return false;
+    const result = await pool.query(
       `UPDATE case_events SET ${sets.join(", ")}
        WHERE portal = $1 AND matter_id = $2 AND owner_key = $3 AND source = $4`,
       params,
     );
+    return (result.rowCount ?? 0) > 0;
   } catch (err) {
     logger.warn({ err, portal, matterId, source }, "updateCaseEventBySource failed (non-fatal)");
+    return false;
   }
 }
 

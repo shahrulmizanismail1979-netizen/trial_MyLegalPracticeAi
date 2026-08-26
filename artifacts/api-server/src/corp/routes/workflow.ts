@@ -94,6 +94,32 @@ async function deleteWorkflowDeadline(deadlineId: number | null, matterId: numbe
   );
 }
 
+async function syncWorkflowChronology(
+  matterId: number,
+  ownerId: number,
+  source: string,
+  title: string,
+  eventDate: string | null,
+): Promise<void> {
+  if (!eventDate) {
+    await deleteCaseEventBySource("corp", matterId, String(ownerId), source);
+    return;
+  }
+
+  const updated = await updateCaseEventBySource("corp", matterId, String(ownerId), source, {
+    event_date: eventDate,
+    title,
+  });
+  if (!updated) {
+    await recordCaseEvent("corp", matterId, String(ownerId), {
+      event_date: eventDate,
+      title,
+      kind: "deadline",
+      source,
+    });
+  }
+}
+
 export function createCorpWorkflowRouter(): IRouter {
   const router: IRouter = Router({ mergeParams: true });
   router.use(requireOwner);
@@ -197,12 +223,13 @@ export function createCorpWorkflowRouter(): IRouter {
       );
       row.deadline_id = deadlineId;
     }
-    void recordCaseEvent("corp", matterId, String(ownerId), {
-      event_date: dueDate ?? new Date().toISOString().slice(0, 10),
-      title: `Compliance obligation added: ${title}`,
-      kind: "deadline",
-      source: `compliance-obligation:${row.id}`,
-    });
+    await syncWorkflowChronology(
+      matterId,
+      ownerId,
+      `compliance-obligation:${row.id}`,
+      `Compliance obligation added: ${title}`,
+      dueDate,
+    );
     res.status(201).json(row);
   });
 
@@ -237,7 +264,8 @@ export function createCorpWorkflowRouter(): IRouter {
     const result = await pool.query(
       `UPDATE corp_compliance_obligations
        SET title = COALESCE($1, title), authority = COALESCE($2, authority),
-           owner_name = COALESCE($3, owner_name), due_date = COALESCE($4::date, due_date),
+           owner_name = COALESCE($3, owner_name),
+           due_date = CASE WHEN $13::boolean THEN $4::date ELSE due_date END,
            status = COALESCE($5, status), risk = COALESCE($6, risk),
            evidence_note = COALESCE($7, evidence_note), source_reference = COALESCE($8, source_reference),
            verified_by = COALESCE($9, verified_by),
@@ -245,7 +273,7 @@ export function createCorpWorkflowRouter(): IRouter {
            updated_at = now()
        WHERE id = $10 AND matter_id = $11 AND access_code_id = $12
        RETURNING *`,
-      [...values, id, matterId, ownerId],
+      [...values, id, matterId, ownerId, body.due_date === null || values[3] !== undefined],
     );
     const row = result.rows[0];
     const deadlineId = await mirrorWorkflowDeadline(matterId, ownerId, row.deadline_id, row.title, dateOnly(row.due_date), "compliance", row.status === "fulfilled" ? "completed" : "pending");
@@ -253,10 +281,13 @@ export function createCorpWorkflowRouter(): IRouter {
       await pool.query("UPDATE corp_compliance_obligations SET deadline_id = $1 WHERE id = $2", [deadlineId, id]);
       row.deadline_id = deadlineId;
     }
-    void updateCaseEventBySource("corp", matterId, String(ownerId), `compliance-obligation:${id}`, {
-      event_date: dateOnly(row.due_date) ?? undefined,
-      title: `Compliance obligation: ${row.title}`,
-    });
+    await syncWorkflowChronology(
+      matterId,
+      ownerId,
+      `compliance-obligation:${id}`,
+      `Compliance obligation: ${row.title}`,
+      dateOnly(row.due_date),
+    );
     res.json(row);
   });
 
@@ -275,7 +306,7 @@ export function createCorpWorkflowRouter(): IRouter {
       return;
     }
     await deleteWorkflowDeadline(result.rows[0].deadline_id, matterId!, ownerId);
-    void deleteCaseEventBySource("corp", matterId!, String(ownerId), `compliance-obligation:${id}`);
+    await deleteCaseEventBySource("corp", matterId!, String(ownerId), `compliance-obligation:${id}`);
     res.json({ success: true });
   });
 
@@ -315,12 +346,13 @@ export function createCorpWorkflowRouter(): IRouter {
       await pool.query("UPDATE corp_transaction_items SET deadline_id = $1 WHERE id = $2", [deadlineId, row.id]);
       row.deadline_id = deadlineId;
     }
-    void recordCaseEvent("corp", matterId, String(ownerId), {
-      event_date: targetDate ?? new Date().toISOString().slice(0, 10),
-      title: `Transaction item added: ${title}`,
-      kind: "deadline",
-      source: `transaction-item:${row.id}`,
-    });
+    await syncWorkflowChronology(
+      matterId,
+      ownerId,
+      `transaction-item:${row.id}`,
+      `Transaction item added: ${title}`,
+      targetDate,
+    );
     res.status(201).json(row);
   });
 
@@ -344,7 +376,8 @@ export function createCorpWorkflowRouter(): IRouter {
     const result = await pool.query(
       `UPDATE corp_transaction_items
        SET title = COALESCE($1::text, title), item_type = COALESCE($2::text, item_type),
-           counterparty = COALESCE($3::text, counterparty), target_date = COALESCE($4::date, target_date),
+           counterparty = COALESCE($3::text, counterparty),
+           target_date = CASE WHEN $15::boolean THEN $4::date ELSE target_date END,
            status = COALESCE($5::text, status), version_label = COALESCE($6::text, version_label),
            deviation = COALESCE($7::text, deviation), fallback_position = COALESCE($8::text, fallback_position),
            approval_status = COALESCE($9::text, approval_status),
@@ -357,9 +390,10 @@ export function createCorpWorkflowRouter(): IRouter {
         cleanText(body.title, 300), cleanText(body.item_type, 80), cleanText(body.counterparty, 300),
         cleanDate(body.target_date), TRANSACTION_STATUSES.includes(body.status) ? body.status : undefined,
         cleanText(body.version_label, 100), cleanText(body.deviation, 5000),
-        cleanText(body.fallback_position, 5000),
-        APPROVAL_STATUSES.includes(body.approval_status) ? body.approval_status : undefined,
-        cleanText(body.approved_by, 200), cleanText(body.notes, 5000), id, matterId, ownerId,
+         cleanText(body.fallback_position, 5000),
+         APPROVAL_STATUSES.includes(body.approval_status) ? body.approval_status : undefined,
+         cleanText(body.approved_by, 200), cleanText(body.notes, 5000), id, matterId, ownerId,
+         body.target_date === null || cleanDate(body.target_date) !== undefined,
       ],
     );
     const row = result.rows[0];
@@ -368,10 +402,13 @@ export function createCorpWorkflowRouter(): IRouter {
       await pool.query("UPDATE corp_transaction_items SET deadline_id = $1 WHERE id = $2", [deadlineId, id]);
       row.deadline_id = deadlineId;
     }
-    void updateCaseEventBySource("corp", matterId, String(ownerId), `transaction-item:${id}`, {
-      event_date: dateOnly(row.target_date) ?? undefined,
-      title: `Transaction item: ${row.title}`,
-    });
+    await syncWorkflowChronology(
+      matterId,
+      ownerId,
+      `transaction-item:${id}`,
+      `Transaction item: ${row.title}`,
+      dateOnly(row.target_date),
+    );
     res.json(row);
   });
 
@@ -390,7 +427,7 @@ export function createCorpWorkflowRouter(): IRouter {
       return;
     }
     await deleteWorkflowDeadline(result.rows[0].deadline_id, matterId!, ownerId);
-    void deleteCaseEventBySource("corp", matterId!, String(ownerId), `transaction-item:${id}`);
+    await deleteCaseEventBySource("corp", matterId!, String(ownerId), `transaction-item:${id}`);
     res.json({ success: true });
   });
 
