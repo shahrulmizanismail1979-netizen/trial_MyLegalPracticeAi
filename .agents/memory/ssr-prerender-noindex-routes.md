@@ -24,9 +24,12 @@ publish-blocking failure. This exact regression shipped once via an SEO/crawlabi
 change that added `/contribute` to the prerender list without verifying the build.
 
 **How to apply:**
-- The client mounts with `createRoot` (not `hydrateRoot`), so the SSR HTML is
-  discarded on the client regardless — a missing/unreplaced `<!--ssr-outlet-->`
-  for a client-rendered route is harmless.
+- Production hydrates when the root contains prerendered elements, preserving
+  the first paint while Clerk initializes. Vite development serves only the
+  `<!--ssr-outlet-->` comment, so the client must detect that empty-element case
+  and use `createRoot`; blindly calling `hydrateRoot` there causes a mismatch.
+- Initial client state for any browser preference (persona, currency, locale)
+  must match the SSR default, then restore from browser APIs in a one-time effect.
 - Post-merge setup only runs typecheck + db push, NOT the build. So a task that
   changes prerender/SSR wiring can merge green yet break `pnpm --filter
   @workspace/landing-page run build`. Always run the landing-page build

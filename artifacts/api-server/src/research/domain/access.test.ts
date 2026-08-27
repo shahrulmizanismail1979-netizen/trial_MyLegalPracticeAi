@@ -173,14 +173,16 @@ describe("decideAccess invariants", () => {
     ).toBe(true);
   });
 
-  it("quarantine hides containers from search for everyone", () => {
+  it("only exposes explicitly searchable containers with search-safe rights", () => {
     expect(isSearchVisible("PUBLIC_OR_OPEN_LICENCE_SOURCE", "QUARANTINED")).toBe(
       false,
     );
     expect(isSearchVisible("UNREVIEWED", "UPLOADED")).toBe(false);
-    expect(isSearchVisible("PUBLIC_OR_OPEN_LICENCE_SOURCE", "UPLOADED")).toBe(
-      true,
+    expect(isSearchVisible("OFFICIAL_COURT_SOURCE", "VERIFIED")).toBe(false);
+    expect(isSearchVisible("OFFICIAL_COURT_SOURCE", "RIGHTS_REVIEW_REQUIRED")).toBe(
+      false,
     );
+    expect(isSearchVisible("OFFICIAL_COURT_SOURCE", "SEARCHABLE")).toBe(true);
   });
 
   it("MANUAL_LEGAL_REVIEW_REQUIRED allows legal reviewer view only", () => {

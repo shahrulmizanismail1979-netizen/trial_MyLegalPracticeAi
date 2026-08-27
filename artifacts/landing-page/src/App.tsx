@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Component, type ErrorInfo, type ReactNode, useEffect, useRef } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { ClerkProvider, useClerk } from "@clerk/react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,45 @@ import {
 import { PersonaProvider } from "@/lib/persona";
 
 const queryClient = new QueryClient();
+
+class LandingErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Landing page failed to render", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+          <section className="max-w-md text-center">
+            <h1 className="font-serif text-2xl font-bold">LAWYes is loading</h1>
+            <p className="mt-3 text-muted-foreground">
+              We could not finish loading this page. Please refresh and try again.
+            </p>
+            <button
+              className="mt-6 rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground"
+              onClick={() => window.location.reload()}
+              type="button"
+            >
+              Refresh page
+            </button>
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Keeps the webview cache fresh when the signed-in user changes.
 function ClerkQueryClientCacheInvalidator() {
@@ -112,6 +151,10 @@ function Router() {
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
+  if (!clerkPubKey) {
+    throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+  }
+
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -138,11 +181,13 @@ function ClerkProviderWithRoutes() {
 
 function App() {
   return (
-    <PersonaProvider>
-      <WouterRouter base={basePath}>
-        <ClerkProviderWithRoutes />
-      </WouterRouter>
-    </PersonaProvider>
+    <LandingErrorBoundary>
+      <PersonaProvider>
+        <WouterRouter base={basePath}>
+          <ClerkProviderWithRoutes />
+        </WouterRouter>
+      </PersonaProvider>
+    </LandingErrorBoundary>
   );
 }
 

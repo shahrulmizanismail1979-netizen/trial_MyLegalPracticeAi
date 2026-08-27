@@ -1,12 +1,14 @@
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
 const root = document.getElementById("root")!;
 
-// The app is wrapped in <ClerkProvider>, whose auth-aware rendering doesn't
-// match the static prerendered markup (which only covers the home route),
-// so we client-render instead of hydrating to avoid hydration mismatches.
-// The prerendered HTML is still served for SEO and first paint; React then
-// mounts the identical Home tree on "/" with no visible change.
-createRoot(root).render(<App />);
+// Production serves prerendered markup, which should stay visible while Clerk
+// initializes. Vite's development HTML contains only the <!--ssr-outlet-->
+// placeholder, so there is nothing to hydrate in that environment.
+if (root.children.length > 0) {
+  hydrateRoot(root, <App />);
+} else {
+  createRoot(root).render(<App />);
+}

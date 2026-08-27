@@ -314,8 +314,10 @@ export function isSearchVisible(
   processingState: ContainerState,
 ): boolean {
   return (
-    !HOLD_STATES.includes(processingState) &&
-    processingState !== "DELETED" &&
+    // Publication is an explicit terminal workflow transition. A permissive
+    // rights classification alone must never expose a container still under
+    // review or processing.
+    processingState === "SEARCHABLE" &&
     STATUS_CAPS[rightsStatus]?.search === true
   );
 }

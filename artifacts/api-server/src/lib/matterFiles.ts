@@ -651,7 +651,7 @@ export function createMatterFileRouters(
     let row: typeof savedWork.$inferSelect;
     let wasRetry = false;
     let redundantObjectPath: string | null = null;
-    if (objectMeta && typeof clientRequestId === "string" && savedWorkStorageTable && portal) {
+    if (objectMeta && savedWorkStorageTable && portal) {
       // The grant consume + record insert must be one transaction. The
       // owner/request unique index is the final arbiter when simultaneous
       // confirmations arrive after a dropped connection.
@@ -677,14 +677,16 @@ export function createMatterFileRouters(
           );
           if (consumed.rowCount === 0) {
             await client.query("ROLLBACK");
-            const [alreadySaved] = await db
-              .select()
-              .from(savedWork)
-              .where(and(eq(savedWork.ownerId, ownerId), eq(savedWork.clientRequestId, clientRequestId)))
-              .limit(1);
-            if (alreadySaved) {
-              res.status(200).json(alreadySaved);
-              return;
+            if (typeof clientRequestId === "string") {
+              const [alreadySaved] = await db
+                .select()
+                .from(savedWork)
+                .where(and(eq(savedWork.ownerId, ownerId), eq(savedWork.clientRequestId, clientRequestId)))
+                .limit(1);
+              if (alreadySaved) {
+                res.status(200).json(alreadySaved);
+                return;
+              }
             }
             res.status(400).json({
               error: "This upload reference is invalid or expired. Please retry the secure upload.",

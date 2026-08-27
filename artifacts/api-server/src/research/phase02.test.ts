@@ -227,7 +227,23 @@ describe("quarantine and enforcement gates", () => {
 
   it("quarantined/unreviewed containers never appear in search listings", async () => {
     const approved = await makeContainer();
+    await transitionContainer(approved.id, "RIGHTS_REVIEW_REQUIRED", { actor: "test" });
     await recordRightsDecision(approved.id, decision(), { actor: "r" });
+    for (const state of [
+      "RIGHTS_APPROVED",
+      "INVENTORY_PENDING",
+      "INVENTORIED",
+      "EXTRACTION_PENDING",
+      "TEXT_EXTRACTED",
+      "SEGMENTATION_PENDING",
+      "SEGMENTATION_PROPOSED",
+      "EDITORIAL_REVIEW_PENDING",
+      "JUDGMENT_VERIFICATION_PENDING",
+      "VERIFIED",
+      "SEARCHABLE",
+    ] as const) {
+      await transitionContainer(approved.id, state, { actor: "test" });
+    }
     const quarantined = await makeContainer();
     await recordRightsDecision(quarantined.id, decision(), { actor: "r" });
     await transitionContainer(quarantined.id, "QUARANTINED", {

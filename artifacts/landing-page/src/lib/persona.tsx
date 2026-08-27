@@ -20,24 +20,19 @@ interface PersonaContextType {
 const PersonaContext = createContext<PersonaContextType | undefined>(undefined);
 
 export function PersonaProvider({ children }: { children: ReactNode }) {
-  // SSR-safe: no localStorage during prerender; hydrate after mount.
-  const [persona, setPersonaState] = useState<Persona>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return (window.localStorage.getItem("legal_persona") as Persona) || null;
-    } catch {
-      return null;
-    }
-  });
+  // Match SSR for the first client render, then restore browser preferences.
+  // This lets main.tsx hydrate instead of clearing the prerendered page.
+  const [persona, setPersonaState] = useState<Persona>(null);
+  const [skipped, setSkipped] = useState(false);
 
-  const [skipped, setSkipped] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+  useEffect(() => {
     try {
-      return window.localStorage.getItem("legal_persona_skipped") === "1";
+      setPersonaState((window.localStorage.getItem("legal_persona") as Persona) || null);
+      setSkipped(window.localStorage.getItem("legal_persona_skipped") === "1");
     } catch {
-      return false;
+      // Storage may be unavailable; retain the SSR-safe defaults.
     }
-  });
+  }, []);
 
   const setPersona = (p: Persona) => {
     if (p) {

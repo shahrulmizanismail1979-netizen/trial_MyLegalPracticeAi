@@ -56,9 +56,19 @@ async function signIn(page: Page): Promise<void> {
   await page.goto(`${BASE}/mycorplegalai/login`);
   const accessCodeInput = page.getByPlaceholder("Access Code");
   await accessCodeInput.fill(accessCode);
+  const loginResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/api/corp/legal/verify-password") &&
+    response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Authenticate", exact: true }).click();
+  const response = await loginResponse;
+  expect(response.status(), "Access-code login request must succeed").toBe(200);
+  expect(response.request().postDataJSON()).toEqual({ password: accessCode });
   await expect(page).toHaveURL(/\/mycorplegalai\/dashboard$/);
   await expect(page.getByText("Practitioner", { exact: true }).first()).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("auth_token")))
+    .not.toBeNull();
 }
 
 async function expectHtmlTable(page: Page, expectedHeaders: string[]): Promise<void> {
@@ -152,6 +162,10 @@ test.beforeEach(async () => {
       label: `Draft completion e2e ${accessCode}`,
       tier: "practitioner",
       isActive: true,
+      // Keep this test code explicitly paid/current and post-grandfathering:
+      // the UI assertion must exercise Practitioner, not legacy full access.
+      createdAt: new Date("2026-06-08T00:00:00.000Z"),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     })
     .returning({ id: corpAccessCodes.id });
   codeId = created.id;

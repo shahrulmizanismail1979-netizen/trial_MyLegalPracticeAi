@@ -99,7 +99,14 @@ interface CurrencyContextValue {
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currency, setCurrencyState] = useState<CurrencyCode>(() => detectDefaultCurrency());
+  // Begin with the same value used during SSR. Detecting from local storage,
+  // timezone, or browser locale during the initial render would make the
+  // hydrated markup differ from the prerendered markup.
+  const [currency, setCurrencyState] = useState<CurrencyCode>("USD");
+
+  useEffect(() => {
+    setCurrencyState(detectDefaultCurrency());
+  }, []);
 
   const { data } = useGetCurrencyRates({
     query: {

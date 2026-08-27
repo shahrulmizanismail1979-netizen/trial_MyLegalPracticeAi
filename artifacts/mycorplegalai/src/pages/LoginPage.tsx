@@ -125,9 +125,17 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const accessCode = password.trim();
+
+    if (!accessCode) {
+      setError("Enter your access code.");
+      return;
+    }
 
     verifyPassword.mutate(
-      { data: { password } },
+      // The generated React Query mutation accepts its request body beneath
+      // `data`; passing the body directly serializes an undefined password.
+      { data: { password: accessCode } },
       {
         onSuccess: (res) => {
           if (res.success && res.token) {

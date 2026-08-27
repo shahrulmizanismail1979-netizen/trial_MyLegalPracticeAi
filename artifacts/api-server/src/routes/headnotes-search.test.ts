@@ -197,7 +197,14 @@ describe("accepted headnotes and catchwords in portal search", () => {
     const accepted = await admin
       .post(`/api/research-admin/headnotes/${judgmentId}/accept-all`)
       .expect(200);
-    expect(accepted.body).toEqual({ acceptedHeadnotes: 1, acceptedCatchwords: 1 });
+    // Accept-all reports whether this acceptance performed the one-way
+    // VERIFIED → SEARCHABLE transition. This fixture starts SEARCHABLE, so it
+    // deliberately confirms the stable response contract and the no-op value.
+    expect(accepted.body).toEqual({
+      acceptedHeadnotes: 1,
+      acceptedCatchwords: 1,
+      promotedToSearchable: false,
+    });
 
     await driveAcceptedContentReindex((await latestAcceptedContentReindexJob()).idempotencyKey);
 

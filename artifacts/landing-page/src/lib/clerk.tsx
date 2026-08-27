@@ -20,10 +20,6 @@ export function stripBase(path: string): string {
     : path;
 }
 
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
-}
-
 const primaryBlue = "#6395e0";
 
 export const clerkAppearance = {
