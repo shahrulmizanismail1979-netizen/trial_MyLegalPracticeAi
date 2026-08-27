@@ -48,7 +48,7 @@ import { registerDriveIngestProcessor } from "./research/drive/driveIngestProces
 import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
 import { getStripeSync, getStripeMode, warnIfTestModeInProduction, purgeTestModeStripeData } from "./stripeClient";
 import { startCorpUploadSweepWorker } from "./corp/corpUploadSweepWorker";
-import { ensureLandingCatalogPrices } from "./routes/stripe";
+import { ensureLandingCatalogPrices, resolveOrigin } from "./routes/stripe";
 
 function registerAllResearchProcessors(): void {
   // All register functions are idempotent — safe to call multiple times and
@@ -144,7 +144,10 @@ async function initStripe(): Promise<void> {
     // ENABLE_DEV_STRIPE_WEBHOOK=1 to opt in during local webhook testing.
     const isProduction = !!process.env.REPLIT_DEPLOYMENT;
     if (isProduction || process.env.ENABLE_DEV_STRIPE_WEBHOOK === "1") {
-      const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
+      const webhookBaseUrl = resolveOrigin();
+      if (!webhookBaseUrl) {
+        throw new Error("Cannot configure Stripe webhook without a trusted public origin");
+      }
       const webhookResult = await stripeSync.findOrCreateManagedWebhook(
         `${webhookBaseUrl}/api/stripe/webhook`,
       );

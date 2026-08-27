@@ -67,7 +67,9 @@ const ALLOWED_APP_REDIRECTS = new Set([
  * environment — never from the client-supplied Origin header — so a public
  * checkout request cannot redirect the post-payment flow to an attacker domain.
  */
-function resolveOrigin(): string {
+export function resolveOrigin(): string {
+  const configured = process.env.LAWYES_PUBLIC_URL?.trim().replace(/\/+$/, "");
+  if (configured && /^https:\/\//i.test(configured)) return configured;
   const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
   if (domain) return `https://${domain}`;
   return "";
