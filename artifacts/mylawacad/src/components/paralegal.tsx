@@ -2,8 +2,10 @@
  * MyLawAcad floating "virtual paralegal" (AI chat + voice).
  *
  * Thin wrapper around the shared @workspace/paralegal-widget so both the
- * examiner and studio dashboards can drop in a single <AcadParalegal /> without
- * duplicating the request/auth wiring.
+ * authenticated route guards can render one <AcadParalegal /> without
+ * duplicating the request/auth wiring. Keeping it at that boundary makes Amani
+ * available in every signed-in educator/admin area while leaving public and
+ * per-attempt student/proctoring screens untouched.
  *
  * Auth: MyLawAcad is a session-cookie portal (setBaseUrl("/api/acad"), no
  * bearer token getter — see src/lib/api-client + src/main.tsx). So the request

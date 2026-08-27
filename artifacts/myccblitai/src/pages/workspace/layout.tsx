@@ -2,12 +2,19 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, MessageSquare, Calculator, BookMarked, BookOpen, Target, Grid, FolderKanban } from "lucide-react";
-import { clearToken, authHeaders } from "@/lib/auth";
+import { clearToken, authHeaders, isAuthenticated } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
 }
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/ccb${path}`, {
+    ...init,
+    headers: { ...(init?.headers ?? {}), ...authHeaders() },
+  });
 
 export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const [, setLocation] = useLocation();
@@ -144,6 +151,13 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
           {children}
         </div>
       </main>
+      {isAuthenticated() && (
+        <ParalegalWidget
+          portalName="MyCorpCommBankLitAI"
+          request={paralegalRequest}
+          accent="#8a6d2f"
+        />
+      )}
     </div>
   );
 }

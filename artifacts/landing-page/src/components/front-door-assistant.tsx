@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, SendHorizonal, X, MessageCircle } from "lucide-react";
+import { SendHorizonal, X } from "lucide-react";
+import { AmaniAvatar } from "@workspace/paralegal-widget";
 
 type ChatRole = "user" | "assistant";
 
@@ -10,7 +11,7 @@ interface ChatMessage {
 }
 
 const GREETING =
-  "Hi! 👋 Not sure which option fits you? Tell me a bit about your work — for example \"I run a small litigation firm\" or \"I'm a company secretary\" — and I'll suggest the best pathway. Saya juga boleh membantu dalam Bahasa Malaysia.";
+  "Hi! I'm Amani. Not sure which option fits you? Tell me a bit about your work — for example \"I run a small litigation firm\" or \"I'm a company secretary\" — and I'll suggest the best pathway. Saya juga boleh membantu dalam Bahasa Malaysia.";
 
 const SUGGESTIONS = [
   "Which option should I pick?",
@@ -139,12 +140,10 @@ export function FrontDoorAssistant() {
       {open && (
         <div className="mb-4 w-[min(24rem,calc(100vw-3rem))] rounded-2xl border border-primary/25 bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-secondary/40">
-            <div className="h-9 w-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
-              <Sparkles className="h-4 w-4" />
-            </div>
+            <AmaniAvatar size={36} />
             <div className="text-left">
               <p className="font-serif text-sm font-semibold leading-tight">Need help choosing?</p>
-              <p className="text-xs text-muted-foreground">AI assistant · English / Bahasa Malaysia</p>
+              <p className="text-xs text-muted-foreground">Amani · English / Bahasa Malaysia</p>
             </div>
             <button
               type="button"
@@ -235,10 +234,10 @@ export function FrontDoorAssistant() {
 
       <Button
         onClick={() => setOpen(!open)}
-        className="h-12 rounded-full shadow-lg gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+        className="h-14 rounded-full shadow-lg gap-2 bg-primary text-primary-foreground hover:bg-primary/90 pl-2 pr-5"
       >
-        <MessageCircle className="h-5 w-5" />
-        <span className="font-medium">{open ? "Close" : "Need help choosing?"}</span>
+        <AmaniAvatar size={40} />
+        <span className="font-medium text-sm">{open ? "Close" : "Need help choosing?"}</span>
       </Button>
     </div>
   );

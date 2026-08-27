@@ -13,6 +13,7 @@ import {
   getGetMeQueryKey,
   type AuthUser,
 } from "@/lib/api-client";
+import { AcadParalegal } from "@/components/paralegal";
 
 type AuthState = {
   user: AuthUser | null;
@@ -79,7 +80,11 @@ function loginPathForCurrentLocation(): string {
   return "/examiner";
 }
 
-/** Redirects to the right login (/studio/login under /studio/*, else /examiner). */
+/**
+ * Redirects to the right login (/studio/login under /studio/*, else /examiner).
+ * This is also the signed-in shell: render Amani here rather than in individual
+ * dashboards so each protected route has exactly one widget.
+ */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
@@ -90,10 +95,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (loading) return <AuthLoading />;
   if (!user) return null;
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AcadParalegal />
+    </>
+  );
 }
 
-/** Redirects non-admins to /examiner/dashboard, unauthed to /examiner. */
+/** Admin variant of the signed-in shell. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
@@ -106,7 +116,12 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
 
   if (loading) return <AuthLoading />;
   if (!user || user.role !== "admin") return null;
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AcadParalegal />
+    </>
+  );
 }
 
 function AuthLoading() {

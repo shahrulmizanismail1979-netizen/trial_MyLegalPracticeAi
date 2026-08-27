@@ -135,8 +135,14 @@ const S = {
   } as React.CSSProperties,
 };
 
-/** Photo avatar — professional AI-generated portrait with animated speaking rings. */
-function Avatar({ size, speaking }: { size: number; speaking: boolean }) {
+/** Shared Amani portrait so every LAWYes assistant uses the same identity. */
+export function AmaniAvatar({
+  size,
+  speaking = false,
+}: {
+  size: number;
+  speaking?: boolean;
+}) {
   return (
     <span
       style={{
@@ -364,7 +370,7 @@ export function ParalegalWidget({
       {open && (
         <div style={S.panel} role="dialog" aria-label={`${assistantName} — virtual paralegal`}>
           <div style={S.header(accent)}>
-            <Avatar size={36} speaking={speaking} />
+            <AmaniAvatar size={36} speaking={speaking} />
             <div style={{ flex: 1, lineHeight: 1.2 }}>
               <div style={{ fontWeight: 700 }}>{assistantName}</div>
               <div style={{ fontSize: 11, opacity: 0.85 }}>Virtual paralegal · {portalName}</div>
@@ -418,7 +424,7 @@ export function ParalegalWidget({
         title={`${assistantName} — your virtual paralegal`}
         onClick={() => setOpen((o) => !o)}
       >
-        <Avatar size={48} speaking={speaking} />
+        <AmaniAvatar size={48} speaking={speaking} />
       </button>
     </>
   );

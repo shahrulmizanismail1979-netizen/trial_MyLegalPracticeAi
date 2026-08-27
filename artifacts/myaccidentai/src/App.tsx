@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { CaseCorpusStatus } from "@workspace/case-home-ui";
@@ -14,6 +14,8 @@ import MatterDetailPage from "@/pages/matter-detail";
 import BillingPage from "@/pages/billing";
 import CaseLawPage from "@/pages/case-law";
 import { useEffect } from "react";
+import { useAccidentCheckSession } from "@workspace/api-client-react";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 const queryClient = new QueryClient();
 
@@ -40,13 +42,37 @@ function Router() {
   );
 }
 
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/accident${path}`, { ...init, credentials: "include" });
+
+/**
+ * This remains mounted while users move between workspace routes, while the
+ * session check keeps the assistant out of public and admin routes.
+ */
+function AuthenticatedWorkspaceShell({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { data: session } = useAccidentCheckSession();
+  const isWorkspaceRoute = location === "/workspace" || location.startsWith("/workspace/");
+
+  return (
+    <>
+      {children}
+      {isWorkspaceRoute && session?.authenticated && (
+        <ParalegalWidget portalName="MyAccidentAI" request={paralegalRequest} accent="#8a6d2f" />
+      )}
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DarkMode>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
+              <AuthenticatedWorkspaceShell>
+                <Router />
+              </AuthenticatedWorkspaceShell>
           </WouterRouter>
           <CaseCorpusStatus />
           <Toaster />

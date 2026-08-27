@@ -21,12 +21,6 @@ import {
 } from "@/components/workspace/data";
 import { CalculatorTab } from "@/components/workspace/calculator-tab";
 import { CausePaperGenerator } from "@/components/workspace/cause-paper-generator";
-import { ParalegalWidget } from "@workspace/paralegal-widget";
-
-// Authed fetch for the floating virtual paralegal. MyAccidentAI uses a
-// session cookie (session_id), so forward credentials and target /api/accident.
-const paralegalRequest = (path: string, init?: RequestInit) =>
-  fetch(`/api/accident${path}`, { ...init, credentials: "include" });
 import { ChecklistsTab } from "@/components/workspace/checklists-tab";
 import { templates } from "@/components/workspace/templates";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
@@ -260,7 +254,6 @@ export default function Workspace() {
           {activeTab === "drafter" && <AiDrafterTab matter={pickedMatter} />}
         </div>
       </main>
-      <ParalegalWidget portalName="MyAccidentAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }

@@ -123,41 +123,32 @@ export function PersonaFrontDoor() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 relative z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background opacity-50 pointer-events-none" />
-      
-      <div className="max-w-5xl w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 my-auto py-12">
+    <section id="persona-selector" className="relative w-full bg-secondary/10 border-b border-border/50 py-16 md:py-24 animate-in fade-in duration-700">
+      <div className="px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <img
-              src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
-              alt="LAWYes — Your Legal Work, Solved."
-              className="h-40 md:h-52 w-auto"
-            />
-          </div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
             Welcome to LAWYes
           </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight mb-6" style={{ textWrap: "balance" }}>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold tracking-tight mb-6" style={{ textWrap: "balance" }}>
             How do you primarily <span className="text-gradient-gold">work in law?</span>
-          </h1>
+          </h2>
           <div className="max-w-3xl mx-auto rounded-2xl border border-primary/30 bg-primary/5 px-6 py-5 md:px-8 md:py-6">
-            <p className="text-xl md:text-2xl font-medium text-foreground leading-relaxed" style={{ textWrap: "balance" }}>
+            <p className="text-lg md:text-xl font-medium text-foreground leading-relaxed" style={{ textWrap: "balance" }}>
               Pick the option that best describes your work — we'll arrange the site around the tools most relevant to you.
             </p>
-            <p className="text-base md:text-lg text-muted-foreground mt-3">
+            <p className="text-sm md:text-base text-muted-foreground mt-3">
               You can change this anytime, and it doesn't limit what you can access.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-16 max-w-5xl mx-auto">
           {PATHWAYS.map(({ role, icon: Icon, title, desc }, i) => (
             <button
               key={role}
               onClick={() => handleSelect(role)}
               disabled={!!selectingRole}
-              className="group relative flex flex-col items-center text-center p-7 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 disabled:opacity-50 disabled:pointer-events-none"
+              className="group relative flex flex-col items-center text-center p-7 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-card hover:border-primary/50 transition-all duration-500 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 disabled:opacity-50 disabled:pointer-events-none"
               style={i > 0 ? { animationDelay: `${i * 75}ms` } : undefined}
             >
               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-500">
@@ -203,7 +194,6 @@ export function PersonaFrontDoor() {
               type="button"
               onClick={() => {
                 skipFrontDoor();
-                window.scrollTo({ top: 0 });
               }}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-border/70 bg-card/60 text-sm font-medium text-foreground hover:bg-card hover:border-primary/40 hover:text-primary transition-all duration-200 shadow-sm"
             >
@@ -214,6 +204,6 @@ export function PersonaFrontDoor() {
       </div>
 
       <FrontDoorAssistant />
-    </div>
+    </section>
   );
 }

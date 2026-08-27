@@ -10,12 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useUpcomingDeadlines, categoryMeta, daysUntil } from "@/hooks/use-matters";
 import { CalendarClock, AlertTriangle, ArrowRight } from "lucide-react";
-import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 const COLORS = ["hsl(164 40% 35%)", "hsl(43 60% 45%)", "hsl(150 50% 35%)", "hsl(200 40% 40%)", "hsl(330 40% 40%)", "hsl(164 50% 25%)"];
-
-const paralegalRequest = (path: string, init?: RequestInit) =>
-  fetch(`/api/sya${path}`, { ...init, credentials: "include" });
 
 export default function DashboardPage() {
   const { t, mode } = useLanguage();
@@ -460,7 +456,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <ParalegalWidget portalName="MySyariahAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }

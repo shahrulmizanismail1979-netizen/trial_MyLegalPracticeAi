@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, SendHorizonal, ArrowDownRight } from "lucide-react";
+import { SendHorizonal, ArrowDownRight } from "lucide-react";
+import { AmaniAvatar } from "@workspace/paralegal-widget";
 
 type ChatRole = "user" | "assistant";
 
@@ -15,7 +16,7 @@ interface GotoAction {
 }
 
 const GREETING =
-  "Hello and welcome! 👋 I'm your AI receptionist at LAWYes — Your Legal Work, Solved. Whether you're a litigator, syarie counsel, company secretary, conveyancer, or in-house counsel — I can help you find the right AI portal, explain pricing and the 7-day free trial, or show you how to earn free months. Saya juga boleh membantu dalam Bahasa Malaysia. How can I help you today?";
+  "Hello and welcome! I'm Amani, your AI receptionist at LAWYes — Your Legal Work, Solved. Whether you're a litigator, syarie counsel, company secretary, conveyancer, or in-house counsel — I can help you find the right AI portal, explain pricing and the 7-day free trial, or show you how to earn free months. Saya juga boleh membantu dalam Bahasa Malaysia. How can I help you today?";
 
 const SUGGESTIONS = [
   "Which portal is right for my practice?",
@@ -161,11 +162,9 @@ export function ReceptionChat() {
     >
       <div className="rounded-2xl border border-primary/25 bg-card/80 backdrop-blur shadow-[0_0_60px_rgba(99,149,224,0.12)] overflow-hidden">
         <div className="flex items-center gap-4 px-6 py-5 border-b border-border/60 bg-secondary/40">
-          <div className="h-11 w-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shrink-0">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <AmaniAvatar size={44} />
           <div className="text-left">
-            <p className="font-serif text-base font-semibold leading-tight">AI Reception Counter</p>
+            <p className="font-serif text-base font-semibold leading-tight">Amani — AI Reception</p>
             <p className="text-sm text-muted-foreground">
               Happy to help with anything — portals, pricing, free trial, free access. English /
               Bahasa Malaysia.

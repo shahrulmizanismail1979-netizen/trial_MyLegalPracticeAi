@@ -51,8 +51,15 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { vaultVerify, vaultLogout } from "@/lib/irac-api";
 import { LogOut } from "lucide-react";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 const queryClient = new QueryClient();
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/lit/paralegal${path.replace(/^\/paralegal/, "")}`, {
+    ...init,
+    credentials: "include",
+  });
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<"checking" | "login" | "ok">("checking");
@@ -263,6 +270,11 @@ function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col">
         {children}
       </main>
+      <ParalegalWidget
+        portalName="MyLitAI IRAC"
+        accent="#8a6d2f"
+        request={paralegalRequest}
+      />
     </div>
   );
 }

@@ -54,15 +54,6 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (!persona && !skipped && !isCheckoutReturn && !isAnchorLink) {
-    return (
-      <>
-        <PoweredByBanner />
-        <PersonaFrontDoor />
-      </>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
       <PoweredByBanner />
@@ -72,10 +63,15 @@ export default function Home() {
       </div>
       
       <CheckoutSuccess />
-      <PersonaSwitcher />
+      {(persona || skipped) && <PersonaSwitcher />}
       
       <div className="relative z-10 animate-in fade-in duration-1000">
         <Hero />
+
+        {(!persona && !skipped && !isCheckoutReturn && !isAnchorLink) && (
+          <PersonaFrontDoor />
+        )}
+
         <ReceptionChat />
         <ContributeCTA />
         <AppsGrid />

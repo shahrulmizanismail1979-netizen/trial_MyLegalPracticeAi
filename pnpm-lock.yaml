@@ -293,6 +293,9 @@ importers:
       '@workspace/case-home-ui':
         specifier: workspace:*
         version: link:../../lib/case-home-ui
+      '@workspace/paralegal-widget':
+        specifier: workspace:*
+        version: link:../../lib/paralegal-widget
       '@workspace/object-storage-web':
         specifier: workspace:*
         version: link:../../lib/object-storage-web

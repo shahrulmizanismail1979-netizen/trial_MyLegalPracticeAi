@@ -28,10 +28,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEntitlements, AI_TOOL_PATHS } from "@/lib/entitlements";
-import { ParalegalWidget } from "@workspace/paralegal-widget";
-
-const paralegalRequest = (path: string, init?: RequestInit) =>
-  fetch(`/api/crim${path}`, { ...init, credentials: "include" });
 
 export function WorkspaceDashboard() {
   const { data: stats, isLoading: statsLoading } = useCrimGetDashboardStats();
@@ -201,11 +197,6 @@ export function WorkspaceDashboard() {
         </Card>
       </div>
 
-      <ParalegalWidget
-        portalName="MyCrimAI"
-        request={paralegalRequest}
-        accent="#8a6d2f"
-      />
     </div>
   );
 }

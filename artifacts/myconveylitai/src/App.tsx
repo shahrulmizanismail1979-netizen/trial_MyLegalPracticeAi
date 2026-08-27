@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { CaseCorpusStatus } from "@workspace/case-home-ui";
@@ -25,6 +25,7 @@ import { Matters } from "@/pages/Matters";
 import { MatterDetail } from "@/pages/MatterDetail";
 import { Billing } from "@/pages/Billing";
 import CaseLawPage from "@/pages/case-law";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 
 const queryClient = new QueryClient();
 
@@ -84,13 +85,49 @@ function Router() {
   );
 }
 
+const paralegalRequest = (path: string, init?: RequestInit) => {
+  const token = localStorage.getItem("convey_token");
+  return fetch(`/api/convey${path}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(init?.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+};
+
+/**
+ * The authenticated routes share one persistent Amani mount, so its chat
+ * remains available while navigating between the workspace and matter pages.
+ */
+function AuthenticatedAppShell() {
+  const { isAuthenticated } = useApp();
+  const [location] = useLocation();
+  const isAuthenticatedRoute =
+    location === "/dashboard" ||
+    location === "/matters" ||
+    location.startsWith("/matters/") ||
+    location === "/billing" ||
+    location === "/case-law";
+
+  return (
+    <>
+      <Router />
+      {isAuthenticated && isAuthenticatedRoute && (
+        <ParalegalWidget portalName="MyConveyLitAI" request={paralegalRequest} accent="#8a6d2f" />
+      )}
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AppProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
+            <AuthenticatedAppShell />
           </WouterRouter>
           <CaseCorpusStatus />
           <Toaster />

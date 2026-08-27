@@ -23,11 +23,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { ParalegalWidget } from "@workspace/paralegal-widget";
 import { JOURNEY_STEPS } from "@/lib/journey";
-
-const paralegalRequest = (path: string, init?: RequestInit) =>
-  fetch(`/api/lit/paralegal${path.replace(/^\/paralegal/, "")}`, { ...init, credentials: "include" });
 
 const STAT_PILLS: { href: string; labelKey: TranslationKey; icon: typeof BookOpen }[] = [
   { href: "/library/theory", labelKey: "home.pills.theory", icon: BookOpen },
@@ -272,7 +268,6 @@ export default function Home() {
         </div>
       )}
 
-      <ParalegalWidget portalName="MyLitAI IRAC" accent="#8a6d2f" request={paralegalRequest} />
     </div>
   );
 }

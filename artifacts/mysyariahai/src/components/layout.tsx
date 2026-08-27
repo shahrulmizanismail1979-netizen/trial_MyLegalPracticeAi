@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage, type LanguageMode } from "@/lib/language-context";
 import { useGate, GATE_INFO } from "@/lib/gate-context";
 import { Button } from "@/components/ui/button";
+import { ParalegalWidget } from "@workspace/paralegal-widget";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,9 @@ import {
 } from "@/components/ui/select";
 
 type Gate = "civil" | "criminal" | "advisory" | "all";
+
+const paralegalRequest = (path: string, init?: RequestInit) =>
+  fetch(`/api/sya${path}`, { ...init, credentials: "include" });
 
 const navItems: Array<{ path: string; label: string; labelBm: string; labelAr: string; icon: string; gates: Gate[]; adminOnly?: boolean }> = [
   { path: "/", label: "Dashboard", labelBm: "Papan Pemuka", labelAr: "لوحة المعلومات", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", gates: ["all"] },
@@ -310,6 +314,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </p>
         </footer>
       </div>
+      <ParalegalWidget portalName="MySyariahAI" request={paralegalRequest} accent="#8a6d2f" />
     </div>
   );
 }
