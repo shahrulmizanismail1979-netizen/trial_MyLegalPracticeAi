@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 
@@ -36,7 +36,12 @@ const { eq } = await import("drizzle-orm");
 describe("POST /api/stripe/customer-portal", () => {
   beforeEach(() => {
     state.portalSessions.length = 0;
+    delete process.env.LAWYES_PUBLIC_URL;
     process.env.REPLIT_DOMAINS = "lawyes.example.test";
+  });
+
+  afterEach(() => {
+    delete process.env.LAWYES_PUBLIC_URL;
   });
 
   afterAll(async () => {
@@ -99,6 +104,24 @@ describe("POST /api/stripe/customer-portal", () => {
         },
       },
     });
+  });
+
+  it("uses the explicitly configured public LAWYes URL over a runtime preview domain", async () => {
+    process.env.LAWYES_PUBLIC_URL = "https://mylegalpracticeai.life/";
+
+    const response = await request(app).post("/api/stripe/customer-portal").send({
+      accessCode: ACCESS_CODE,
+      email: EMAIL,
+      action: "manage",
+    });
+
+    expect(response.status).toBe(200);
+    expect(state.portalSessions).toEqual([
+      expect.objectContaining({
+        customer: STRIPE_CUSTOMER_ID,
+        return_url: "https://mylegalpracticeai.life/manage-subscription",
+      }),
+    ]);
   });
 
   it("returns the same neutral error for a wrong code or wrong email", async () => {
