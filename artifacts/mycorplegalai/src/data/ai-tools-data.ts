@@ -289,6 +289,59 @@ Provide:
 7. **Malaysian Law Considerations** — any CA 2016, stamp duty, or regulatory implications`
   },
   {
+    id: "drafter",
+    name: "AI Corporate Drafter",
+    shortName: "Corporate Draft",
+    description: "Draft partner-grade corporate legal documents, agreements, resolutions, notices, and ancillary documents in Malaysian format.",
+    category: "drafting",
+    icon: PenTool,
+    color: "text-purple-400",
+    exampleScenario: "Prepare a board resolution and supporting documents approving a share allotment for a Malaysian company",
+    formFields: [
+      {
+        id: "documentType",
+        label: "Document to Draft",
+        type: "select",
+        required: true,
+        options: [
+          { value: "board-resolution", label: "Board / Directors' Resolution" },
+          { value: "shareholders-resolution", label: "Members' / Shareholders' Resolution" },
+          { value: "share-purchase-agreement", label: "Share Purchase Agreement" },
+          { value: "shareholders-agreement", label: "Shareholders Agreement" },
+          { value: "non-disclosure-agreement", label: "Non-Disclosure Agreement" },
+          { value: "service-agreement", label: "Service / Consultancy Agreement" },
+          { value: "employment-agreement", label: "Executive Employment Agreement" },
+          { value: "notice", label: "Corporate Notice / Circular" },
+          { value: "undertaking", label: "Corporate Undertaking / Letter" },
+          { value: "other", label: "Other Corporate Document" },
+        ],
+      },
+      { id: "companyName", label: "Company / Principal", type: "text", placeholder: "e.g., ABC Holdings Sdn Bhd", required: true },
+      { id: "parties", label: "Parties and Their Roles", type: "textarea", placeholder: "List every party, registration number, address, and role. Identify the party you act for.", required: true },
+      { id: "instructions", label: "Key Facts, Terms & Instructions", type: "textarea", placeholder: "Set out the transaction, commercial terms, dates, amounts, approvals, obligations, and any clauses the document must contain.", required: true },
+      {
+        id: "sourceDocs",
+        label: "Source Documents / Precedents (Optional)",
+        type: "files",
+        helpText: "Upload term sheets, existing agreements, board papers, or a firm precedent. The draft will use the uploaded material as factual and stylistic source material.",
+        filesHint: "Term sheets, agreements, board papers, precedents — PDF, DOCX, TXT, MD",
+        filesHeading: "SOURCE DOCUMENTS AND FIRM PRECEDENTS (uploaded by the practitioner — use as evidence and follow the requested house style):",
+      },
+      { id: "additionalRequirements", label: "Additional Requirements (Optional)", type: "textarea", placeholder: "Governing law, dispute resolution, execution method, stamping, filing requirements, schedules, or specific risk allocation..." },
+    ],
+    buildPrompt: (v) => `Draft a complete ${v.documentType} for ${v.companyName}.
+
+PARTIES AND ROLES:
+${v.parties}
+
+KEY FACTS, COMMERCIAL TERMS AND INSTRUCTIONS:
+${v.instructions}
+${v.sourceDocs ? `\n${v.sourceDocs}\n` : ""}
+${v.additionalRequirements ? `\nADDITIONAL REQUIREMENTS:\n${v.additionalRequirements}` : ""}
+
+Produce a complete, execution-ready Malaysian corporate document. Preserve every supplied name, date, number and commercial term exactly. Include appropriate recitals, definitions, operative clauses, conditions precedent, schedules, notices, governing law, dispute resolution, stamping and filing provisions, and complete execution blocks where applicable. Identify any essential missing information with [●] rather than inventing it. If the selected document requires ancillary resolutions, certificates, notices, or other supporting documents, include them or clearly list them after the main document.`
+  },
+  {
     id: "board-resolution",
     name: "Board Resolution Generator",
     shortName: "Resolutions",
