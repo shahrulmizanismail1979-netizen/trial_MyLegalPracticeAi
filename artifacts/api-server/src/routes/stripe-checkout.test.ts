@@ -26,6 +26,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock("../stripeClient", () => ({
   getStripeSync: vi.fn().mockRejectedValue(new Error("not used in this test")),
+  requireLiveStripeInProduction: vi.fn().mockResolvedValue(undefined),
   getUncachableStripeClient: vi.fn().mockResolvedValue({
     products: {
       // Auto-provisioning first searches live Stripe for a product tagged
@@ -84,6 +85,7 @@ const {
 } = await import("./stripe");
 const { BUNDLE_TIER_CATALOG } = await import("../lib/provisioning");
 const { db } = await import("@workspace/db");
+const stripeClient = await import("../stripeClient");
 
 // At least one tier per family (firm / corp / edu). firm-practice and
 // corp-startup typically have no synced Stripe product in the dev DB, so
@@ -161,6 +163,7 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
     state.counter = 0;
     state.productSearches = 0;
     state.failingTiers.clear();
+    vi.mocked(stripeClient.requireLiveStripeInProduction).mockResolvedValue(undefined);
     resetCatalogPriceCacheForTests();
   });
 
@@ -333,6 +336,20 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
       .send({ tier: "firm-boutiqe" }); // misspelled
 
     expect(res.status).toBe(400);
+    expect(state.sessionsCreated).toHaveLength(0);
+  });
+
+  it("refuses to create a checkout session when production Stripe is not live", async () => {
+    vi.mocked(stripeClient.requireLiveStripeInProduction).mockRejectedValueOnce(
+      new Error("Stripe is not configured for live payments."),
+    );
+
+    const res = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "https://mycorpai.life" });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/live payment processing/i);
     expect(state.sessionsCreated).toHaveLength(0);
   });
 

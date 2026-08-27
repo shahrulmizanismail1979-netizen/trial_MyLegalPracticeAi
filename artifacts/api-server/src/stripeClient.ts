@@ -410,6 +410,21 @@ export async function getStripeSync(): Promise<StripeSync> {
 }
 
 /**
+ * Refuse customer-facing billing actions when a production deployment is
+ * accidentally configured with a Stripe test key. An alert alone is not
+ * sufficient: a test Checkout session looks real to a customer but rejects
+ * real cards, so it must never be created on the public site.
+ */
+export async function requireLiveStripeInProduction(): Promise<void> {
+  if (!process.env.REPLIT_DEPLOYMENT) return;
+
+  const mode = await getStripeMode();
+  if (mode !== "live") {
+    throw new Error("Stripe is not configured for live payments.");
+  }
+}
+
+/**
  * Checks the Stripe mode at server startup and emits a loud ERROR log when the
  * server is running in production (REPLIT_DEPLOYMENT is set) but the Stripe key
  * is a test key.  Silently does nothing in development — test mode is expected

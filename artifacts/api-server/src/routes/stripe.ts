@@ -3,7 +3,11 @@ import rateLimit from "express-rate-limit";
 import type Stripe from "stripe";
 import { and, eq, sql } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
-import { getUncachableStripeClient, getStripeMode } from "../stripeClient";
+import {
+  getUncachableStripeClient,
+  getStripeMode,
+  requireLiveStripeInProduction,
+} from "../stripeClient";
 import {
   provisionFromCheckoutSession,
   BUNDLE_TIER_CATALOG,
@@ -409,6 +413,16 @@ router.post("/checkout", async (req, res) => {
   // subscriber with an access code that works nowhere — so require it.
   if (!isAllPortalsTier(tier) && !appUrl) {
     res.status(400).json({ error: "Please choose an AI portal before subscribing." });
+    return;
+  }
+
+  try {
+    await requireLiveStripeInProduction();
+  } catch (err) {
+    req.log.error({ err }, "Refusing checkout because production Stripe is not in live mode");
+    res.status(503).json({
+      error: "Live payment processing is temporarily unavailable. Please try again shortly.",
+    });
     return;
   }
 
