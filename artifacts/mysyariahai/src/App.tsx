@@ -91,6 +91,7 @@ function AuthenticatedApp() {
   return (
     <Layout>
       <Switch>
+        <Route path="/login">{() => <Redirect to="/matters" />}</Route>
         <Route path="/">{() => <Redirect to="/matters" />}</Route>
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/provisions" component={ProvisionsPage} />

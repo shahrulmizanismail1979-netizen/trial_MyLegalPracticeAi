@@ -61,12 +61,45 @@ export function FrontDoorAssistant() {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const startedRef = useRef(false);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, streaming]);
+
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true;
+      const frame = window.requestAnimationFrame(() => {
+        closeButtonRef.current?.focus();
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      triggerRef.current?.focus();
+    }
+
+    return undefined;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -136,9 +169,14 @@ export function FrontDoorAssistant() {
   const showGreeting = !startedRef.current && messages.length === 0;
 
   return (
-    <div className="fixed right-6 z-[60] flex flex-col items-end" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}>
+    <div className="relative z-[60] mt-10 flex flex-col items-center md:fixed md:right-6 md:bottom-6 md:mt-0 md:items-end">
       {open && (
-        <div className="mb-4 w-[min(24rem,calc(100vw-3rem))] rounded-2xl border border-primary/25 bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div
+          id="amani-role-guidance"
+          role="dialog"
+          aria-label="Amani role guidance"
+          className="mb-4 w-[min(24rem,calc(100vw-3rem))] rounded-2xl border border-primary/25 bg-card shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300"
+        >
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-secondary/40">
             <AmaniAvatar size={36} />
             <div className="text-left">
@@ -146,10 +184,11 @@ export function FrontDoorAssistant() {
               <p className="text-xs text-muted-foreground">Amani · English / Bahasa Malaysia</p>
             </div>
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={() => setOpen(false)}
               className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Close assistant"
+              aria-label="Close Amani role guidance"
             >
               <X className="h-4 w-4" />
             </button>
@@ -233,7 +272,11 @@ export function FrontDoorAssistant() {
       )}
 
       <Button
+        ref={triggerRef}
         onClick={() => setOpen(!open)}
+        aria-controls="amani-role-guidance"
+        aria-expanded={open}
+        aria-label={open ? "Close Amani role guidance" : "Open Amani role guidance"}
         className="h-14 rounded-full shadow-lg gap-2 bg-primary text-primary-foreground hover:bg-primary/90 pl-2 pr-5"
       >
         <AmaniAvatar size={40} />
