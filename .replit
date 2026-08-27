@@ -32,6 +32,10 @@ args = "artifacts/mylitai-irac: web"
 task = "workflow.run"
 args = "e2e-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "payment-access"
+
 [[workflows.workflow]]
 name = "api-tests"
 author = "agent"
@@ -75,6 +79,17 @@ outputType = "webview"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "PORT=25400 BASE_PATH=/mylitai-irac/ pnpm --filter @workspace/mylitai-irac run dev"
+
+[[workflows.workflow]]
+name = "payment-access"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:payment-access"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"

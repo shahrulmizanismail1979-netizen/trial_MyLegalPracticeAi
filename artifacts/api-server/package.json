@@ -8,6 +8,7 @@
     "build": "GOMAXPROCS=1 node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test": "vitest run",
+    "test:payment-access": "vitest run src/routes/payment-access-regression.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:case-home": "playwright test e2e/case-home-handoffs.spec.ts",
     "test:e2e:corp-drafts": "playwright test e2e/corp-draft-completion.spec.ts",
