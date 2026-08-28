@@ -54,3 +54,15 @@ server restart despite a "synced" log line, check the backfill call has an expli
 Checkout `success_url`/`cancel_url` must be built from the server's own domain
 (`REPLIT_DOMAINS`), never from the request `Origin` header — a public checkout endpoint that
 trusts `Origin` is an open-redirect/phishing vector.
+
+## 5. Managed webhook secret must remain canonical
+
+When production uses `findOrCreateManagedWebhook()`, leave `stripeWebhookSecret` empty on new
+`StripeSync` instances. The library then loads the current secret from
+`stripe._managed_webhooks`.
+
+**Why:** Recreating a managed endpoint rotates its signing secret. A static environment value
+then becomes stale and causes every valid Stripe event to fail signature verification.
+
+**How to apply:** Finish managed-webhook setup before accepting requests, and let
+`processWebhook()` resolve the stored managed secret rather than forcing an environment copy.

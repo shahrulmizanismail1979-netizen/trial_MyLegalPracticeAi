@@ -8,6 +8,78 @@
 import * as zod from "zod";
 
 /**
+ * Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+ * @summary Get live Project Sarawak 20 availability
+ */
+export const GetSarawak20StatusResponse = zod.object({
+  programme: zod.string(),
+  price: zod.object({
+    amount: zod.number().describe("Price in minor currency units."),
+    currency: zod.enum(["myr"]),
+    interval: zod.enum(["month"]),
+  }),
+  foundingRateMonths: zod.number(),
+  cancellableAnytime: zod.boolean(),
+  cohorts: zod.array(
+    zod.object({
+      cohort: zod.enum(["firm", "chambering"]),
+      label: zod.string(),
+      capacity: zod.number(),
+      activePaid: zod.number(),
+      reserved: zod.number(),
+      remaining: zod.number(),
+      soldOut: zod.boolean(),
+    }),
+  ),
+});
+
+/**
+ * Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
+ * @summary Reserve a founding place and start Stripe checkout
+ */
+export const CreateSarawak20CheckoutBody = zod.object({
+  cohort: zod.enum(["firm", "chambering"]),
+  requestId: zod.string().uuid(),
+});
+
+export const CreateSarawak20CheckoutResponse = zod.object({
+  url: zod.string().url(),
+});
+
+/**
+ * @summary Get access details after completed checkout
+ */
+export const GetStripeSessionInfoQueryParams = zod.object({
+  session_id: zod.coerce.string(),
+});
+
+export const GetStripeSessionInfoResponse = zod.object({
+  accessCode: zod.string().nullable(),
+  apps: zod.array(zod.string()),
+  tier: zod.string().nullable(),
+  trial: zod.boolean(),
+});
+
+/**
+ * @summary Open secure Stripe subscription management
+ */
+export const createStripeCustomerPortalBodyAccessCodeMin = 8;
+export const createStripeCustomerPortalBodyAccessCodeMax = 64;
+
+export const CreateStripeCustomerPortalBody = zod.object({
+  accessCode: zod
+    .string()
+    .min(createStripeCustomerPortalBodyAccessCodeMin)
+    .max(createStripeCustomerPortalBodyAccessCodeMax),
+  email: zod.string().email(),
+  action: zod.enum(["manage", "cancel"]),
+});
+
+export const CreateStripeCustomerPortalResponse = zod.object({
+  url: zod.string().url(),
+});
+
+/**
  * Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.
  * @summary Chat with the AI receptionist
  */

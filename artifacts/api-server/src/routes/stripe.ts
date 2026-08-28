@@ -13,6 +13,16 @@ import {
   BUNDLE_TIER_CATALOG,
   isAllPortalsTier,
 } from "../lib/provisioning";
+import {
+  attachSarawak20Checkout,
+  buildSarawak20CheckoutParams,
+  claimSarawak20Reservation,
+  ensureSarawak20Price,
+  getSarawak20Status,
+  isSarawak20Cohort,
+  releaseSarawak20Reservation,
+  sarawak20CheckoutExpiresAt,
+} from "../lib/sarawak20";
 
 const router: IRouter = Router();
 
@@ -36,6 +46,14 @@ const catalogPriceRateLimit = rateLimit({
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: { error: "Too many pricing requests. Please wait a minute and try again." },
+});
+
+const sarawak20CheckoutRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many checkout attempts. Please wait a few minutes and try again." },
 });
 
 /**
@@ -524,6 +542,129 @@ router.post("/checkout", async (req, res) => {
   res.json({ url: session.url });
 });
 
+router.get("/sarawak20/status", async (req, res) => {
+  try {
+    res.json(await getSarawak20Status());
+  } catch (err) {
+    req.log.error({ err }, "Failed to read Project Sarawak 20 availability");
+    res.status(503).json({ error: "Programme availability is temporarily unavailable." });
+  }
+});
+
+router.post("/sarawak20/checkout", sarawak20CheckoutRateLimit, async (req, res) => {
+  const cohort = req.body?.cohort;
+  const requestId = req.body?.requestId;
+  if (
+    !isSarawak20Cohort(cohort) ||
+    typeof requestId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      requestId,
+    )
+  ) {
+    res.status(400).json({ error: "Choose a valid cohort and try again." });
+    return;
+  }
+
+  try {
+    await requireLiveStripeInProduction();
+  } catch (err) {
+    req.log.error({ err }, "Refusing Sarawak 20 checkout because Stripe is not live");
+    res.status(503).json({
+      error: "Live payment processing is temporarily unavailable. Please try again shortly.",
+    });
+    return;
+  }
+
+  let claim;
+  try {
+    claim = await claimSarawak20Reservation(cohort, requestId);
+  } catch (err) {
+    req.log.error({ err, cohort }, "Failed to reserve Project Sarawak 20 place");
+    res.status(503).json({ error: "We could not reserve your place. Please try again." });
+    return;
+  }
+
+  if (claim.kind === "sold-out") {
+    res.status(409).json({ error: "This founding cohort has filled all 20 places." });
+    return;
+  }
+  if (claim.kind === "reused") {
+    res.json({ url: claim.url });
+    return;
+  }
+  if (claim.kind === "pending") {
+    res.status(409).json({
+      error: "This checkout attempt is already being prepared. Please wait a moment and retry.",
+    });
+    return;
+  }
+
+  const origin = resolveOrigin();
+  if (!origin) {
+    await releaseSarawak20Reservation(claim.id);
+    req.log.error("Cannot create Sarawak 20 checkout without a trusted server origin");
+    res.status(503).json({ error: "Checkout is temporarily unavailable." });
+    return;
+  }
+
+  const stripe = await getUncachableStripeClient();
+  let priceId: string;
+  try {
+    priceId = await ensureSarawak20Price(stripe);
+  } catch (err) {
+    await releaseSarawak20Reservation(claim.id).catch(() => undefined);
+    req.log.error({ err, cohort }, "Project Sarawak 20 price resolution failed");
+    res.status(502).json({ error: "Payment provider error. Please try again." });
+    return;
+  }
+
+  let session: Stripe.Checkout.Session;
+  try {
+    const expiresAt = sarawak20CheckoutExpiresAt();
+    session = await stripe.checkout.sessions.create(
+      buildSarawak20CheckoutParams({
+        origin,
+        priceId,
+        reservationId: claim.id,
+        cohort,
+        expiresAt,
+      }),
+      { idempotencyKey: `sarawak20-checkout-${requestId}` },
+    );
+  } catch (err) {
+    await releaseSarawak20Reservation(claim.id).catch(() => undefined);
+    req.log.error({ err, cohort }, "Project Sarawak 20 checkout creation failed");
+    res.status(502).json({ error: "Payment provider error. Please try again." });
+    return;
+  }
+
+  if (!session.url) {
+    req.log.error(
+      { cohort, reservationId: claim.id, sessionId: session.id },
+      "Stripe checkout exists without a hosted URL; retaining reservation",
+    );
+    res.status(502).json({ error: "Payment provider error. Please try again." });
+    return;
+  }
+
+  // Once Stripe has returned a payable URL, this place must remain allocated.
+  // A transient DB failure here must never release it and allow a 21st sale:
+  // the session metadata lets completion consume the original reservation.
+  try {
+    await attachSarawak20Checkout({
+      reservationId: claim.id,
+      sessionId: session.id,
+      url: session.url,
+    });
+  } catch (err) {
+    req.log.error(
+      { err, cohort, reservationId: claim.id, sessionId: session.id },
+      "Stripe checkout exists but local attachment failed; retaining reservation",
+    );
+  }
+  res.json({ url: session.url });
+});
+
 // Public self-service billing handoff. An access code is not enough on its own:
 // the purchaser's billing email must match the same subscriber row before a
 // short-lived Stripe Customer Portal session is created.
@@ -548,6 +689,7 @@ router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
     .select({
       stripeCustomerId: subscribersTable.stripeCustomerId,
       stripeSubscriptionId: subscribersTable.stripeSubscriptionId,
+      tier: subscribersTable.tier,
     })
     .from(subscribersTable)
     .where(
@@ -570,7 +712,10 @@ router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
     return;
   }
 
-  const returnUrl = `${origin}/manage-subscription`;
+  const returnUrl =
+    subscriber.tier === "sarawak20"
+      ? `${origin}/sarawak20/manage-subscription`
+      : `${origin}/manage-subscription`;
   const params: Stripe.BillingPortal.SessionCreateParams = {
     customer: subscriber.stripeCustomerId,
     return_url: returnUrl,

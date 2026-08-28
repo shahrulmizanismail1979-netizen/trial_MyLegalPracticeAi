@@ -93,7 +93,8 @@ app.post(
     const isSubscriptionLifecycleEvent =
       eventType === "customer.subscription.created" ||
       eventType === "customer.subscription.updated" ||
-      eventType === "customer.subscription.deleted";
+      eventType === "customer.subscription.deleted" ||
+      eventType === "checkout.session.expired";
 
     if (isSubscriptionLifecycleEvent) {
       try {

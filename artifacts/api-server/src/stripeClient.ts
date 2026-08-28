@@ -401,11 +401,16 @@ export async function getStripeSync(): Promise<StripeSync> {
     throw new Error("DATABASE_URL environment variable is required");
   }
 
-  const { secretKey, webhookSecret } = await getStripeCredentials();
+  const { secretKey } = await getStripeCredentials();
   return new StripeSync({
     poolConfig: { connectionString: databaseUrl },
     stripeSecretKey: secretKey,
-    stripeWebhookSecret: webhookSecret ?? "",
+    // Production creates and tracks its webhook through
+    // findOrCreateManagedWebhook(). Leaving this empty makes stripe-replit-sync
+    // load the current signing secret from stripe._managed_webhooks. An
+    // environment value can become stale whenever the managed endpoint is
+    // recreated, causing every otherwise-valid payment event to be rejected.
+    stripeWebhookSecret: "",
   });
 }
 

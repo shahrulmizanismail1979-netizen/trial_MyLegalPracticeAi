@@ -24,6 +24,7 @@ import { ensureAccountsTables } from "./firm/routes/accounts";
 import { ensureCorpWorkflowTables } from "./corp/routes/workflow";
 import { ensurePracticeAreaSchema } from "./research/search/postgresFtsAdapter";
 import { ensureAlertDeliveryAttemptsTable } from "./lib/alertStatus";
+import { ensureSarawak20ReservationsTable } from "./lib/sarawak20";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -262,6 +263,7 @@ await ensurePracticeAreaSchema();
 // /admin/alert-status survives server restarts.  CREATE IF NOT EXISTS is safe
 // to run on every boot.
 await ensureAlertDeliveryAttemptsTable();
+await ensureSarawak20ReservationsTable();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

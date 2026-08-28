@@ -5,6 +5,97 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type Sarawak20CohortCohort =
+  (typeof Sarawak20CohortCohort)[keyof typeof Sarawak20CohortCohort];
+
+export const Sarawak20CohortCohort = {
+  firm: "firm",
+  chambering: "chambering",
+} as const;
+
+export interface Sarawak20Cohort {
+  cohort: Sarawak20CohortCohort;
+  label: string;
+  capacity: number;
+  activePaid: number;
+  reserved: number;
+  remaining: number;
+  soldOut: boolean;
+}
+
+export type Sarawak20PriceCurrency =
+  (typeof Sarawak20PriceCurrency)[keyof typeof Sarawak20PriceCurrency];
+
+export const Sarawak20PriceCurrency = {
+  myr: "myr",
+} as const;
+
+export type Sarawak20PriceInterval =
+  (typeof Sarawak20PriceInterval)[keyof typeof Sarawak20PriceInterval];
+
+export const Sarawak20PriceInterval = {
+  month: "month",
+} as const;
+
+export interface Sarawak20Price {
+  /** Price in minor currency units. */
+  amount: number;
+  currency: Sarawak20PriceCurrency;
+  interval: Sarawak20PriceInterval;
+}
+
+export interface Sarawak20Status {
+  programme: string;
+  price: Sarawak20Price;
+  foundingRateMonths: number;
+  cancellableAnytime: boolean;
+  cohorts: Sarawak20Cohort[];
+}
+
+export type Sarawak20CheckoutInputCohort =
+  (typeof Sarawak20CheckoutInputCohort)[keyof typeof Sarawak20CheckoutInputCohort];
+
+export const Sarawak20CheckoutInputCohort = {
+  firm: "firm",
+  chambering: "chambering",
+} as const;
+
+export interface Sarawak20CheckoutInput {
+  cohort: Sarawak20CheckoutInputCohort;
+  requestId: string;
+}
+
+export interface StripeRedirect {
+  url: string;
+}
+
+export interface StripeSessionInfo {
+  /** @nullable */
+  accessCode: string | null;
+  apps: string[];
+  /** @nullable */
+  tier: string | null;
+  trial: boolean;
+}
+
+export type StripePortalInputAction =
+  (typeof StripePortalInputAction)[keyof typeof StripePortalInputAction];
+
+export const StripePortalInputAction = {
+  manage: "manage",
+  cancel: "cancel",
+} as const;
+
+export interface StripePortalInput {
+  /**
+   * @minLength 8
+   * @maxLength 64
+   */
+  accessCode: string;
+  email: string;
+  action: StripePortalInputAction;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -1344,6 +1435,10 @@ export interface CorpAiToolsChatBody {
    */
   context?: string | null;
 }
+
+export type GetStripeSessionInfoParams = {
+  session_id: string;
+};
 
 export type ListSubscribersParams = {
   status?: ListSubscribersStatus;

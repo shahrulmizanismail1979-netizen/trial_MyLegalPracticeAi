@@ -25,11 +25,105 @@ tags:
     description: Document contribution portal and knowledge base
   - name: assistant
     description: AI receptionist assistant for the landing page
+  - name: sarawak20
+    description: Project Sarawak 20 founding programme availability and checkout
   - name: crim
     description: MyCrimAI criminal law app endpoints (/crim/*)
   - name: corp
     description: MyCorpLegalAI corporate secretary app endpoints (/corp/*)
 paths:
+  /stripe/sarawak20/status:
+    get:
+      operationId: getSarawak20Status
+      tags:
+        - sarawak20
+      summary: Get live Project Sarawak 20 availability
+      description: Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+      responses:
+        "200":
+          description: Current programme availability
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sarawak20Status"
+        "503":
+          description: Availability temporarily unavailable
+  /stripe/sarawak20/checkout:
+    post:
+      operationId: createSarawak20Checkout
+      tags:
+        - sarawak20
+      summary: Reserve a founding place and start Stripe checkout
+      description: Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Sarawak20CheckoutInput"
+      responses:
+        "200":
+          description: Checkout session created or safely reused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeRedirect"
+        "400":
+          description: Invalid cohort or request identifier
+        "409":
+          description: The selected founding cohort is full
+        "502":
+          description: Stripe checkout could not be created
+        "503":
+          description: Live payment processing is temporarily unavailable
+  /stripe/session-info:
+    get:
+      operationId: getStripeSessionInfo
+      tags:
+        - sarawak20
+      summary: Get access details after completed checkout
+      parameters:
+        - name: session_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Provisioned access details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeSessionInfo"
+        "400":
+          description: Invalid checkout session identifier
+        "404":
+          description: Checkout is incomplete or unavailable
+  /stripe/customer-portal:
+    post:
+      operationId: createStripeCustomerPortal
+      tags:
+        - sarawak20
+      summary: Open secure Stripe subscription management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StripePortalInput"
+      responses:
+        "200":
+          description: Customer portal redirect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeRedirect"
+        "400":
+          description: Subscription details could not be verified
+        "502":
+          description: Stripe portal session could not be created
+        "503":
+          description: Subscription management is temporarily unavailable
   /assistant/chat:
     post:
       operationId: assistantChat
@@ -2558,6 +2652,136 @@ paths:
             text/event-stream: {}
 components:
   schemas:
+    Sarawak20Cohort:
+      type: object
+      properties:
+        cohort:
+          type: string
+          enum:
+            - firm
+            - chambering
+        label:
+          type: string
+        capacity:
+          type: integer
+        activePaid:
+          type: integer
+        reserved:
+          type: integer
+        remaining:
+          type: integer
+        soldOut:
+          type: boolean
+      required:
+        - cohort
+        - label
+        - capacity
+        - activePaid
+        - reserved
+        - remaining
+        - soldOut
+    Sarawak20Price:
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: Price in minor currency units.
+        currency:
+          type: string
+          enum:
+            - myr
+        interval:
+          type: string
+          enum:
+            - month
+      required:
+        - amount
+        - currency
+        - interval
+    Sarawak20Status:
+      type: object
+      properties:
+        programme:
+          type: string
+        price:
+          $ref: "#/components/schemas/Sarawak20Price"
+        foundingRateMonths:
+          type: integer
+        cancellableAnytime:
+          type: boolean
+        cohorts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Sarawak20Cohort"
+      required:
+        - programme
+        - price
+        - foundingRateMonths
+        - cancellableAnytime
+        - cohorts
+    Sarawak20CheckoutInput:
+      type: object
+      properties:
+        cohort:
+          type: string
+          enum:
+            - firm
+            - chambering
+        requestId:
+          type: string
+          format: uuid
+      required:
+        - cohort
+        - requestId
+    StripeRedirect:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+      required:
+        - url
+    StripeSessionInfo:
+      type: object
+      properties:
+        accessCode:
+          type:
+            - string
+            - "null"
+        apps:
+          type: array
+          items:
+            type: string
+        tier:
+          type:
+            - string
+            - "null"
+        trial:
+          type: boolean
+      required:
+        - accessCode
+        - apps
+        - tier
+        - trial
+    StripePortalInput:
+      type: object
+      properties:
+        accessCode:
+          type: string
+          minLength: 8
+          maxLength: 64
+        email:
+          type: string
+          format: email
+        action:
+          type: string
+          enum:
+            - manage
+            - cancel
+      required:
+        - accessCode
+        - email
+        - action
     HealthStatus:
       type: object
       properties:

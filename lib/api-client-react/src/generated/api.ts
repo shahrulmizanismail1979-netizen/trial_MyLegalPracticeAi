@@ -143,6 +143,7 @@ import type {
   GenerateTimelineResponse,
   GetDeliveryFailuresParams,
   GetRecentActivityParams,
+  GetStripeSessionInfoParams,
   HealthStatus,
   InterpretLandTitleBody,
   InterpretLandTitleResponse,
@@ -159,6 +160,8 @@ import type {
   ReviewLoanDocResponse,
   ReviewSpaClauseBody,
   ReviewSpaClauseResponse,
+  Sarawak20CheckoutInput,
+  Sarawak20Status,
   ScanTransactionRiskBody,
   ScanTransactionRiskResponse,
   SearchClauseLibraryBody,
@@ -167,6 +170,9 @@ import type {
   SendChatMessageResponse,
   SimulateTransactionBody,
   SimulateTransactionResponse,
+  StripePortalInput,
+  StripeRedirect,
+  StripeSessionInfo,
   Subscriber,
   UnbindSubscriberMicrosoft200,
   UpdateAppStatBody,
@@ -190,6 +196,357 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+ * @summary Get live Project Sarawak 20 availability
+ */
+export const getGetSarawak20StatusUrl = () => {
+  return `/api/stripe/sarawak20/status`;
+};
+
+export const getSarawak20Status = async (
+  options?: RequestInit,
+): Promise<Sarawak20Status> => {
+  return customFetch<Sarawak20Status>(getGetSarawak20StatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSarawak20StatusQueryKey = () => {
+  return [`/api/stripe/sarawak20/status`] as const;
+};
+
+export const getGetSarawak20StatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSarawak20Status>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSarawak20Status>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSarawak20StatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSarawak20Status>>
+  > = ({ signal }) => getSarawak20Status({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSarawak20Status>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSarawak20StatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSarawak20Status>>
+>;
+export type GetSarawak20StatusQueryError = ErrorType<void>;
+
+/**
+ * @summary Get live Project Sarawak 20 availability
+ */
+
+export function useGetSarawak20Status<
+  TData = Awaited<ReturnType<typeof getSarawak20Status>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSarawak20Status>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSarawak20StatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
+ * @summary Reserve a founding place and start Stripe checkout
+ */
+export const getCreateSarawak20CheckoutUrl = () => {
+  return `/api/stripe/sarawak20/checkout`;
+};
+
+export const createSarawak20Checkout = async (
+  sarawak20CheckoutInput: Sarawak20CheckoutInput,
+  options?: RequestInit,
+): Promise<StripeRedirect> => {
+  return customFetch<StripeRedirect>(getCreateSarawak20CheckoutUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sarawak20CheckoutInput),
+  });
+};
+
+export const getCreateSarawak20CheckoutMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSarawak20Checkout>>,
+    TError,
+    { data: BodyType<Sarawak20CheckoutInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSarawak20Checkout>>,
+  TError,
+  { data: BodyType<Sarawak20CheckoutInput> },
+  TContext
+> => {
+  const mutationKey = ["createSarawak20Checkout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSarawak20Checkout>>,
+    { data: BodyType<Sarawak20CheckoutInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSarawak20Checkout(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSarawak20CheckoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSarawak20Checkout>>
+>;
+export type CreateSarawak20CheckoutMutationBody =
+  BodyType<Sarawak20CheckoutInput>;
+export type CreateSarawak20CheckoutMutationError = ErrorType<void>;
+
+/**
+ * @summary Reserve a founding place and start Stripe checkout
+ */
+export const useCreateSarawak20Checkout = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSarawak20Checkout>>,
+    TError,
+    { data: BodyType<Sarawak20CheckoutInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSarawak20Checkout>>,
+  TError,
+  { data: BodyType<Sarawak20CheckoutInput> },
+  TContext
+> => {
+  return useMutation(getCreateSarawak20CheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Get access details after completed checkout
+ */
+export const getGetStripeSessionInfoUrl = (
+  params: GetStripeSessionInfoParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/stripe/session-info?${stringifiedParams}`
+    : `/api/stripe/session-info`;
+};
+
+export const getStripeSessionInfo = async (
+  params: GetStripeSessionInfoParams,
+  options?: RequestInit,
+): Promise<StripeSessionInfo> => {
+  return customFetch<StripeSessionInfo>(getGetStripeSessionInfoUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStripeSessionInfoQueryKey = (
+  params?: GetStripeSessionInfoParams,
+) => {
+  return [`/api/stripe/session-info`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetStripeSessionInfoQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStripeSessionInfo>>,
+  TError = ErrorType<void>,
+>(
+  params: GetStripeSessionInfoParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStripeSessionInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStripeSessionInfoQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStripeSessionInfo>>
+  > = ({ signal }) =>
+    getStripeSessionInfo(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStripeSessionInfo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStripeSessionInfoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStripeSessionInfo>>
+>;
+export type GetStripeSessionInfoQueryError = ErrorType<void>;
+
+/**
+ * @summary Get access details after completed checkout
+ */
+
+export function useGetStripeSessionInfo<
+  TData = Awaited<ReturnType<typeof getStripeSessionInfo>>,
+  TError = ErrorType<void>,
+>(
+  params: GetStripeSessionInfoParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStripeSessionInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStripeSessionInfoQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Open secure Stripe subscription management
+ */
+export const getCreateStripeCustomerPortalUrl = () => {
+  return `/api/stripe/customer-portal`;
+};
+
+export const createStripeCustomerPortal = async (
+  stripePortalInput: StripePortalInput,
+  options?: RequestInit,
+): Promise<StripeRedirect> => {
+  return customFetch<StripeRedirect>(getCreateStripeCustomerPortalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(stripePortalInput),
+  });
+};
+
+export const getCreateStripeCustomerPortalMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStripeCustomerPortal>>,
+    TError,
+    { data: BodyType<StripePortalInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createStripeCustomerPortal>>,
+  TError,
+  { data: BodyType<StripePortalInput> },
+  TContext
+> => {
+  const mutationKey = ["createStripeCustomerPortal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createStripeCustomerPortal>>,
+    { data: BodyType<StripePortalInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createStripeCustomerPortal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateStripeCustomerPortalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createStripeCustomerPortal>>
+>;
+export type CreateStripeCustomerPortalMutationBody =
+  BodyType<StripePortalInput>;
+export type CreateStripeCustomerPortalMutationError = ErrorType<void>;
+
+/**
+ * @summary Open secure Stripe subscription management
+ */
+export const useCreateStripeCustomerPortal = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStripeCustomerPortal>>,
+    TError,
+    { data: BodyType<StripePortalInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createStripeCustomerPortal>>,
+  TError,
+  { data: BodyType<StripePortalInput> },
+  TContext
+> => {
+  return useMutation(getCreateStripeCustomerPortalMutationOptions(options));
+};
 
 /**
  * Streams an assistant reply as Server-Sent Events. Public endpoint — no authentication required.

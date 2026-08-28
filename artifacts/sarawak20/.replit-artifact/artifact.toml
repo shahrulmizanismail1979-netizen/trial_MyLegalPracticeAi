@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/sarawak20/"
+title = "Project Sarawak 20"
+description = "A standalone LAWYes founding-programme campaign for Sarawak law firms, lawyers, and chambering students, with two first-paid cohorts capped at 20 places each and RM49 monthly Stripe subscriptions."
+version = "1.0.0"
+id = "artifacts/sarawak20"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/sarawak20/" ]
+localPort = 25822
+
+[services.development]
+run = "pnpm --filter @workspace/sarawak20 run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sarawak20", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/sarawak20/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25822"
+BASE_PATH = "/sarawak20/"

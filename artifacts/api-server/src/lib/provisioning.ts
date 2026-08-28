@@ -22,6 +22,12 @@ import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody, type SmsResult } from "./sms";
 import { logger } from "./logger";
+import {
+  cancelSarawak20Enrollment,
+  consumeSarawak20Reservation,
+  releaseSarawak20ReservationFromSession,
+  SARAWAK20_TIER,
+} from "./sarawak20";
 
 export const APP_NAME_BY_URL: Record<string, string> = {
   "https://mylitai.life": "MyLitAI",
@@ -636,6 +642,7 @@ export async function handleSubscriptionCancelled(subscriptionId: string): Promi
     .from(subscribersTable)
     .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
   if (!subscriber) {
+    await cancelSarawak20Enrollment(subscriptionId);
     logger.warn({ subscriptionId }, "Cancelled subscription has no matching subscriber");
     return;
   }
@@ -644,6 +651,7 @@ export async function handleSubscriptionCancelled(subscriptionId: string): Promi
   // so a transient failure on one portal is retried on the next webhook retry
   // even if the subscriber row was already marked cancelled.
   await deactivatePortalAccessCodes(subscriber);
+  await cancelSarawak20Enrollment(subscriptionId);
   if (alreadyCancelled) return;
   await db
     .update(subscribersTable)
@@ -772,7 +780,11 @@ export const BUNDLE_TIER_CATALOG: Record<
 
 /** True when the tier unlocks every portal (individual bundle or any team bundle). */
 export function isAllPortalsTier(tier: string | null | undefined): boolean {
-  return tier === "bundle" || (tier != null && tier in BUNDLE_TIER_CATALOG);
+  return (
+    tier === "bundle" ||
+    tier === SARAWAK20_TIER ||
+    (tier != null && tier in BUNDLE_TIER_CATALOG)
+  );
 }
 
 function appsForCheckout(tier: string | null, appUrl: string | null): string[] {
@@ -1021,6 +1033,14 @@ export async function provisionFromCheckoutSession(
       // Never re-activate portal access for a cancelled subscriber — a
       // replayed/out-of-order checkout webhook must not undo a cancellation.
       if (existing.paymentStatus !== "cancelled") {
+        const consumed = await consumeSarawak20Reservation({
+          session,
+          subscriptionId,
+          subscriberId: existing.id,
+        });
+        if (!consumed) {
+          throw new Error("Project Sarawak 20 paid session could not claim a cohort place");
+        }
         await syncPortalAccessCodes(existing);
       }
       return {
@@ -1038,6 +1058,14 @@ export async function provisionFromCheckoutSession(
   if (!email) {
     logger.error({ sessionId }, "Checkout session has no customer email; skipping provisioning");
     return null;
+  }
+
+  const sarawak20PlaceConsumed = await consumeSarawak20Reservation({
+    session,
+    subscriptionId,
+  });
+  if (!sarawak20PlaceConsumed) {
+    throw new Error("Project Sarawak 20 paid session could not claim a cohort place");
   }
 
   const accessCode = generateAccessCode();
@@ -1063,7 +1091,11 @@ export async function provisionFromCheckoutSession(
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
       accessCode,
-      notes: trial ? "7-day free trial via Stripe checkout" : null,
+      notes: trial
+        ? "7-day free trial via Stripe checkout"
+        : tier === SARAWAK20_TIER
+          ? "Project Sarawak 20 founding subscription"
+          : null,
     })
     .onConflictDoNothing({ target: subscribersTable.stripeSubscriptionId })
     .returning();
@@ -1079,6 +1111,14 @@ export async function provisionFromCheckoutSession(
     if (existing.paymentStatus !== "cancelled") {
       await syncPortalAccessCodes(existing);
     }
+    const consumed = await consumeSarawak20Reservation({
+      session,
+      subscriptionId,
+      subscriberId: existing.id,
+    });
+    if (!consumed) {
+      throw new Error("Project Sarawak 20 paid session could not link its subscriber");
+    }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
@@ -1091,6 +1131,14 @@ export async function provisionFromCheckoutSession(
   }
 
   await syncPortalAccessCodes({ accessCode, name, email, apps, tier, licenses: subscriber.licenses });
+  const consumed = await consumeSarawak20Reservation({
+    session,
+    subscriptionId,
+    subscriberId: subscriber.id,
+  });
+  if (!consumed) {
+    throw new Error("Project Sarawak 20 paid session could not link its subscriber");
+  }
 
   // Safety net: if the checkout metadata didn't identify a portal, the code
   // above synced nowhere and the customer can't log in. Flag it loudly so the
@@ -1272,6 +1320,12 @@ export async function handleStripeEventForProvisioning(payload: Buffer): Promise
   try {
     event = JSON.parse(payload.toString("utf-8")) as Stripe.Event;
   } catch {
+    return;
+  }
+  if (event.type === "checkout.session.expired") {
+    await releaseSarawak20ReservationFromSession(
+      event.data.object as Stripe.Checkout.Session,
+    );
     return;
   }
   if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
