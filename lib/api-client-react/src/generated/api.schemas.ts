@@ -13,15 +13,14 @@ export const Sarawak20CohortCohort = {
   chambering: "chambering",
 } as const;
 
-export interface Sarawak20Cohort {
-  cohort: Sarawak20CohortCohort;
-  label: string;
-  capacity: number;
-  activePaid: number;
-  reserved: number;
-  remaining: number;
-  soldOut: boolean;
-}
+export type Sarawak20CohortCurrentPlan =
+  (typeof Sarawak20CohortCurrentPlan)[keyof typeof Sarawak20CohortCurrentPlan];
+
+export const Sarawak20CohortCurrentPlan = {
+  firm_founding: "firm_founding",
+  chambering_founding: "chambering_founding",
+  aas_firm: "aas_firm",
+} as const;
 
 export type Sarawak20PriceCurrency =
   (typeof Sarawak20PriceCurrency)[keyof typeof Sarawak20PriceCurrency];
@@ -44,6 +43,22 @@ export interface Sarawak20Price {
   interval: Sarawak20PriceInterval;
 }
 
+export interface Sarawak20Cohort {
+  cohort: Sarawak20CohortCohort;
+  label: string;
+  capacity: number;
+  activePaid: number;
+  reserved: number;
+  remaining: number;
+  soldOut: boolean;
+  foundingSoldOut: boolean;
+  currentPlan: Sarawak20CohortCurrentPlan;
+  price: Sarawak20Price;
+  licenses: number;
+  unlimited: boolean;
+  requiresEligibility: boolean;
+}
+
 export interface Sarawak20Status {
   programme: string;
   price: Sarawak20Price;
@@ -63,6 +78,80 @@ export const Sarawak20CheckoutInputCohort = {
 export interface Sarawak20CheckoutInput {
   cohort: Sarawak20CheckoutInputCohort;
   requestId: string;
+  eligibilityId: string;
+}
+
+export type Sarawak20EligibilityInput =
+  | {
+      cohort: "firm";
+      /**
+       * @minLength 1
+       * @maxLength 160
+       */
+      fullName: string;
+      /**
+       * @minLength 1
+       * @maxLength 200
+       */
+      firmName: string;
+      practiceLocation: "KUCHING" | "SIBU" | "MIRI" | "BINTULU";
+      /**
+       * @minLength 1
+       * @maxLength 160
+       */
+      advocateName: string;
+      /** @maxLength 500 */
+      professionalReference?: string;
+      declarationAccepted: boolean;
+    }
+  | {
+      cohort: "chambering";
+      /**
+       * @minLength 1
+       * @maxLength 160
+       */
+      fullName: string;
+      /**
+       * @minLength 1
+       * @maxLength 200
+       */
+      firmName: string;
+      practiceLocation: "KUCHING" | "SIBU" | "MIRI" | "BINTULU";
+      /**
+       * @minLength 1
+       * @maxLength 160
+       */
+      pupilMasterName: string;
+      /** @pattern ^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$ */
+      pupillageStartDate: string;
+      noticeAcknowledgement: boolean;
+      /** @maxLength 100 */
+      cmsPetitionNumber?: string;
+      /** @maxLength 500 */
+      professionalReference?: string;
+      declarationAccepted: boolean;
+    };
+
+export type Sarawak20EligibilityStatus =
+  (typeof Sarawak20EligibilityStatus)[keyof typeof Sarawak20EligibilityStatus];
+
+export const Sarawak20EligibilityStatus = {
+  verified: "verified",
+} as const;
+
+export type Sarawak20EligibilitySource =
+  (typeof Sarawak20EligibilitySource)[keyof typeof Sarawak20EligibilitySource];
+
+export const Sarawak20EligibilitySource = {
+  aas_directory: "aas_directory",
+  submitted_details: "submitted_details",
+} as const;
+
+export interface Sarawak20Eligibility {
+  eligibilityId: string;
+  status: Sarawak20EligibilityStatus;
+  source: Sarawak20EligibilitySource;
+  message: string;
 }
 
 export interface StripeRedirect {
@@ -75,6 +164,16 @@ export interface StripeSessionInfo {
   apps: string[];
   /** @nullable */
   tier: string | null;
+  /**
+   * Trusted plan identifier for plan-aware checkout success messaging.
+   * @nullable
+   */
+  plan: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  licenses: number | null;
   trial: boolean;
 }
 

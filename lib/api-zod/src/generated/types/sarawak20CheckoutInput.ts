@@ -10,4 +10,5 @@ import type { Sarawak20CheckoutInputCohort } from "./sarawak20CheckoutInputCohor
 export interface Sarawak20CheckoutInput {
   cohort: Sarawak20CheckoutInputCohort;
   requestId: string;
+  eligibilityId: string;
 }

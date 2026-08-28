@@ -86,6 +86,8 @@ export interface ProvisionResult {
   accessCode: string | null;
   apps: string[];
   tier: string | null;
+  plan: string | null;
+  licenses: number | null;
   trial: boolean;
   email: string | null;
   name: string | null;
@@ -152,7 +154,10 @@ async function syncConveyUser(params: {
       "Synced MyConveyLitAI user for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyConveyLitAI user for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyConveyLitAI user for landing purchase",
+    );
   }
 }
 
@@ -198,7 +203,10 @@ async function syncAccidentAccessCode(params: {
       "Synced MyAccidentAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyAccidentAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyAccidentAI access code for landing purchase",
+    );
   }
 }
 
@@ -246,7 +254,10 @@ async function syncCrimAccessCode(params: {
       "Synced MyCrimAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyCrimAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyCrimAI access code for landing purchase",
+    );
   }
 }
 
@@ -294,7 +305,10 @@ async function syncCorpAccessCode(params: {
       "Synced MyCorpLegalAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyCorpLegalAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyCorpLegalAI access code for landing purchase",
+    );
   }
 }
 
@@ -333,14 +347,21 @@ async function syncLitAccessCode(params: {
       })
       .onConflictDoUpdate({
         target: litAccessCodesTable.code,
-        set: { status: "active", expiresAt: params.expiresAt ?? null, maxSeats: params.maxSeats },
+        set: {
+          status: "active",
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
       "Synced MyLitAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyLitAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyLitAI access code for landing purchase",
+    );
   }
 }
 
@@ -384,7 +405,10 @@ export async function syncSyaAccessCode(params: {
       "Synced MySyalitAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MySyalitAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MySyalitAI access code for landing purchase",
+    );
   }
 }
 
@@ -420,14 +444,21 @@ async function syncCcbAccessCode(params: {
       })
       .onConflictDoUpdate({
         target: ccbAccessCodesTable.code,
-        set: { active: true, expiresAt: params.expiresAt ?? null, maxSeats: params.maxSeats },
+        set: {
+          active: true,
+          expiresAt: params.expiresAt ?? null,
+          maxSeats: params.maxSeats,
+        },
       });
     logger.info(
       { accessCode: params.accessCode },
       "Synced MyCCBLitAI access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyCCBLitAI access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyCCBLitAI access code for landing purchase",
+    );
   }
 }
 
@@ -474,7 +505,10 @@ async function syncFirmAccessCode(params: {
       "Synced MyLawFirmAi access code for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyLawFirmAi access code for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyLawFirmAi access code for landing purchase",
+    );
   }
 }
 
@@ -504,20 +538,33 @@ export async function syncPortalAccessCodes(subscriber: {
   const maxSeats = licensedSeatCap(subscriber);
   const licenses =
     subscriber.licenses ??
-    (subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined) ??
+    (subscriber.tier
+      ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses
+      : undefined) ??
     null;
-  if (includesConveyApp(apps)) await syncConveyUser({ accessCode, name, email, maxSeats });
+  if (includesConveyApp(apps))
+    await syncConveyUser({ accessCode, name, email, maxSeats });
   if (includesAccidentApp(apps))
-    await syncAccidentAccessCode({ accessCode, name, expiresAt, maxUsers: licenses });
-  if (includesCrimApp(apps)) await syncCrimAccessCode({ accessCode, name, expiresAt, maxSeats });
-  if (includesCorpApp(apps)) await syncCorpAccessCode({ accessCode, name, expiresAt, maxSeats });
+    await syncAccidentAccessCode({
+      accessCode,
+      name,
+      expiresAt,
+      maxUsers: licenses,
+    });
+  if (includesCrimApp(apps))
+    await syncCrimAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesCorpApp(apps))
+    await syncCorpAccessCode({ accessCode, name, expiresAt, maxSeats });
   if (includesLitApp(apps))
     await syncLitAccessCode({ accessCode, name, email, expiresAt, maxSeats });
-  if (includesSyaApp(apps)) await syncSyaAccessCode({ accessCode, name, expiresAt, maxSeats });
-  if (includesCcbApp(apps)) await syncCcbAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesSyaApp(apps))
+    await syncSyaAccessCode({ accessCode, name, expiresAt, maxSeats });
+  if (includesCcbApp(apps))
+    await syncCcbAccessCode({ accessCode, name, expiresAt, maxSeats });
   if (includesFirmApp(apps))
     await syncFirmAccessCode({ accessCode, name, email, expiresAt, maxSeats });
-  if (includesAcadApp(apps)) await syncAcadUser({ accessCode, name, expiresAt, maxSeats });
+  if (includesAcadApp(apps))
+    await syncAcadUser({ accessCode, name, expiresAt, maxSeats });
 }
 
 /**
@@ -625,9 +672,15 @@ export async function deactivatePortalAccessCodes(subscriber: {
   for (const [app, run] of attempts) {
     try {
       await run();
-      logger.info({ accessCode, app }, "Deactivated portal access code after cancellation");
+      logger.info(
+        { accessCode, app },
+        "Deactivated portal access code after cancellation",
+      );
     } catch (err) {
-      logger.error({ err, accessCode, app }, "Failed to deactivate portal access code");
+      logger.error(
+        { err, accessCode, app },
+        "Failed to deactivate portal access code",
+      );
     }
   }
 }
@@ -636,14 +689,19 @@ export async function deactivatePortalAccessCodes(subscriber: {
  * Handle a cancelled Stripe subscription: mark the landing subscriber as
  * cancelled and switch off their access code on every portal in the plan.
  */
-export async function handleSubscriptionCancelled(subscriptionId: string): Promise<void> {
+export async function handleSubscriptionCancelled(
+  subscriptionId: string,
+): Promise<void> {
   const [subscriber] = await db
     .select()
     .from(subscribersTable)
     .where(eq(subscribersTable.stripeSubscriptionId, subscriptionId));
   if (!subscriber) {
     await cancelSarawak20Enrollment(subscriptionId);
-    logger.warn({ subscriptionId }, "Cancelled subscription has no matching subscriber");
+    logger.warn(
+      { subscriptionId },
+      "Cancelled subscription has no matching subscriber",
+    );
     return;
   }
   const alreadyCancelled = subscriber.paymentStatus === "cancelled";
@@ -748,7 +806,10 @@ async function syncAcadUser(params: {
       "Synced MyLawAcad account for landing purchase",
     );
   } catch (err) {
-    logger.error({ err }, "Failed to sync MyLawAcad account for landing purchase");
+    logger.error(
+      { err },
+      "Failed to sync MyLawAcad account for landing purchase",
+    );
   }
 }
 
@@ -758,7 +819,9 @@ export function licensedSeatCap(subscriber: {
 }): number | null {
   const licenses =
     subscriber.licenses ??
-    (subscriber.tier ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses : undefined) ??
+    (subscriber.tier
+      ? BUNDLE_TIER_CATALOG[subscriber.tier]?.licenses
+      : undefined) ??
     null;
   return licenses != null ? Math.max(1, licenses) : null;
 }
@@ -767,15 +830,51 @@ export const BUNDLE_TIER_CATALOG: Record<
   string,
   { name: string; monthlyUsdCents: number; licenses: number }
 > = {
-  "firm-boutique": { name: "Firm Bundle — Boutique (5 licenses)", monthlyUsdCents: 35500, licenses: 5 },
-  "firm-practice": { name: "Firm Bundle — Practice (15 licenses)", monthlyUsdCents: 100500, licenses: 15 },
-  "firm-firm": { name: "Firm Bundle — Firm (30 licenses)", monthlyUsdCents: 189000, licenses: 30 },
-  "corp-startup": { name: "Corporate Bundle — Startup Legal (3 licenses)", monthlyUsdCents: 21300, licenses: 3 },
-  "corp-growth": { name: "Corporate Bundle — Growth (8 licenses)", monthlyUsdCents: 55200, licenses: 8 },
-  "corp-corporate": { name: "Corporate Bundle — Corporate (20 licenses)", monthlyUsdCents: 130000, licenses: 20 },
-  "edu-faculty-starter": { name: "Academic Bundle — Faculty Starter (20 licenses)", monthlyUsdCents: 134000, licenses: 20 },
-  "edu-faculty-plus": { name: "Academic Bundle — Faculty Plus (50 licenses)", monthlyUsdCents: 325000, licenses: 50 },
-  "edu-campus": { name: "Academic Bundle — Campus (150 licenses)", monthlyUsdCents: 945000, licenses: 150 },
+  "firm-boutique": {
+    name: "Firm Bundle — Boutique (5 licenses)",
+    monthlyUsdCents: 35500,
+    licenses: 5,
+  },
+  "firm-practice": {
+    name: "Firm Bundle — Practice (15 licenses)",
+    monthlyUsdCents: 100500,
+    licenses: 15,
+  },
+  "firm-firm": {
+    name: "Firm Bundle — Firm (30 licenses)",
+    monthlyUsdCents: 189000,
+    licenses: 30,
+  },
+  "corp-startup": {
+    name: "Corporate Bundle — Startup Legal (3 licenses)",
+    monthlyUsdCents: 21300,
+    licenses: 3,
+  },
+  "corp-growth": {
+    name: "Corporate Bundle — Growth (8 licenses)",
+    monthlyUsdCents: 55200,
+    licenses: 8,
+  },
+  "corp-corporate": {
+    name: "Corporate Bundle — Corporate (20 licenses)",
+    monthlyUsdCents: 130000,
+    licenses: 20,
+  },
+  "edu-faculty-starter": {
+    name: "Academic Bundle — Faculty Starter (20 licenses)",
+    monthlyUsdCents: 134000,
+    licenses: 20,
+  },
+  "edu-faculty-plus": {
+    name: "Academic Bundle — Faculty Plus (50 licenses)",
+    monthlyUsdCents: 325000,
+    licenses: 50,
+  },
+  "edu-campus": {
+    name: "Academic Bundle — Campus (150 licenses)",
+    monthlyUsdCents: 945000,
+    licenses: 150,
+  },
 };
 
 /** True when the tier unlocks every portal (individual bundle or any team bundle). */
@@ -865,7 +964,15 @@ export function deliverAccessCode(params: {
   tier?: string | null;
   trial?: boolean;
 }): void {
-  const { name, email, phone, accessCode, apps, tier = null, trial = false } = params;
+  const {
+    name,
+    email,
+    phone,
+    accessCode,
+    apps,
+    tier = null,
+    trial = false,
+  } = params;
   void (async () => {
     if (phone) {
       const smsResult = await sendSms(
@@ -934,7 +1041,8 @@ export async function resendAccessCodeEmail(params: {
   const name = subscriber?.name ?? "Subscriber";
   const apps = subscriber?.apps ?? [];
   const tier = subscriber?.tier ?? null;
-  const trial = subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
+  const trial =
+    subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
   return sendEmail({
     to: email,
     subject: trial
@@ -957,7 +1065,8 @@ export async function resendAccessCodeSms(params: {
     .select()
     .from(subscribersTable)
     .where(eq(subscribersTable.accessCode, accessCode));
-  const trial = subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
+  const trial =
+    subscriber?.notes?.toLowerCase().includes("free trial") ?? false;
   const tier = subscriber?.tier ?? null;
   return sendSms(
     phone,
@@ -1013,9 +1122,13 @@ export async function provisionFromCheckoutSession(
       ? session.subscription
       : (session.subscription?.id ?? null);
   const customerId =
-    typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null);
+    typeof session.customer === "string"
+      ? session.customer
+      : (session.customer?.id ?? null);
 
   const tier = session.metadata?.tier ?? null;
+  const plan =
+    tier === SARAWAK20_TIER ? (session.metadata?.plan ?? "legacy") : null;
   const trial = session.metadata?.trial === "true";
   const appUrl = session.metadata?.appUrl ?? null;
   const email = session.customer_details?.email ?? null;
@@ -1039,7 +1152,9 @@ export async function provisionFromCheckoutSession(
           subscriberId: existing.id,
         });
         if (!consumed) {
-          throw new Error("Project Sarawak 20 paid session could not claim a cohort place");
+          throw new Error(
+            "Project Sarawak 20 paid session could not claim a cohort place",
+          );
         }
         await syncPortalAccessCodes(existing);
       }
@@ -1047,6 +1162,8 @@ export async function provisionFromCheckoutSession(
         accessCode: existing.accessCode,
         apps: existing.apps,
         tier: existing.tier,
+        plan,
+        licenses: existing.licenses,
         trial,
         email: existing.email,
         name: existing.name,
@@ -1056,7 +1173,10 @@ export async function provisionFromCheckoutSession(
   }
 
   if (!email) {
-    logger.error({ sessionId }, "Checkout session has no customer email; skipping provisioning");
+    logger.error(
+      { sessionId },
+      "Checkout session has no customer email; skipping provisioning",
+    );
     return null;
   }
 
@@ -1065,7 +1185,9 @@ export async function provisionFromCheckoutSession(
     subscriptionId,
   });
   if (!sarawak20PlaceConsumed) {
-    throw new Error("Project Sarawak 20 paid session could not claim a cohort place");
+    throw new Error(
+      "Project Sarawak 20 paid session could not claim a cohort place",
+    );
   }
 
   const accessCode = generateAccessCode();
@@ -1083,7 +1205,10 @@ export async function provisionFromCheckoutSession(
       phone,
       apps,
       tier,
-      licenses: (tier && BUNDLE_TIER_CATALOG[tier]?.licenses) || null,
+      licenses:
+        tier === SARAWAK20_TIER
+          ? Number(session.metadata?.licenses) || null
+          : (tier && BUNDLE_TIER_CATALOG[tier]?.licenses) || null,
       paymentStatus: "confirmed",
       paymentAmount,
       paymentDate: new Date(),
@@ -1094,7 +1219,9 @@ export async function provisionFromCheckoutSession(
       notes: trial
         ? "7-day free trial via Stripe checkout"
         : tier === SARAWAK20_TIER
-          ? "Project Sarawak 20 founding subscription"
+          ? session.metadata?.plan === "aas_firm"
+            ? "Project Sarawak 20 AAS 3-seat subscription"
+            : `Project Sarawak 20 ${session.metadata?.plan ?? "legacy"} subscription`
           : null,
     })
     .onConflictDoNothing({ target: subscribersTable.stripeSubscriptionId })
@@ -1117,12 +1244,16 @@ export async function provisionFromCheckoutSession(
       subscriberId: existing.id,
     });
     if (!consumed) {
-      throw new Error("Project Sarawak 20 paid session could not link its subscriber");
+      throw new Error(
+        "Project Sarawak 20 paid session could not link its subscriber",
+      );
     }
     return {
       accessCode: existing.accessCode,
       apps: existing.apps,
       tier: existing.tier,
+      plan,
+      licenses: existing.licenses,
       trial,
       email: existing.email,
       name: existing.name,
@@ -1130,14 +1261,23 @@ export async function provisionFromCheckoutSession(
     };
   }
 
-  await syncPortalAccessCodes({ accessCode, name, email, apps, tier, licenses: subscriber.licenses });
+  await syncPortalAccessCodes({
+    accessCode,
+    name,
+    email,
+    apps,
+    tier,
+    licenses: subscriber.licenses,
+  });
   const consumed = await consumeSarawak20Reservation({
     session,
     subscriptionId,
     subscriberId: subscriber.id,
   });
   if (!consumed) {
-    throw new Error("Project Sarawak 20 paid session could not link its subscriber");
+    throw new Error(
+      "Project Sarawak 20 paid session could not link its subscriber",
+    );
   }
 
   // Safety net: if the checkout metadata didn't identify a portal, the code
@@ -1221,6 +1361,8 @@ export async function provisionFromCheckoutSession(
     accessCode,
     apps,
     tier,
+    plan,
+    licenses: subscriber.licenses,
     trial,
     email,
     name,
@@ -1230,7 +1372,10 @@ export async function provisionFromCheckoutSession(
 
 /** Emails used by automated tests — never provision/email these. */
 function isTestEmail(email: string): boolean {
-  return /@example\.(com|test|org|net)$/i.test(email) || email.startsWith("agent-test-");
+  return (
+    /@example\.(com|test|org|net)$/i.test(email) ||
+    email.startsWith("agent-test-")
+  );
 }
 
 export interface ReconcileResult {
@@ -1248,7 +1393,12 @@ export interface ReconcileResult {
  */
 export async function reconcileMissedProvisioning(): Promise<ReconcileResult> {
   const stripe = await getUncachableStripeClient();
-  const result: ReconcileResult = { checked: 0, provisioned: 0, skipped: 0, errors: 0 };
+  const result: ReconcileResult = {
+    checked: 0,
+    provisioned: 0,
+    skipped: 0,
+    errors: 0,
+  };
   // Customers sometimes retry checkout several times, leaving duplicate
   // subscriptions. Only provision ONE subscription per email per run so the
   // customer gets a single access-code email; duplicates are logged for
@@ -1305,7 +1455,10 @@ export async function reconcileMissedProvisioning(): Promise<ReconcileResult> {
         }
       } catch (err) {
         result.errors++;
-        logger.error({ err, subscriptionId: sub.id }, "Reconciliation failed for subscription");
+        logger.error(
+          { err, subscriptionId: sub.id },
+          "Reconciliation failed for subscription",
+        );
       }
     }
   }
@@ -1315,7 +1468,9 @@ export async function reconcileMissedProvisioning(): Promise<ReconcileResult> {
 }
 
 /** Handle a verified Stripe webhook event for provisioning side effects. */
-export async function handleStripeEventForProvisioning(payload: Buffer): Promise<void> {
+export async function handleStripeEventForProvisioning(
+  payload: Buffer,
+): Promise<void> {
   let event: Stripe.Event;
   try {
     event = JSON.parse(payload.toString("utf-8")) as Stripe.Event;
@@ -1328,11 +1483,15 @@ export async function handleStripeEventForProvisioning(payload: Buffer): Promise
     );
     return;
   }
-  if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
+  if (
+    event.type === "customer.subscription.deleted" ||
+    event.type === "customer.subscription.updated"
+  ) {
     const sub = event.data.object as Stripe.Subscription;
     const terminalStatuses = ["canceled", "unpaid", "incomplete_expired"];
     const isTerminal =
-      event.type === "customer.subscription.deleted" || terminalStatuses.includes(sub.status);
+      event.type === "customer.subscription.deleted" ||
+      terminalStatuses.includes(sub.status);
     if (isTerminal) {
       // Let failures reach the webhook route. It returns a non-2xx response so
       // Stripe retries delivery instead of silently losing access revocation.
@@ -1356,7 +1515,12 @@ export async function handleStripeEventForProvisioning(payload: Buffer): Promise
     } catch (err) {
       const lastAttempt = attempt === delaysMs.length - 1;
       logger.error(
-        { err, sessionId: session.id, attempt: attempt + 1, willRetry: !lastAttempt },
+        {
+          err,
+          sessionId: session.id,
+          attempt: attempt + 1,
+          willRetry: !lastAttempt,
+        },
         "Provisioning from webhook failed",
       );
     }

@@ -12,5 +12,15 @@ export interface StripeSessionInfo {
   apps: string[];
   /** @nullable */
   tier: string | null;
+  /**
+   * Trusted plan identifier for plan-aware checkout success messaging.
+   * @nullable
+   */
+  plan: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  licenses: number | null;
   trial: boolean;
 }

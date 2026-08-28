@@ -4,6 +4,12 @@ import type Stripe from "stripe";
 import { and, eq, sql } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import {
+  CreateSarawak20CheckoutBody,
+  CreateSarawak20EligibilityBody,
+  CreateSarawak20EligibilityResponse,
+  GetSarawak20StatusResponse,
+} from "@workspace/api-zod";
+import {
   getUncachableStripeClient,
   getStripeMode,
   requireLiveStripeInProduction,
@@ -17,16 +23,22 @@ import {
   attachSarawak20Checkout,
   buildSarawak20CheckoutParams,
   claimSarawak20Reservation,
+  createSarawak20Eligibility,
   ensureSarawak20Price,
   getSarawak20Status,
-  isSarawak20Cohort,
+  Sarawak20EligibilityError,
   releaseSarawak20Reservation,
   sarawak20CheckoutExpiresAt,
 } from "../lib/sarawak20";
 
 const router: IRouter = Router();
 
-const CHECKOUT_TIERS = ["bundle", "single", "standard", ...Object.keys(BUNDLE_TIER_CATALOG)];
+const CHECKOUT_TIERS = [
+  "bundle",
+  "single",
+  "standard",
+  ...Object.keys(BUNDLE_TIER_CATALOG),
+];
 type CheckoutTier = string;
 
 const BILLING_PORTAL_ERROR =
@@ -37,7 +49,9 @@ const billingPortalRateLimit = rateLimit({
   max: 10,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Too many attempts. Please wait a few minutes and try again." },
+  message: {
+    error: "Too many attempts. Please wait a few minutes and try again.",
+  },
 });
 
 const catalogPriceRateLimit = rateLimit({
@@ -45,7 +59,9 @@ const catalogPriceRateLimit = rateLimit({
   max: 60,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Too many pricing requests. Please wait a minute and try again." },
+  message: {
+    error: "Too many pricing requests. Please wait a minute and try again.",
+  },
 });
 
 const sarawak20CheckoutRateLimit = rateLimit({
@@ -53,7 +69,10 @@ const sarawak20CheckoutRateLimit = rateLimit({
   max: 8,
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Too many checkout attempts. Please wait a few minutes and try again." },
+  message: {
+    error:
+      "Too many checkout attempts. Please wait a few minutes and try again.",
+  },
 });
 
 /**
@@ -98,7 +117,9 @@ export function resolveOrigin(): string {
 }
 
 /** Active price id for the product tagged with the given tier metadata (from local DB cache). */
-async function getActivePriceIdForTier(tier: CheckoutTier): Promise<string | null> {
+async function getActivePriceIdForTier(
+  tier: CheckoutTier,
+): Promise<string | null> {
   const result = await db.execute(sql`
     SELECT pr.id AS price_id
     FROM stripe.products p
@@ -126,7 +147,11 @@ async function findPriceInStripeForTier(
     });
     const product = products.data[0];
     if (!product) return null;
-    const prices = await stripe.prices.list({ product: product.id, active: true, limit: 10 });
+    const prices = await stripe.prices.list({
+      product: product.id,
+      active: true,
+      limit: 10,
+    });
     // Prefer monthly recurring USD price; fall back to first active price.
     const monthly = prices.data.find(
       (p) => p.currency === "usd" && p.recurring?.interval === "month",
@@ -148,9 +173,20 @@ async function findPriceInStripeForTier(
  * Stripe the same way as team bundles — the original products only ever
  * existed in test mode, so live mode must be able to self-seed.
  */
-const CORE_TIER_CATALOG: Record<string, { name: string; monthlyUsdCents: number; licenses: number }> = {
-  single: { name: "MyLegalPracticeAI — Single App", monthlyUsdCents: 2500, licenses: 1 },
-  bundle: { name: "MyLegalPracticeAI — Complete Bundle (All Portals)", monthlyUsdCents: 7900, licenses: 1 },
+const CORE_TIER_CATALOG: Record<
+  string,
+  { name: string; monthlyUsdCents: number; licenses: number }
+> = {
+  single: {
+    name: "MyLegalPracticeAI — Single App",
+    monthlyUsdCents: 2500,
+    licenses: 1,
+  },
+  bundle: {
+    name: "MyLegalPracticeAI — Complete Bundle (All Portals)",
+    monthlyUsdCents: 7900,
+    licenses: 1,
+  },
 };
 
 async function ensureBundleTierPrice(
@@ -180,7 +216,11 @@ async function ensureBundleTierPrice(
     productId = product.id;
   }
 
-  const prices = await stripe.prices.list({ product: productId, active: true, limit: 10 });
+  const prices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 10,
+  });
   const existing = prices.data.find(
     (p) =>
       p.currency === "usd" &&
@@ -201,7 +241,11 @@ async function ensureBundleTierPrice(
   return price.id;
 }
 
-const CATALOG_TIER_KEYS = ["single", "bundle", ...Object.keys(BUNDLE_TIER_CATALOG)] as const;
+const CATALOG_TIER_KEYS = [
+  "single",
+  "bundle",
+  ...Object.keys(BUNDLE_TIER_CATALOG),
+] as const;
 
 type CatalogPriceResponse = {
   id: string;
@@ -211,10 +255,15 @@ type CatalogPriceResponse = {
 };
 
 type CatalogPriceMap = Record<string, CatalogPriceResponse | null>;
-type CatalogLookup = { tier: string; price: CatalogPriceResponse | null; error?: unknown };
+type CatalogLookup = {
+  tier: string;
+  price: CatalogPriceResponse | null;
+  error?: unknown;
+};
 
 const CATALOG_PRICE_CACHE_TTL_MS = 5 * 60 * 1000;
-let catalogPriceCache: { data: CatalogPriceMap; expiresAt: number } | null = null;
+let catalogPriceCache: { data: CatalogPriceMap; expiresAt: number } | null =
+  null;
 let lastKnownGoodCatalog: CatalogPriceMap | null = null;
 let catalogPriceRefresh: Promise<CatalogPriceMap> | null = null;
 let catalogPriceGeneration = 0;
@@ -228,7 +277,9 @@ let catalogPriceGeneration = 0;
  */
 export async function ensureLandingCatalogPrices(): Promise<void> {
   const stripe = await getUncachableStripeClient();
-  await Promise.all(CATALOG_TIER_KEYS.map((tier) => ensureBundleTierPrice(tier, stripe)));
+  await Promise.all(
+    CATALOG_TIER_KEYS.map((tier) => ensureBundleTierPrice(tier, stripe)),
+  );
   invalidateCatalogPriceCache();
 }
 
@@ -251,7 +302,11 @@ async function findCatalogPriceInStripe(
   const product = products.data[0];
   if (!product) return null;
 
-  const prices = await stripe.prices.list({ product: product.id, active: true, limit: 10 });
+  const prices = await stripe.prices.list({
+    product: product.id,
+    active: true,
+    limit: 10,
+  });
   const price = prices.data.find(
     (candidate) =>
       candidate.currency === "usd" &&
@@ -272,7 +327,9 @@ function hasCompleteCatalog(data: CatalogPriceMap): boolean {
   return CATALOG_TIER_KEYS.every((tier) => data[tier] != null);
 }
 
-async function refreshCatalogPrices(generation: number): Promise<CatalogPriceMap> {
+async function refreshCatalogPrices(
+  generation: number,
+): Promise<CatalogPriceMap> {
   const stripe = await getUncachableStripeClient();
   const results = await Promise.all(
     CATALOG_TIER_KEYS.map(async (tier): Promise<CatalogLookup> => {
@@ -291,10 +348,14 @@ async function refreshCatalogPrices(generation: number): Promise<CatalogPriceMap
     return lastKnownGoodCatalog;
   }
   if (failures.length > 0) {
-    throw new Error(`Stripe catalog lookup failed for ${failures.map((result) => result.tier).join(", ")}`);
+    throw new Error(
+      `Stripe catalog lookup failed for ${failures.map((result) => result.tier).join(", ")}`,
+    );
   }
 
-  const data = Object.fromEntries(results.map((result) => [result.tier, result.price])) as CatalogPriceMap;
+  const data = Object.fromEntries(
+    results.map((result) => [result.tier, result.price]),
+  ) as CatalogPriceMap;
   if (hasCompleteCatalog(data) && generation === catalogPriceGeneration) {
     lastKnownGoodCatalog = data;
   }
@@ -311,7 +372,10 @@ async function getCatalogPrices(): Promise<CatalogPriceMap> {
     catalogPriceRefresh = refreshCatalogPrices(generation)
       .then((data) => {
         if (generation === catalogPriceGeneration) {
-          catalogPriceCache = { data, expiresAt: Date.now() + CATALOG_PRICE_CACHE_TTL_MS };
+          catalogPriceCache = {
+            data,
+            expiresAt: Date.now() + CATALOG_PRICE_CACHE_TTL_MS,
+          };
         }
         return data;
       })
@@ -335,7 +399,9 @@ export function invalidateCatalogPriceCache(): void {
 }
 
 /** Test-only cache control for isolated rate-limit and concurrency coverage. */
-export function resetCatalogPriceCacheForTests(preserveLastKnownGood = false): void {
+export function resetCatalogPriceCacheForTests(
+  preserveLastKnownGood = false,
+): void {
   const previousLastKnownGood = lastKnownGoodCatalog;
   invalidateCatalogPriceCache();
   if (preserveLastKnownGood) {
@@ -410,7 +476,9 @@ router.post("/checkout", async (req, res) => {
   const trial = req.body?.trial === true;
 
   if (trial && tier !== "single") {
-    res.status(400).json({ error: "Free trial is only available on the single tier." });
+    res
+      .status(400)
+      .json({ error: "Free trial is only available on the single tier." });
     return;
   }
 
@@ -430,16 +498,22 @@ router.post("/checkout", async (req, res) => {
   // provisioning step cannot tell which portal was purchased, leaving the
   // subscriber with an access code that works nowhere — so require it.
   if (!isAllPortalsTier(tier) && !appUrl) {
-    res.status(400).json({ error: "Please choose an AI portal before subscribing." });
+    res
+      .status(400)
+      .json({ error: "Please choose an AI portal before subscribing." });
     return;
   }
 
   try {
     await requireLiveStripeInProduction();
   } catch (err) {
-    req.log.error({ err }, "Refusing checkout because production Stripe is not in live mode");
+    req.log.error(
+      { err },
+      "Refusing checkout because production Stripe is not in live mode",
+    );
     res.status(503).json({
-      error: "Live payment processing is temporarily unavailable. Please try again shortly.",
+      error:
+        "Live payment processing is temporarily unavailable. Please try again shortly.",
     });
     return;
   }
@@ -457,7 +531,10 @@ router.post("/checkout", async (req, res) => {
       priceId = await ensureBundleTierPrice(tier);
       invalidateCatalogPriceCache();
     } catch (err) {
-      req.log.error({ err, tier }, "Failed to resolve/auto-provision Stripe tier price");
+      req.log.error(
+        { err, tier },
+        "Failed to resolve/auto-provision Stripe tier price",
+      );
     }
   } else {
     priceId = await getActivePriceIdForTier(tier as CheckoutTier);
@@ -499,42 +576,66 @@ router.post("/checkout", async (req, res) => {
         ? {
             trial_period_days: 7,
             trial_settings: {
-                end_behavior: { missing_payment_method: "cancel" as const },
+              end_behavior: { missing_payment_method: "cancel" as const },
             },
           }
         : {}),
     },
-    metadata: { tier, trial: trial ? "true" : "false", ...(appUrl ? { appUrl } : {}) },
+    metadata: {
+      tier,
+      trial: trial ? "true" : "false",
+      ...(appUrl ? { appUrl } : {}),
+    },
   });
 
   let session;
   try {
-    session = await stripe.checkout.sessions.create(buildSessionParams(priceId));
+    session = await stripe.checkout.sessions.create(
+      buildSessionParams(priceId),
+    );
   } catch (err: unknown) {
-    const stripeErr = err as { code?: string; param?: string; message?: string };
+    const stripeErr = err as {
+      code?: string;
+      param?: string;
+      message?: string;
+    };
     // The DB price may be stale (e.g. test-mode price used with a live key).
     // Fall back to searching Stripe directly for a live-mode price for this tier.
     if (stripeErr?.code === "resource_missing") {
-      req.log.warn({ tier, priceId }, "DB price invalid in current Stripe mode; searching Stripe directly");
+      req.log.warn(
+        { tier, priceId },
+        "DB price invalid in current Stripe mode; searching Stripe directly",
+      );
       const livePriceId =
         tier in BUNDLE_TIER_CATALOG || tier in CORE_TIER_CATALOG
           ? await ensureBundleTierPrice(tier).catch((e) => {
-              req.log.error({ err: e, tier }, "ensureBundleTierPrice failed in fallback");
+              req.log.error(
+                { err: e, tier },
+                "ensureBundleTierPrice failed in fallback",
+              );
               return null;
             })
           : await findPriceInStripeForTier(stripe, tier);
       if (!livePriceId) {
-        req.log.error({ tier }, "No live-mode price found for tier after fallback search");
+        req.log.error(
+          { tier },
+          "No live-mode price found for tier after fallback search",
+        );
         res.status(503).json({
-          error: "Pricing is not configured in live mode yet. Please contact support.",
+          error:
+            "Pricing is not configured in live mode yet. Please contact support.",
         });
         return;
       }
       invalidateCatalogPriceCache();
-      session = await stripe.checkout.sessions.create(buildSessionParams(livePriceId));
+      session = await stripe.checkout.sessions.create(
+        buildSessionParams(livePriceId),
+      );
     } else {
       req.log.error({ err, tier }, "Stripe checkout session creation failed");
-      res.status(502).json({ error: "Payment provider error. Please try again." });
+      res
+        .status(502)
+        .json({ error: "Payment provider error. Please try again." });
       return;
     }
   }
@@ -544,134 +645,219 @@ router.post("/checkout", async (req, res) => {
 
 router.get("/sarawak20/status", async (req, res) => {
   try {
-    res.json(await getSarawak20Status());
+    res.json(GetSarawak20StatusResponse.parse(await getSarawak20Status()));
   } catch (err) {
     req.log.error({ err }, "Failed to read Project Sarawak 20 availability");
-    res.status(503).json({ error: "Programme availability is temporarily unavailable." });
+    res
+      .status(503)
+      .json({ error: "Programme availability is temporarily unavailable." });
   }
 });
 
-router.post("/sarawak20/checkout", sarawak20CheckoutRateLimit, async (req, res) => {
-  const cohort = req.body?.cohort;
-  const requestId = req.body?.requestId;
-  if (
-    !isSarawak20Cohort(cohort) ||
-    typeof requestId !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      requestId,
-    )
-  ) {
-    res.status(400).json({ error: "Choose a valid cohort and try again." });
-    return;
-  }
+router.post(
+  "/sarawak20/eligibility",
+  sarawak20CheckoutRateLimit,
+  async (req, res): Promise<void> => {
+    const parsed = CreateSarawak20EligibilityBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Please complete the required eligibility details correctly.",
+      });
+      return;
+    }
+    if (parsed.data.cohort === "chambering") {
+      const date = new Date(`${parsed.data.pupillageStartDate}T00:00:00.000Z`);
+      if (
+        Number.isNaN(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== parsed.data.pupillageStartDate
+      ) {
+        res.status(400).json({ error: "Enter a valid pupillage start date." });
+        return;
+      }
+    }
+    try {
+      res.json(
+        CreateSarawak20EligibilityResponse.parse(
+          await createSarawak20Eligibility(parsed.data),
+        ),
+      );
+    } catch (error) {
+      if (error instanceof Sarawak20EligibilityError) {
+        res.status(error.code === "service-unavailable" ? 503 : 409).json({
+          error:
+            error.code === "service-unavailable"
+              ? "The AAS directory is temporarily unavailable. Please try again."
+              : "The advocate and firm could not be verified in the AAS directory.",
+        });
+        return;
+      }
+      req.log.error({ error }, "Sarawak 20 eligibility processing failed");
+      res.status(503).json({
+        error: "Eligibility verification is temporarily unavailable.",
+      });
+    }
+  },
+);
 
-  try {
-    await requireLiveStripeInProduction();
-  } catch (err) {
-    req.log.error({ err }, "Refusing Sarawak 20 checkout because Stripe is not live");
-    res.status(503).json({
-      error: "Live payment processing is temporarily unavailable. Please try again shortly.",
-    });
-    return;
-  }
+router.post(
+  "/sarawak20/checkout",
+  sarawak20CheckoutRateLimit,
+  async (req, res) => {
+    const parsed = CreateSarawak20CheckoutBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Choose a valid cohort and try again." });
+      return;
+    }
+    const { cohort, requestId, eligibilityId } = parsed.data;
 
-  let claim;
-  try {
-    claim = await claimSarawak20Reservation(cohort, requestId);
-  } catch (err) {
-    req.log.error({ err, cohort }, "Failed to reserve Project Sarawak 20 place");
-    res.status(503).json({ error: "We could not reserve your place. Please try again." });
-    return;
-  }
+    try {
+      await requireLiveStripeInProduction();
+    } catch (err) {
+      req.log.error(
+        { err },
+        "Refusing Sarawak 20 checkout because Stripe is not live",
+      );
+      res.status(503).json({
+        error:
+          "Live payment processing is temporarily unavailable. Please try again shortly.",
+      });
+      return;
+    }
 
-  if (claim.kind === "sold-out") {
-    res.status(409).json({ error: "This founding cohort has filled all 20 places." });
-    return;
-  }
-  if (claim.kind === "reused") {
-    res.json({ url: claim.url });
-    return;
-  }
-  if (claim.kind === "pending") {
-    res.status(409).json({
-      error: "This checkout attempt is already being prepared. Please wait a moment and retry.",
-    });
-    return;
-  }
+    let claim;
+    try {
+      claim = await claimSarawak20Reservation(cohort, requestId, eligibilityId);
+    } catch (err) {
+      req.log.error(
+        { err, cohort },
+        "Failed to reserve Project Sarawak 20 place",
+      );
+      res
+        .status(503)
+        .json({ error: "We could not reserve your place. Please try again." });
+      return;
+    }
 
-  const origin = resolveOrigin();
-  if (!origin) {
-    await releaseSarawak20Reservation(claim.id);
-    req.log.error("Cannot create Sarawak 20 checkout without a trusted server origin");
-    res.status(503).json({ error: "Checkout is temporarily unavailable." });
-    return;
-  }
+    if (claim.kind === "sold-out") {
+      res
+        .status(409)
+        .json({ error: "This founding cohort has filled all 20 places." });
+      return;
+    }
+    if (claim.kind === "eligibility-required") {
+      res.status(409).json({
+        error:
+          "Verified AAS-directory eligibility is required for this firm offer.",
+      });
+      return;
+    }
+    if (claim.kind === "reused") {
+      res.json({ url: claim.url });
+      return;
+    }
+    if (claim.kind === "pending") {
+      res.status(409).json({
+        error:
+          "This checkout attempt is already being prepared. Please wait a moment and retry.",
+      });
+      return;
+    }
 
-  const stripe = await getUncachableStripeClient();
-  let priceId: string;
-  try {
-    priceId = await ensureSarawak20Price(stripe);
-  } catch (err) {
-    await releaseSarawak20Reservation(claim.id).catch(() => undefined);
-    req.log.error({ err, cohort }, "Project Sarawak 20 price resolution failed");
-    res.status(502).json({ error: "Payment provider error. Please try again." });
-    return;
-  }
+    const origin = resolveOrigin();
+    if (!origin) {
+      await releaseSarawak20Reservation(claim.id);
+      req.log.error(
+        "Cannot create Sarawak 20 checkout without a trusted server origin",
+      );
+      res.status(503).json({ error: "Checkout is temporarily unavailable." });
+      return;
+    }
 
-  let session: Stripe.Checkout.Session;
-  try {
-    const expiresAt = sarawak20CheckoutExpiresAt();
-    session = await stripe.checkout.sessions.create(
-      buildSarawak20CheckoutParams({
-        origin,
-        priceId,
+    const stripe = await getUncachableStripeClient();
+    let priceId: string;
+    try {
+      priceId = await ensureSarawak20Price(stripe, claim.plan);
+    } catch (err) {
+      await releaseSarawak20Reservation(claim.id).catch(() => undefined);
+      req.log.error(
+        { err, cohort },
+        "Project Sarawak 20 price resolution failed",
+      );
+      res
+        .status(502)
+        .json({ error: "Payment provider error. Please try again." });
+      return;
+    }
+
+    let session: Stripe.Checkout.Session;
+    try {
+      const expiresAt = sarawak20CheckoutExpiresAt();
+      session = await stripe.checkout.sessions.create(
+        buildSarawak20CheckoutParams({
+          origin,
+          priceId,
+          reservationId: claim.id,
+          cohort,
+          plan: claim.plan,
+          eligibilityId: claim.eligibilityId,
+          expiresAt,
+        }),
+        { idempotencyKey: `sarawak20-checkout-${requestId}` },
+      );
+    } catch (err) {
+      await releaseSarawak20Reservation(claim.id).catch(() => undefined);
+      req.log.error(
+        { err, cohort },
+        "Project Sarawak 20 checkout creation failed",
+      );
+      res
+        .status(502)
+        .json({ error: "Payment provider error. Please try again." });
+      return;
+    }
+
+    if (!session.url) {
+      req.log.error(
+        { cohort, reservationId: claim.id, sessionId: session.id },
+        "Stripe checkout exists without a hosted URL; retaining reservation",
+      );
+      res
+        .status(502)
+        .json({ error: "Payment provider error. Please try again." });
+      return;
+    }
+
+    // Once Stripe has returned a payable URL, this place must remain allocated.
+    // A transient DB failure here must never release it and allow a 21st sale:
+    // the session metadata lets completion consume the original reservation.
+    try {
+      await attachSarawak20Checkout({
         reservationId: claim.id,
-        cohort,
-        expiresAt,
-      }),
-      { idempotencyKey: `sarawak20-checkout-${requestId}` },
-    );
-  } catch (err) {
-    await releaseSarawak20Reservation(claim.id).catch(() => undefined);
-    req.log.error({ err, cohort }, "Project Sarawak 20 checkout creation failed");
-    res.status(502).json({ error: "Payment provider error. Please try again." });
-    return;
-  }
-
-  if (!session.url) {
-    req.log.error(
-      { cohort, reservationId: claim.id, sessionId: session.id },
-      "Stripe checkout exists without a hosted URL; retaining reservation",
-    );
-    res.status(502).json({ error: "Payment provider error. Please try again." });
-    return;
-  }
-
-  // Once Stripe has returned a payable URL, this place must remain allocated.
-  // A transient DB failure here must never release it and allow a 21st sale:
-  // the session metadata lets completion consume the original reservation.
-  try {
-    await attachSarawak20Checkout({
-      reservationId: claim.id,
-      sessionId: session.id,
-      url: session.url,
-    });
-  } catch (err) {
-    req.log.error(
-      { err, cohort, reservationId: claim.id, sessionId: session.id },
-      "Stripe checkout exists but local attachment failed; retaining reservation",
-    );
-  }
-  res.json({ url: session.url });
-});
+        sessionId: session.id,
+        url: session.url,
+      });
+    } catch (err) {
+      req.log.error(
+        { err, cohort, reservationId: claim.id, sessionId: session.id },
+        "Stripe checkout exists but local attachment failed; retaining reservation",
+      );
+    }
+    res.json({ url: session.url });
+  },
+);
 
 // Public self-service billing handoff. An access code is not enough on its own:
 // the purchaser's billing email must match the same subscriber row before a
 // short-lived Stripe Customer Portal session is created.
 router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
   const accessCode =
-    typeof req.body?.accessCode === "string" ? req.body.accessCode.trim().toUpperCase() : "";
-  const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    typeof req.body?.accessCode === "string"
+      ? req.body.accessCode.trim().toUpperCase()
+      : "";
+  const email =
+    typeof req.body?.email === "string"
+      ? req.body.email.trim().toLowerCase()
+      : "";
   const action = req.body?.action === "cancel" ? "cancel" : "manage";
 
   if (
@@ -707,8 +893,12 @@ router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
 
   const origin = resolveOrigin();
   if (!origin) {
-    req.log.error("Cannot create billing portal session without a trusted server origin");
-    res.status(503).json({ error: "Subscription management is temporarily unavailable." });
+    req.log.error(
+      "Cannot create billing portal session without a trusted server origin",
+    );
+    res
+      .status(503)
+      .json({ error: "Subscription management is temporarily unavailable." });
     return;
   }
 
@@ -737,8 +927,13 @@ router.post("/customer-portal", billingPortalRateLimit, async (req, res) => {
     const session = await stripe.billingPortal.sessions.create(params);
     res.json({ url: session.url });
   } catch (err) {
-    req.log.error({ err, action }, "Stripe billing portal session creation failed");
-    res.status(502).json({ error: "Could not open subscription management. Please try again." });
+    req.log.error(
+      { err, action },
+      "Stripe billing portal session creation failed",
+    );
+    res.status(502).json({
+      error: "Could not open subscription management. Please try again.",
+    });
   }
 });
 
@@ -762,6 +957,8 @@ router.get("/session-info", async (req, res) => {
       accessCode: result.accessCode,
       apps: result.apps,
       tier: result.tier,
+      plan: result.plan,
+      licenses: result.licenses,
       trial: result.trial,
     });
   } catch (err) {

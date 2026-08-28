@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Sarawak20CohortCohort } from "./sarawak20CohortCohort";
+import type { Sarawak20CohortCurrentPlan } from "./sarawak20CohortCurrentPlan";
+import type { Sarawak20Price } from "./sarawak20Price";
 
 export interface Sarawak20Cohort {
   cohort: Sarawak20CohortCohort;
@@ -15,4 +17,10 @@ export interface Sarawak20Cohort {
   reserved: number;
   remaining: number;
   soldOut: boolean;
+  foundingSoldOut: boolean;
+  currentPlan: Sarawak20CohortCurrentPlan;
+  price: Sarawak20Price;
+  licenses: number;
+  unlimited: boolean;
+  requiresEligibility: boolean;
 }

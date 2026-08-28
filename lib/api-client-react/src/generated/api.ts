@@ -161,6 +161,8 @@ import type {
   ReviewSpaClauseBody,
   ReviewSpaClauseResponse,
   Sarawak20CheckoutInput,
+  Sarawak20Eligibility,
+  Sarawak20EligibilityInput,
   Sarawak20Status,
   ScanTransactionRiskBody,
   ScanTransactionRiskResponse,
@@ -359,6 +361,93 @@ export const useCreateSarawak20Checkout = <
   TContext
 > => {
   return useMutation(getCreateSarawak20CheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Verify Project Sarawak 20 eligibility
+ */
+export const getCreateSarawak20EligibilityUrl = () => {
+  return `/api/stripe/sarawak20/eligibility`;
+};
+
+export const createSarawak20Eligibility = async (
+  sarawak20EligibilityInput: Sarawak20EligibilityInput,
+  options?: RequestInit,
+): Promise<Sarawak20Eligibility> => {
+  return customFetch<Sarawak20Eligibility>(getCreateSarawak20EligibilityUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sarawak20EligibilityInput),
+  });
+};
+
+export const getCreateSarawak20EligibilityMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSarawak20Eligibility>>,
+    TError,
+    { data: BodyType<Sarawak20EligibilityInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSarawak20Eligibility>>,
+  TError,
+  { data: BodyType<Sarawak20EligibilityInput> },
+  TContext
+> => {
+  const mutationKey = ["createSarawak20Eligibility"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSarawak20Eligibility>>,
+    { data: BodyType<Sarawak20EligibilityInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSarawak20Eligibility(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSarawak20EligibilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSarawak20Eligibility>>
+>;
+export type CreateSarawak20EligibilityMutationBody =
+  BodyType<Sarawak20EligibilityInput>;
+export type CreateSarawak20EligibilityMutationError = ErrorType<void>;
+
+/**
+ * @summary Verify Project Sarawak 20 eligibility
+ */
+export const useCreateSarawak20Eligibility = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSarawak20Eligibility>>,
+    TError,
+    { data: BodyType<Sarawak20EligibilityInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSarawak20Eligibility>>,
+  TError,
+  { data: BodyType<Sarawak20EligibilityInput> },
+  TContext
+> => {
+  return useMutation(getCreateSarawak20EligibilityMutationOptions(options));
 };
 
 /**

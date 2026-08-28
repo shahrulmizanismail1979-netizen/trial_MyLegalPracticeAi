@@ -29,6 +29,20 @@ export const GetSarawak20StatusResponse = zod.object({
       reserved: zod.number(),
       remaining: zod.number(),
       soldOut: zod.boolean(),
+      foundingSoldOut: zod.boolean(),
+      currentPlan: zod.enum([
+        "firm_founding",
+        "chambering_founding",
+        "aas_firm",
+      ]),
+      price: zod.object({
+        amount: zod.number().describe("Price in minor currency units."),
+        currency: zod.enum(["myr"]),
+        interval: zod.enum(["month"]),
+      }),
+      licenses: zod.number(),
+      unlimited: zod.boolean(),
+      requiresEligibility: zod.boolean(),
     }),
   ),
 });
@@ -40,10 +54,94 @@ export const GetSarawak20StatusResponse = zod.object({
 export const CreateSarawak20CheckoutBody = zod.object({
   cohort: zod.enum(["firm", "chambering"]),
   requestId: zod.string().uuid(),
+  eligibilityId: zod.string().uuid(),
 });
 
 export const CreateSarawak20CheckoutResponse = zod.object({
   url: zod.string().url(),
+});
+
+/**
+ * @summary Verify Project Sarawak 20 eligibility
+ */
+export const createSarawak20EligibilityBodyOneFullNameMax = 160;
+
+export const createSarawak20EligibilityBodyOneFirmNameMax = 200;
+
+export const createSarawak20EligibilityBodyOneAdvocateNameMax = 160;
+
+export const createSarawak20EligibilityBodyOneProfessionalReferenceMax = 500;
+
+export const createSarawak20EligibilityBodyTwoFullNameMax = 160;
+
+export const createSarawak20EligibilityBodyTwoFirmNameMax = 200;
+
+export const createSarawak20EligibilityBodyTwoPupilMasterNameMax = 160;
+
+export const createSarawak20EligibilityBodyTwoPupillageStartDateRegExp =
+  new RegExp("^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$");
+export const createSarawak20EligibilityBodyTwoCmsPetitionNumberMax = 100;
+
+export const createSarawak20EligibilityBodyTwoProfessionalReferenceMax = 500;
+
+export const CreateSarawak20EligibilityBody = zod.union([
+  zod.object({
+    cohort: zod.enum(["firm"]),
+    fullName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyOneFullNameMax),
+    firmName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyOneFirmNameMax),
+    practiceLocation: zod.enum(["KUCHING", "SIBU", "MIRI", "BINTULU"]),
+    advocateName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyOneAdvocateNameMax),
+    professionalReference: zod
+      .string()
+      .max(createSarawak20EligibilityBodyOneProfessionalReferenceMax)
+      .optional(),
+    declarationAccepted: zod.literal(true),
+  }),
+  zod.object({
+    cohort: zod.enum(["chambering"]),
+    fullName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyTwoFullNameMax),
+    firmName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyTwoFirmNameMax),
+    practiceLocation: zod.enum(["KUCHING", "SIBU", "MIRI", "BINTULU"]),
+    pupilMasterName: zod
+      .string()
+      .min(1)
+      .max(createSarawak20EligibilityBodyTwoPupilMasterNameMax),
+    pupillageStartDate: zod
+      .string()
+      .regex(createSarawak20EligibilityBodyTwoPupillageStartDateRegExp),
+    noticeAcknowledgement: zod.literal(true),
+    cmsPetitionNumber: zod
+      .string()
+      .max(createSarawak20EligibilityBodyTwoCmsPetitionNumberMax)
+      .optional(),
+    professionalReference: zod
+      .string()
+      .max(createSarawak20EligibilityBodyTwoProfessionalReferenceMax)
+      .optional(),
+    declarationAccepted: zod.literal(true),
+  }),
+]);
+
+export const CreateSarawak20EligibilityResponse = zod.object({
+  eligibilityId: zod.string().uuid(),
+  status: zod.enum(["verified"]),
+  source: zod.enum(["aas_directory", "submitted_details"]),
+  message: zod.string(),
 });
 
 /**
@@ -57,6 +155,13 @@ export const GetStripeSessionInfoResponse = zod.object({
   accessCode: zod.string().nullable(),
   apps: zod.array(zod.string()),
   tier: zod.string().nullable(),
+  plan: zod
+    .string()
+    .nullable()
+    .describe(
+      "Trusted plan identifier for plan-aware checkout success messaging.",
+    ),
+  licenses: zod.number().min(1).nullable(),
   trial: zod.boolean(),
 });
 

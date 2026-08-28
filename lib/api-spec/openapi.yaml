@@ -76,6 +76,29 @@ paths:
           description: Stripe checkout could not be created
         "503":
           description: Live payment processing is temporarily unavailable
+  /stripe/sarawak20/eligibility:
+    post:
+      operationId: createSarawak20Eligibility
+      tags:
+        - sarawak20
+      summary: Verify Project Sarawak 20 eligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Sarawak20EligibilityInput"
+      responses:
+        "200":
+          description: Eligibility verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sarawak20Eligibility"
+        "409":
+          description: Applicant could not be verified
+        "503":
+          description: AAS directory unavailable
   /stripe/session-info:
     get:
       operationId: getStripeSessionInfo
@@ -2672,6 +2695,19 @@ components:
           type: integer
         soldOut:
           type: boolean
+        foundingSoldOut:
+          type: boolean
+        currentPlan:
+          type: string
+          enum: [firm_founding, chambering_founding, aas_firm]
+        price:
+          $ref: "#/components/schemas/Sarawak20Price"
+        licenses:
+          type: integer
+        unlimited:
+          type: boolean
+        requiresEligibility:
+          type: boolean
       required:
         - cohort
         - label
@@ -2680,6 +2716,12 @@ components:
         - reserved
         - remaining
         - soldOut
+        - foundingSoldOut
+        - currentPlan
+        - price
+        - licenses
+        - unlimited
+        - requiresEligibility
     Sarawak20Price:
       type: object
       properties:
@@ -2730,9 +2772,70 @@ components:
         requestId:
           type: string
           format: uuid
+        eligibilityId:
+          type: string
+          format: uuid
       required:
         - cohort
         - requestId
+        - eligibilityId
+    Sarawak20EligibilityInput:
+      oneOf:
+        - type: object
+          required:
+            [
+              cohort,
+              fullName,
+              firmName,
+              practiceLocation,
+              advocateName,
+              declarationAccepted,
+            ]
+          properties:
+            cohort: { type: string, enum: [firm] }
+            fullName: { type: string, minLength: 1, maxLength: 160 }
+            firmName: { type: string, minLength: 1, maxLength: 200 }
+            practiceLocation:
+              { type: string, enum: [KUCHING, SIBU, MIRI, BINTULU] }
+            advocateName: { type: string, minLength: 1, maxLength: 160 }
+            professionalReference: { type: string, maxLength: 500 }
+            declarationAccepted: { type: boolean, enum: [true] }
+        - type: object
+          required:
+            [
+              cohort,
+              fullName,
+              firmName,
+              practiceLocation,
+              pupilMasterName,
+              pupillageStartDate,
+              noticeAcknowledgement,
+              declarationAccepted,
+            ]
+          properties:
+            cohort: { type: string, enum: [chambering] }
+            fullName: { type: string, minLength: 1, maxLength: 160 }
+            firmName: { type: string, minLength: 1, maxLength: 200 }
+            practiceLocation:
+              { type: string, enum: [KUCHING, SIBU, MIRI, BINTULU] }
+            pupilMasterName: { type: string, minLength: 1, maxLength: 160 }
+            pupillageStartDate:
+              {
+                type: string,
+                pattern: '^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$',
+              }
+            noticeAcknowledgement: { type: boolean, enum: [true] }
+            cmsPetitionNumber: { type: string, maxLength: 100 }
+            professionalReference: { type: string, maxLength: 500 }
+            declarationAccepted: { type: boolean, enum: [true] }
+    Sarawak20Eligibility:
+      type: object
+      required: [eligibilityId, status, source, message]
+      properties:
+        eligibilityId: { type: string, format: uuid }
+        status: { type: string, enum: [verified] }
+        source: { type: string, enum: [aas_directory, submitted_details] }
+        message: { type: string }
     StripeRedirect:
       type: object
       properties:
@@ -2756,12 +2859,24 @@ components:
           type:
             - string
             - "null"
+        plan:
+          type:
+            - string
+            - "null"
+          description: Trusted plan identifier for plan-aware checkout success messaging.
+        licenses:
+          type:
+            - integer
+            - "null"
+          minimum: 1
         trial:
           type: boolean
       required:
         - accessCode
         - apps
         - tier
+        - plan
+        - licenses
         - trial
     StripePortalInput:
       type: object
