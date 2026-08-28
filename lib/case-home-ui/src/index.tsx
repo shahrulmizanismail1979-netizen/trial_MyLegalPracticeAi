@@ -570,6 +570,18 @@ const CSS = `
   display:inline-flex;align-items:center;gap:4px;padding:0;margin-top:10px;font-family:inherit;
 }
 .ch-toggle:hover{color:var(--ch-fg);}
+.jl-toolbar,.jl-filters,.jl-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.jl-toolbar .ch-input{flex:1 1 280px}.jl-filters{margin:10px 0}.jl-filters>*{flex:1 1 145px}
+.jl-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+@media(min-width:900px){.jl-layout{grid-template-columns:220px minmax(0,1fr)}}
+.jl-results{list-style:none;padding:0;margin:12px 0;display:grid;gap:9px}
+.jl-result{width:100%;text-align:left;padding:14px;background:var(--ch-surface);color:var(--ch-fg);border:1px solid var(--ch-border);border-radius:9px;cursor:pointer}
+.jl-result:hover,.jl-result:focus-visible{border-color:var(--ch-accent);outline:2px solid color-mix(in srgb,var(--ch-accent) 20%,transparent)}
+.jl-report-nav{position:sticky;top:12px;align-self:start}.jl-report-nav a{display:block;padding:5px 0;color:var(--ch-muted);font-size:12px}
+.jl-report-section{scroll-margin-top:16px;border-top:1px solid var(--ch-border);padding:18px 0}.jl-report-section h2{font-size:17px;margin:0 0 9px}
+.jl-provenance{padding:12px;border-left:3px solid var(--ch-accent);background:var(--ch-surface-2);font-size:12px}
+.jl-para{display:grid;grid-template-columns:54px 1fr;gap:10px;margin:10px 0;line-height:1.6}.jl-pin{color:var(--ch-muted);font:11px monospace;text-align:right}
+.jl-gateways{display:grid;gap:6px}.jl-gateways a{color:var(--ch-accent);font-size:12px}
 `;
 
 function injectStyles() {
@@ -1383,5 +1395,308 @@ export function CaseHomePanel({ matterId, request, accent, className = "", actio
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Shared LAWYes Judgment Library ───────────────────────────────────────────
+
+export interface JudgmentLibraryResult {
+  id: number;
+  citation: string | null;
+  caseName: string | null;
+  court: string | null;
+  decisionDate: string | null;
+  snippet: string | null;
+  catchwords: Array<{ sortOrder: number; catchwordLine: string }>;
+  reportState: "Published";
+  rightsStatus: string;
+}
+
+export interface JudgmentLibraryDetail extends JudgmentLibraryResult {
+  registry: string;
+  proceedingNumber: string;
+  coram: string;
+  advocates: string;
+  paragraphs: Array<{ paragraphRef: string; pageNumber: number; text: string }>;
+  structuredReport: {
+    status: "Published";
+    verificationDate: string;
+    revision: number;
+    sections: Array<{ id: string; title: string; content: string | string[]; pinpoints?: string[] }>;
+  };
+  provenance: {
+    sourceName: string;
+    sourceUrl: string | null;
+    rightsStatus: string;
+    verifiedAt: string;
+    editorialOwnership: string;
+  };
+}
+
+export interface JudgmentLibraryProps {
+  /** Authenticated requester. Paths are absolute /api/cases paths. */
+  request: CaseHomeRequest;
+  accent?: string;
+  className?: string;
+  practiceArea?: string;
+}
+
+const officialCollections = [
+  ["Malaysian Judiciary eJudgment", "https://ejudgment.kehakiman.gov.my/"],
+  ["e-Kehakiman Sabah and Sarawak", "https://ekss-portal.kehakiman.gov.my/"],
+  ["Industrial Court Full Awards", "https://www.mp.gov.my/"],
+  ["JAKESS Judgments", "https://www.jakess.gov.my/"],
+  ["Native Court of Appeal", "https://nativecourt.sabah.gov.my/"],
+  ["Judiciary Digital Repository", "https://library.kehakiman.gov.my/digital/"],
+] as const;
+
+function displayDate(value: string | null | undefined): string {
+  if (!value) return "Date not stated";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-MY", { dateStyle: "long" }).format(date);
+}
+
+export function JudgmentLibrary({
+  request,
+  accent,
+  className = "",
+  practiceArea,
+}: JudgmentLibraryProps) {
+  injectStyles();
+  const [query, setQuery] = useState("");
+  const [court, setCourt] = useState("");
+  const [judge, setJudge] = useState("");
+  const [legislation, setLegislation] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sort, setSort] = useState<"relevance" | "date" | "title">("relevance");
+  const [results, setResults] = useState<JudgmentLibraryResult[]>([]);
+  const [detail, setDetail] = useState<JudgmentLibraryDetail | null>(null);
+  const [related, setRelated] = useState<JudgmentLibraryResult[]>([]);
+  const [recent, setRecent] = useState<JudgmentLibraryResult[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const limit = 20;
+
+  const params = useCallback((nextOffset = offset) => {
+    const search = new URLSearchParams({ limit: String(limit), offset: String(nextOffset), sort });
+    if (query.trim()) search.set("q", query.trim());
+    if (court.trim()) search.set("court", court.trim());
+    if (judge.trim()) search.set("judge", judge.trim());
+    if (legislation.trim()) search.set("legislation", legislation.trim());
+    if (dateFrom) search.set("dateFrom", dateFrom);
+    if (dateTo) search.set("dateTo", dateTo);
+    if (practiceArea) search.set("practiceArea", practiceArea);
+    return search;
+  }, [court, dateFrom, dateTo, judge, legislation, offset, practiceArea, query, sort]);
+
+  const search = useCallback(async (nextOffset = 0) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const body = await request(`/api/cases/search?${params(nextOffset)}`).then(jsonOrThrow) as {
+        total: number;
+        results: JudgmentLibraryResult[];
+      };
+      setResults(body.results ?? []);
+      setTotal(body.total ?? 0);
+      setOffset(nextOffset);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to search the Judgment Library");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [params, request]);
+
+  useEffect(() => { void search(0); }, [practiceArea]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Recent reports have their own server-side, identity-derived practice scope.
+  // Keep this separate from search so an empty search result never hides a
+  // useful route into newly published reports.
+  useEffect(() => {
+    let active = true;
+    void request("/api/cases/recent?limit=6")
+      .then(jsonOrThrow)
+      .then((body) => {
+        if (active) setRecent(((body as { results?: JudgmentLibraryResult[] }).results ?? []));
+      })
+      .catch(() => {
+        // Search already renders its own actionable error state. Recent is a
+        // supplementary panel and must not replace it with a duplicate error.
+        if (active) setRecent([]);
+      });
+    return () => { active = false; };
+  }, [practiceArea, request]);
+
+  const openReport = async (id: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [report, relatedBody] = await Promise.all([
+        request(`/api/cases/${id}`).then(jsonOrThrow) as Promise<JudgmentLibraryDetail>,
+        request(`/api/cases/${id}/related`).then(jsonOrThrow) as Promise<{ results: JudgmentLibraryResult[] }>,
+      ]);
+      setDetail(report);
+      setRelated(relatedBody.results ?? []);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to load the report");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const download = async (format: "docx" | "pdf" | "text" | "json" | "html" | "citation") => {
+    if (!detail) return;
+    try {
+      const response = await request(`/api/cases/${detail.id}/export/${format}`);
+      if (!response.ok) throw new Error(`Export failed (${response.status})`);
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? `LAWYes-report.${format}`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Export failed");
+    }
+  };
+
+  const copyCitation = async () => {
+    if (!detail) return;
+    await navigator.clipboard.writeText(`${detail.caseName ?? ""} ${detail.citation ?? ""}`.trim());
+    setNotice("Citation copied");
+    window.setTimeout(() => setNotice(null), 2000);
+  };
+
+  const rootStyle = accent ? ({ ["--ch-accent-override" as string]: accent } as React.CSSProperties) : undefined;
+  if (detail) {
+    return (
+      <main className={`ch-root ${className}`} style={rootStyle}>
+        <button className="ch-btn ch-btn-ghost" onClick={() => { setDetail(null); setRelated([]); }}>← Back to results</button>
+        <article className="ch-card" style={{ marginTop: 12 }}>
+          <header>
+            <div className="ch-eyebrow">LAWYes Judgment Library · {detail.structuredReport.status}</div>
+            <h1 className="ch-title" style={{ fontSize: 25 }}>{detail.caseName ?? "Untitled case"}</h1>
+            <p><strong>{detail.citation}</strong> · {detail.court} · {displayDate(detail.decisionDate)}</p>
+            <div className="jl-actions" aria-label="Report actions">
+              <Btn small onClick={() => void copyCitation()}>Copy citation</Btn>
+              {(["pdf", "docx", "text", "json", "html"] as const).map((format) => (
+                <Btn key={format} small kind="ghost" onClick={() => void download(format)}>
+                  {format === "html" ? "Print HTML" : format.toUpperCase()}
+                </Btn>
+              ))}
+            </div>
+          </header>
+          <div className="jl-provenance" style={{ marginTop: 14 }}>
+            <strong>{detail.provenance.editorialOwnership}</strong><br />
+            Published · verified {displayDate(detail.provenance.verifiedAt)} · rights: {detail.provenance.rightsStatus}<br />
+            {detail.provenance.sourceUrl
+              ? <a href={detail.provenance.sourceUrl} target="_blank" rel="noreferrer">Open original judgment — {detail.provenance.sourceName}</a>
+              : <>Original source: {detail.provenance.sourceName}</>}
+          </div>
+          <div className="jl-layout" style={{ marginTop: 18 }}>
+            <nav className="jl-report-nav ch-card" aria-label="Report contents">
+              <strong>Contents</strong>
+              {detail.structuredReport.sections.map((section) => <a key={section.id} href={`#${section.id}`}>{section.title}</a>)}
+              <a href="#judgment">Judgment</a>
+            </nav>
+            <div>
+              {detail.structuredReport.sections.map((section) => (
+                <section key={section.id} id={section.id} className="jl-report-section">
+                  <h2>{section.title}</h2>
+                  {(Array.isArray(section.content) ? section.content : [section.content]).map((item, index) => (
+                    <p key={index}>{item} {section.pinpoints?.[index] && section.pinpoints[index] !== "Not stated in the published judgment" && <a href={`#${section.pinpoints[index]!.replace(/[[\]]/g, "")}`}>{section.pinpoints[index]}</a>}</p>
+                  ))}
+                </section>
+              ))}
+              <section id="judgment" className="jl-report-section">
+                <h2>Judgment</h2>
+                {detail.paragraphs.map((paragraph) => (
+                  <p className="jl-para" id={paragraph.paragraphRef.replace(/[[\]]/g, "")} key={`${paragraph.pageNumber}-${paragraph.paragraphRef}`}>
+                    <span className="jl-pin">{paragraph.paragraphRef}</span><span>{paragraph.text}</span>
+                  </p>
+                ))}
+              </section>
+              {related.length > 0 && <section className="jl-report-section"><h2>Related reports</h2><ul className="jl-results">{related.map((item) => <li key={item.id}><button className="jl-result" onClick={() => void openReport(item.id)}>{item.caseName}<br /><small>{item.citation}</small></button></li>)}</ul></section>}
+            </div>
+          </div>
+        </article>
+        {notice && <p role="status">{notice}</p>}
+        {error && <p className="ch-err" role="alert">{error}</p>}
+      </main>
+    );
+  }
+
+  return (
+    <main className={`ch-root ${className}`} style={rootStyle}>
+      <header className="ch-card">
+        <div className="ch-eyebrow">Verified Malaysian judgments · subscriber library</div>
+        <h1 className="ch-title" style={{ fontSize: 25 }}>LAWYes Judgment Library</h1>
+        <p className="ch-sub">Search published, lawyer-reviewed reports and verified judgment text.</p>
+        <form className="jl-toolbar" style={{ marginTop: 14 }} onSubmit={(event) => { event.preventDefault(); void search(0); }}>
+          <label style={{ flex: "1 1 280px" }}><span className="ch-label">Keywords, parties, citation or case number</span><input className="ch-input" value={query} maxLength={500} onChange={(event) => setQuery(event.target.value)} /></label>
+          <Btn type="submit" disabled={loading}>{loading ? "Searching…" : "Search"}</Btn>
+        </form>
+        <div className="jl-filters">
+          <input aria-label="Court" className="ch-input" placeholder="Court" value={court} onChange={(event) => setCourt(event.target.value)} />
+          <input aria-label="Judge" className="ch-input" placeholder="Judge" value={judge} onChange={(event) => setJudge(event.target.value)} />
+          <input aria-label="Legislation" className="ch-input" placeholder="Legislation" value={legislation} onChange={(event) => setLegislation(event.target.value)} />
+          <input aria-label="Decision date from" className="ch-input" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+          <input aria-label="Decision date to" className="ch-input" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+          <select aria-label="Sort results" className="ch-select" value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
+            <option value="relevance">Relevance</option><option value="date">Newest date</option><option value="title">Case title</option>
+          </select>
+        </div>
+        <div className="jl-actions">
+          <Btn small kind="ghost" onClick={() => void search(0)}>Apply filters</Btn>
+          <Btn small kind="ghost" onClick={() => void (async () => {
+            const response = await request(`/api/cases/search/export.csv?${params(0)}`);
+            if (!response.ok) { setError("CSV export failed"); return; }
+            const url = URL.createObjectURL(await response.blob());
+            const anchor = document.createElement("a"); anchor.href = url; anchor.download = "LAWYes-judgment-library-results.csv"; anchor.click(); URL.revokeObjectURL(url);
+          })()}>Export CSV</Btn>
+        </div>
+      </header>
+      {error && <p className="ch-err" role="alert">{error}</p>}
+      {!loading && <p className="ch-sub" aria-live="polite">{total} published report{total === 1 ? "" : "s"}</p>}
+      {loading ? <div className="ch-loading" role="status">Loading published reports…</div> : results.length ? (
+        <ul className="jl-results">{results.map((item) => <li key={item.id}><button className="jl-result" onClick={() => void openReport(item.id)}>
+          <span className="ch-eyebrow">{item.reportState} · {item.rightsStatus}</span>
+          <strong>{item.caseName ?? "Untitled case"}</strong><br />
+          <small>{item.citation ?? "Citation not stated"} · {item.court ?? "Court not stated"} · {displayDate(item.decisionDate)}</small>
+          {item.catchwords.length > 0 && <p className="ch-sub">{item.catchwords.map((word) => word.catchwordLine).join(" · ")}</p>}
+        </button></li>)}</ul>
+      ) : <p className="ch-empty">No published reports match these filters.</p>}
+      {!loading && recent.length > 0 && (
+        <section className="ch-card" style={{ marginTop: 20 }} aria-label="Recently published reports">
+          <SectionTitle>Recently published</SectionTitle>
+          <ul className="jl-results" style={{ marginBottom: 0 }}>
+            {recent.map((item) => (
+              <li key={item.id}>
+                <button className="jl-result" onClick={() => void openReport(item.id)}>
+                  <strong>{item.caseName ?? "Untitled case"}</strong><br />
+                  <small>{item.citation ?? "Citation not stated"} · {displayDate(item.decisionDate)}</small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {total > limit && <div className="jl-actions"><Btn kind="ghost" disabled={offset === 0} onClick={() => void search(Math.max(0, offset - limit))}>Previous</Btn><span>{offset + 1}–{Math.min(offset + limit, total)} of {total}</span><Btn kind="ghost" disabled={offset + limit >= total} onClick={() => void search(offset + limit)}>Next</Btn></div>}
+      <aside className="ch-card" style={{ marginTop: 20 }}>
+        <SectionTitle>Official collection gateway</SectionTitle>
+        <p className="ch-sub">Free official source links. A source record is not a LAWYes report until verification, rights clearance and editorial publication are complete.</p>
+        <div className="jl-gateways">{officialCollections.map(([name, url]) => <a key={url} href={url} target="_blank" rel="noreferrer">{name} ↗</a>)}</div>
+      </aside>
+    </main>
   );
 }

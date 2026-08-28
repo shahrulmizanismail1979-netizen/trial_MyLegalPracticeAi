@@ -48,7 +48,7 @@ export async function recordRightsDecision(
   opts: { actor: string; dbc?: DbClient },
 ): Promise<ResearchRightsRecord> {
   const dbc = opts.dbc ?? db;
-  return dbc.transaction(async (tx) => {
+  const record = await dbc.transaction(async (tx) => {
     // Lock the container row so decision + mirror stay consistent under
     // concurrent reviews.
     const locked = await tx
@@ -135,6 +135,13 @@ export async function recordRightsDecision(
 
     return record!;
   });
+  // Every writer uses this repository function.  Re-evaluate the just-written
+  // latest record before returning so a narrowed/expired decision cannot leave
+  // a Published report available through a different read path.
+  const { failClosedReportsForContainer } =
+    await import("../editorial/lawyesReportService");
+  await failClosedReportsForContainer(containerId, opts.actor);
+  return record;
 }
 
 export async function listRightsRecords(

@@ -100,6 +100,17 @@ export function Hero() {
           >
             Explore the AI Portals
           </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto h-14 px-8 text-lg border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 rounded-full"
+          >
+            <a href="/mylitai/app/case-law" data-testid="link-hero-judgment-library">
+              <BookOpen className="mr-2 h-5 w-5" />
+              Judgment Library
+            </a>
+          </Button>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">

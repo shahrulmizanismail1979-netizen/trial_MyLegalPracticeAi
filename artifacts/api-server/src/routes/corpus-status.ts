@@ -1,8 +1,20 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { latestRightsJoin, liveRightsPredicate } from "../research/editorial/liveRights";
 
 const router = Router();
+
+/** Free official Malaysian judgment collections. Links are gateways only: the
+ * Library never implies that a linked record is a published LAWYes report. */
+export const OFFICIAL_JUDGMENT_COLLECTIONS = [
+  { id: "ejudgment", name: "Malaysian Judiciary eJudgment", url: "https://ejudgment.kehakiman.gov.my/", jurisdiction: "Malaysia", access: "free" },
+  { id: "sabah-sarawak", name: "e-Kehakiman Sabah and Sarawak", url: "https://ekss-portal.kehakiman.gov.my/", jurisdiction: "Sabah and Sarawak", access: "free" },
+  { id: "industrial-court", name: "Industrial Court Full Awards", url: "https://www.mp.gov.my/index.php?option=com_content&view=article&id=33&Itemid=152&lang=en", jurisdiction: "Malaysia", access: "free" },
+  { id: "jakess", name: "JAKESS Judgments", url: "https://www.jakess.gov.my/", jurisdiction: "Selangor Syariah", access: "free" },
+  { id: "native-court-appeal", name: "Native Court of Appeal", url: "https://nativecourt.sabah.gov.my/", jurisdiction: "Sabah", access: "free" },
+  { id: "judiciary-repository", name: "Judiciary Digital Repository", url: "https://library.kehakiman.gov.my/digital/", jurisdiction: "Malaysia", access: "free" },
+] as const;
 
 /**
  * A small, public summary of the research corpus. It deliberately distinguishes
@@ -33,14 +45,13 @@ router.get("/status", async (_req, res): Promise<void> => {
         FROM research_verified_judgments rvj
         JOIN research_source_containers rsc ON rsc.id = rvj.container_id
         JOIN research_search_index si ON si.judgment_id = rvj.id
-        JOIN research_headnotes rh ON rh.judgment_id = rvj.id
-        WHERE rh.status = 'accepted'
+        JOIN research_lawyes_reports lr ON lr.judgment_id = rvj.id
+        ${latestRightsJoin("rvj.container_id")}
+        WHERE lr.state = 'Published'
+          AND lr.lawyer_reviewed_at IS NOT NULL
+          AND lr.published_at IS NOT NULL
           AND rsc.processing_state = 'SEARCHABLE'
-          AND rsc.rights_status IN (
-            'OFFICIAL_COURT_SOURCE',
-            'PUBLIC_OR_OPEN_LICENCE_SOURCE',
-            'USER_OWNED_OR_AUTHORISED'
-          )
+          ${liveRightsPredicate("display")}
       )::int AS searchable_judgments
   `);
 
@@ -63,6 +74,14 @@ router.get("/status", async (_req, res): Promise<void> => {
     inventoryCompletedAt: row?.inventory_completed_at
       ? new Date(row.inventory_completed_at).toISOString()
       : null,
+  });
+});
+
+router.get("/official-collections", (_req, res): void => {
+  res.set("Cache-Control", "public, max-age=86400");
+  res.json({
+    disclaimer: "Official collection gateways are provided for source access. A linked judgment is not a LAWYes published report unless it passes the Library's verification, rights and editorial gates.",
+    collections: OFFICIAL_JUDGMENT_COLLECTIONS,
   });
 });
 

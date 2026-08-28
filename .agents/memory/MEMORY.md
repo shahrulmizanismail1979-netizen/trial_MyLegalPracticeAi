@@ -48,6 +48,7 @@
 - [Scoped large body parsers](lit-heavy-body-parsers.md) — mount 30mb JSON parsers only on heavy AI-draft sub-routes, never a whole portal prefix; chronology↔deadline sync keyed by case_events source "deadline:<id>" both ways.
 - [AI rate-limit visibility banner](rate-limit-banner.md) — portals show remaining AI quota by parsing draft-8 RateLimit headers via a per-portal fetch interceptor; keep header contract test in sync.
 - [Research Admin Portal](research-admin-portal.md) — password+signed-cookie auth (needs cookieParser secret); API at /api/research-admin/ (no Clerk); researchJobs uses `state` not `status`; drive tables via direct SQL.
+- [Editorial legal review integrity](editorial-legal-review-integrity.md) — password admins may prepare reports but never sign off; approval is bound to an exact immutable content revision.
 - [Headnotes & Catchwords processor](headnotes-processor.md) — container.headnotes job; rights-gated Gemini; auto-enqueued from search index; regenerate by deleting job row not changing idempotency key.
 - [Portal-accessible Case Law API](portal-cases-api.md) — /api/cases search+detail; requireAnyPortalAuth checks all 8 portal session types; rights gate uses container rights_status; 200/day rate limit on detail.
 - [Signed cookie / cookie-parser interaction](signed-cookie-parser-interaction.md) — cookieParser(SECRET) moves verified cookies to req.signedCookies and deletes from req.cookies; always check signedCookies first in portal auth.

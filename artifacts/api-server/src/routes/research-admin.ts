@@ -20,6 +20,7 @@ import {
   researchCaseMetadata,
   researchSourceContainers,
   researchUploadBatchItems,
+  pool,
 } from "@workspace/db";
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, ne, or, sql } from "drizzle-orm";
 import { getAllFolderChildren, DRIVE_FOLDER_MIME } from "../research/drive/driveClient";
@@ -38,6 +39,13 @@ import { recordRightsDecision } from "../research/data/rights";
 import { startInventory } from "../research/ingestion/inventory";
 import { transitionContainer } from "../research/domain/containerStateMachine";
 import type { DbClient } from "../research/domain/types";
+import {
+  addLawyesSection,
+  createLawyesReport,
+  getLawyesReport,
+  materializeVerifiedParagraphs,
+  transitionLawyesReport,
+} from "../research/editorial/lawyesReportService";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const ADMIN_PASSWORD: string | null =
@@ -1404,5 +1412,180 @@ async function runDriveInventory(runId: number, rootFolderId: string): Promise<v
     })
     .where(eq(driveInventoryRuns.id, runId));
 }
+
+// LAWYes adapter: password authentication grants workbench access only. It
+// never substitutes for the active legal_reviewer identity required to sign
+// off or publish.
+const adminState = (state: string) => ({
+  Draft: "DRAFT", "AI-assisted": "AI_ASSISTED_DRAFT",
+  "Lawyer reviewed": "LAWYER_REVIEWED", Published: "PUBLISHED",
+}[state] ?? "ACCESS_RECORD");
+
+async function lawyesAdminReport(id: number): Promise<Record<string, any>> {
+  const report = await getLawyesReport(id, "research-admin:password-session") as Record<string, any>;
+  const source = await pool.query(
+    `SELECT c.original_name,c.content_sha256,c.rights_status,j.verified_at,j.verified_by
+     FROM research_lawyes_reports r JOIN research_verified_judgments j ON j.id=r.judgment_id
+     JOIN research_source_containers c ON c.id=j.container_id WHERE r.id=$1`, [id],
+  );
+  const pinpointIds = new Map<number, number[]>();
+  for (const row of report.pinpoints ?? []) {
+    pinpointIds.set(row.proposition_id, [...(pinpointIds.get(row.proposition_id) ?? []), row.paragraph_id]);
+  }
+  const flags = (report.propositions ?? []).filter((p: any) => p.material && !pinpointIds.get(p.id)?.length)
+    .map((p: any) => ({ id: -p.id, kind: "UNSUPPORTED_PROPOSITION", message: "Material proposition has no verified paragraph pinpoint", field: String(p.section_id), severity: "critical", resolved: false }));
+  const sourceRow = source.rows[0] ?? {};
+  const latestReview = [...(report.reviews ?? [])].pop();
+  return {
+    id: report.id, caseName: report.title, citation: report.report_citation ?? report.neutral_citation ?? null,
+    court: report.court ?? null, state: adminState(report.state),
+    assignee: report.assigned_editor_id ? String(report.assigned_editor_id) : null, updatedAt: report.updated_at,
+    flagCount: flags.length, reviewedParagraphs: 0, paragraphCount: (report.paragraphs ?? []).length,
+    containerId: report.container_id,
+    source: { name: sourceRow.original_name ?? report.title, url: report.source_url ?? null, classification: "VERIFIED_JUDICIAL_TEXT", rightsStatus: sourceRow.rights_status ?? "UNREVIEWED", checksum: sourceRow.content_sha256 ?? null, verifiedAt: sourceRow.verified_at ?? null, verifiedBy: sourceRow.verified_by ?? null },
+    metadata: { caseNumber: report.case_number ?? null, decisionDate: report.decision_date ?? null, registry: report.registry ?? null, coram: Array.isArray(report.coram) ? report.coram.join("; ") : null, counsel: Array.isArray(report.counsel) ? report.counsel.join("; ") : null },
+    sections: (report.sections ?? []).map((s: any) => ({ key: s.kind, label: s.heading, content: s.body, required: false, missingFromSource: false })),
+    paragraphs: (report.paragraphs ?? []).map((p: any) => ({ id: p.id, label: p.paragraph_key, text: p.text, pageNumber: p.source_page, reviewed: false, excluded: false })),
+    propositions: (report.propositions ?? []).map((p: any) => ({ id: p.id, field: String(p.section_id), text: p.proposition, paragraphIds: pinpointIds.get(p.id) ?? [], status: pinpointIds.get(p.id)?.length ? "SUPPORTED" : "UNSUPPORTED" })),
+    flags,
+    revisions: (report.revisions ?? []).map((r: any) => ({ id: r.id, number: r.revision, createdAt: r.created_at, createdBy: r.actor, summary: r.reason })),
+    review: { signedOffAt: latestReview?.created_at ?? null, signedOffBy: latestReview?.reviewer_id ? String(latestReview.reviewer_id) : null, declaration: latestReview?.notes ?? null },
+    publicationBlockers: report.state === "Published" ? [] : ["Use sign-off and publish; live source and pinpoint checks apply."],
+  };
+}
+
+router.get("/editorial/reports", requireAdminSession, async (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit ?? 50), 1), 200);
+  const offset = Math.max(Number(req.query.offset ?? 0), 0);
+  const map: Record<string, string> = { DRAFT: "Draft", AI_ASSISTED_DRAFT: "AI-assisted", LAWYER_REVIEWED: "Lawyer reviewed", PUBLISHED: "Published" };
+  const requested = typeof req.query.state === "string" ? map[req.query.state] : undefined;
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const params: unknown[] = []; const conditions: string[] = [];
+  if (requested) { params.push(requested); conditions.push(`state=$${params.length}`); }
+  if (search) { params.push(`%${search}%`); conditions.push(`(title ILIKE $${params.length} OR neutral_citation ILIKE $${params.length})`); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const countResult = await pool.query(`SELECT count(*)::int total FROM research_lawyes_reports ${where}`, params);
+  params.push(limit, offset);
+  const rows = await pool.query<{ id: number }>(`SELECT id FROM research_lawyes_reports ${where} ORDER BY updated_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`, params);
+  res.json({ total: countResult.rows[0]?.total ?? 0, limit, offset, reports: await Promise.all(rows.rows.map((r) => lawyesAdminReport(r.id))) });
+});
+
+router.get("/editorial/reports/:id", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return void res.status(400).json({ error: "Invalid report id" });
+  try { res.json(await lawyesAdminReport(id)); } catch { res.status(404).json({ error: "Report not found" }); }
+});
+
+// Password administrators may prepare editorial material, but these endpoints
+// deliberately do not accept a reviewer identity or a publishable state.
+// Legal acts remain on the Clerk-authenticated /api/research router.
+const AdminReportInput = z.object({
+  judgmentId: z.number().int().positive(),
+  title: z.string().min(1),
+  sourceUrl: z.string().url(),
+});
+const AdminSectionInput = z.object({
+  kind: z.string().min(1),
+  heading: z.string().min(1),
+  body: z.string(),
+  sortOrder: z.number().int().nonnegative(),
+  propositions: z.array(z.object({
+    proposition: z.string().min(1),
+    material: z.boolean(),
+    paragraphIds: z.array(z.number().int().positive()),
+  })).default([]),
+});
+
+router.get("/editorial/reports/:id/workbench", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return void res.status(400).json({ error: "Invalid report id" });
+  try {
+    res.json(await getLawyesReport(id, "research-admin:password-session"));
+  } catch (error) {
+    if ((error as { code?: string }).code === "REPORT_NOT_FOUND") {
+      res.status(404).json({ error: "Report not found" });
+      return;
+    }
+    throw error;
+  }
+});
+
+router.post("/editorial/reports", requireAdminSession, async (req, res) => {
+  const parsed = AdminReportInput.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: "Invalid report" });
+  try {
+    res.status(201).json(await createLawyesReport({
+      ...parsed.data,
+      actor: "research-admin:password-session",
+    }));
+  } catch (error) {
+    res.status(409).json({ error: error instanceof Error ? error.message : "Report creation failed" });
+  }
+});
+
+router.post("/editorial/reports/:id/paragraphs/materialize", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return void res.status(400).json({ error: "Invalid report id" });
+  try {
+    res.json({ inserted: await materializeVerifiedParagraphs(id, "research-admin:password-session") });
+  } catch (error) {
+    res.status(409).json({ error: error instanceof Error ? error.message : "Paragraph materialisation failed" });
+  }
+});
+
+router.post("/editorial/reports/:id/sections", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = AdminSectionInput.safeParse(req.body);
+  if (!Number.isInteger(id) || !parsed.success) return void res.status(400).json({ error: "Invalid report section" });
+  try {
+    res.status(201).json(await addLawyesSection({
+      reportId: id, ...parsed.data, actor: "research-admin:password-session",
+    }));
+  } catch (error) {
+    res.status(409).json({ error: error instanceof Error ? error.message : "Invalid report section" });
+  }
+});
+
+router.post("/editorial/reports/:id/source/verify", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return void res.status(400).json({ error: "Invalid report id" });
+  try { res.json(await lawyesAdminReport(id)); } catch { res.status(404).json({ error: "Report not found" }); }
+});
+
+const immutableEditorialCorpus = (_req: Request, res: Response) => res.status(409).json({ error: "Source paragraphs, pinpoints, and flags are immutable; use LAWYes report endpoints." });
+router.patch("/editorial/reports/:id/sections/:key", requireAdminSession, immutableEditorialCorpus);
+router.patch("/editorial/reports/:id/paragraphs/:paragraphId", requireAdminSession, immutableEditorialCorpus);
+router.patch("/editorial/reports/:id/propositions/:propositionId", requireAdminSession, immutableEditorialCorpus);
+router.patch("/editorial/reports/:id/flags/:flagId", requireAdminSession, immutableEditorialCorpus);
+
+router.post("/editorial/reports/:id/sign-off", requireAdminSession, async (req, res) => {
+  // Kept as an explicit failure rather than a 404 so password-only clients
+  // receive actionable guidance. Never look up or impersonate a configured
+  // reviewer here.
+  res.status(403).json({
+    error: "Legal sign-off requires an authenticated Clerk legal reviewer on /api/research/reports/:id/reviews",
+  });
+});
+
+router.post("/editorial/reports/:id/publish", requireAdminSession, async (req, res) => {
+  res.status(403).json({
+    error: "Publication requires an authenticated Clerk legal reviewer or owner on /api/research/reports/:id/transitions",
+  });
+});
+router.post("/editorial/reports/:id/unpublish", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id); const reason = z.string().min(1).safeParse(req.body?.reason);
+  if (!Number.isInteger(id) || !reason.success) return void res.status(400).json({ error: "A report id and reason are required" });
+  try { await transitionLawyesReport(id, "Draft", "research-admin:password-session", reason.data); res.json(await lawyesAdminReport(id)); }
+  catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : "Unpublication failed" }); }
+});
+
+router.get("/editorial/reports/:id/revisions/compare", requireAdminSession, async (req, res) => {
+  const id = Number(req.params.id), from = Number(req.query.from), to = Number(req.query.to);
+  if (![id, from, to].every(Number.isInteger)) return void res.status(400).json({ error: "Valid report and revision ids are required" });
+  const rows = await pool.query(`SELECT * FROM research_lawyes_revisions WHERE report_id=$1 AND id IN ($2,$3)`, [id, from, to]);
+  const a = rows.rows.find((r) => r.id === from), b = rows.rows.find((r) => r.id === to);
+  if (!a || !b) return void res.status(404).json({ error: "Revision not found for report" });
+  res.json({ from: { id: a.id, number: a.revision, createdAt: a.created_at, createdBy: a.actor, summary: a.reason }, to: { id: b.id, number: b.revision, createdAt: b.created_at, createdBy: b.actor, summary: b.reason }, changes: a.snapshot === b.snapshot ? [] : [{ field: "editorial_snapshot", before: null, after: null }] });
+});
 
 export default router;

@@ -31,13 +31,10 @@ import analysisRouter from "./analysis";
 import authoritiesRouter from "./authorities";
 import workspaceRouter from "./workspace";
 import queueExportRouter from "./queueExport";
+import lawyesReportsRouter from "./lawyesReports";
 import { startInventory, getLatestInventory } from "../ingestion/inventory";
 import { ProcessorFailure } from "../processing/handlers";
-import {
-  db,
-  researchReviewItems,
-  researchAuditEvents,
-} from "@workspace/db";
+import { db, researchReviewItems, researchAuditEvents } from "@workspace/db";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { emitAuditEvent } from "../domain/audit";
 import { AuditAction } from "../domain/auditEvents";
@@ -269,6 +266,7 @@ router.use(workspaceRouter);
 // ── Phase 12 stress: Queue export / import ───────────────────────────────
 
 router.use(queueExportRouter);
+router.use(lawyesReportsRouter);
 
 // Start a (rights-gated) inventory job. The processor re-checks rights
 // before touching content; this endpoint additionally requires the caller
@@ -579,8 +577,13 @@ router.post("/containers/:id/exports", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
-    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "JUDGMENT_NOT_FOUND") {
-      res.status(422).json({ error: "No verified judgment found for this container" });
+    if (
+      err instanceof Error &&
+      (err as NodeJS.ErrnoException).code === "JUDGMENT_NOT_FOUND"
+    ) {
+      res
+        .status(422)
+        .json({ error: "No verified judgment found for this container" });
       return;
     }
     throw err;
@@ -622,7 +625,9 @@ router.get(
 // ── Phase 12c: Granular deletion + manifest routes ────────────────────────
 
 const DeleteLayersBody = z.object({
-  layers: z.array(z.enum(LAYER_KINDS as unknown as [string, ...string[]])).min(1),
+  layers: z
+    .array(z.enum(LAYER_KINDS as unknown as [string, ...string[]]))
+    .min(1),
 });
 
 /**
@@ -698,7 +703,9 @@ router.get(
 
     const manifest = await getLatestDeletionManifest(id);
     if (!manifest) {
-      res.status(404).json({ error: "No deletion manifest found for this container" });
+      res
+        .status(404)
+        .json({ error: "No deletion manifest found for this container" });
       return;
     }
     res.json(manifest);
@@ -715,7 +722,12 @@ router.get(
  */
 router.get(
   "/containers/:id/audit",
-  requireResearchRole("owner", "administrator", "rights_reviewer", "legal_reviewer"),
+  requireResearchRole(
+    "owner",
+    "administrator",
+    "rights_reviewer",
+    "legal_reviewer",
+  ),
   async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) {
@@ -723,10 +735,15 @@ router.get(
       return;
     }
     try {
-      const { decision } = await checkContainerAccess(id, req.researchRole ?? null, "view", {
-        actor: req.authEmail ?? undefined,
-        audit: false,
-      });
+      const { decision } = await checkContainerAccess(
+        id,
+        req.researchRole ?? null,
+        "view",
+        {
+          actor: req.authEmail ?? undefined,
+          audit: false,
+        },
+      );
       if (!decision.allowed) {
         res.status(404).json({ error: "Not found" });
         return;
@@ -739,17 +756,23 @@ router.get(
       throw err;
     }
 
-    const stage = typeof req.query.stage === "string" ? req.query.stage : undefined;
+    const stage =
+      typeof req.query.stage === "string" ? req.query.stage : undefined;
 
     // Stage → event-prefix allow-list
     const STAGE_PREFIXES: Record<string, string[]> = {
-      upload:       ["upload", "state-transition", "duplicate", "batch"],
-      rights:       ["rights", "state-transition", "access"],
-      extraction:   ["ocr", "extraction", "state-transition"],
+      upload: ["upload", "state-transition", "duplicate", "batch"],
+      rights: ["rights", "state-transition", "access"],
+      extraction: ["ocr", "extraction", "state-transition"],
       segmentation: ["segmentation", "boundary", "state-transition"],
-      verification: ["editorial", "editorial-classification", "judgment", "state-transition"],
-      search:       ["search"],
-      export:       ["export", "print"],
+      verification: [
+        "editorial",
+        "editorial-classification",
+        "judgment",
+        "state-transition",
+      ],
+      search: ["search"],
+      export: ["export", "print"],
     };
 
     const rows = await db
@@ -771,7 +794,12 @@ router.get(
         )
       : rows;
 
-    res.json({ containerId: id, stage: stage ?? "all", total: filtered.length, events: filtered });
+    res.json({
+      containerId: id,
+      stage: stage ?? "all",
+      total: filtered.length,
+      events: filtered,
+    });
   },
 );
 
@@ -898,10 +926,7 @@ const QuotationCheckBody = z.object({
    * source (e.g. a published law report) — NOT strings copied from the
    * review UI itself.  At most 20 strings per call.
    */
-  quotesToVerify: z
-    .array(z.string().min(10).max(500))
-    .min(1)
-    .max(20),
+  quotesToVerify: z.array(z.string().min(10).max(500)).min(1).max(20),
 });
 
 /**
@@ -940,9 +965,14 @@ router.post(
     }
 
     try {
-      const { decision } = await checkContainerAccess(id, req.researchRole ?? null, "view", {
-        actor: req.authEmail ?? undefined,
-      });
+      const { decision } = await checkContainerAccess(
+        id,
+        req.researchRole ?? null,
+        "view",
+        {
+          actor: req.authEmail ?? undefined,
+        },
+      );
       if (!decision.allowed) {
         res.status(404).json({ error: "Not found" });
         return;
@@ -975,19 +1005,14 @@ router.post(
 
     // Build full source corpus from the container's raw OCR/extraction pages.
     // This is the authoritative verbatim text from the ingestion pipeline.
-    const allPages = await db
-      .select()
-      .from(rsp)
-      .where(eq(rsp.containerId, id));
+    const allPages = await db.select().from(rsp).where(eq(rsp.containerId, id));
 
     const allPageIds = allPages.map((p) => p.id);
 
-    const allExtractions = allPageIds.length > 0
-      ? await db
-          .select()
-          .from(rpe)
-          .where(inArray(rpe.pageId, allPageIds))
-      : [];
+    const allExtractions =
+      allPageIds.length > 0
+        ? await db.select().from(rpe).where(inArray(rpe.pageId, allPageIds))
+        : [];
 
     // Latest extraction per page (highest id wins).
     const latestByPage = new Map<number, string>();
@@ -1035,19 +1060,33 @@ router.get(
   "/audit-events",
   requireResearchRole("owner", "administrator"),
   async (req, res) => {
-    const actor = typeof req.query.actor === "string" ? req.query.actor : undefined;
-    const action = typeof req.query.action === "string" ? req.query.action : undefined;
-    const entityKind = typeof req.query.entityKind === "string" ? req.query.entityKind : undefined;
-    const entityId = req.query.entityId ? Number(req.query.entityId) : undefined;
-    const dateFrom = typeof req.query.dateFrom === "string" ? new Date(req.query.dateFrom) : undefined;
-    const dateTo = typeof req.query.dateTo === "string" ? new Date(req.query.dateTo) : undefined;
+    const actor =
+      typeof req.query.actor === "string" ? req.query.actor : undefined;
+    const action =
+      typeof req.query.action === "string" ? req.query.action : undefined;
+    const entityKind =
+      typeof req.query.entityKind === "string"
+        ? req.query.entityKind
+        : undefined;
+    const entityId = req.query.entityId
+      ? Number(req.query.entityId)
+      : undefined;
+    const dateFrom =
+      typeof req.query.dateFrom === "string"
+        ? new Date(req.query.dateFrom)
+        : undefined;
+    const dateTo =
+      typeof req.query.dateTo === "string"
+        ? new Date(req.query.dateTo)
+        : undefined;
     const limit = Math.min(Number(req.query.limit ?? 50), 200);
     const offset = Number(req.query.offset ?? 0);
 
     const conditions = [];
     if (actor) conditions.push(eq(researchAuditEvents.actor, actor));
     if (action) conditions.push(eq(researchAuditEvents.event, action));
-    if (entityKind) conditions.push(eq(researchAuditEvents.entityType, entityKind));
+    if (entityKind)
+      conditions.push(eq(researchAuditEvents.entityType, entityKind));
     if (entityId !== undefined && !isNaN(entityId)) {
       conditions.push(eq(researchAuditEvents.entityId, entityId));
     }

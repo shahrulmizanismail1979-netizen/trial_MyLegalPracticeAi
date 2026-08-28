@@ -10,6 +10,7 @@ import {
   litMatters,
   litMatterDeadlines,
   litSavedWork,
+  type LitMatterPreparationState,
 } from "@workspace/db";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireSubscription } from "./billing";
@@ -19,8 +20,17 @@ import {
 } from "../lib/litigationDeadlines";
 import { attachCaseIntelligence, triggerChecklistGeneration, triggerIntakeBriefing } from "../../lib/attachCaseIntelligence";
 import { recordCaseEvent, updateCaseEventBySource, deleteCaseEventBySource } from "../../lib/caseEvents";
+import { ensureMatterPreparationSchema } from "../lib/ensureMatterPreparationSchema";
 
 const router: IRouter = Router();
+
+// Test imports mount the Express app without running src/index.ts. Await the
+// same additive ensure here so every served request has a compatible schema.
+const preparationSchemaReady = ensureMatterPreparationSchema();
+router.use(async (_req, _res, next) => {
+  await preparationSchemaReady;
+  next();
+});
 
 function getAccessCodeId(req: Request): number | undefined {
   const sess = req.session as unknown as Record<string, unknown> | undefined;
@@ -41,6 +51,69 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 router.use(requireAuth);
 
 const MAX_NOTES = 20_000;
+const MAX_BENCHMARKS = 100;
+
+const EMPTY_PREPARATION_STATE: LitMatterPreparationState = {
+  issues: "",
+  evidence: "",
+  relief: "",
+  filingReadiness: {},
+  benchmarks: [],
+  practiceChecklists: {},
+  causePaperPacks: {},
+};
+
+function booleanMap(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, checked]) => key.length <= 100 && typeof checked === "boolean")
+      .slice(0, 500),
+  );
+}
+
+function nestedBooleanMap(value: unknown): Record<string, Record<string, boolean>> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key.length <= 100)
+      .slice(0, 100)
+      .map(([key, items]) => [key, booleanMap(items)]),
+  );
+}
+
+function preparationState(value: unknown): LitMatterPreparationState {
+  const raw = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const benchmarks = Array.isArray(raw.benchmarks)
+    ? raw.benchmarks
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === "object" && !Array.isArray(item))
+      .slice(0, MAX_BENCHMARKS)
+      .flatMap((item) => {
+        const fields = ["caseName", "citation", "proposition", "pinpoint", "sourceUrl"] as const;
+        if (!Number.isSafeInteger(item.id) || (item.id as number) < 1 || fields.some((field) => typeof item[field] !== "string")) return [];
+        return [{
+          id: item.id as number,
+          caseName: (item.caseName as string).slice(0, 500),
+          citation: (item.citation as string).slice(0, 500),
+          proposition: (item.proposition as string).slice(0, MAX_NOTES),
+          pinpoint: (item.pinpoint as string).slice(0, 500),
+          sourceUrl: (item.sourceUrl as string).slice(0, 2_000),
+        }];
+      })
+    : [];
+  return {
+    ...EMPTY_PREPARATION_STATE,
+    issues: typeof raw.issues === "string" ? raw.issues.slice(0, MAX_NOTES) : "",
+    evidence: typeof raw.evidence === "string" ? raw.evidence.slice(0, MAX_NOTES) : "",
+    relief: typeof raw.relief === "string" ? raw.relief.slice(0, MAX_NOTES) : "",
+    filingReadiness: booleanMap(raw.filingReadiness),
+    benchmarks,
+    practiceChecklists: nestedBooleanMap(raw.practiceChecklists),
+    causePaperPacks: nestedBooleanMap(raw.causePaperPacks),
+  };
+}
 
 // Fetch a matter and assert it belongs to the caller. Returns undefined and
 // sends the appropriate error response if not found / not owned.
@@ -130,6 +203,51 @@ router.get("/:id", async (req, res) => {
     .where(eq(litMatterDeadlines.matterId, matter.id))
     .orderBy(asc(litMatterDeadlines.dueDate));
   res.json({ ...matter, deadlines });
+});
+
+// ── Matter preparation state ─────────────────────────────────────────────────
+// This deliberately lives outside the general matter PATCH so preparation saves
+// cannot accidentally change substantive matter metadata.
+router.get("/:id/preparation", async (req, res) => {
+  const matter = await getOwnedMatter(req, res, req.params.id as string);
+  if (!matter) return;
+  res.json(preparationState(matter.preparationState));
+});
+
+router.patch("/:id/preparation", async (req, res) => {
+  const matter = await getOwnedMatter(req, res, req.params.id as string);
+  if (!matter) return;
+  const body = req.body;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    res.status(400).json({ error: "Preparation state must be an object" });
+    return;
+  }
+  const current = preparationState(matter.preparationState);
+  const incoming = body as Record<string, unknown>;
+  // Practice views save one workflow key at a time. Merge those maps so a
+  // concurrent save for another practice workflow cannot erase its progress.
+  const patch = preparationState({
+    ...current,
+    ...incoming,
+    practiceChecklists: {
+      ...current.practiceChecklists,
+      ...(incoming.practiceChecklists && typeof incoming.practiceChecklists === "object" && !Array.isArray(incoming.practiceChecklists)
+        ? incoming.practiceChecklists
+        : {}),
+    },
+    causePaperPacks: {
+      ...current.causePaperPacks,
+      ...(incoming.causePaperPacks && typeof incoming.causePaperPacks === "object" && !Array.isArray(incoming.causePaperPacks)
+        ? incoming.causePaperPacks
+        : {}),
+    },
+  });
+  const [row] = await db
+    .update(litMatters)
+    .set({ preparationState: patch, updatedAt: new Date() })
+    .where(and(eq(litMatters.id, matter.id), eq(litMatters.accessCodeId, matter.accessCodeId)))
+    .returning({ preparationState: litMatters.preparationState });
+  res.json(preparationState(row?.preparationState));
 });
 
 function normaliseMatterBody(body: Record<string, unknown>) {

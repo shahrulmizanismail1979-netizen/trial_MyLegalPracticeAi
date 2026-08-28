@@ -19,6 +19,7 @@ import { PersonaSwitcher } from "@/components/persona-switch";
 import { PoweredByBanner } from "@/components/powered-by-banner";
 import { usePersona } from "@/lib/persona";
 import { CaseCorpusStatus } from "@workspace/case-home-ui";
+import { LawyesNav } from "@/components/lawyes-nav";
 
 export default function Home() {
   const { persona, skipped } = usePersona();
@@ -38,6 +39,9 @@ export default function Home() {
   // element. This is needed because SPAs don't auto-scroll on initial paint.
   useEffect(() => {
     if (typeof window === "undefined") return;
+    document.title = "LAWYes | Malaysian legal-practice intelligence";
+    const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    description?.setAttribute("content", "LAWYes brings Malaysian matter management, cause papers, legal research and specialist AI practice tools into one professional platform.");
     const hash = window.location.hash;
     if (!hash) return;
     // Give React one more tick to finish painting before scrolling.
@@ -56,6 +60,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
+      <LawyesNav />
       <PoweredByBanner />
       <div className="fixed inset-0 pointer-events-none z-0" style={{ top: "64px" }}>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background opacity-50" />

@@ -842,6 +842,46 @@ for (const portal of PORTALS) {
   });
 }
 
+test("MyLitAI matter deep links survive a hard reload and reload saved preparation", async ({
+  page,
+}) => {
+  const masterCode = process.env.MASTER_ACCESS_CODE;
+  if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
+
+  const portal = PORTALS.find((candidate) => candidate.key === "lit")!;
+  const headers = await authenticate(page, portal.key, masterCode);
+  const matter = await createMatter(page, portal, headers);
+  const preparation = `Reloaded preparation ${RUN_ID}`;
+
+  try {
+    await page.goto(`${BASE}${portal.detailPath(matter.id)}`);
+    await expect(page.getByText(matter.title).first()).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole("tab", { name: /preparation/i }).click();
+    const issues = page.getByTestId("input-matter-issues");
+    await expect(issues).toBeVisible({ timeout: 30_000 });
+    await issues.fill(preparation);
+    const [saveResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "PATCH" &&
+          response.url().endsWith(`/api/lit/matters/${matter.id}/preparation`),
+      ),
+      issues.blur(),
+    ]);
+    expect(saveResponse.ok()).toBe(true);
+
+    await page.reload();
+    await expect(page.getByText(matter.title).first()).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("tab", { name: /preparation/i }).click();
+    await expect(page.getByTestId("input-matter-issues")).toHaveValue(preparation, {
+      timeout: 30_000,
+    });
+  } finally {
+    await deleteMatter(page, portal, matter.id, headers);
+  }
+});
+
 test("task create, update, and complete activity stays synchronized with the Case Home timeline", async ({
   page,
 }) => {

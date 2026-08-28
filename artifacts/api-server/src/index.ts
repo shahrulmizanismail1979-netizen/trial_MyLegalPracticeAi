@@ -25,6 +25,9 @@ import { ensureCorpWorkflowTables } from "./corp/routes/workflow";
 import { ensurePracticeAreaSchema } from "./research/search/postgresFtsAdapter";
 import { ensureAlertDeliveryAttemptsTable } from "./lib/alertStatus";
 import { ensureSarawak20ReservationsTable } from "./lib/sarawak20";
+import { ensureLawyesReportTables } from "./research/editorial/ensureLawyesReportTables";
+import { seedLawyesEditorialIntake } from "./research/editorial/lawyesIntake";
+import { ensureMatterPreparationSchema } from "./lit/lib/ensureMatterPreparationSchema";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -264,6 +267,14 @@ await ensurePracticeAreaSchema();
 // to run on every boot.
 await ensureAlertDeliveryAttemptsTable();
 await ensureSarawak20ReservationsTable();
+await ensureLawyesReportTables();
+void seedLawyesEditorialIntake().catch((err) =>
+  logger.error({ err }, "LAWYes editorial intake failed at startup (non-fatal)"),
+);
+// MyLitAI matter preparation state is an additive column. Migrations are not
+// automatically applied in deployed environments, so guarantee it before
+// opening the server to matter requests.
+await ensureMatterPreparationSchema();
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

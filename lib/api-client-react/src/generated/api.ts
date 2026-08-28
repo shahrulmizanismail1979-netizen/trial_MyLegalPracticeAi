@@ -149,6 +149,12 @@ import type {
   InterpretLandTitleResponse,
   KnowledgeBaseEntry,
   Kohort,
+  LawyesReport,
+  LawyesReportAssignmentInput,
+  LawyesReportInput,
+  LawyesReportReviewInput,
+  LawyesReportSectionInput,
+  LawyesReportTransitionInput,
   ListContributionsParams,
   ListKnowledgeBaseParams,
   ListSubscribersParams,
@@ -11270,4 +11276,615 @@ export const useCorpAiToolsChat = <
   TContext
 > => {
   return useMutation(getCorpAiToolsChatMutationOptions(options));
+};
+
+/**
+ * @summary Create or return a draft report for a verified judgment
+ */
+export const getCreateLawyesReportUrl = () => {
+  return `/api/research/reports`;
+};
+
+export const createLawyesReport = async (
+  lawyesReportInput: LawyesReportInput,
+  options?: RequestInit,
+): Promise<LawyesReport> => {
+  return customFetch<LawyesReport>(getCreateLawyesReportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lawyesReportInput),
+  });
+};
+
+export const getCreateLawyesReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLawyesReport>>,
+    TError,
+    { data: BodyType<LawyesReportInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createLawyesReport>>,
+  TError,
+  { data: BodyType<LawyesReportInput> },
+  TContext
+> => {
+  const mutationKey = ["createLawyesReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createLawyesReport>>,
+    { data: BodyType<LawyesReportInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createLawyesReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateLawyesReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createLawyesReport>>
+>;
+export type CreateLawyesReportMutationBody = BodyType<LawyesReportInput>;
+export type CreateLawyesReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Create or return a draft report for a verified judgment
+ */
+export const useCreateLawyesReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLawyesReport>>,
+    TError,
+    { data: BodyType<LawyesReportInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createLawyesReport>>,
+  TError,
+  { data: BodyType<LawyesReportInput> },
+  TContext
+> => {
+  return useMutation(getCreateLawyesReportMutationOptions(options));
+};
+
+/**
+ * Published status is withdrawn before response if live source rights no longer pass.
+ * @summary Get a report with paragraphs, sections, pinpoints and audit history
+ */
+export const getGetLawyesReportUrl = (id: number) => {
+  return `/api/research/reports/${id}`;
+};
+
+export const getLawyesReport = async (
+  id: number,
+  options?: RequestInit,
+): Promise<LawyesReport> => {
+  return customFetch<LawyesReport>(getGetLawyesReportUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLawyesReportQueryKey = (id: number) => {
+  return [`/api/research/reports/${id}`] as const;
+};
+
+export const getGetLawyesReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLawyesReport>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLawyesReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLawyesReportQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLawyesReport>>> = ({
+    signal,
+  }) => getLawyesReport(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLawyesReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLawyesReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLawyesReport>>
+>;
+export type GetLawyesReportQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a report with paragraphs, sections, pinpoints and audit history
+ */
+
+export function useGetLawyesReport<
+  TData = Awaited<ReturnType<typeof getLawyesReport>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLawyesReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLawyesReportQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Materialise stable paragraphs from verified judgment text
+ */
+export const getMaterializeLawyesReportParagraphsUrl = (id: number) => {
+  return `/api/research/reports/${id}/paragraphs/materialize`;
+};
+
+export const materializeLawyesReportParagraphs = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getMaterializeLawyesReportParagraphsUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMaterializeLawyesReportParagraphsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["materializeLawyesReportParagraphs"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return materializeLawyesReportParagraphs(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MaterializeLawyesReportParagraphsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>
+>;
+
+export type MaterializeLawyesReportParagraphsMutationError = ErrorType<void>;
+
+/**
+ * @summary Materialise stable paragraphs from verified judgment text
+ */
+export const useMaterializeLawyesReportParagraphs = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof materializeLawyesReportParagraphs>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(
+    getMaterializeLawyesReportParagraphsMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Add a structured section and proposition-to-paragraph pinpoints
+ */
+export const getAddLawyesReportSectionUrl = (id: number) => {
+  return `/api/research/reports/${id}/sections`;
+};
+
+export const addLawyesReportSection = async (
+  id: number,
+  lawyesReportSectionInput: LawyesReportSectionInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAddLawyesReportSectionUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lawyesReportSectionInput),
+  });
+};
+
+export const getAddLawyesReportSectionMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addLawyesReportSection>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportSectionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addLawyesReportSection>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportSectionInput> },
+  TContext
+> => {
+  const mutationKey = ["addLawyesReportSection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addLawyesReportSection>>,
+    { id: number; data: BodyType<LawyesReportSectionInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addLawyesReportSection(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddLawyesReportSectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addLawyesReportSection>>
+>;
+export type AddLawyesReportSectionMutationBody =
+  BodyType<LawyesReportSectionInput>;
+export type AddLawyesReportSectionMutationError = ErrorType<void>;
+
+/**
+ * @summary Add a structured section and proposition-to-paragraph pinpoints
+ */
+export const useAddLawyesReportSection = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addLawyesReportSection>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportSectionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addLawyesReportSection>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportSectionInput> },
+  TContext
+> => {
+  return useMutation(getAddLawyesReportSectionMutationOptions(options));
+};
+
+/**
+ * @summary Append a legally trained review and publication checklist
+ */
+export const getReviewLawyesReportUrl = (id: number) => {
+  return `/api/research/reports/${id}/reviews`;
+};
+
+export const reviewLawyesReport = async (
+  id: number,
+  lawyesReportReviewInput: LawyesReportReviewInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getReviewLawyesReportUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lawyesReportReviewInput),
+  });
+};
+
+export const getReviewLawyesReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportReviewInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reviewLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportReviewInput> },
+  TContext
+> => {
+  const mutationKey = ["reviewLawyesReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reviewLawyesReport>>,
+    { id: number; data: BodyType<LawyesReportReviewInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return reviewLawyesReport(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReviewLawyesReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reviewLawyesReport>>
+>;
+export type ReviewLawyesReportMutationBody = BodyType<LawyesReportReviewInput>;
+export type ReviewLawyesReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Append a legally trained review and publication checklist
+ */
+export const useReviewLawyesReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reviewLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportReviewInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reviewLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportReviewInput> },
+  TContext
+> => {
+  return useMutation(getReviewLawyesReportMutationOptions(options));
+};
+
+/**
+ * @summary Append an editor or lawyer-reviewer assignment
+ */
+export const getAssignLawyesReportUrl = (id: number) => {
+  return `/api/research/reports/${id}/assignments`;
+};
+
+export const assignLawyesReport = async (
+  id: number,
+  lawyesReportAssignmentInput: LawyesReportAssignmentInput,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAssignLawyesReportUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lawyesReportAssignmentInput),
+  });
+};
+
+export const getAssignLawyesReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assignLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportAssignmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof assignLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportAssignmentInput> },
+  TContext
+> => {
+  const mutationKey = ["assignLawyesReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof assignLawyesReport>>,
+    { id: number; data: BodyType<LawyesReportAssignmentInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return assignLawyesReport(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AssignLawyesReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof assignLawyesReport>>
+>;
+export type AssignLawyesReportMutationBody =
+  BodyType<LawyesReportAssignmentInput>;
+export type AssignLawyesReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Append an editor or lawyer-reviewer assignment
+ */
+export const useAssignLawyesReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof assignLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportAssignmentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof assignLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportAssignmentInput> },
+  TContext
+> => {
+  return useMutation(getAssignLawyesReportMutationOptions(options));
+};
+
+/**
+ * @summary Apply an audited editorial publication-state transition
+ */
+export const getTransitionLawyesReportUrl = (id: number) => {
+  return `/api/research/reports/${id}/transitions`;
+};
+
+export const transitionLawyesReport = async (
+  id: number,
+  lawyesReportTransitionInput: LawyesReportTransitionInput,
+  options?: RequestInit,
+): Promise<LawyesReport> => {
+  return customFetch<LawyesReport>(getTransitionLawyesReportUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lawyesReportTransitionInput),
+  });
+};
+
+export const getTransitionLawyesReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof transitionLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportTransitionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof transitionLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportTransitionInput> },
+  TContext
+> => {
+  const mutationKey = ["transitionLawyesReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof transitionLawyesReport>>,
+    { id: number; data: BodyType<LawyesReportTransitionInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return transitionLawyesReport(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TransitionLawyesReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof transitionLawyesReport>>
+>;
+export type TransitionLawyesReportMutationBody =
+  BodyType<LawyesReportTransitionInput>;
+export type TransitionLawyesReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Apply an audited editorial publication-state transition
+ */
+export const useTransitionLawyesReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof transitionLawyesReport>>,
+    TError,
+    { id: number; data: BodyType<LawyesReportTransitionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof transitionLawyesReport>>,
+  TError,
+  { id: number; data: BodyType<LawyesReportTransitionInput> },
+  TContext
+> => {
+  return useMutation(getTransitionLawyesReportMutationOptions(options));
 };

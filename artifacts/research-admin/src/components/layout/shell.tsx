@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -10,6 +10,7 @@ import {
   BookOpen,
   Menu,
   LogOut,
+  FilePenLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authApi } from "@/lib/api";
@@ -26,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Drive Inventory", href: "/drive-inventory", icon: <FolderOpen size={18} /> },
   { label: "Rights Review", href: "/rights-review", icon: <ShieldCheck size={18} /> },
   { label: "Headnotes Review", href: "/headnotes", icon: <BookOpen size={18} /> },
+  { label: "Editorial Workbench", href: "/editorial", icon: <FilePenLine size={18} /> },
   { label: "Processing Queue", href: "/queue", icon: <ListOrdered size={18} /> },
   { label: "Error Dashboard", href: "/errors", icon: <AlertTriangle size={18} /> },
   { label: "Audit Log", href: "/audit", icon: <ScrollText size={18} /> },
@@ -34,9 +36,11 @@ const NAV_ITEMS: NavItem[] = [
 function SidebarContent({
   location,
   onLogout,
+  onNavigate,
 }: {
   location: string;
   onLogout: () => void;
+  onNavigate?: () => void;
 }) {
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -67,18 +71,18 @@ function SidebarContent({
                 : location.startsWith(item.href);
             return (
               <li key={item.href}>
-                <Link href={item.href}>
-                  <a
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </a>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  {item.icon}
+                  {item.label}
                 </Link>
               </li>
             );
@@ -110,6 +114,15 @@ export function Shell({
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileOpen]);
+
   const handleLogout = async () => {
     await authApi.logout();
     onLogout();
@@ -128,9 +141,10 @@ export function Shell({
           <div
             className="fixed inset-0 bg-black/60"
             onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
           />
           <aside className="relative z-50 flex w-64 flex-col">
-            <SidebarContent location={location} onLogout={handleLogout} />
+            <SidebarContent location={location} onLogout={handleLogout} onNavigate={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
@@ -141,6 +155,7 @@ export function Shell({
         <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 lg:hidden">
           <button
             onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
             className="rounded-md p-1 text-muted-foreground hover:text-foreground"
           >
             <Menu size={20} />

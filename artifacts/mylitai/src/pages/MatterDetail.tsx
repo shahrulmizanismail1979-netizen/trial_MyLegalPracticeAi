@@ -47,6 +47,7 @@ import {
 } from '@/hooks/use-matters';
 import { findMatter } from '@/data/practice-hub';
 import { ExportButtons } from '@/components/ExportButtons';
+import { MatterPreparationPanel } from '@/components/MatterPreparationPanel';
 import {
   PageHeader,
   Card,
@@ -73,7 +74,7 @@ import {
   Sparkles, RefreshCw, ShieldCheck, ShieldAlert, Shield,
   Users, Timer, Loader2, ChevronRight, CheckSquare,
   Phone, Mail, CreditCard, History, Calculator, FolderLock, FileSignature,
-  ClipboardList, ChevronDown,
+  ClipboardList, ChevronDown, FileCheck2,
 } from 'lucide-react';
 import { BillingTab, type BillingRequest } from '@workspace/billing-ui';
 import { DocumentsPanel, type VaultRequest } from '@workspace/vault-ui';
@@ -1103,6 +1104,9 @@ export default function MatterDetail() {
             <History className="h-3.5 w-3.5" /> Chronology
             {(events?.length ?? 0) > 0 && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[9px]">{events!.length}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="preparation" className="gap-1.5">
+            <FileCheck2 className="h-3.5 w-3.5" /> Preparation
+          </TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
@@ -1585,6 +1589,16 @@ export default function MatterDetail() {
         {/* ── CHRONOLOGY ── */}
         <TabsContent value="chronology">
           <ChronologyPanel matterId={matter.id} />
+        </TabsContent>
+
+        {/* ── CASE PREPARATION ── */}
+        <TabsContent value="preparation">
+          <MatterPreparationPanel
+            matterId={matter.id}
+            plaintiff={matter.plaintiff}
+            defendant={matter.defendant}
+            documentCount={matterWork?.length ?? 0}
+          />
         </TabsContent>
       </Tabs>
 

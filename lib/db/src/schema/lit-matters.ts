@@ -5,10 +5,30 @@ import {
   integer,
   numeric,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { litAccessCodes } from "./lit-access-codes";
+
+export type LitPreparationBenchmark = {
+  id: number;
+  caseName: string;
+  citation: string;
+  proposition: string;
+  pinpoint: string;
+  sourceUrl: string;
+};
+
+export type LitMatterPreparationState = {
+  issues: string;
+  evidence: string;
+  relief: string;
+  filingReadiness: Record<string, boolean>;
+  benchmarks: LitPreparationBenchmark[];
+  practiceChecklists: Record<string, Record<string, boolean>>;
+  causePaperPacks: Record<string, Record<string, boolean>>;
+};
 
 export const litMatters = pgTable("lit_matters", {
   id: serial("id").primaryKey(),
@@ -27,6 +47,10 @@ export const litMatters = pgTable("lit_matters", {
   claimAmount: numeric("claim_amount", { precision: 14, scale: 2 }),
   status: text("status").notNull().default("open"),
   notes: text("notes"),
+  // Additive working state for the preparation and practice-workflow surfaces.
+  // Keeping it on the owned matter makes it available across sessions without
+  // changing any of the original matter fields or exports.
+  preparationState: jsonb("preparation_state").$type<LitMatterPreparationState>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

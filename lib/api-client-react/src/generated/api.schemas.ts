@@ -5,6 +5,110 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type LawyesReportState =
+  (typeof LawyesReportState)[keyof typeof LawyesReportState];
+
+export const LawyesReportState = {
+  Draft: "Draft",
+  "AI-assisted": "AI-assisted",
+  Lawyer_reviewed: "Lawyer reviewed",
+  Published: "Published",
+} as const;
+
+export interface LawyesReport {
+  id: number;
+  judgmentId: number;
+  state: LawyesReportState;
+  title: string;
+  sourceUrl: string;
+  sourceVerifiedAt: string;
+  currentRevision: number;
+  /** @nullable */
+  lawyerReviewedAt?: string | null;
+  /** @nullable */
+  publishedAt?: string | null;
+}
+
+export interface LawyesReportInput {
+  /** @minimum 1 */
+  judgmentId: number;
+  /** @minLength 1 */
+  title: string;
+  sourceUrl: string;
+}
+
+export interface LawyesReportPropositionInput {
+  /** @minLength 1 */
+  proposition: string;
+  material?: boolean;
+  paragraphIds: number[];
+}
+
+export type LawyesReportSectionInputKind =
+  (typeof LawyesReportSectionInputKind)[keyof typeof LawyesReportSectionInputKind];
+
+export const LawyesReportSectionInputKind = {
+  headnote: "headnote",
+  facts: "facts",
+  procedural_history: "procedural_history",
+  issues: "issues",
+  holdings: "holdings",
+  ratio: "ratio",
+  obiter: "obiter",
+  orders_relief_costs: "orders_relief_costs",
+  legislation: "legislation",
+  treated_authorities: "treated_authorities",
+  practice_notes: "practice_notes",
+} as const;
+
+export interface LawyesReportSectionInput {
+  kind: LawyesReportSectionInputKind;
+  /** @minLength 1 */
+  heading: string;
+  body: string;
+  /** @minimum 0 */
+  sortOrder: number;
+  propositions?: LawyesReportPropositionInput[];
+}
+
+export type LawyesReportReviewInputDecision =
+  (typeof LawyesReportReviewInputDecision)[keyof typeof LawyesReportReviewInputDecision];
+
+export const LawyesReportReviewInputDecision = {
+  approved: "approved",
+  changes_requested: "changes_requested",
+} as const;
+
+export interface LawyesReportReviewInput {
+  /** @minimum 1 */
+  reviewerId: number;
+  decision: LawyesReportReviewInputDecision;
+  sourceChecked: boolean;
+  pinpointsChecked: boolean;
+  missingFieldsChecked: boolean;
+  notes?: string;
+}
+
+export type LawyesReportAssignmentInputRole =
+  (typeof LawyesReportAssignmentInputRole)[keyof typeof LawyesReportAssignmentInputRole];
+
+export const LawyesReportAssignmentInputRole = {
+  editor: "editor",
+  lawyer_reviewer: "lawyer_reviewer",
+} as const;
+
+export interface LawyesReportAssignmentInput {
+  /** @minimum 1 */
+  assigneeId: number;
+  role: LawyesReportAssignmentInputRole;
+}
+
+export interface LawyesReportTransitionInput {
+  toState: LawyesReportState;
+  /** @minLength 1 */
+  reason: string;
+}
+
 export type Sarawak20CohortCohort =
   (typeof Sarawak20CohortCohort)[keyof typeof Sarawak20CohortCohort];
 

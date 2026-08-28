@@ -2289,3 +2289,139 @@ export const CorpAiToolsChatBody = zod.object({
     .nullish()
     .describe("Optional additional context for the tool"),
 });
+
+/**
+ * @summary Create or return a draft report for a verified judgment
+ */
+
+export const CreateLawyesReportBody = zod.object({
+  judgmentId: zod.number().min(1),
+  title: zod.string().min(1),
+  sourceUrl: zod.string().url(),
+});
+
+/**
+ * Published status is withdrawn before response if live source rights no longer pass.
+ * @summary Get a report with paragraphs, sections, pinpoints and audit history
+ */
+
+export const GetLawyesReportParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const GetLawyesReportResponse = zod.object({
+  id: zod.number(),
+  judgmentId: zod.number(),
+  state: zod.enum(["Draft", "AI-assisted", "Lawyer reviewed", "Published"]),
+  title: zod.string(),
+  sourceUrl: zod.string().url(),
+  sourceVerifiedAt: zod.coerce.date(),
+  currentRevision: zod.number(),
+  lawyerReviewedAt: zod.coerce.date().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+});
+
+/**
+ * @summary Materialise stable paragraphs from verified judgment text
+ */
+
+export const MaterializeLawyesReportParagraphsParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+/**
+ * @summary Add a structured section and proposition-to-paragraph pinpoints
+ */
+
+export const AddLawyesReportSectionParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const addLawyesReportSectionBodySortOrderMin = 0;
+
+export const addLawyesReportSectionBodyPropositionsItemMaterialDefault = true;
+
+export const AddLawyesReportSectionBody = zod.object({
+  kind: zod.enum([
+    "headnote",
+    "facts",
+    "procedural_history",
+    "issues",
+    "holdings",
+    "ratio",
+    "obiter",
+    "orders_relief_costs",
+    "legislation",
+    "treated_authorities",
+    "practice_notes",
+  ]),
+  heading: zod.string().min(1),
+  body: zod.string(),
+  sortOrder: zod.number().min(addLawyesReportSectionBodySortOrderMin),
+  propositions: zod
+    .array(
+      zod.object({
+        proposition: zod.string().min(1),
+        material: zod
+          .boolean()
+          .default(addLawyesReportSectionBodyPropositionsItemMaterialDefault),
+        paragraphIds: zod.array(zod.number().min(1)),
+      }),
+    )
+    .optional(),
+});
+
+/**
+ * @summary Append a legally trained review and publication checklist
+ */
+
+export const ReviewLawyesReportParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const ReviewLawyesReportBody = zod.object({
+  reviewerId: zod.number().min(1),
+  decision: zod.enum(["approved", "changes_requested"]),
+  sourceChecked: zod.boolean(),
+  pinpointsChecked: zod.boolean(),
+  missingFieldsChecked: zod.boolean(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Append an editor or lawyer-reviewer assignment
+ */
+
+export const AssignLawyesReportParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const AssignLawyesReportBody = zod.object({
+  assigneeId: zod.number().min(1),
+  role: zod.enum(["editor", "lawyer_reviewer"]),
+});
+
+/**
+ * @summary Apply an audited editorial publication-state transition
+ */
+
+export const TransitionLawyesReportParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const TransitionLawyesReportBody = zod.object({
+  toState: zod.enum(["Draft", "AI-assisted", "Lawyer reviewed", "Published"]),
+  reason: zod.string().min(1),
+});
+
+export const TransitionLawyesReportResponse = zod.object({
+  id: zod.number(),
+  judgmentId: zod.number(),
+  state: zod.enum(["Draft", "AI-assisted", "Lawyer reviewed", "Published"]),
+  title: zod.string(),
+  sourceUrl: zod.string().url(),
+  sourceVerifiedAt: zod.coerce.date(),
+  currentRevision: zod.number(),
+  lawyerReviewedAt: zod.coerce.date().nullish(),
+  publishedAt: zod.coerce.date().nullish(),
+});

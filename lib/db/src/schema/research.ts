@@ -121,31 +121,31 @@ export const researchUsers = pgTable("research_users", {
 export const researchSourceContainers = pgTable(
   "research_source_containers",
   {
-  id: serial("id").primaryKey(),
-  originalName: text("original_name").notNull(),
-  sourceBatch: text("source_batch").notNull(),
-  storageKey: text("storage_key"),
-  contentSha256: text("content_sha256").notNull(),
-  sizeBytes: integer("size_bytes").notNull(),
-  mimeType: text("mime_type"),
-  rightsStatus: text("rights_status")
-    .$type<RightsStatus>()
-    .default("UNREVIEWED")
-    .notNull(),
-  processingState: text("processing_state")
-    .$type<ContainerState>()
-    .default("UPLOADED")
-    .notNull(),
-  provenance: jsonb("provenance").$type<Record<string, unknown>>().notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  // Identity of the person who uploaded this file (email or role-string).
-  // NULL for containers created before this column was added (Task #7).
-  uploadedBy: text("uploaded_by"),
+    id: serial("id").primaryKey(),
+    originalName: text("original_name").notNull(),
+    sourceBatch: text("source_batch").notNull(),
+    storageKey: text("storage_key"),
+    contentSha256: text("content_sha256").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    mimeType: text("mime_type"),
+    rightsStatus: text("rights_status")
+      .$type<RightsStatus>()
+      .default("UNREVIEWED")
+      .notNull(),
+    processingState: text("processing_state")
+      .$type<ContainerState>()
+      .default("UPLOADED")
+      .notNull(),
+    provenance: jsonb("provenance").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    // Identity of the person who uploaded this file (email or role-string).
+    // NULL for containers created before this column was added (Task #7).
+    uploadedBy: text("uploaded_by"),
   },
   (t) => [
     // Race-safe SHA-256 dedup: concurrent ingest jobs cannot both register
@@ -758,7 +758,9 @@ export const researchPageWarnings = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("research_page_warnings_extraction_idx").on(t.pageExtractionId)],
+  (t) => [
+    index("research_page_warnings_extraction_idx").on(t.pageExtractionId),
+  ],
 );
 
 // Append-only reviewer corrections. The raw extraction row is never
@@ -983,7 +985,12 @@ export const COHERENCE_CHECK_TYPES = [
 ] as const;
 export type CoherenceCheckType = (typeof COHERENCE_CHECK_TYPES)[number];
 
-export const COHERENCE_RESULTS = ["PASS", "FAIL", "UNCERTAIN", "NOT_APPLICABLE"] as const;
+export const COHERENCE_RESULTS = [
+  "PASS",
+  "FAIL",
+  "UNCERTAIN",
+  "NOT_APPLICABLE",
+] as const;
 export type CoherenceResultValue = (typeof COHERENCE_RESULTS)[number];
 
 export const REVIEWER_ACTION_TYPES = [
@@ -1014,7 +1021,11 @@ export const CROSS_FILE_RELATIONSHIP_TYPES = [
 export type CrossFileRelationshipType =
   (typeof CROSS_FILE_RELATIONSHIP_TYPES)[number];
 
-export const CROSS_FILE_SPAN_STATUSES = ["PROPOSED", "APPROVED", "REJECTED"] as const;
+export const CROSS_FILE_SPAN_STATUSES = [
+  "PROPOSED",
+  "APPROVED",
+  "REJECTED",
+] as const;
 export type CrossFileSpanStatus = (typeof CROSS_FILE_SPAN_STATUSES)[number];
 
 // One row per container.validate job attempt.
@@ -1070,7 +1081,9 @@ export const researchCandidateCoherenceChecks = pgTable(
       t.candidateId,
       t.checkType,
     ),
-    index("research_candidate_coherence_checks_candidate_idx").on(t.candidateId),
+    index("research_candidate_coherence_checks_candidate_idx").on(
+      t.candidateId,
+    ),
   ],
 );
 
@@ -1133,8 +1146,12 @@ export const researchCrossFileRelationships = pgTable(
       t.targetCandidateId,
       t.relationshipType,
     ),
-    index("research_cross_file_relationships_source_idx").on(t.sourceCandidateId),
-    index("research_cross_file_relationships_target_idx").on(t.targetCandidateId),
+    index("research_cross_file_relationships_source_idx").on(
+      t.sourceCandidateId,
+    ),
+    index("research_cross_file_relationships_target_idx").on(
+      t.targetCandidateId,
+    ),
   ],
 );
 
@@ -1182,8 +1199,7 @@ export const researchCrossFileSpanSegments = pgTable(
   ],
 );
 
-export type ResearchValidationRun =
-  typeof researchValidationRuns.$inferSelect;
+export type ResearchValidationRun = typeof researchValidationRuns.$inferSelect;
 export type ResearchCandidateCoherenceCheck =
   typeof researchCandidateCoherenceChecks.$inferSelect;
 export type ResearchCandidateReviewAction =
@@ -1219,8 +1235,7 @@ export const researchPageSections = pgTable(
     containerId: integer("container_id")
       .references(() => researchSourceContainers.id)
       .notNull(),
-    pageId: integer("page_id")
-      .references(() => researchSourcePages.id),
+    pageId: integer("page_id").references(() => researchSourcePages.id),
     editorialRunId: integer("editorial_run_id"),
     blockId: integer("block_id"),
     sectionIndex: integer("section_index").notNull(),
@@ -1234,7 +1249,8 @@ export const researchPageSections = pgTable(
       .notNull(),
     detectorVersion: text("detector_version").notNull(),
     // Human reviewer override (set via PATCH /containers/:id/sections/:sectionId)
-    reviewerDecision: text("reviewer_decision").$type<DbSectionClassification>(),
+    reviewerDecision:
+      text("reviewer_decision").$type<DbSectionClassification>(),
     reviewerNote: text("reviewer_note"),
     notes: text("notes"),
     reviewerId: integer("reviewer_id").references(() => researchUsers.id),
@@ -1271,9 +1287,13 @@ export const researchEditorialRuns = pgTable("research_editorial_runs", {
   processorVersion: text("processor_version").notNull(),
   sectionCount: integer("section_count").default(0).notNull(),
   uncertainCount: integer("uncertain_count").default(0).notNull(),
-  suspectedEditorialCount: integer("suspected_editorial_count").default(0).notNull(),
+  suspectedEditorialCount: integer("suspected_editorial_count")
+    .default(0)
+    .notNull(),
   criticalWarningCount: integer("critical_warning_count").default(0).notNull(),
-  nonCriticalWarningCount: integer("non_critical_warning_count").default(0).notNull(),
+  nonCriticalWarningCount: integer("non_critical_warning_count")
+    .default(0)
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -1307,20 +1327,28 @@ export const researchVerifiedJudgments = pgTable(
     // ADR 0008 §6: approved judicial source spans — ordered array of sections
     // that passed the isolation gate, with containerId + span provenance.
     approvedJudicialSpans: jsonb("approved_judicial_spans")
-      .$type<Array<{
-        sectionId: number;
-        containerId: number;
-        pageId: number;
-        sectionIndex: number;
-        classification: string;
-        spanStartChar: number | null;
-        spanEndChar: number | null;
-      }>>()
+      .$type<
+        Array<{
+          sectionId: number;
+          containerId: number;
+          pageId: number;
+          sectionIndex: number;
+          classification: string;
+          spanStartChar: number | null;
+          spanEndChar: number | null;
+        }>
+      >()
       .default([])
       .notNull(),
     // ADR 0008 §6: provenance to source containers.
     sourceRefs: jsonb("source_refs")
-      .$type<Array<{ containerId: number; contentSha256: string; originalName: string }>>()
+      .$type<
+        Array<{
+          containerId: number;
+          contentSha256: string;
+          originalName: string;
+        }>
+      >()
       .default([])
       .notNull(),
     // ADR 0008 §6: original source-document page numbers for the judicial span.
@@ -1356,9 +1384,7 @@ export const researchVerifiedJudgments = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [
-    index("research_verified_judgments_container_idx").on(t.containerId),
-  ],
+  (t) => [index("research_verified_judgments_container_idx").on(t.containerId)],
 );
 
 export type ResearchPageSection = typeof researchPageSections.$inferSelect;
@@ -1432,9 +1458,7 @@ export const researchCaseMetadata = pgTable(
     containerId: integer("container_id")
       .references(() => researchSourceContainers.id)
       .notNull(),
-    fieldName: text("field_name")
-      .$type<MetadataFieldName>()
-      .notNull(),
+    fieldName: text("field_name").$type<MetadataFieldName>().notNull(),
     // Extracted value — string for text fields, ISO date string for dates,
     // string[] for lists (judges, parties).
     value: jsonb("value").$type<string | string[] | null>().notNull(),
@@ -1655,10 +1679,10 @@ export const researchQuotations = pgTable(
       .notNull(),
     // ── Denormalized provenance (captured at creation, never updated) ──────
     caseName: text("case_name"),
-    citation: text("citation"),           // neutral citation
+    citation: text("citation"), // neutral citation
     court: text("court"),
-    judge: text("judge"),                 // may be a comma-joined list
-    decisionDate: text("decision_date"),  // ISO string or formatted date
+    judge: text("judge"), // may be a comma-joined list
+    decisionDate: text("decision_date"), // ISO string or formatted date
     paragraphIdentifier: text("paragraph_identifier"), // e.g. "[1]"
     sourcePageId: integer("source_page_id").references(
       () => researchSourcePages.id,
@@ -1774,8 +1798,12 @@ export const researchAiProviders = pgTable("research_ai_providers", {
   promptVersion: text("prompt_version").default("analysis@1").notNull(),
   approvedBy: text("approved_by"),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 /** One generation run per (judgment × prompt version × model version). */
@@ -1797,10 +1825,15 @@ export const researchAiAnalysisRuns = pgTable(
     reviewerEmail: text("reviewer_email"),
     reviewNotes: text("review_notes"),
     /** Summary of evidence validation: counts per field, rejection reasons. */
-    evidenceValidationResult: jsonb("evidence_validation_result")
-      .$type<Record<string, unknown>>(),
-    criticalWarningCount: integer("critical_warning_count").default(0).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    evidenceValidationResult: jsonb("evidence_validation_result").$type<
+      Record<string, unknown>
+    >(),
+    criticalWarningCount: integer("critical_warning_count")
+      .default(0)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
   },
@@ -1843,7 +1876,9 @@ export const researchAiPropositions = pgTable(
       .notNull(),
     reviewerEmail: text("reviewer_email"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     index("research_ai_propositions_run_idx").on(t.runId),
@@ -1930,7 +1965,10 @@ export const researchAuthorities = pgTable(
       .notNull(),
   },
   (t) => [
-    uniqueIndex("research_authorities_run_prop_uq").on(t.runId, t.propositionId),
+    uniqueIndex("research_authorities_run_prop_uq").on(
+      t.runId,
+      t.propositionId,
+    ),
     index("research_authorities_judgment_idx").on(t.judgmentId),
     index("research_authorities_citation_idx").on(t.citation),
   ],
@@ -1964,13 +2002,17 @@ export const researchLegislationRefs = pgTable(
       .notNull(),
   },
   (t) => [
-    uniqueIndex("research_legislation_refs_run_prop_uq").on(t.runId, t.propositionId),
+    uniqueIndex("research_legislation_refs_run_prop_uq").on(
+      t.runId,
+      t.propositionId,
+    ),
     index("research_legislation_refs_judgment_idx").on(t.judgmentId),
   ],
 );
 
 export type ResearchAuthority = typeof researchAuthorities.$inferSelect;
-export type ResearchLegislationRef = typeof researchLegislationRefs.$inferSelect;
+export type ResearchLegislationRef =
+  typeof researchLegislationRefs.$inferSelect;
 
 // ── Phase 11b: Research Workspace ────────────────────────────────────────
 
@@ -1988,12 +2030,14 @@ export const researchFolders = pgTable(
     kind: text("kind").$type<FolderKind>().default("research").notNull(),
     name: text("name").notNull(),
     description: text("description"),
-    sharedWithStudents: boolean("shared_with_students").default(false).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    sharedWithStudents: boolean("shared_with_students")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
-  (t) => [
-    index("research_folders_owner_idx").on(t.ownerId),
-  ],
+  (t) => [index("research_folders_owner_idx").on(t.ownerId)],
 );
 
 /** Membership of a judgment in a folder.  Unique per (folder, judgment). */
@@ -2007,10 +2051,15 @@ export const researchFolderItems = pgTable(
     judgmentId: integer("judgment_id")
       .references(() => researchVerifiedJudgments.id)
       .notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
-    uniqueIndex("research_folder_items_folder_judgment_uq").on(t.folderId, t.judgmentId),
+    uniqueIndex("research_folder_items_folder_judgment_uq").on(
+      t.folderId,
+      t.judgmentId,
+    ),
     index("research_folder_items_folder_idx").on(t.folderId),
     index("research_folder_items_judgment_idx").on(t.judgmentId),
   ],
@@ -2027,7 +2076,9 @@ export const researchSavedSearches = pgTable(
     name: text("name").notNull(),
     /** Serialised search query: { q?: string, court?: string, dateFrom?: string, dateTo?: string, ... } */
     query: jsonb("query").$type<Record<string, unknown>>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index("research_saved_searches_owner_idx").on(t.ownerId)],
 );
@@ -2041,8 +2092,12 @@ export const researchReadingLists = pgTable(
       .references(() => researchUsers.id)
       .notNull(),
     name: text("name").notNull(),
-    sharedWithStudents: boolean("shared_with_students").default(false).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    sharedWithStudents: boolean("shared_with_students")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index("research_reading_lists_owner_idx").on(t.ownerId)],
 );
@@ -2060,10 +2115,15 @@ export const researchReadingListItems = pgTable(
       .notNull(),
     position: integer("position").default(0).notNull(),
     readAt: timestamp("read_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
-    uniqueIndex("research_reading_list_items_list_judgment_uq").on(t.listId, t.judgmentId),
+    uniqueIndex("research_reading_list_items_list_judgment_uq").on(
+      t.listId,
+      t.judgmentId,
+    ),
     index("research_reading_list_items_list_idx").on(t.listId),
   ],
 );
@@ -2077,7 +2137,9 @@ export const researchQuotationCollections = pgTable(
       .references(() => researchUsers.id)
       .notNull(),
     name: text("name").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index("research_quotation_collections_owner_idx").on(t.ownerId)],
 );
@@ -2097,9 +2159,13 @@ export const researchWorkspaceQuotations = pgTable(
     label: text("label"),
     charStart: integer("char_start"),
     charEnd: integer("char_end"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
-  (t) => [index("research_workspace_quotations_collection_idx").on(t.collectionId)],
+  (t) => [
+    index("research_workspace_quotations_collection_idx").on(t.collectionId),
+  ],
 );
 
 /**
@@ -2119,8 +2185,12 @@ export const researchComparisonTables = pgTable(
     judgmentIds: jsonb("judgment_ids").$type<number[]>().default([]).notNull(),
     /** AI analysis fieldName strings to include as rows. */
     fieldNames: jsonb("field_names").$type<string[]>().default([]).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index("research_comparison_tables_owner_idx").on(t.ownerId)],
 );
@@ -2139,7 +2209,9 @@ export const researchAuthoritiesTables = pgTable(
       .notNull(),
     name: text("name").notNull(),
     judgmentIds: jsonb("judgment_ids").$type<number[]>().default([]).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [index("research_authorities_tables_owner_idx").on(t.ownerId)],
 );
@@ -2148,11 +2220,16 @@ export type ResearchFolder = typeof researchFolders.$inferSelect;
 export type ResearchFolderItem = typeof researchFolderItems.$inferSelect;
 export type ResearchSavedSearch = typeof researchSavedSearches.$inferSelect;
 export type ResearchReadingList = typeof researchReadingLists.$inferSelect;
-export type ResearchReadingListItem = typeof researchReadingListItems.$inferSelect;
-export type ResearchQuotationCollection = typeof researchQuotationCollections.$inferSelect;
-export type ResearchWorkspaceQuotation = typeof researchWorkspaceQuotations.$inferSelect;
-export type ResearchComparisonTable = typeof researchComparisonTables.$inferSelect;
-export type ResearchAuthoritiesTable = typeof researchAuthoritiesTables.$inferSelect;
+export type ResearchReadingListItem =
+  typeof researchReadingListItems.$inferSelect;
+export type ResearchQuotationCollection =
+  typeof researchQuotationCollections.$inferSelect;
+export type ResearchWorkspaceQuotation =
+  typeof researchWorkspaceQuotations.$inferSelect;
+export type ResearchComparisonTable =
+  typeof researchComparisonTables.$inferSelect;
+export type ResearchAuthoritiesTable =
+  typeof researchAuthoritiesTables.$inferSelect;
 
 // ── Phase 12c: Granular deletion manifests ────────────────────────────────
 
@@ -2178,9 +2255,7 @@ export const researchDeletionManifests = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [
-    index("research_deletion_manifests_container_idx").on(t.containerId),
-  ],
+  (t) => [index("research_deletion_manifests_container_idx").on(t.containerId)],
 );
 
 export type ResearchDeletionManifest =
@@ -2287,9 +2362,7 @@ export const driveAssets = pgTable(
     })
       .defaultNow()
       .notNull(),
-    sourceClassification: driveSourceClassificationEnum(
-      "source_classification",
-    )
+    sourceClassification: driveSourceClassificationEnum("source_classification")
       .default("UNKNOWN_SOURCE")
       .notNull(),
     rightsStatus: driveRightsStatusEnum("rights_status")
@@ -2347,15 +2420,27 @@ export const researchHeadnotes = pgTable(
     text: text("text").notNull(),
     /** Paragraph/page reference from judgment, e.g. "[14]", "pp 123–124". */
     paragraphRef: text("paragraph_ref"),
-    status: text("status").$type<HeadnoteStatus>().default("ai_draft").notNull(),
-    processorVersion: text("processor_version").default("headnotes@1").notNull(),
+    status: text("status")
+      .$type<HeadnoteStatus>()
+      .default("ai_draft")
+      .notNull(),
+    processorVersion: text("processor_version")
+      .default("headnotes@1")
+      .notNull(),
     reviewedBy: text("reviewed_by"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
-    uniqueIndex("research_headnotes_judgment_number_uq").on(t.judgmentId, t.number),
+    uniqueIndex("research_headnotes_judgment_number_uq").on(
+      t.judgmentId,
+      t.number,
+    ),
     index("research_headnotes_judgment_idx").on(t.judgmentId),
     index("research_headnotes_status_idx").on(t.status),
   ],
@@ -2373,12 +2458,21 @@ export const researchCatchwords = pgTable(
     sortOrder: integer("sort_order").default(0).notNull(),
     /** The keyword phrase, e.g. "Tort — Negligence — Duty of care — Occupier". */
     catchwordLine: text("catchword_line").notNull(),
-    status: text("status").$type<HeadnoteStatus>().default("ai_draft").notNull(),
-    processorVersion: text("processor_version").default("headnotes@1").notNull(),
+    status: text("status")
+      .$type<HeadnoteStatus>()
+      .default("ai_draft")
+      .notNull(),
+    processorVersion: text("processor_version")
+      .default("headnotes@1")
+      .notNull(),
     reviewedBy: text("reviewed_by"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
     index("research_catchwords_judgment_idx").on(t.judgmentId),
@@ -2388,3 +2482,287 @@ export const researchCatchwords = pgTable(
 
 export type ResearchHeadnote = typeof researchHeadnotes.$inferSelect;
 export type ResearchCatchword = typeof researchCatchwords.$inferSelect;
+
+// ── LAWYes editorial case reports (Task 522) ──────────────────────────────
+// These tables are deliberately independent from the verified judgment
+// corpus. A verified judgment may exist without ever becoming a report.
+
+export const LAWYES_REPORT_STATES = [
+  "Draft",
+  "AI-assisted",
+  "Lawyer reviewed",
+  "Published",
+] as const;
+export type LawyesReportState = (typeof LAWYES_REPORT_STATES)[number];
+export const lawyesReportStateSchema = z.enum(LAWYES_REPORT_STATES);
+
+export const LAWYES_SECTION_KINDS = [
+  "headnote",
+  "facts",
+  "procedural_history",
+  "issues",
+  "holdings",
+  "ratio",
+  "obiter",
+  "orders_relief_costs",
+  "legislation",
+  "treated_authorities",
+  "practice_notes",
+] as const;
+export type LawyesSectionKind = (typeof LAWYES_SECTION_KINDS)[number];
+export const lawyesSectionKindSchema = z.enum(LAWYES_SECTION_KINDS);
+
+export const researchLawyesReports = pgTable(
+  "research_lawyes_reports",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull()
+      .unique(),
+    state: text("state").$type<LawyesReportState>().default("Draft").notNull(),
+    title: text("title").notNull(),
+    neutralCitation: text("neutral_citation"),
+    reportCitation: text("report_citation"),
+    caseNumber: text("case_number"),
+    court: text("court"),
+    registry: text("registry"),
+    decisionDate: text("decision_date"),
+    coram: jsonb("coram").$type<string[]>().default([]).notNull(),
+    counsel: jsonb("counsel").$type<string[]>().default([]).notNull(),
+    catchwords: jsonb("catchwords").$type<string[][]>().default([]).notNull(),
+    practiceTags: jsonb("practice_tags")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    outcome: text("outcome"),
+    sourceUrl: text("source_url").notNull(),
+    sourceVerifiedAt: timestamp("source_verified_at", {
+      withTimezone: true,
+    }).notNull(),
+    sourceRightsRecordId: integer("source_rights_record_id")
+      .references(() => researchRightsRecords.id)
+      .notNull(),
+    assignedEditorId: integer("assigned_editor_id").references(
+      () => researchUsers.id,
+    ),
+    currentRevision: integer("current_revision").default(1).notNull(),
+    lawyerReviewedAt: timestamp("lawyer_reviewed_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_lawyes_reports_state_idx").on(t.state),
+    index("research_lawyes_reports_judgment_idx").on(t.judgmentId),
+  ],
+);
+
+// An intake/access record is deliberately not a report.  It preserves the
+// eligible source and the reason editorial drafting cannot yet begin, without
+// inventing a judgment text or making anything subscriber-visible.
+export const researchLawyesAccessRecords = pgTable(
+  "research_lawyes_access_records",
+  {
+    id: serial("id").primaryKey(),
+    judgmentId: integer("judgment_id")
+      .references(() => researchVerifiedJudgments.id)
+      .notNull()
+      .unique(),
+    sourceRightsRecordId: integer("source_rights_record_id")
+      .references(() => researchRightsRecords.id)
+      .notNull(),
+    status: text("status").default("pending_verified_full_text").notNull(),
+    reason: text("reason").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("research_lawyes_access_records_status_idx").on(t.status),
+  ],
+);
+
+/** Stable paragraph corpus. Text is copied only from the verified judgment. */
+export const researchLawyesParagraphs = pgTable(
+  "research_lawyes_paragraphs",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .references(() => researchLawyesReports.id)
+      .notNull(),
+    paragraphKey: text("paragraph_key").notNull(),
+    ordinal: integer("ordinal").notNull(),
+    text: text("text").notNull(),
+    sourcePage: integer("source_page"),
+    sourceChecksum: text("source_checksum").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_lawyes_paragraphs_report_key_uq").on(
+      t.reportId,
+      t.paragraphKey,
+    ),
+    uniqueIndex("research_lawyes_paragraphs_report_ordinal_uq").on(
+      t.reportId,
+      t.ordinal,
+    ),
+  ],
+);
+
+export const researchLawyesSections = pgTable(
+  "research_lawyes_sections",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .references(() => researchLawyesReports.id)
+      .notNull(),
+    kind: text("kind").$type<LawyesSectionKind>().notNull(),
+    heading: text("heading").notNull(),
+    body: text("body").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_lawyes_sections_report_order_uq").on(
+      t.reportId,
+      t.sortOrder,
+    ),
+  ],
+);
+
+/** Every material editorial proposition must have one or more paragraph links. */
+export const researchLawyesPropositions = pgTable(
+  "research_lawyes_propositions",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .references(() => researchLawyesReports.id)
+      .notNull(),
+    sectionId: integer("section_id")
+      .references(() => researchLawyesSections.id)
+      .notNull(),
+    proposition: text("proposition").notNull(),
+    material: boolean("material").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("research_lawyes_propositions_report_idx").on(t.reportId)],
+);
+
+export const researchLawyesPropositionPinpoints = pgTable(
+  "research_lawyes_proposition_pinpoints",
+  {
+    id: serial("id").primaryKey(),
+    propositionId: integer("proposition_id")
+      .references(() => researchLawyesPropositions.id)
+      .notNull(),
+    paragraphId: integer("paragraph_id")
+      .references(() => researchLawyesParagraphs.id)
+      .notNull(),
+    supportingPassage: text("supporting_passage"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_lawyes_prop_pinpoint_uq").on(
+      t.propositionId,
+      t.paragraphId,
+    ),
+  ],
+);
+
+export const researchLawyesAssignments = pgTable(
+  "research_lawyes_assignments",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .references(() => researchLawyesReports.id)
+      .notNull(),
+    assigneeId: integer("assignee_id")
+      .references(() => researchUsers.id)
+      .notNull(),
+    role: text("role").notNull(), // editor | lawyer_reviewer
+    assignedBy: text("assigned_by").notNull(),
+    status: text("status").default("open").notNull(),
+    assignedAt: timestamp("assigned_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+);
+
+/** Append-only human review/sign-off record. */
+export const researchLawyesReviews = pgTable("research_lawyes_reviews", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id")
+    .references(() => researchLawyesReports.id)
+    .notNull(),
+  reviewerId: integer("reviewer_id")
+    .references(() => researchUsers.id)
+    .notNull(),
+  decision: text("decision").notNull(), // approved | changes_requested
+  legallyTrained: boolean("legally_trained").notNull(),
+  sourceChecked: boolean("source_checked").notNull(),
+  pinpointsChecked: boolean("pinpoints_checked").notNull(),
+  missingFieldsChecked: boolean("missing_fields_checked").notNull(),
+  reviewedRevision: integer("reviewed_revision").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+/** Immutable snapshots and state changes; revisions are never updated in place. */
+export const researchLawyesRevisions = pgTable(
+  "research_lawyes_revisions",
+  {
+    id: serial("id").primaryKey(),
+    reportId: integer("report_id")
+      .references(() => researchLawyesReports.id)
+      .notNull(),
+    revision: integer("revision").notNull(),
+    fromState: text("from_state").$type<LawyesReportState>(),
+    toState: text("to_state").$type<LawyesReportState>().notNull(),
+    snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+    reason: text("reason").notNull(),
+    actor: text("actor").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("research_lawyes_revisions_report_revision_uq").on(
+      t.reportId,
+      t.revision,
+    ),
+  ],
+);
+
+export type ResearchLawyesReport = typeof researchLawyesReports.$inferSelect;
+export type ResearchLawyesParagraph =
+  typeof researchLawyesParagraphs.$inferSelect;
+export type ResearchLawyesSection = typeof researchLawyesSections.$inferSelect;
+export type ResearchLawyesProposition =
+  typeof researchLawyesPropositions.$inferSelect;
+export type ResearchLawyesReview = typeof researchLawyesReviews.$inferSelect;
+export type ResearchLawyesRevision =
+  typeof researchLawyesRevisions.$inferSelect;

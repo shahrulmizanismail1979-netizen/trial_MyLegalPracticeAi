@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "capturedAt": "2026-08-28",
+  "production": {
+    "canonicalOrigin": "https://mylegalpracticeai.life",
+    "deploymentRouter": "application",
+    "deploymentTarget": "autoscale",
+    "publishRequiresExplicitOwnerApproval": true
+  },
+  "artifacts": [
+    { "name": "landing-page", "path": "artifacts/landing-page", "route": "/" },
+    { "name": "api-server", "path": "artifacts/api-server", "route": "/api" },
+    { "name": "myaccidentai", "path": "artifacts/myaccidentai", "route": "/myaccidentai/" },
+    { "name": "myccblitai", "path": "artifacts/myccblitai", "route": "/myccblitai/" },
+    { "name": "myconveylitai", "path": "artifacts/myconveylitai", "route": "/myconveylitai/" },
+    { "name": "mycorplegalai", "path": "artifacts/mycorplegalai", "route": "/mycorplegalai/" },
+    { "name": "mycrimai", "path": "artifacts/mycrimai", "route": "/mycrimai/" },
+    { "name": "mylawacad", "path": "artifacts/mylawacad", "route": "/mylawacad/" },
+    { "name": "mylawfirmai", "path": "artifacts/mylawfirmai", "route": "/mylawfirmai/" },
+    { "name": "mylitai", "path": "artifacts/mylitai", "route": "/mylitai/" },
+    { "name": "mylitai-irac", "path": "artifacts/mylitai-irac", "route": "/mylitai-irac/" },
+    { "name": "mysyariahai", "path": "artifacts/mysyariahai", "route": "/mysyariahai/" },
+    { "name": "research-admin", "path": "artifacts/research-admin", "route": "/research-admin/" },
+    { "name": "sarawak20", "path": "artifacts/sarawak20", "route": "/sarawak20/" }
+  ],
+  "apiMountContracts": [
+    { "mount": "/auth", "source": "artifacts/api-server/src/app.ts", "marker": "app.use(\"/auth\", microsoftRouter)" },
+    { "mount": "/api", "source": "artifacts/api-server/src/app.ts", "marker": "app.use(\"/api\", router)" },
+    { "mount": "/api/stripe", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/stripe\", stripeRouter)" },
+    { "mount": "/api/access", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/access\", accessRouter)" },
+    { "mount": "/api/admin", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/admin\", requireAuth, requireStaff, adminRouter)" },
+    { "mount": "/api/research", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/research\", requireAuth, requireStaff, researchRouter)" },
+    { "mount": "/api/research-admin", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/research-admin\", researchAdminRouter)" },
+    { "mount": "/api/cases", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/cases\", requireAnyPortalAuth, casesRouter)" },
+    { "mount": "/api/accident", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/accident\", accidentRouter)" },
+    { "mount": "/api/crim", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/crim\", crimSession, crimRouter)" },
+    { "mount": "/api/corp", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/corp\", corpRouter)" },
+    { "mount": "/api/lit", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/lit\", litSession, litRouter)" },
+    { "mount": "/api/ccb", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/ccb\", ccbRouter)" },
+    { "mount": "/api/sya", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/sya\", syaSession, syaRouter)" },
+    { "mount": "/api/acad", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/acad\", acadSession, acadRouter)" },
+    { "mount": "/api/firm", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/firm\", firmRouter)" }
+  ],
+  "authContracts": [
+    { "mechanism": "Clerk plus staff allowlist", "scope": "/api/admin and /api/research" },
+    { "mechanism": "PostgreSQL-backed express-session cookie lit.sid", "scope": "/api/lit" },
+    { "mechanism": "PostgreSQL-backed express-session cookie crim.sid", "scope": "/api/crim" },
+    { "mechanism": "PostgreSQL-backed express-session cookie sya.sid", "scope": "/api/sya" },
+    { "mechanism": "PostgreSQL-backed express-session cookie acad.sid", "scope": "/api/acad" },
+    { "mechanism": "Bearer JWT", "scope": "/api/ccb and /api/convey" },
+    { "mechanism": "Opaque Bearer token in corp_sessions", "scope": "/api/corp" },
+    { "mechanism": "session_id cookie backed by access_code_usage", "scope": "/api/accident" },
+    { "mechanism": "signed httpOnly portal cookie", "scope": "/api/firm" },
+    { "mechanism": "password gate using ADMIN_PASSWORD", "scope": "/api/research-admin" },
+    { "mechanism": "shared Microsoft Entra exchange", "scope": "/auth" },
+    { "mechanism": "MASTER_ACCESS_CODE compatibility override", "scope": "existing portal gates only" }
+  ],
+  "billingContracts": {
+    "provider": "Stripe",
+    "checkout": "/api/stripe/checkout",
+    "webhook": "/api/stripe/webhook",
+    "reconciliation": "/api/stripe/session-info",
+    "customerPortal": "/api/stripe/customer-portal",
+    "provisioningInvariant": "A completed subscription provisions an existing portal access code idempotently; cancellation marks subscription and portal code inactive.",
+    "liveNetworkCallsAllowedInRegression": false
+  },
+  "environmentContractNames": {
+    "core": ["DATABASE_URL", "SESSION_SECRET", "LAWYES_PUBLIC_URL", "REPLIT_DOMAINS", "PORT", "NODE_ENV"],
+    "auth": ["CLERK_SECRET_KEY", "CLERK_PUBLISHABLE_KEY", "ADMIN_ALLOWED_EMAILS", "ADMIN_PASSWORD", "MASTER_ACCESS_CODE", "MANAGER_SESSION_SECRET", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"],
+    "billing": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "ENABLE_DEV_STRIPE_WEBHOOK"],
+    "storage": ["PRIVATE_OBJECT_DIR", "PUBLIC_OBJECT_SEARCH_PATHS"],
+    "integrations": ["AI_INTEGRATIONS_OPENAI_API_KEY", "AI_INTEGRATIONS_OPENAI_BASE_URL", "OPENAI_API_KEY", "PERPLEXITY_API_KEY", "ELEVENLABS_API_KEY", "RESEND_API_KEY", "TWILIO_AUTH_TOKEN"]
+  },
+  "dataContracts": {
+    "schemaSource": "lib/db/src/schema",
+    "migrationDirectory": "lib/db/sql/migrations",
+    "baselineMigration": "0032-sarawak20-plans-eligibility.sql",
+    "tableFamilies": ["shared", "stripe", "lit", "crim", "sya", "ccb", "corp", "convey", "accident", "acad", "firm", "research", "sarawak20"],
+    "countCapturePolicy": "Read-only counts are captured by an authorised operator outside source control; customer counts and identifiers never enter fixtures.",
+    "postBaselineMigrationAssertions": {
+      "0033-lawyes-editorial-reports.sql": {
+        "requiredMarkers": [
+          "CREATE TABLE IF NOT EXISTS research_lawyes_reports",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_paragraphs",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_sections",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_propositions",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_proposition_pinpoints",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_assignments",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_reviews",
+          "CREATE TABLE IF NOT EXISTS research_lawyes_revisions"
+        ],
+        "allowedNonDataDrops": [
+          "DROP TRIGGER IF EXISTS research_lawyes_reviews_immutable ON research_lawyes_reviews",
+          "DROP TRIGGER IF EXISTS research_lawyes_revisions_immutable ON research_lawyes_revisions"
+        ]
+      }
+    },
+    "destructiveMigrationAllowlist": {
+      "0013-phase07-schema-alignment.sql": [
+        "DROP COLUMN IF EXISTS reviewed_by",
+        "DROP COLUMN IF EXISTS reviewed_at"
+      ]
+    }
+  },
+  "regressionEvidence": [
+    { "contract": "billing and access provisioning", "path": "artifacts/api-server/src/routes/payment-access-regression.test.ts", "marker": "payment-to-access customer journey" },
+    { "contract": "staff roles and rights enforcement", "path": "artifacts/api-server/src/research/phase02.test.ts", "marker": "quarantine and enforcement gates" },
+    { "contract": "research authentication and IDOR isolation", "path": "artifacts/api-server/src/research/phase12d-security.test.ts", "marker": "unauthenticated GET /containers" },
+    { "contract": "shared upload subscriber isolation", "path": "artifacts/api-server/src/routes/shared-uploads.test.ts", "marker": "cross-subscriber isolation" },
+    { "contract": "corporate chat tenant isolation", "path": "artifacts/api-server/src/corp/routes/corp-security.test.ts", "marker": "cross-tenant isolation" },
+    { "contract": "matter ownership", "path": "artifacts/api-server/src/lib/matter-files.test.ts", "marker": "isolates matters between owners" }
+  ]
+}

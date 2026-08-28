@@ -14,8 +14,28 @@ export interface Matter {
   claimAmount: string | null;
   status: string;
   notes: string | null;
+  preparationState?: MatterPreparationState | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PreparationBenchmark {
+  id: number;
+  caseName: string;
+  citation: string;
+  proposition: string;
+  pinpoint: string;
+  sourceUrl: string;
+}
+
+export interface MatterPreparationState {
+  issues: string;
+  evidence: string;
+  relief: string;
+  filingReadiness: Record<string, boolean>;
+  benchmarks: PreparationBenchmark[];
+  practiceChecklists: Record<string, Record<string, boolean>>;
+  causePaperPacks: Record<string, Record<string, boolean>>;
 }
 
 export interface MatterDeadline {
@@ -193,6 +213,27 @@ export function useMatter(id: number | null) {
     queryKey: [...KEY, 'detail', id],
     queryFn: () => api(`/${id}`),
     enabled: id != null,
+  });
+}
+
+export function useMatterPreparation(matterId: number | null) {
+  return useQuery<MatterPreparationState>({
+    queryKey: [...KEY, 'preparation', matterId],
+    queryFn: () => api(`/${matterId}/preparation`),
+    enabled: matterId != null,
+  });
+}
+
+export function useUpdateMatterPreparation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ matterId, ...patch }: { matterId: number } & Partial<MatterPreparationState>): Promise<MatterPreparationState> =>
+      api(`/${matterId}/preparation`, { method: 'PATCH', body: JSON.stringify(patch) }),
+    onSuccess: (data, { matterId }) => {
+      qc.setQueryData([...KEY, 'preparation', matterId], data);
+      qc.invalidateQueries({ queryKey: [...KEY, 'detail', matterId] });
+      qc.invalidateQueries({ queryKey: [...KEY, 'list'] });
+    },
   });
 }
 

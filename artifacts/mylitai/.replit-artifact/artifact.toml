@@ -31,6 +31,10 @@ from = "/app"
 to = "/index.html"
 
 [[services.production.rewrites]]
+from = "/app/matters/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
 from = "/app/*"
 to = "/index.html"
 

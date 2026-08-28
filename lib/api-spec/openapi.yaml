@@ -31,6 +31,8 @@ tags:
     description: MyCrimAI criminal law app endpoints (/crim/*)
   - name: corp
     description: MyCorpLegalAI corporate secretary app endpoints (/corp/*)
+  - name: research-reports
+    description: LAWYes source-backed editorial case reports
 paths:
   /stripe/sarawak20/status:
     get:
@@ -2673,8 +2675,238 @@ paths:
           description: SSE stream of AI response
           content:
             text/event-stream: {}
+  /research/reports:
+    post:
+      operationId: createLawyesReport
+      tags: [research-reports]
+      summary: Create or return a draft report for a verified judgment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LawyesReportInput"
+      responses:
+        "201":
+          description: Draft report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LawyesReport"
+        "409":
+          description: Source rights are not eligible
+  /research/reports/{id}:
+    get:
+      operationId: getLawyesReport
+      tags: [research-reports]
+      summary: Get a report with paragraphs, sections, pinpoints and audit history
+      description: Published status is withdrawn before response if live source rights no longer pass.
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      responses:
+        "200":
+          description: Complete editorial report record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LawyesReport"
+        "404":
+          description: Report not found
+  /research/reports/{id}/paragraphs/materialize:
+    post:
+      operationId: materializeLawyesReportParagraphs
+      tags: [research-reports]
+      summary: Materialise stable paragraphs from verified judgment text
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      responses:
+        "200":
+          description: Paragraphs materialised idempotently
+        "409":
+          description: Stable paragraph segmentation is incomplete
+  /research/reports/{id}/sections:
+    post:
+      operationId: addLawyesReportSection
+      tags: [research-reports]
+      summary: Add a structured section and proposition-to-paragraph pinpoints
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LawyesReportSectionInput"
+      responses:
+        "201":
+          description: Section created
+        "409":
+          description: A pinpoint does not belong to the report
+  /research/reports/{id}/reviews:
+    post:
+      operationId: reviewLawyesReport
+      tags: [research-reports]
+      summary: Append a legally trained review and publication checklist
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LawyesReportReviewInput"
+      responses:
+        "201":
+          description: Immutable review recorded
+        "409":
+          description: Reviewer is not eligible
+  /research/reports/{id}/assignments:
+    post:
+      operationId: assignLawyesReport
+      tags: [research-reports]
+      summary: Append an editor or lawyer-reviewer assignment
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LawyesReportAssignmentInput"
+      responses:
+        "201":
+          description: Assignment recorded
+        "409":
+          description: Assignee is inactive or ineligible
+  /research/reports/{id}/transitions:
+    post:
+      operationId: transitionLawyesReport
+      tags: [research-reports]
+      summary: Apply an audited editorial publication-state transition
+      parameters:
+        - $ref: "#/components/parameters/LawyesReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LawyesReportTransitionInput"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LawyesReport"
+        "409":
+          description: Publication gate failed closed
 components:
+  parameters:
+    LawyesReportId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
   schemas:
+    LawyesReportState:
+      type: string
+      enum: [Draft, AI-assisted, Lawyer reviewed, Published]
+    LawyesReport:
+      type: object
+      required:
+        [
+          id,
+          judgmentId,
+          state,
+          title,
+          sourceUrl,
+          sourceVerifiedAt,
+          currentRevision,
+        ]
+      properties:
+        id: { type: integer }
+        judgmentId: { type: integer }
+        state: { $ref: "#/components/schemas/LawyesReportState" }
+        title: { type: string }
+        sourceUrl: { type: string, format: uri }
+        sourceVerifiedAt: { type: string, format: date-time }
+        currentRevision: { type: integer }
+        lawyerReviewedAt: { type: [string, "null"], format: date-time }
+        publishedAt: { type: [string, "null"], format: date-time }
+    LawyesReportInput:
+      type: object
+      required: [judgmentId, title, sourceUrl]
+      properties:
+        judgmentId: { type: integer, minimum: 1 }
+        title: { type: string, minLength: 1 }
+        sourceUrl: { type: string, format: uri }
+    LawyesReportPropositionInput:
+      type: object
+      required: [proposition, paragraphIds]
+      properties:
+        proposition: { type: string, minLength: 1 }
+        material: { type: boolean, default: true }
+        paragraphIds:
+          type: array
+          items: { type: integer, minimum: 1 }
+    LawyesReportSectionInput:
+      type: object
+      required: [kind, heading, body, sortOrder]
+      properties:
+        kind:
+          type: string
+          enum:
+            [
+              headnote,
+              facts,
+              procedural_history,
+              issues,
+              holdings,
+              ratio,
+              obiter,
+              orders_relief_costs,
+              legislation,
+              treated_authorities,
+              practice_notes,
+            ]
+        heading: { type: string, minLength: 1 }
+        body: { type: string }
+        sortOrder: { type: integer, minimum: 0 }
+        propositions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LawyesReportPropositionInput"
+    LawyesReportReviewInput:
+      type: object
+      required:
+        [
+          reviewerId,
+          decision,
+          sourceChecked,
+          pinpointsChecked,
+          missingFieldsChecked,
+        ]
+      properties:
+        reviewerId: { type: integer, minimum: 1 }
+        decision: { type: string, enum: [approved, changes_requested] }
+        sourceChecked: { type: boolean }
+        pinpointsChecked: { type: boolean }
+        missingFieldsChecked: { type: boolean }
+        notes: { type: string }
+    LawyesReportAssignmentInput:
+      type: object
+      required: [assigneeId, role]
+      properties:
+        assigneeId: { type: integer, minimum: 1 }
+        role: { type: string, enum: [editor, lawyer_reviewer] }
+    LawyesReportTransitionInput:
+      type: object
+      required: [toState, reason]
+      properties:
+        toState: { $ref: "#/components/schemas/LawyesReportState" }
+        reason: { type: string, minLength: 1 }
     Sarawak20Cohort:
       type: object
       properties:

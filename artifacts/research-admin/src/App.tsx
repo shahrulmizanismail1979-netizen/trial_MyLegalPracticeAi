@@ -21,6 +21,7 @@ import HeadnotesReviewPage from '@/pages/headnotes-review';
 import ProcessingQueuePage from '@/pages/processing-queue';
 import ErrorDashboardPage from '@/pages/error-dashboard';
 import AuditLogPage from '@/pages/audit-log';
+import EditorialWorkbenchPage from '@/pages/editorial-workbench';
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ function AppRoutes({ onLogout }: { onLogout: () => void }) {
           <Route path="/drive-inventory" component={DriveInventoryPage} />
           <Route path="/rights-review" component={RightsReviewPage} />
           <Route path="/headnotes" component={HeadnotesReviewPage} />
+          <Route path="/editorial" component={EditorialWorkbenchPage} />
           <Route path="/queue" component={ProcessingQueuePage} />
           <Route path="/errors" component={ErrorDashboardPage} />
           <Route path="/audit" component={AuditLogPage} />

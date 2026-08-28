@@ -1,11 +1,37 @@
 /**
  * Thin fetch helpers for the Research Admin API.
- * All endpoints live under /api/research-admin/ (no Clerk; password-gated).
+ * Editorial preparation uses /api/research-admin/ (password-gated). Legal
+ * sign-off and publication use the separate Clerk-gated research API.
  */
 
 // The Vite base path is e.g. "/research-admin/" — the API server is at the
 // root /api/ prefix on the shared Replit proxy so we always use absolute paths.
 const API_BASE = "/api/research-admin";
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+    readonly failures: string[] = [],
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function readApiError(res: Response): Promise<ApiError> {
+  const body = await res.json().catch(() => null) as {
+    error?: unknown; code?: unknown; failures?: unknown;
+  } | null;
+  const failures = Array.isArray(body?.failures)
+    ? body.failures.filter((failure): failure is string => typeof failure === "string")
+    : [];
+  const message = typeof body?.error === "string" && body.error
+    ? body.error
+    : failures.join(": ") || `HTTP ${res.status}`;
+  return new ApiError(message, res.status, typeof body?.code === "string" ? body.code : undefined, failures);
+}
 
 async function apiFetch<T>(
   path: string,
@@ -21,14 +47,7 @@ async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) msg = body.error;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg);
+    throw await readApiError(res);
   }
 
   return res.json() as Promise<T>;
@@ -409,4 +428,85 @@ export const auditApi = {
     if (params.offset != null) qs.set("offset", String(params.offset));
     return apiFetch<AuditPage>(`/audit?${qs}`);
   },
+};
+
+// ── LAWYes editorial reports ─────────────────────────────────────────────────
+// Editorial preparation is password-admin scoped; legal actions below remain
+// deliberately served by the Clerk-gated research API.
+const RESEARCH_API_BASE = "/api/research";
+async function researchFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${RESEARCH_API_BASE}${path}`, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    ...init,
+  });
+  if (!res.ok) {
+    throw await readApiError(res);
+  }
+  return res.json() as Promise<T>;
+}
+
+export type LawyesReportState = "Draft" | "AI-assisted" | "Lawyer reviewed" | "Published";
+export type LawyesParagraph = { id: number; paragraph_key: string; ordinal: number; text: string; source_checksum: string };
+export type LawyesSection = { id: number; kind: string; heading: string; body: string; sort_order: number };
+export type LawyesProposition = { id: number; section_id: number; proposition: string; material: boolean };
+export type LawyesPinpoint = { id: number; proposition_id: number; paragraph_id: number; supporting_passage: string | null };
+export type LawyesReview = { id: number; reviewer_id: number; decision: "approved" | "changes_requested"; legally_trained: boolean; source_checked: boolean; pinpoints_checked: boolean; missing_fields_checked: boolean; notes: string | null; created_at: string };
+export type LawyesRevision = { id: number; revision: number; from_state: string | null; to_state: LawyesReportState; snapshot: unknown; reason: string; actor: string; created_at: string };
+export type LawyesReport = {
+  id: number; judgment_id: number; container_id: number; state: LawyesReportState; current_revision: number;
+  title: string; source_url: string; source_verified_at: string | null; source_rights_record_id: number | null;
+  lawyer_reviewed_at: string | null; published_at: string | null; created_at: string; updated_at: string;
+  paragraphs: LawyesParagraph[]; sections: LawyesSection[]; propositions: LawyesProposition[];
+  pinpoints: LawyesPinpoint[]; assignments: Array<{ id: number; assignee_id: number; role: string; status: string; assigned_at: string }>;
+  reviews: LawyesReview[]; revisions: LawyesRevision[];
+};
+
+/**
+ * The workbench endpoint has evolved independently of the admin endpoint.
+ * Keep optional relationship collections safe at this boundary so a partial
+ * or older response cannot break the editorial screen while it is rendering.
+ */
+export function normalizeLawyesReport(payload: LawyesReport): LawyesReport {
+  const report = payload as LawyesReport & Partial<Pick<LawyesReport,
+    "paragraphs" | "sections" | "propositions" | "pinpoints" | "assignments" | "reviews" | "revisions"
+  >>;
+  const array = <T>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
+  return {
+    ...report,
+    paragraphs: array(report.paragraphs),
+    sections: array(report.sections),
+    propositions: array(report.propositions),
+    pinpoints: array(report.pinpoints),
+    assignments: array(report.assignments),
+    reviews: array(report.reviews),
+    revisions: array(report.revisions),
+  };
+}
+
+export const editorialApi = {
+  // Password-session queue, read, and non-legal editorial changes stay on the
+  // research-admin API. It cannot create a reviewer record or publish.
+  get: (id: number) => apiFetch<LawyesReport>(`/editorial/reports/${id}/workbench`).then(normalizeLawyesReport),
+  create: (body: { judgmentId: number; title: string; sourceUrl: string }) =>
+    apiFetch<LawyesReport>("/editorial/reports", { method: "POST", body: JSON.stringify(body) }).then(normalizeLawyesReport),
+  materializeParagraphs: (id: number) =>
+    apiFetch<{ inserted: number }>(`/editorial/reports/${id}/paragraphs/materialize`, { method: "POST" }),
+  addSection: (id: number, body: { kind: string; heading: string; body: string; sortOrder: number; propositions: Array<{ proposition: string; material: boolean; paragraphIds: number[] }> }) =>
+    apiFetch<LawyesSection>(`/editorial/reports/${id}/sections`, { method: "POST", body: JSON.stringify(body) }),
+  /** Clerk-authenticated legal act; server derives and verifies the identity. */
+  addReview: (id: number, body: { reviewerId: number; decision: "approved" | "changes_requested"; sourceChecked: boolean; pinpointsChecked: boolean; missingFieldsChecked: boolean; notes?: string }) =>
+    researchFetch<LawyesReview>(`/reports/${id}/reviews`, { method: "POST", body: JSON.stringify(body) }),
+  assign: (id: number, body: { assigneeId: number; role: "editor" | "lawyer_reviewer" }) =>
+    researchFetch<unknown>(`/reports/${id}/assignments`, { method: "POST", body: JSON.stringify(body) }),
+  transition: (id: number, toState: LawyesReportState, reason: string) =>
+    researchFetch<LawyesReport>(`/reports/${id}/transitions`, { method: "POST", body: JSON.stringify({ toState, reason }) }).then(normalizeLawyesReport),
+};
+
+export type ResearchStaffSession = {
+  role: "owner" | "administrator" | "legal_reviewer" | string | null;
+  researchUserId: number | null;
+};
+export const researchStaffApi = {
+  me: () => researchFetch<ResearchStaffSession>("/me"),
 };

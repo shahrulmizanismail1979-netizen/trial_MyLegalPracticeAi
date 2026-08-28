@@ -45,6 +45,20 @@ After a checkpoint restore, the database schema may be ahead of the code. This m
 
 ## 3. Database Migration Assessment
 
+### 3.0 Mandatory non-destructive policy
+
+For Task 522 and later work, migrations must be additive and
+forward-compatible. New `DROP TABLE`, `DROP COLUMN`, `DROP SCHEMA`, `TRUNCATE`,
+bulk `DELETE`, destructive rename/type conversion, reset/reseed, and automatic
+production backfill operations are prohibited. Backfills require a separate,
+idempotent, dry-run-capable, owner-approved operational procedure after backup
+and count verification; they must not run at application boot.
+
+The two column drops in historical migration
+`0013-phase07-schema-alignment.sql` predate this policy and are the only pinned
+scanner exceptions. See `docs/PRESERVATION_BASELINE.md` for the complete policy
+and read-only before/after record-count procedure.
+
 Before restarting the API server after a code rollback, determine whether the database schema is compatible with the restored code.
 
 ### 3.1 Check which migrations have been applied

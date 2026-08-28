@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useRoute, useSearch } from 'wouter';
-import { useMatter } from '@/hooks/use-matters';
+import { useMatter, useMatterPreparation, useUpdateMatterPreparation } from '@/hooks/use-matters';
 import { useListWorkflows } from '@/hooks/use-workflows';
 import { useListForms } from '@/hooks/use-forms';
-import { usePersistentState } from '@/hooks/use-persistent-state';
 import { PageHeader, Card, CardContent, CardHeader, CardTitle, Badge, Button } from '@/components/ui';
-import { ArrowLeft, ArrowRight, GitBranch, ListChecks, FileText, Wand2, Clock, CheckCircle2, Circle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, GitBranch, ListChecks, FileText, Wand2, Clock, CheckCircle2, Circle, ExternalLink, PackageCheck } from 'lucide-react';
 import { findMatter } from '@/data/practice-hub';
 import { DraftCauseModal, type LegalForm } from '@/components/DraftCauseModal';
 
@@ -58,10 +57,40 @@ export default function PracticeMatter() {
 
   const { data: workflows, isLoading: wfLoading } = useListWorkflows();
   const { data: forms, isLoading: formsLoading } = useListForms();
-  const checklistKey = linkedMatterId ? `practice.checklist.matter.${linkedMatterId}` : `practice.checklist.${matterId}`;
-  const [checked, setChecked] = usePersistentState<Record<string, boolean>>(checklistKey, {});
+  const { data: preparation, isLoading: preparationLoading, error: preparationError } = useMatterPreparation(linkedMatterId);
+  const updatePreparation = useUpdateMatterPreparation();
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [packedForms, setPackedForms] = useState<Record<string, boolean>>({});
+  const [preparationSaveError, setPreparationSaveError] = useState<string | null>(null);
   const [draftForm, setDraftForm] = useState<LegalForm | null>(null);
   const [openWorkflow, setOpenWorkflow] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!preparation) return;
+    setChecked(preparation.practiceChecklists[matterId] ?? {});
+    setPackedForms(preparation.causePaperPacks[matterId] ?? {});
+  }, [preparation, matterId]);
+
+  const saveChecklist = (items: Record<string, boolean>) => {
+    if (!linkedMatterId) return;
+    updatePreparation.mutate({
+      matterId: linkedMatterId,
+      practiceChecklists: { ...(preparation?.practiceChecklists ?? {}), [matterId]: items },
+    }, {
+      onSuccess: () => setPreparationSaveError(null),
+      onError: () => setPreparationSaveError('Could not save checklist progress. Please try again.'),
+    });
+  };
+  const saveCausePaperPack = (items: Record<string, boolean>) => {
+    if (!linkedMatterId) return;
+    updatePreparation.mutate({
+      matterId: linkedMatterId,
+      causePaperPacks: { ...(preparation?.causePaperPacks ?? {}), [matterId]: items },
+    }, {
+      onSuccess: () => setPreparationSaveError(null),
+      onError: () => setPreparationSaveError('Could not save cause-paper pack progress. Please try again.'),
+    });
+  };
 
   const matchedWorkflows: Workflow[] = useMemo(() => {
     if (!entry || !workflows) return [];
@@ -87,6 +116,7 @@ export default function PracticeMatter() {
 
   const { area, matter } = entry;
   const doneCount = matter.checklist.filter((_, i) => checked[String(i)]).length;
+  const packedCount = matterForms.filter(form => packedForms[String(form.id)]).length;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -133,7 +163,12 @@ export default function PracticeMatter() {
               return (
                 <button
                   key={i}
-                  onClick={() => setChecked(prev => ({ ...prev, [String(i)]: !prev[String(i)] }))}
+                  onClick={() => {
+                    const next = { ...checked, [String(i)]: !isDone };
+                    setChecked(next);
+                    saveChecklist(next);
+                  }}
+                  disabled={!!linkedMatterId && preparationLoading}
                   className={`w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${isDone ? 'text-muted-foreground line-through decoration-primary/40' : 'text-foreground hover:bg-secondary'}`}
                 >
                   {isDone
@@ -143,7 +178,12 @@ export default function PracticeMatter() {
                 </button>
               );
             })}
-            <p className="text-[11px] text-muted-foreground pt-2 px-2.5">Progress is saved on this device.</p>
+            <p className="text-[11px] text-muted-foreground pt-2 px-2.5">
+              {linkedMatterId
+                ? preparationLoading ? 'Loading saved matter progress…' : preparationError ? 'Could not load saved progress.' : updatePreparation.isPending ? 'Saving to matter file…' : 'Progress is saved to the linked matter file.'
+                : 'Link an open matter file to save progress server-side.'}
+            </p>
+            {preparationSaveError && <p className="text-[11px] text-destructive px-2.5">{preparationSaveError}</p>}
           </CardContent>
         </Card>
 
@@ -221,30 +261,63 @@ export default function PracticeMatter() {
 
           <section>
             <h2 className="font-serif font-bold text-lg text-foreground flex items-center gap-2 mb-3">
-              <FileText className="h-5 w-5 text-primary" /> Cause Papers for this Matter
+              <PackageCheck className="h-5 w-5 text-primary" /> Cause-paper Pack
             </h2>
             {formsLoading ? (
               <div className="text-sm text-primary animate-pulse p-4">Loading cause papers...</div>
             ) : matterForms.length === 0 ? (
               <p className="text-sm text-muted-foreground">No specific cause papers mapped — browse the full <Link href="/app/forms" className="text-primary underline">Cause Papers library</Link>.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {matterForms.map((form: LegalForm) => (
-                  <Card key={form.id} className="flex flex-col hover:border-primary/50 transition-all">
-                    <CardContent className="p-4 flex flex-col gap-3 flex-1">
-                      <div className="flex justify-between items-start gap-2">
-                        <Badge className="font-mono text-[10px]">{form.formNumber}</Badge>
-                        <Badge variant="outline" className="text-[10px]">{form.category}</Badge>
+              <>
+                <Card className="mb-4 border-primary/25 bg-primary/5">
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Pack assembly</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">Draft each mapped paper, review it, then mark it ready for the filing bundle.</p>
                       </div>
-                      <p className="font-semibold text-sm text-foreground leading-snug">{form.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{form.purpose}</p>
-                      <Button size="sm" onClick={() => setDraftForm(form)} className="w-full gap-2 mt-auto">
-                        <Wand2 className="h-3.5 w-3.5" /> AI Draft This Document
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      <Badge variant="outline">{packedCount}/{matterForms.length} ready</Badge>
+                    </div>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${matterForms.length ? (packedCount / matterForms.length) * 100 : 0}%` }} />
+                    </div>
+                  </CardContent>
+                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {matterForms.map((form: LegalForm) => {
+                    const isPacked = !!packedForms[String(form.id)];
+                    return (
+                      <Card key={form.id} className={`flex flex-col transition-all ${isPacked ? 'border-emerald-500/30 bg-emerald-500/5' : 'hover:border-primary/50'}`}>
+                        <CardContent className="p-4 flex flex-col gap-3 flex-1">
+                          <div className="flex justify-between items-start gap-2">
+                            <Badge className="font-mono text-[10px]">{form.formNumber}</Badge>
+                            <Badge variant="outline" className="text-[10px]">{form.category}</Badge>
+                          </div>
+                          <p className="font-semibold text-sm text-foreground leading-snug">{form.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{form.purpose}</p>
+                          <Button size="sm" onClick={() => setDraftForm(form)} className="w-full gap-2 mt-auto">
+                            <Wand2 className="h-3.5 w-3.5" /> AI Draft This Document
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = { ...packedForms, [String(form.id)]: !isPacked };
+                              setPackedForms(next);
+                              saveCausePaperPack(next);
+                            }}
+                            disabled={!!linkedMatterId && preparationLoading}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                            data-testid={`button-pack-form-${form.id}`}
+                          >
+                            {isPacked ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Circle className="h-3.5 w-3.5" />}
+                            {isPacked ? 'Reviewed and pack-ready' : 'Mark reviewed and ready'}
+                          </button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
             )}
             <div className="mt-4">
               <Link href="/app/forms" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
