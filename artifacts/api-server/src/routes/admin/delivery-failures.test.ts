@@ -9,7 +9,9 @@ vi.mock("../../lib/mailer", () => ({
   getOwnerEmail: async () => null,
 }));
 // Resend-SMS tests must never hit Twilio — mock sendSms, keep the real body template.
-const sendSmsMock = vi.fn(async (_to: string, _body: string) => "sent" as const);
+const sendSmsMock = vi.fn(
+  async (_to: string, _body: string): Promise<"sent" | "failed" | "not_configured"> => "sent",
+);
 vi.mock("../../lib/sms", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/sms")>();
   return { ...actual, sendSms: (to: string, body: string) => sendSmsMock(to, body) };

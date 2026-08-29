@@ -53,8 +53,12 @@ type StreamTerminal = {
 };
 
 async function signIn(page: Page): Promise<void> {
-  await page.goto(`${BASE}/mycorplegalai/login`);
-  const accessCodeInput = page.getByPlaceholder("Access Code");
+  await page.goto(`${BASE}/mycorplegalai/login`, { waitUntil: "domcontentloaded" });
+  await expect(
+    page.getByRole("heading", { name: "Practitioner Login", exact: true }),
+  ).toBeVisible();
+  const accessCodeInput = page.locator('input[type="password"]').first();
+  await expect(accessCodeInput).toBeVisible();
   await accessCodeInput.fill(accessCode);
   const loginResponse = page.waitForResponse((response) =>
     response.url().endsWith("/api/corp/legal/verify-password") &&

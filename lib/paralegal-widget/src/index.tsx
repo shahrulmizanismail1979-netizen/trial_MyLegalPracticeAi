@@ -279,7 +279,23 @@ export function ParalegalWidget({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 429) {
+          // Voice throttle — surface the friendly server message in the chat.
+          const msg = await res
+            .json()
+            .then((d: { error?: string }) => d.error)
+            .catch(() => undefined);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: `🔇 ${msg ?? "Voice is taking a short break — try again in a minute."}`,
+            },
+          ]);
+        }
+        return;
+      }
       const blob = await res.blob();
       if (mutedRef.current) return;
       stopAudio();

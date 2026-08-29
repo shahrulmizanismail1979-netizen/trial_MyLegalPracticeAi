@@ -48,10 +48,8 @@ import { Input } from "@/components/ui/input";
 import { ParalegalWidget } from "@workspace/paralegal-widget";
 import { useState } from "react";
 import { useLocation as useWouterLocation } from "wouter";
-
 const paralegalRequest = (path: string, init?: RequestInit) =>
   fetch(`/api/crim${path}`, { ...init, credentials: "include" });
-
 const navigation = [
   { name: "Dashboard", href: "/workspace", icon: Landmark },
   { name: "How To Use", href: "/workspace/how-to-use", icon: HelpCircle },
@@ -204,12 +202,8 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
               {children}
             </div>
           </div>
+          <ParalegalWidget portalName="MyCrimAI" request={paralegalRequest} accent="#8a6d2f" />
         </main>
-        <ParalegalWidget
-          portalName="MyCrimAI"
-          request={paralegalRequest}
-          accent="#8a6d2f"
-        />
       </div>
     </SidebarProvider>
   );

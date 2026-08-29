@@ -7,4 +7,4 @@ Completion validation can run the full forked Vitest suite and Playwright browse
 
 **Why:** These failures can occur after nearly all tests have passed and without an assertion failure. Treating them as product regressions causes unrelated code changes and still does not fix the constrained validation host.
 
-**How to apply:** Inspect the complete validation logs first. If failures are only worker/browser launch crashes, rerun relevant suites separately (and use one browser worker when necessary), retain focused feature tests and browser evidence, and use an audited validation skip only when the configured concurrent run genuinely cannot complete.
+**How to apply:** Inspect the complete validation logs first. If failures are only worker/browser launch crashes, rerun relevant suites separately (and use one browser worker when necessary). E2E fixture cleanup must use bounded, best-effort API calls plus authoritative after-suite cleanup so concurrent DB-heavy validation cannot consume the whole test timeout. Retain focused feature tests and browser evidence, and use an audited validation skip only when the configured concurrent run genuinely cannot complete.

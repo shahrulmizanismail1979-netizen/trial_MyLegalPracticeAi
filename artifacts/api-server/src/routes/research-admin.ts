@@ -267,9 +267,18 @@ router.get("/drive/assets", requireAdminSession, async (req: Request, res: Respo
   const search = req.query.search as string | undefined;
 
   const conditions = [];
-  if (rightsStatus) conditions.push(eq(driveAssets.rightsStatus, rightsStatus as Parameters<typeof eq>[1]));
-  if (processingStatus) conditions.push(eq(driveAssets.processingStatus, processingStatus as Parameters<typeof eq>[1]));
-  if (sourceClassification) conditions.push(eq(driveAssets.sourceClassification, sourceClassification as Parameters<typeof eq>[1]));
+  if (rightsStatus) conditions.push(eq(
+    driveAssets.rightsStatus,
+    rightsStatus as (typeof driveAssets.$inferSelect)["rightsStatus"],
+  ));
+  if (processingStatus) conditions.push(eq(
+    driveAssets.processingStatus,
+    processingStatus as (typeof driveAssets.$inferSelect)["processingStatus"],
+  ));
+  if (sourceClassification) conditions.push(eq(
+    driveAssets.sourceClassification,
+    sourceClassification as (typeof driveAssets.$inferSelect)["sourceClassification"],
+  ));
   if (search) {
     conditions.push(
       sql`(${driveAssets.name} ILIKE ${`%${search}%`} OR ${driveAssets.folderPath} ILIKE ${`%${search}%`})`,
@@ -331,7 +340,10 @@ router.post("/drive/assets/bulk-rights", requireAdminSession, async (req: Reques
 
   const conditions = [eq(driveAssets.rightsStatus, "RIGHTS_REVIEW_REQUIRED")];
   if (parsed.data.sourceClassification) {
-    conditions.push(eq(driveAssets.sourceClassification, parsed.data.sourceClassification as Parameters<typeof eq>[1]));
+    conditions.push(eq(
+      driveAssets.sourceClassification,
+      parsed.data.sourceClassification as (typeof driveAssets.$inferSelect)["sourceClassification"],
+    ));
   }
 
   // Atomically update rights AND insert durable job rows in one transaction.
@@ -955,7 +967,12 @@ router.get("/queue", requireAdminSession, async (req: Request, res: Response) =>
   const offset = Number(req.query.offset ?? 0);
   const status = req.query.status as string | undefined;
 
-  const where = status ? eq(researchJobs.state, status as Parameters<typeof eq>[1]) : undefined;
+  const where = status
+    ? eq(
+        researchJobs.state,
+        status as (typeof researchJobs.$inferSelect)["state"],
+      )
+    : undefined;
 
   const [rows, [{ total }]] = await Promise.all([
     db

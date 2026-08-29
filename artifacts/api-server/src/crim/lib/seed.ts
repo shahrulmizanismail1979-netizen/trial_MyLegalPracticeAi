@@ -94,10 +94,14 @@ export async function seedCrimContent(): Promise<void> {
   // whose content tables were populated before English variants existed.
   const causePapers = (seedData.cause_papers as Array<any>).map(englishCausePaper);
   const sampleDocuments = (seedData.sample_documents as Array<any>).map(englishSampleDocument);
-  await db.insert(causePapersTable).values(causePapers).onConflictDoNothing({
+  await db.insert(causePapersTable).values(
+    causePapers as (typeof causePapersTable.$inferInsert)[],
+  ).onConflictDoNothing({
     target: causePapersTable.stableKey,
   });
-  await db.insert(sampleDocumentsTable).values(sampleDocuments).onConflictDoNothing({
+  await db.insert(sampleDocumentsTable).values(
+    sampleDocuments as (typeof sampleDocumentsTable.$inferInsert)[],
+  ).onConflictDoNothing({
     target: sampleDocumentsTable.stableKey,
   });
   logger.info(

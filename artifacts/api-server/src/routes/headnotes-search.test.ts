@@ -14,6 +14,8 @@ import {
   researchCatchwords,
   researchHeadnotes,
   researchJobs,
+  researchLawyesReports,
+  researchRightsRecords,
   researchSearchIndex,
   researchSourceContainers,
   researchVerifiedJudgments,
@@ -127,6 +129,18 @@ beforeAll(async () => {
     })
     .returning({ id: researchSourceContainers.id });
   containerId = container!.id;
+  const [rights] = await db
+    .insert(researchRightsRecords)
+    .values({
+      containerId,
+      status: "OFFICIAL_COURT_SOURCE",
+      decidedBy: "headnotes-search-test",
+      reason: "Published-search fixture",
+      storagePermitted: true,
+      analysisPermitted: true,
+      studentAccessPermitted: true,
+    })
+    .returning({ id: researchRightsRecords.id });
 
   const [candidate] = await db
     .insert(researchCaseCandidates)
@@ -145,6 +159,19 @@ beforeAll(async () => {
     })
     .returning({ id: researchVerifiedJudgments.id });
   judgmentId = judgment!.id;
+
+  const publishedAt = new Date();
+  await db.insert(researchLawyesReports).values({
+    judgmentId,
+    state: "Published",
+    title: `Headnotes search report ${RUN_ID}`,
+    sourceUrl: `https://example.invalid/headnotes/${judgmentId}`,
+    sourceVerifiedAt: publishedAt,
+    sourceRightsRecordId: rights!.id,
+    lawyerReviewedAt: publishedAt,
+    publishedAt,
+    createdBy: "headnotes-search-test",
+  });
 
   await db.insert(researchHeadnotes).values({
     judgmentId,
@@ -181,7 +208,9 @@ afterAll(async () => {
   await db.delete(researchSearchIndex).where(eq(researchSearchIndex.judgmentId, judgmentId));
   await db.delete(researchHeadnotes).where(eq(researchHeadnotes.judgmentId, judgmentId));
   await db.delete(researchCatchwords).where(eq(researchCatchwords.judgmentId, judgmentId));
+  await db.delete(researchLawyesReports).where(eq(researchLawyesReports.judgmentId, judgmentId));
   await db.delete(researchVerifiedJudgments).where(eq(researchVerifiedJudgments.id, judgmentId));
+  await db.delete(researchRightsRecords).where(eq(researchRightsRecords.containerId, containerId));
   await db.delete(researchCaseCandidates).where(eq(researchCaseCandidates.containerId, containerId));
   await db.delete(researchSourceContainers).where(eq(researchSourceContainers.id, containerId));
 });

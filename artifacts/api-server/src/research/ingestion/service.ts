@@ -460,7 +460,7 @@ async function ingestProcessor({
           batchId: item.batchId,
           batchItemId: item.id,
           originalPath: item.originalPath,
-          contentSha256: item.contentSha256,
+          contentSha256: sha,
         },
         actor: `job:${job.id}`,
       });
@@ -530,11 +530,11 @@ async function ingestProcessor({
         {
           originalName: path.basename(item.originalPath),
           sourceBatch: `upload-batch-${item.batchId}`,
-          contentSha256: item.contentSha256,
+          contentSha256: sha,
           sizeBytes: item.sizeBytes ?? 0,
           mimeType: item.mimeType,
           storageKey: item.stagingKey,
-          uploadedBy,
+          uploadedBy: uploadedBy ?? "unknown",
           provenance: {
             enteredVia: "upload",
             batchId: item.batchId,

@@ -24,6 +24,15 @@ const RUN_ID = `case-home-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const EDIT_MARKER = `Edited in browser ${RUN_ID}`;
 let cachedLitSessionValue: string | null = null;
 const trackedSharedMatterRefs: Array<{ portal: string; matterId: number }> = [];
+const MATTER_TABLE_BY_PORTAL: Record<string, string> = {
+  acc: "acc_matters",
+  lit: "lit_matters",
+  crim: "crim_matters",
+  sya: "sya_matters",
+  corp: "corp_matters",
+  ccb: "ccb_matters",
+  convey: "convey_matters",
+};
 
 type PortalKey =
   | "acc"
@@ -310,8 +319,22 @@ async function deleteMatter(
   matterId: number,
   headers: Record<string, string>,
 ) {
-  const response = await page.request.delete(`${portal.apiBase}/${matterId}`, { headers });
-  await expectOk(response, `${portal.label} delete matter ${matterId}`);
+  try {
+    const response = await page.request.delete(`${portal.apiBase}/${matterId}`, {
+      headers,
+      timeout: 10_000,
+    });
+    if (!response.ok()) {
+      console.warn(
+        `${portal.label} cleanup delete returned ${response.status()} for matter ${matterId}; afterAll will remove tracked rows`,
+      );
+    }
+  } catch (error) {
+    console.warn(
+      `${portal.label} cleanup delete timed out for matter ${matterId}; afterAll will remove tracked rows`,
+      error,
+    );
+  }
 }
 
 async function drainTrackedCaseHomeRows() {
@@ -329,6 +352,8 @@ async function drainTrackedCaseHomeRows() {
     let remaining = 0;
     for (const [portal, matterIds] of refsByPortal) {
       const ids = [...matterIds];
+      const matterTable = MATTER_TABLE_BY_PORTAL[portal];
+      if (!matterTable) throw new Error(`No cleanup table configured for portal ${portal}`);
       await pool.query(
         `DELETE FROM case_tasks WHERE portal = $1 AND matter_id = ANY($2::int[])`,
         [portal, ids],
@@ -341,6 +366,7 @@ async function drainTrackedCaseHomeRows() {
         `DELETE FROM case_checklists WHERE portal = $1 AND matter_id = ANY($2::int[])`,
         [portal, ids],
       );
+      await pool.query(`DELETE FROM ${matterTable} WHERE id = ANY($1::int[])`, [ids]);
       const residue = await pool.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count
          FROM (
@@ -349,6 +375,8 @@ async function drainTrackedCaseHomeRows() {
            SELECT 1 FROM case_events WHERE portal = $1 AND matter_id = ANY($2::int[])
            UNION ALL
            SELECT 1 FROM case_checklists WHERE portal = $1 AND matter_id = ANY($2::int[])
+           UNION ALL
+           SELECT 1 FROM ${matterTable} WHERE id = ANY($2::int[])
          ) AS leftovers`,
         [portal, ids],
       );
@@ -945,6 +973,26 @@ test("task create, update, and complete activity stays synchronized with the Cas
     }
     await deleteMatter(page, portal, matter.id, headers);
   }
+});
+
+test("fallback cleanup removes a tracked parent matter when API cleanup fails", async ({
+  page,
+}) => {
+  const masterCode = process.env.MASTER_ACCESS_CODE;
+  if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
+
+  const portal = PORTALS.find((candidate) => candidate.key === "acc")!;
+  const headers = await authenticate(page, portal.key, masterCode);
+  const matter = await createMatter(page, portal, headers);
+
+  await deleteMatter(
+    page,
+    { ...portal, apiBase: "/api/internal/e2e/forced-cleanup-failure" },
+    matter.id,
+    headers,
+  );
+  await drainTrackedCaseHomeRows();
+  await assertRowsGone("acc_matters", [matter.id]);
 });
 
 const isolationCodes = {

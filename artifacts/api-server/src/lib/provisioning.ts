@@ -709,7 +709,9 @@ export async function handleSubscriptionCancelled(
   // so a transient failure on one portal is retried on the next webhook retry
   // even if the subscriber row was already marked cancelled.
   await deactivatePortalAccessCodes(subscriber);
-  await cancelSarawak20Enrollment(subscriptionId);
+  if (subscriber.tier === SARAWAK20_TIER) {
+    await cancelSarawak20Enrollment(subscriptionId);
+  }
   if (alreadyCancelled) return;
   await db
     .update(subscribersTable)

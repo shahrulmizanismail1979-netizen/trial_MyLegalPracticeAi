@@ -12,6 +12,7 @@ import request from "supertest";
 import express from "express";
 import cookieParser from "cookie-parser";
 import firmRouter from "../index";
+import { ensureAccountsTables } from "./accounts";
 import { writeFileSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -55,6 +56,7 @@ let app: express.Express;
 let mgrCookie: string;
 
 beforeAll(async () => {
+  await ensureAccountsTables();
   app = express();
   app.use(cookieParser());
   app.use(express.json());

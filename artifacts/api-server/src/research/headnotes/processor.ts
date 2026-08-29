@@ -141,7 +141,10 @@ async function getMetaValue(
     .where(
       and(
         eq(researchCaseMetadata.judgmentId, judgmentId),
-        eq(researchCaseMetadata.fieldName, fieldName as Parameters<typeof eq>[1]),
+        eq(
+          researchCaseMetadata.fieldName,
+          fieldName as (typeof researchCaseMetadata.$inferSelect)["fieldName"],
+        ),
         ne(researchCaseMetadata.reviewerStatus, "rejected"),
       ),
     )

@@ -18,6 +18,8 @@ import {
   researchCaseCandidates,
   researchVerifiedJudgments,
   researchHeadnotes,
+  researchLawyesReports,
+  researchRightsRecords,
   researchSearchIndex,
 } from "@workspace/db";
 import { inArray } from "drizzle-orm";
@@ -57,6 +59,18 @@ async function seedCase(practiceArea: string | null): Promise<number> {
     })
     .returning({ id: researchSourceContainers.id });
   trackedContainerIds.push(container!.id);
+  const [rights] = await db
+    .insert(researchRightsRecords)
+    .values({
+      containerId: container!.id,
+      status: "OFFICIAL_COURT_SOURCE",
+      decidedBy: `pa-test-${RUN_ID}`,
+      reason: "Published-search fixture",
+      storagePermitted: true,
+      analysisPermitted: true,
+      studentAccessPermitted: true,
+    })
+    .returning({ id: researchRightsRecords.id });
 
   const [candidate] = await db
     .insert(researchCaseCandidates)
@@ -75,6 +89,19 @@ async function seedCase(practiceArea: string | null): Promise<number> {
     })
     .returning({ id: researchVerifiedJudgments.id });
   trackedJudgmentIds.push(judgment!.id);
+
+  const publishedAt = new Date();
+  await db.insert(researchLawyesReports).values({
+    judgmentId: judgment!.id,
+    state: "Published",
+    title: `Practice-area report ${RUN_ID}`,
+    sourceUrl: `https://example.invalid/practice-area/${judgment!.id}`,
+    sourceVerifiedAt: publishedAt,
+    sourceRightsRecordId: rights!.id,
+    lawyerReviewedAt: publishedAt,
+    publishedAt,
+    createdBy: `pa-test-${RUN_ID}`,
+  });
 
   await db.insert(researchHeadnotes).values({
     judgmentId: judgment!.id,
@@ -112,9 +139,11 @@ afterAll(async () => {
   if (trackedJudgmentIds.length > 0) {
     await db.delete(researchSearchIndex).where(inArray(researchSearchIndex.judgmentId, trackedJudgmentIds));
     await db.delete(researchHeadnotes).where(inArray(researchHeadnotes.judgmentId, trackedJudgmentIds));
+    await db.delete(researchLawyesReports).where(inArray(researchLawyesReports.judgmentId, trackedJudgmentIds));
     await db.delete(researchVerifiedJudgments).where(inArray(researchVerifiedJudgments.id, trackedJudgmentIds));
   }
   if (trackedContainerIds.length > 0) {
+    await db.delete(researchRightsRecords).where(inArray(researchRightsRecords.containerId, trackedContainerIds));
     await db.delete(researchCaseCandidates).where(inArray(researchCaseCandidates.containerId, trackedContainerIds));
     await db.delete(researchSourceContainers).where(inArray(researchSourceContainers.id, trackedContainerIds));
   }
