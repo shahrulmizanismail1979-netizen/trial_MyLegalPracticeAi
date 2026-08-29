@@ -19,6 +19,9 @@ import {
   FileText, Shield, Target, ListChecks, Loader2, RefreshCw,
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
+import { usePersona, PERSONA_LABELS, PERSONA_DASHBOARD_FRAMING } from "@workspace/persona-client";
+import { Badge } from "@/components/ui/badge";
+import PersonaSwitcher from "@/components/persona-switcher";
 import { motion } from "framer-motion";
 
 const CCB_STAGES = ["Pre-Action", "Filing", "Interlocutory", "Trial", "Judgment", "Enforcement", "Closed"];
@@ -217,6 +220,8 @@ export default function WorkspaceIndex() {
   const [, setLocation] = useLocation();
   const { data: briefing, isLoading, error, refetch } = useMattersBriefing();
   const [prepareFor, setPrepareFor] = useState<MatterBriefing | null>(null);
+  const { role } = usePersona();
+  const framing = role ? PERSONA_DASHBOARD_FRAMING[role] : null;
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -242,19 +247,27 @@ export default function WorkspaceIndex() {
           <div>
             <h1 className="text-3xl font-serif font-bold tracking-tight text-foreground mb-2 flex items-center gap-3">
               <Landmark className="h-7 w-7 text-primary" />
-              Case Command Centre
+              {framing?.heading ?? "Case Command Centre"}
+              {role && (
+                <Badge variant="secondary" className="text-[10px] font-medium">
+                  {PERSONA_LABELS[role]}
+                </Badge>
+              )}
             </h1>
             <p className="text-muted-foreground max-w-2xl">
-              Banking litigation and corporate commercial matters — managed from instruction to enforcement.
+              {framing?.tagline ?? "Banking litigation and corporate commercial matters — managed from instruction to enforcement."}
             </p>
           </div>
-          {!isForbidden && (
-            <Link href="/workspace/matters">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" /> New Matter
-              </Button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            <PersonaSwitcher />
+            {!isForbidden && (
+              <Link href="/workspace/matters">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" /> New Matter
+                </Button>
+              </Link>
+            )}
+          </div>
         </motion.div>
 
         {/* My Cases */}

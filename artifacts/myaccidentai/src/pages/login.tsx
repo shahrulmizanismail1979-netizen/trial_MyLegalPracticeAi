@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccidentVerifyCode, getAccidentCheckSessionQueryKey } from "@workspace/api-client-react";
+import { lookupPersona } from "@workspace/persona-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Scale, Lock, ArrowLeft } from "lucide-react";
@@ -54,6 +55,10 @@ export default function Login() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         if (data.valid) {
+          // Fire-and-forget persona lookup only when an access code was
+          // supplied (SSO code-linking). Pure SSO logins have no code and
+          // skip it. Must never block or fail login.
+          if (body.code) void lookupPersona(body.code);
           await handleLoginSuccess();
         } else {
           setError(data.message || "Sign in failed.");
@@ -109,6 +114,8 @@ export default function Login() {
       {
         onSuccess: async (result) => {
           if (result.valid) {
+            // Fire-and-forget: never block or fail login on persona lookup.
+            void lookupPersona(code.trim().toUpperCase());
             queryClient.setQueryData(getAccidentCheckSessionQueryKey(), {
               authenticated: true,
               codeLabel: null,

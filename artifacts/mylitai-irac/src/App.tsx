@@ -52,6 +52,7 @@ import { Loader2 } from "lucide-react";
 import { vaultVerify, vaultLogout } from "@/lib/irac-api";
 import { LogOut } from "lucide-react";
 import { ParalegalWidget } from "@workspace/paralegal-widget";
+import { clearStoredPersona } from "@workspace/persona-client";
 
 const queryClient = new QueryClient();
 
@@ -79,9 +80,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
           // Already signed in; drop the stale error param instead of blocking.
           history.replaceState(null, "", window.location.pathname);
         }
+        // No valid session — clear the shared persona cache so a shared browser
+        // never leaks the previous subscriber's professional mode.
+        if (!ok) clearStoredPersona();
         setPhase(ok ? "ok" : "login");
       })
-      .catch(() => live && setPhase("login"));
+      .catch(() => {
+        if (!live) return;
+        clearStoredPersona();
+        setPhase("login");
+      });
     return () => {
       live = false;
     };

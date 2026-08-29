@@ -1,7 +1,9 @@
 import { Link } from 'wouter';
-import { BookOpen, GitBranch, FileText, Gavel, ArrowRight, AlertTriangle, Calculator, BookA, FolderOpen, Scale, CalendarClock, Clock, FolderKanban, Plus } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, PageHeader, Badge } from '@/components/ui';
 import { useUpcomingDeadlines, categoryMeta, daysUntil } from '@/hooks/use-matters';
+import { BookOpen, GitBranch, FileText, Gavel, ArrowRight, AlertTriangle, Calculator, BookA, FolderOpen, Scale, CalendarClock, Clock, FolderKanban, Plus, UserCog } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, PageHeader, Badge, Select } from '@/components/ui';
+import {
+import { useToast } from '@/hooks/use-toast';
 function DeadlineRadar() {
   const { data, isLoading } = useUpcomingDeadlines(30);
   const items = (data ?? []).slice(0, 6);
@@ -85,6 +87,9 @@ const LITIGATION_TOPICS = [
 ];
 
 export default function Dashboard() {
+  const { role } = usePersona();
+  const framing = role ? PERSONA_DASHBOARD_FRAMING[role] : null;
+
   const quickLinks = [
     { name: 'Matters', path: '/app/matters', icon: FolderKanban, count: null, label: 'case files', color: 'text-primary', bgColor: 'bg-primary/10' },
     { name: 'Legal Theory', path: '/app/theory', icon: BookOpen, count: 22, label: 'topics', color: 'text-blue-400', bgColor: 'bg-blue-400/10' },
@@ -99,9 +104,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader 
-        title="Dashboard Overview" 
-        description="Welcome to MyLitAi. Access your primary modules below or use the AI Senior Counsel for immediate guidance."
+        title={framing ? framing.heading : "Dashboard Overview"} 
+        description={framing ? framing.tagline : "Welcome to MyLitAi. Access your primary modules below or use the AI Senior Counsel for immediate guidance."}
+        action={role ? <Badge variant="secondary">{PERSONA_LABELS[role]}</Badge> : undefined}
       />
+
+      {/* ─── Professional mode switcher ──────────────────────────────────── */}
+      <ProfessionalModeCard />
 
       {/* ─── Your Online LA — practice-first entry point ─────────────────── */}
       <Link href="/app/practice">
@@ -273,5 +282,56 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function ProfessionalModeCard() {
+  const { role, code, saving, switchRole } = usePersona();
+  const { toast } = useToast();
+
+  const handleChange = async (next: (typeof PERSONA_ROLES)[number]) => {
+    if (next === role) return;
+    try {
+      await switchRole(next);
+      toast({ title: 'Professional mode updated', description: `Now tailored for ${PERSONA_LABELS[next]}.` });
+    } catch (e) {
+      toast({ title: 'Could not switch mode', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="border-b border-border bg-secondary/30 flex-row items-center gap-2">
+        <UserCog className="h-5 w-5 text-primary" />
+        <CardTitle className="text-lg">Professional mode</CardTitle>
+      </CardHeader>
+      <CardContent className="p-5">
+        {code === null ? (
+          <p className="text-sm text-muted-foreground">
+            Log in again with your access code to enable switching your professional mode.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground mb-3">
+              Tailor MyLitAi's framing and terminology to how you work. This applies across every portal.
+            </p>
+            <Select
+              value={role ?? 'other'}
+              disabled={saving}
+              onChange={(e) => handleChange(e.target.value as (typeof PERSONA_ROLES)[number])}
+              className="mb-3"
+            >
+              {PERSONA_ROLES.map((r) => (
+                <option key={r} value={r}>{PERSONA_LABELS[r]}</option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {PERSONA_DESCRIPTIONS[role ?? 'other']}
+            </p>
+            {saving && <p className="text-xs text-primary mt-2">Saving…</p>}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -6,6 +6,13 @@ import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import {
+  usePersona,
+  PERSONA_ROLES,
+  PERSONA_LABELS,
+  PERSONA_DESCRIPTIONS,
+  type PersonaRole,
+} from "@workspace/persona-client";
 
 const TIER_LABEL: Record<string, { en: string; bm: string }> = {
   starter: { en: "Starter", bm: "Permulaan" },
@@ -20,7 +27,25 @@ export default function AccountPage() {
   const { toast } = useToast();
   const isBm = mode === "bm";
 
+  const { role, code: personaCode, saving, switchRole } = usePersona();
+
   const [busy, setBusy] = useState(false);
+
+  const handleSwitchRole = async (next: PersonaRole) => {
+    try {
+      await switchRole(next);
+      toast({
+        title: isBm ? "Mod profesional dikemas kini" : "Professional mode updated",
+        description: PERSONA_LABELS[next],
+      });
+    } catch (e) {
+      toast({
+        title: isBm ? "Tidak dapat menyimpan mod" : "Could not save professional mode",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -99,6 +124,60 @@ export default function AccountPage() {
               {isBm ? tierLabel.bm : tierLabel.en}
             </span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 mt-5" data-testid="card-persona">
+        <CardHeader className="pb-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {isBm ? "Mod Profesional" : "Professional Mode"}
+          </h2>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {personaCode ? (
+            <>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                {isBm
+                  ? "Pilih mod profesional untuk menyesuaikan pengalaman anda merentasi platform."
+                  : "Pick a professional mode to tailor the experience across the platform."}
+              </p>
+              {PERSONA_ROLES.map((r) => {
+                const active = r === role;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleSwitchRole(r)}
+                    data-testid={`button-persona-${r}`}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      active
+                        ? "border-secondary/50 bg-secondary/10"
+                        : "border-border/40 bg-card/50 hover:border-border hover:bg-card"
+                    } disabled:opacity-60 disabled:cursor-not-allowed`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-foreground">{PERSONA_LABELS[r]}</span>
+                      {active && (
+                        <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-secondary/20 text-secondary">
+                          {isBm ? "Aktif" : "Active"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      {PERSONA_DESCRIPTIONS[r]}
+                    </p>
+                  </button>
+                );
+              })}
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {isBm
+                ? "Log masuk semula dengan kod akses anda untuk mengaktifkan penukaran mod profesional."
+                : "Log in again with your access code to enable switching."}
+            </p>
+          )}
         </CardContent>
       </Card>
 

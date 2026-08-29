@@ -1,4 +1,5 @@
 import { useCrimCheckSession, useCrimLogout } from "@workspace/api-client-react";
+import { clearStoredPersona } from "@workspace/persona-client";
 import { Link, useLocation } from "wouter";
 import { 
   BookOpen, 
@@ -91,6 +92,9 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!session?.authenticated) {
+    // Session expired / not authenticated — clear the shared persona cache so
+    // the next subscriber on this browser never inherits the previous one.
+    clearStoredPersona();
     setLocation("/login");
     return null;
   }
@@ -98,6 +102,7 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => {
+        clearStoredPersona();
         setLocation("/");
       }
     });

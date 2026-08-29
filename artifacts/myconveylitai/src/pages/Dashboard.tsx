@@ -8,8 +8,16 @@ import {
   LogOut, User, Brain, PlayCircle, Library, FileText, CheckSquare,
   Timer, GraduationCap, Microscope,
   FileSignature, Handshake, ShieldCheck, Building, Lock, Crown, CreditCard, Loader2,
+  Briefcase, Check,
 } from 'lucide-react';
 import { useLocation } from 'wouter';
+import {
+  usePersona,
+  PERSONA_ROLES,
+  PERSONA_LABELS,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_DASHBOARD_FRAMING,
+} from '@workspace/persona-client';
 import { useApp } from '@/contexts/AppContext';
 import type { AiMode } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
@@ -71,11 +79,26 @@ const AI_TOOLS: { mode: AiMode; label: string; shortLabel: string; icon: React.C
 export function Dashboard() {
   const [mobileMenuOpen, setMobileOpen] = useState(false);
   const [toolMenuOpen, setToolMenuOpen] = useState(false);
+  const [personaMenuOpen, setPersonaMenuOpen] = useState(false);
   const toolMenuRef = useRef<HTMLDivElement>(null);
+  const personaMenuRef = useRef<HTMLDivElement>(null);
   const { activeSection, isAiPanelOpen, setIsAiPanelOpen, setAiMode, aiMode, currentUser, logout, refreshAccess, setPendingMatterId } = useApp();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [portalLoading, setPortalLoading] = useState(false);
+
+  const { role: personaRole, code: personaCode, saving: personaSaving, switchRole } = usePersona();
+  const framing = personaRole ? PERSONA_DASHBOARD_FRAMING[personaRole] : null;
+
+  const handleSwitchRole = async (next: typeof PERSONA_ROLES[number]) => {
+    try {
+      await switchRole(next);
+      setPersonaMenuOpen(false);
+      toast({ title: 'Professional mode updated', description: `Switched to ${PERSONA_LABELS[next]}.` });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Could not switch mode', description: err instanceof Error ? err.message : 'Please try again.' });
+    }
+  };
 
   const tier = currentUser?.tier ?? 'free';
   const grandfathered = !!currentUser?.grandfathered;
@@ -88,6 +111,7 @@ export function Dashboard() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (toolMenuRef.current && !toolMenuRef.current.contains(e.target as Node)) setToolMenuOpen(false);
+      if (personaMenuRef.current && !personaMenuRef.current.contains(e.target as Node)) setPersonaMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -185,10 +209,65 @@ export function Dashboard() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="font-serif font-semibold text-xl text-slate-200 hidden sm:block truncate max-w-xs">{activeTitle}</h2>
+            <div className="hidden sm:block min-w-0">
+              <h2 className="font-serif font-semibold text-xl text-slate-200 truncate max-w-xs">{activeTitle}</h2>
+              {framing && (
+                <p className="text-xs text-slate-500 truncate max-w-md" data-testid="text-persona-tagline">{framing.tagline}</p>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="relative" ref={personaMenuRef}>
+              <button
+                data-testid="button-persona-selector"
+                onClick={() => setPersonaMenuOpen(!personaMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all border bg-gold-900 text-slate-400 border-gold-800 hover:bg-gold-800 hover:text-slate-200"
+                title="Professional mode"
+              >
+                <Briefcase className="w-4 h-4 shrink-0" />
+                <span className="hidden lg:inline">{personaRole ? PERSONA_LABELS[personaRole] : 'Professional mode'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${personaMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {personaMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-gold-900 border border-gold-700 rounded-xl shadow-2xl z-50 overflow-hidden max-h-[70vh] overflow-y-auto custom-scrollbar">
+                  <div className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-gold-950/50 sticky top-0">
+                    Professional mode
+                  </div>
+                  {personaCode ? (
+                    PERSONA_ROLES.map((r) => {
+                      const isActive = personaRole === r;
+                      return (
+                        <button
+                          key={r}
+                          data-testid={`button-persona-${r}`}
+                          onClick={() => handleSwitchRole(r)}
+                          disabled={personaSaving}
+                          className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors disabled:opacity-50 ${
+                            isActive ? 'bg-amber-500/15' : 'hover:bg-gold-800'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-sm font-semibold ${isActive ? 'text-amber-400' : 'text-slate-200'}`}>
+                              {PERSONA_LABELS[r]}
+                            </div>
+                            <div className="text-xs text-slate-500">{PERSONA_DESCRIPTIONS[r]}</div>
+                          </div>
+                          {isActive && <Check className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />}
+                          {!isActive && personaSaving && <Loader2 className="w-4 h-4 shrink-0 text-slate-500 animate-spin mt-0.5" />}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-4 py-4 text-xs text-slate-400" data-testid="text-persona-hint">
+                      Log in again with your access code to enable switching your professional mode.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="relative" ref={toolMenuRef}>
               <button
                 data-testid="button-ai-tool-selector"

@@ -25,6 +25,25 @@ import { ChecklistsTab } from "@/components/workspace/checklists-tab";
 import { templates } from "@/components/workspace/templates";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import MyCases from "@/components/my-cases";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  clearStoredPersona,
+  PERSONA_DASHBOARD_FRAMING,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_LABELS,
+  PERSONA_ROLES,
+  usePersona,
+} from "@workspace/persona-client";
+import { Check } from "lucide-react";
 
 function tokenize(query: string): string[] {
   return query.toLowerCase().split(/[^a-z0-9]+/i).filter(t => t.length > 0);
@@ -37,6 +56,64 @@ function matchesTokens(tokens: string[], haystack: string): boolean {
 }
 
 type Tab = "my-cases" | "theory" | "cases" | "workflows" | "documents" | "glossary" | "calculator" | "assistant" | "statutes" | "checklists" | "applications" | "generator" | "analyzer" | "drafter";
+
+function ProfessionalModeSwitcher() {
+  const { role, code, saving, switchRole } = usePersona();
+  const { toast } = useToast();
+
+  const handleSwitch = async (next: (typeof PERSONA_ROLES)[number]) => {
+    if (next === role) return;
+    try {
+      await switchRole(next);
+      toast({ title: `Switched to ${PERSONA_LABELS[next]}` });
+    } catch (e) {
+      toast({
+        title: "Could not switch professional mode",
+        description: e instanceof Error ? e.message : "",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2" disabled={saving} data-testid="button-professional-mode">
+          <UserCog className="h-4 w-4" />
+          {role ? PERSONA_LABELS[role] : "Professional mode"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Professional mode</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {code ? (
+          PERSONA_ROLES.map((r) => (
+            <DropdownMenuItem
+              key={r}
+              disabled={saving}
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleSwitch(r);
+              }}
+              className="flex flex-col items-start gap-0.5"
+              data-testid={`persona-option-${r}`}
+            >
+              <span className="flex w-full items-center justify-between font-medium">
+                {PERSONA_LABELS[r]}
+                {role === r && <Check className="h-4 w-4 text-primary" />}
+              </span>
+              <span className="text-xs text-muted-foreground">{PERSONA_DESCRIPTIONS[r]}</span>
+            </DropdownMenuItem>
+          ))
+        ) : (
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            Log in again with your access code to enable switching.
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 /** Build a readable matter summary for AI fact-input textareas */
 function buildMatterSummary(m: Matter): string {
@@ -85,9 +162,13 @@ export default function Workspace() {
   const queryClient = useQueryClient();
   const { data: session, isLoading } = useAccidentCheckSession();
   const logout = useAccidentLogout();
+  const { role } = usePersona();
 
   useEffect(() => {
     if (!isLoading && (!session || !session.authenticated)) {
+      // Session expired / not authenticated — clear the shared persona cache so
+      // the next subscriber on this browser never inherits the previous one.
+      clearStoredPersona();
       setLocation("/login");
     }
   }, [session, isLoading, setLocation]);
@@ -95,11 +176,14 @@ export default function Workspace() {
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: async () => {
+        clearStoredPersona();
         await queryClient.invalidateQueries({ queryKey: getAccidentCheckSessionQueryKey() });
         setLocation("/");
       },
     });
   };
+
+  const framing = role ? PERSONA_DASHBOARD_FRAMING[role] : null;
 
   if (isLoading) {
     return (
@@ -181,10 +265,18 @@ export default function Workspace() {
       <main className="flex-1 overflow-y-auto">
         <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-serif font-bold">{tabs.find(t => t.id === activeTab)?.label}</h1>
-            <p className="text-xs text-muted-foreground">Accident, Personal Injury & Running Down — Malaysian Law</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-serif font-bold">{tabs.find(t => t.id === activeTab)?.label}</h1>
+              {role && (
+                <Badge variant="secondary" data-testid="badge-persona">{PERSONA_LABELS[role]}</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {framing?.tagline ?? "Accident, Personal Injury & Running Down — Malaysian Law"}
+            </p>
           </div>
           <div className="flex items-center gap-3">
+            <ProfessionalModeSwitcher />
             <div className="relative w-80">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -1235,4 +1327,3 @@ function AiDrafterTab({ matter }: { matter?: Matter | null }) {
     </div>
   );
 }
-

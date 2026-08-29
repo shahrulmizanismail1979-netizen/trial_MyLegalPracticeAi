@@ -1,4 +1,11 @@
 import { useCrimGetDashboardStats, useCrimGetRecentActivity } from "@workspace/api-client-react";
+import {
+  usePersona,
+  PERSONA_ROLES,
+  PERSONA_LABELS,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_DASHBOARD_FRAMING,
+} from "@workspace/persona-client";
 import { Link } from "wouter";
 import { 
   BookOpen, 
@@ -23,16 +30,36 @@ import {
   FileCheck,
   TrendingUp,
   Lightbulb,
-  Lock
+  Lock,
+  UserCog,
+  Check
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 import { useEntitlements, AI_TOOL_PATHS } from "@/lib/entitlements";
 
 export function WorkspaceDashboard() {
   const { data: stats, isLoading: statsLoading } = useCrimGetDashboardStats();
   const { data: activity, isLoading: activityLoading } = useCrimGetRecentActivity({ limit: 10 });
   const { hasTool } = useEntitlements();
+  const { role } = usePersona();
+
+  const framing = role ? PERSONA_DASHBOARD_FRAMING[role] : null;
+  const heading = framing?.heading ?? "Dashboard";
+  const subtitle =
+    framing?.tagline ??
+    "Welcome to your criminal law practice command center. Browse the reference library, launch AI tools, or search across all resources.";
 
   const categories = [
     { name: "Theory Topics", count: stats?.topicsCount, icon: BookOpen, href: "/workspace/topics", color: "text-red-400" },
@@ -46,9 +73,17 @@ export function WorkspaceDashboard() {
 
   return (
     <div className="space-y-8 pb-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-serif text-4xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-lg">Welcome to your criminal law practice command center. Browse the reference library, launch AI tools, or search across all resources.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <h1 className="font-serif text-4xl font-bold tracking-tight">{heading}</h1>
+            {role && <Badge variant="secondary">{PERSONA_LABELS[role]}</Badge>}
+          </div>
+          <p className="text-muted-foreground text-lg">{subtitle}</p>
+        </div>
+        <div className="shrink-0">
+          <ProfessionalModeSwitcher />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -198,5 +233,62 @@ export function WorkspaceDashboard() {
       </div>
 
     </div>
+  );
+}
+
+function ProfessionalModeSwitcher() {
+  const { role, code, saving, switchRole } = usePersona();
+  const { toast } = useToast();
+
+  const handleSwitch = async (next: (typeof PERSONA_ROLES)[number]) => {
+    if (next === role) return;
+    try {
+      await switchRole(next);
+      toast({ title: `Switched to ${PERSONA_LABELS[next]}` });
+    } catch (e) {
+      toast({
+        title: "Could not switch professional mode",
+        description: e instanceof Error ? e.message : "",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2" disabled={saving}>
+          <UserCog className="h-4 w-4" />
+          {role ? PERSONA_LABELS[role] : "Professional mode"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Professional mode</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {code ? (
+          PERSONA_ROLES.map((r) => (
+            <DropdownMenuItem
+              key={r}
+              disabled={saving}
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleSwitch(r);
+              }}
+              className="flex flex-col items-start gap-0.5"
+            >
+              <span className="flex w-full items-center justify-between font-medium">
+                {PERSONA_LABELS[r]}
+                {role === r && <Check className="h-4 w-4 text-primary" />}
+              </span>
+              <span className="text-xs text-muted-foreground">{PERSONA_DESCRIPTIONS[r]}</span>
+            </DropdownMenuItem>
+          ))
+        ) : (
+          <div className="px-2 py-2 text-xs text-muted-foreground">
+            Log in again with your access code to enable switching.
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

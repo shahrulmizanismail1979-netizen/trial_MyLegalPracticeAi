@@ -3,6 +3,7 @@ import { Scale, LogOut, Menu, FolderKanban, Calculator, BookOpen } from 'lucide-
 import { useLocation } from 'wouter';
 import { useApp } from '@/contexts/AppContext';
 import { NAV_MENU } from '@/lib/data';
+import { clearStoredPersona } from '@workspace/persona-client';
 
 export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (v: boolean) => void }) {
   const { activeSection, setActiveSection, setIsAuthenticated } = useApp();
@@ -10,6 +11,9 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    // Clear the shared persona cache so a shared browser never leaks the
+    // previous subscriber's professional mode.
+    clearStoredPersona();
   };
 
   return (

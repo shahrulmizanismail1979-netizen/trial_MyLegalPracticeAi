@@ -25,7 +25,7 @@ catalogs:
       specifier: 25.3.5
       version: 25.3.5
     '@types/react':
-      specifier: ^19.2.0
+      specifier: 19.2.14
       version: 19.2.14
     '@types/react-dom':
       specifier: ^19.2.0
@@ -816,6 +816,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -1029,6 +1032,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -1239,6 +1245,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -1449,6 +1458,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/tiers':
         specifier: workspace:*
         version: link:../../lib/tiers
@@ -1665,6 +1677,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -1879,6 +1894,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.4(vite@7.3.6(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2306,6 +2324,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -2520,6 +2541,9 @@ importers:
       '@workspace/draft-export':
         specifier: workspace:*
         version: link:../../lib/draft-export
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -2724,6 +2748,9 @@ importers:
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
+      '@workspace/persona-client':
+        specifier: workspace:*
+        version: link:../../lib/persona-client
       '@workspace/vault-ui':
         specifier: workspace:*
         version: link:../../lib/vault-ui
@@ -3325,6 +3352,15 @@ importers:
         version: 19.2.14
 
   lib/paralegal-widget:
+    devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.14
+      react:
+        specifier: 'catalog:'
+        version: 19.1.0
+
+  lib/persona-client:
     devDependencies:
       '@types/react':
         specifier: 'catalog:'

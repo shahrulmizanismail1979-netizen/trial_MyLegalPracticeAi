@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useUpcomingDeadlines, categoryMeta, daysUntil } from "@/hooks/use-matters";
 import { CalendarClock, AlertTriangle, ArrowRight } from "lucide-react";
+import { usePersona, PERSONA_LABELS, PERSONA_DASHBOARD_FRAMING } from "@workspace/persona-client";
 
 const COLORS = ["hsl(164 40% 35%)", "hsl(43 60% 45%)", "hsl(150 50% 35%)", "hsl(200 40% 40%)", "hsl(330 40% 40%)", "hsl(164 50% 25%)"];
 
 export default function DashboardPage() {
   const { t, mode } = useLanguage();
   const { user } = useAuth();
+  const { role } = usePersona();
   const [guideExpanded, setGuideExpanded] = useState(false);
   const { data: stats, error: statsError } = useQuery({ queryKey: ["dashboard-stats"], queryFn: api.dashboard.stats });
   const { data: distribution, error: distError } = useQuery({ queryKey: ["case-distribution"], queryFn: api.dashboard.caseDistribution });
@@ -39,12 +41,27 @@ export default function DashboardPage() {
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-serif font-bold text-foreground">
-          {t("Dashboard", "Papan Pemuka")}
-        </h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-2xl font-serif font-bold text-foreground">
+            {role ? PERSONA_DASHBOARD_FRAMING[role].heading : t("Dashboard", "Papan Pemuka")}
+          </h1>
+          {role && (
+            <span
+              className="text-[11px] uppercase font-semibold px-2 py-0.5 rounded bg-secondary/20 text-secondary"
+              data-testid="badge-persona-role"
+            >
+              {PERSONA_LABELS[role]}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           {t(`Welcome, ${user?.name}`, `Selamat datang, ${user?.name}`)}
         </p>
+        {role && (
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {PERSONA_DASHBOARD_FRAMING[role].tagline}
+          </p>
+        )}
       </div>
 
       {(statsError || distError) && (

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { JOURNEY_STEPS } from "@/lib/journey";
+import { PersonaBadge, PersonaSwitcher } from "@/components/PersonaControls";
 
 const STAT_PILLS: { href: string; labelKey: TranslationKey; icon: typeof BookOpen }[] = [
   { href: "/library/theory", labelKey: "home.pills.theory", icon: BookOpen },
@@ -107,6 +108,7 @@ export default function Home() {
             {t("home.hero.explore")}
             <ChevronRight className="w-4 h-4" />
           </Link>
+          <PersonaBadge />
           <p className="mt-7 text-[11px] tracking-[0.25em] uppercase text-[hsl(220_12%_45%)] font-sans">
             {t("home.hero.platformTag")}
           </p>
@@ -268,6 +270,9 @@ export default function Home() {
         </div>
       )}
 
+      <div className="mt-14 max-w-md">
+        <PersonaSwitcher />
+      </div>
     </div>
   );
 }

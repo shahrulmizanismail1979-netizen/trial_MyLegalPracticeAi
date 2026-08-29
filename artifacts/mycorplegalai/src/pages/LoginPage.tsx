@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { Scale, Lock, Loader2 } from "lucide-react";
 import { useCorpVerifyPassword } from "@workspace/api-client-react";
+import { lookupPersona } from "@workspace/persona-client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { setStoredTier } from "@/lib/tier";
@@ -109,7 +110,10 @@ export default function LoginPage() {
     try {
       const { res, data } = await postSso({ ticket: msTicket, code: linkCode });
       if (res.ok) {
-        if (!handleSsoSuccess(data)) {
+        if (handleSsoSuccess(data)) {
+          // Fire-and-forget persona lookup with the access code just linked.
+          void lookupPersona(linkCode);
+        } else {
           setError("Invalid access code. Contact your administrator.");
         }
       } else {
@@ -141,6 +145,8 @@ export default function LoginPage() {
           if (res.success && res.token) {
             localStorage.setItem("auth_token", res.token);
             setStoredTier(res.tier);
+            // Fire-and-forget persona lookup — never blocks or fails login.
+            void lookupPersona(password);
             setLocation("/dashboard");
           } else if (res.reason === "subscription_inactive") {
             setError("Your subscription is inactive. Please renew on the pricing page or contact support.");

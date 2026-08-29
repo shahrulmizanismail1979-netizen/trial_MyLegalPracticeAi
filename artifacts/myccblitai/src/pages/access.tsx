@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { setToken } from "@/lib/auth";
+import { lookupPersona } from "@workspace/persona-client";
 import { Shield, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -110,6 +111,8 @@ export default function AccessPage() {
     try {
       const { res, data } = await postSso({ ticket: msTicket, code: linkCode });
       if (res.ok && data.success && data.token) {
+        // Fire-and-forget persona lookup with the linked access code.
+        void lookupPersona(linkCode);
         handleLoginSuccess(data);
       } else {
         setMsError(data.error ?? "Invalid access code. Please try again.");
@@ -149,6 +152,8 @@ export default function AccessPage() {
       onSuccess: (data) => {
         if (data.success && data.token) {
           setToken(data.token);
+          // Fire-and-forget persona lookup; must never block or fail login.
+          void lookupPersona(code);
           toast({
             title: "Access Granted",
             description: "Welcome to MyCCBLitAI Workspace.",

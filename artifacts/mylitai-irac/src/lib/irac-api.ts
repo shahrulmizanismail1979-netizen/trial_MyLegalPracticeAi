@@ -4,6 +4,8 @@
 // artifact base path (import.meta.env.BASE_URL) — that would wrongly become
 // `/irac/api/...` and miss the API server.
 
+import { clearStoredPersona } from "@workspace/persona-client";
+
 const API_BASE = "/api/lit/irac";
 
 // ─── AI provider selection ────────────────────────────────────────────────────
@@ -1019,6 +1021,9 @@ export async function vaultSsoLogin(ticket: string, code?: string): Promise<SsoL
 }
 
 export async function vaultLogout(): Promise<boolean> {
+  // Clear the shared professional-persona cache so the next subscriber on a
+  // shared browser never sees or edits the previous subscriber's mode.
+  clearStoredPersona();
   try {
     const res = await fetch(`${AUTH_API}/logout`, { method: "POST", credentials: "include" });
     return res.ok;

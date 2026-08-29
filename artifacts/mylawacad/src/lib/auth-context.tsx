@@ -14,7 +14,7 @@ import {
   type AuthUser,
 } from "@/lib/api-client";
 import { AcadParalegal } from "@/components/paralegal";
-
+import { clearStoredPersona } from "@workspace/persona-client";
 type AuthState = {
   user: AuthUser | null;
   loading: boolean;
@@ -54,6 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           // even if the network call fails, we still clear local state
         }
+        // Drop any cached professional persona so a shared browser never
+        // leaks one subscriber's mode into the next session. The context
+        // can't distinguish code-login users here, and clearing for all
+        // logouts is safe (it's re-populated at the next code-login).
+        clearStoredPersona();
         qc.setQueryData(getGetMeQueryKey(), undefined);
         await qc.invalidateQueries();
       },

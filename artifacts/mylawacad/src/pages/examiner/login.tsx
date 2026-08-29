@@ -11,6 +11,7 @@ import {
   VioletButton,
 } from "@/components/cinematic";
 import { useAuth } from "@/lib/auth-context";
+import { lookupPersona } from "@workspace/persona-client";
 
 export default function ExaminerLogin() {
   const [, navigate] = useLocation();
@@ -39,6 +40,9 @@ export default function ExaminerLogin() {
         method: "POST",
         body: JSON.stringify({ code: accessCode.trim() }),
       });
+      // Warm the shared professional-persona cache for this access code.
+      // Fire-and-forget: persona is a nice-to-have and must never block login.
+      void lookupPersona(accessCode.trim());
       await refresh();
       navigate(res.user.role === "admin" ? "/admin" : "/examiner/dashboard");
     } catch (e) {

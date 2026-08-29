@@ -41,6 +41,9 @@
     },
     {
       "path": "./lib/case-home-ui"
+    },
+    {
+      "path": "./lib/persona-client"
     }
   ]
 }

@@ -23,6 +23,7 @@ import { z } from "zod/v4";
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
 import { loginRateLimit } from "./loginRateLimit";
+import { resolvePersonaSessionCode } from "./personaSessionOwner";
 
 export const PERSONA_ROLES = [
   "practitioner",
@@ -144,6 +145,16 @@ export function buildPersonasRouter(): Router {
   });
 
   // Save/update the persona for an access code (front-door onboarding + settings switch).
+  //
+  // Authorization model (code-review hardening): the raw access code in the
+  // body is NOT sufficient to authorize an UPDATE. Writes are bound to the
+  // caller's authenticated portal session server-side:
+  //   • If the caller has a resolvable portal session, it MUST resolve to the
+  //     same access code as the body (else 403). This is the settings switcher.
+  //   • If the caller has no session, we allow the write ONLY when no persona
+  //     row exists yet for the code — i.e. the create-only onboarding flow used
+  //     by the landing-page front door, which PUTs {code, primaryRole} with no
+  //     session. Updating an EXISTING persona anonymously is rejected (401).
   router.put("/", async (req, res) => {
     const parsed = saveSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: "Invalid request" });
@@ -154,6 +165,23 @@ export function buildPersonasRouter(): Router {
       if (!(await accessCodeExists(code))) {
         return res.status(404).json({ error: "Unknown access code" });
       }
+
+      // Bind the write to the caller's authenticated portal identity.
+      const sessionCode = await resolvePersonaSessionCode(req);
+      if (sessionCode !== null) {
+        // Authenticated caller: may only write their OWN code's persona.
+        if (sessionCode !== code) {
+          return res.status(403).json({ error: "Sign in to change your professional mode" });
+        }
+      } else {
+        // No session: create-only onboarding. Refuse to overwrite an existing
+        // persona without proof of identity.
+        const existing = await getPersona(code);
+        if (existing) {
+          return res.status(401).json({ error: "Sign in to change your professional mode" });
+        }
+      }
+
       await pool.query(
         `INSERT INTO user_personas (owner_key, primary_role, roles, onboarding)
          VALUES ($1, $2, $3::jsonb, $4::jsonb)

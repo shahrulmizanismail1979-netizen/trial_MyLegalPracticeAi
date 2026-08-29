@@ -1,3 +1,4 @@
+// hint: Logic changed on both sides. Requires understanding intent of each change.
 import { useEffect, useCallback, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -13,7 +14,7 @@ import { AiToolsPanel } from "../ai-tools/AiToolsPanel";
 import { useAiContext } from "@/contexts/AiContext";
 import { useTier, setStoredTier, clearStoredTier, canAccessTool } from "@/lib/tier";
 import { ParalegalWidget } from "@workspace/paralegal-widget";
-
+import { clearStoredPersona } from "@workspace/persona-client";
 const paralegalRequest = (path: string, init?: RequestInit) => {
   const token = localStorage.getItem("auth_token");
   return fetch(`/api/corp/legal${path}`, {
@@ -60,6 +61,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (!data.valid) {
         localStorage.removeItem("auth_token");
         clearStoredTier();
+        clearStoredPersona();
         alert("Your session has been terminated. Another device has signed in with this access code, or your code has been revoked.");
         setLocation("/login");
       } else if (data.tier) {
@@ -88,6 +90,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
     localStorage.removeItem("auth_token");
     clearStoredTier();
+    clearStoredPersona();
     setLocation("/login");
   };
 

@@ -1,4 +1,5 @@
 import { useCrimVerifyAccessCode } from "@workspace/api-client-react";
+import { lookupPersona } from "@workspace/persona-client";
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { Scale, Lock, ArrowRight } from "lucide-react";
@@ -45,6 +46,9 @@ export function LoginPage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         if (data.authenticated) {
+          // Fire-and-forget persona lookup when an access code was supplied
+          // (SSO-only logins without a code are skipped).
+          if (body.code) void lookupPersona(body.code);
           setLocation("/workspace");
         } else {
           setError(data.message || "Sign in failed.");
@@ -102,6 +106,8 @@ export function LoginPage() {
       {
         onSuccess: (data) => {
           if (data.authenticated) {
+            // Fire-and-forget: never block or fail login on persona lookup.
+            void lookupPersona(accessCode);
             setLocation("/workspace");
           } else {
             setError(data.message || "Invalid access code.");

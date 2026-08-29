@@ -47,6 +47,7 @@ const inputCls =
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { role } = usePersona();
   const { data: matters } = useMatters();
   const { data: upcoming } = useUpcomingDeadlines(30);
   const { data: briefing, isLoading: briefingLoading, error: briefingError, refetch: refetchBriefing } = useMattersBriefing();
@@ -95,14 +96,29 @@ export default function DashboardPage() {
               <Scale className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-serif font-bold text-foreground">MYCorpLegalAI</h1>
-              <p className="text-sm text-muted-foreground">Corporate matter management · AI-powered practice</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-serif font-bold text-foreground">
+                  {role ? PERSONA_DASHBOARD_FRAMING[role].heading : "MYCorpLegalAI"}
+                </h1>
+                {role && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border border-purple-500/25 bg-purple-500/10 text-primary">
+                    {PERSONA_LABELS[role]}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {role
+                  ? PERSONA_DASHBOARD_FRAMING[role].tagline
+                  : "Corporate matter management · AI-powered practice"}
+              </p>
             </div>
           </div>
           <Button onClick={() => setOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" /> New Matter
           </Button>
         </div>
+
+        <ProfessionalModeCard />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -325,11 +341,76 @@ export default function DashboardPage() {
       </Dialog>
 
       <PrepareDialog matter={prepareFor} onClose={() => setPrepareFor(null)} />
-
     </AppLayout>
   );
 }
 
+function ProfessionalModeCard() {
+  const { toast } = useToast();
+  const { role, code, saving, switchRole } = usePersona();
+
+  const onSelect = async (next: string) => {
+    if (next === role || saving) return;
+    try {
+      await switchRole(next as (typeof PERSONA_ROLES)[number]);
+      toast({ title: "Professional mode updated", description: PERSONA_LABELS[next as (typeof PERSONA_ROLES)[number]] });
+    } catch (e) {
+      toast({
+        title: "Could not update professional mode",
+        description: e instanceof Error ? e.message : "",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <UserCog className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Professional mode</h2>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Tailor terminology and dashboard framing to how you practise. Applies across all MyLaw portals.
+        </p>
+
+        {code === null ? (
+          <p className="text-xs text-muted-foreground rounded-md border border-purple-500/15 bg-purple-500/5 px-3 py-2">
+            Log in again with your access code to enable switching.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {PERSONA_ROLES.map((r) => {
+              const active = r === role;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => onSelect(r)}
+                  disabled={saving}
+                  className={`text-left rounded-md border px-3 py-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                    active
+                      ? "border-primary/40 bg-primary/10"
+                      : "border-border hover:border-primary/30 hover:bg-primary/5"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}>
+                      {PERSONA_LABELS[r]}
+                    </span>
+                    {active && saving && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                    {active && !saving && <span className="text-[10px] text-primary">· current</span>}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{PERSONA_DESCRIPTIONS[r]}</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 function isClosed(status: string) {
   return status === "Closed" || status === "closed";
 }

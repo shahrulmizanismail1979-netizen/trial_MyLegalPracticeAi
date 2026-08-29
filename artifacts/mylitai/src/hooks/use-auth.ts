@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { clearAllDrafts } from './use-persistent-state';
+import { lookupPersona, clearStoredPersona } from '@workspace/persona-client';
 
 const AUTH_KEY = 'mylitai_auth_verified';
 
@@ -54,6 +55,7 @@ function verifyAuth(force = false): Promise<void> {
         setAuthState(true);
       } else {
         localStorage.removeItem(AUTH_KEY);
+        clearStoredPersona();
         setAuthState(false);
       }
     } catch {
@@ -94,6 +96,7 @@ export function useAuth() {
         // Fresh sign-in: wipe any drafts left by a previous user on this device.
         clearAllDrafts();
         commitAuth(true);
+        void lookupPersona(code);
         return { success: true };
       }
       return { success: false, error: data.error || 'Invalid or expired access code' };
@@ -118,6 +121,7 @@ export function useAuth() {
         // Fresh sign-in: wipe any drafts left by a previous user on this device.
         clearAllDrafts();
         commitAuth(true);
+        if (code) void lookupPersona(code);
         return { success: true };
       }
       if (res.status === 404 && data.needsLink) {
@@ -135,6 +139,7 @@ export function useAuth() {
     } catch {}
     // Remove all in-progress drafts so the next user on this device can't see them.
     clearAllDrafts();
+    clearStoredPersona();
     // Authoritative transition: invalidates any in-flight verify and clears the
     // stored flag so a slow verify can't resurrect the session.
     commitAuth(false);

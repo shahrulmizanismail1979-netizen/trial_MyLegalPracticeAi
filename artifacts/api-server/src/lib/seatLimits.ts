@@ -132,6 +132,33 @@ export async function hasActiveSeat(
   return rows.length > 0;
 }
 
+/**
+ * Read-only counterpart to hasActiveSeat: true if this seat key currently
+ * holds an active (non-stale) seat on the code, WITHOUT refreshing
+ * last_seen_at. Used by side-effect-free identity probes (e.g. the persona
+ * write authorizer) that must not extend a seat's life or mutate any state.
+ */
+export async function seatIsActiveReadOnly(
+  portal: SeatPortal,
+  code: string,
+  seatKey: string,
+): Promise<boolean> {
+  const cutoff = new Date(Date.now() - SEAT_TTL_MS);
+  const rows = await db
+    .select({ id: portalCodeSeatsTable.id })
+    .from(portalCodeSeatsTable)
+    .where(
+      and(
+        eq(portalCodeSeatsTable.portal, portal),
+        eq(portalCodeSeatsTable.code, normCode(code)),
+        eq(portalCodeSeatsTable.seatKey, seatKey),
+        sql`${portalCodeSeatsTable.lastSeenAt} >= ${cutoff}`,
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** User-facing message when a code's licensed seats are all in use. */
 export function seatLimitMessage(maxSeats: number): string {
   return `This access code has reached its licensed seat limit (${maxSeats} concurrent user${maxSeats === 1 ? "" : "s"}). Please log out on another device or contact your administrator to add licenses.`;

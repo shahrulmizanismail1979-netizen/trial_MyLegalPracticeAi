@@ -1,7 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Plus, Sparkles, Users, Trophy, ShieldAlert, LogOut, Crown, Wand2, Brain, KeyRound, BarChart3, Wallet } from "lucide-react";
+import { Plus, Sparkles, Users, Trophy, ShieldAlert, LogOut, Crown, Wand2, Brain, KeyRound, BarChart3, Wallet, Compass, Loader2, Check } from "lucide-react";
 import { Tutorial } from "@/components/tutorial";
+import {
+  usePersona,
+  PERSONA_ROLES,
+  PERSONA_LABELS,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_DASHBOARD_FRAMING,
+} from "@workspace/persona-client";
+import { useToast } from "@/hooks/use-toast";
 import {
   useListExamTemplates,
   useGetLeaderboard,
@@ -22,6 +30,27 @@ import { useAuth } from "@/lib/auth-context";
 export default function ExaminerDashboard() {
   const [, navigate] = useLocation();
   const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const { role, code, saving, switchRole } = usePersona();
+
+  const framing = role ? PERSONA_DASHBOARD_FRAMING[role] : null;
+
+  const handleSwitchRole = async (next: (typeof PERSONA_ROLES)[number]) => {
+    if (next === role || saving) return;
+    try {
+      await switchRole(next);
+      toast({
+        title: "Professional mode updated",
+        description: `Now tailored for ${PERSONA_LABELS[next]}.`,
+      });
+    } catch (e) {
+      toast({
+        title: "Couldn't switch mode",
+        description: e instanceof Error ? e.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: templates, isLoading } = useListExamTemplates(
     { examiner: "" },
@@ -38,9 +67,15 @@ export default function ExaminerDashboard() {
   return (
     <CinematicShell>
       <PageHeader
-        eyebrow={`Welcome back, ${user?.name ?? ""}`}
-        title="The Architect's Studio"
-        description="Compose and conduct cinematic AI-proctored exams. Track every cohort. Read the room."
+        eyebrow={`Welcome back, ${user?.name ?? ""}${
+          role ? ` · ${PERSONA_LABELS[role]}` : ""
+        }`}
+        title={framing ? framing.heading : "The Architect's Studio"}
+        description={
+          framing
+            ? framing.tagline
+            : "Compose and conduct cinematic AI-proctored exams. Track every cohort. Read the room."
+        }
         right={
           <div className="flex flex-wrap gap-3 items-center">
             {isAdmin ? (
@@ -211,6 +246,57 @@ export default function ExaminerDashboard() {
               paste blocking, devtools heuristics, idle &amp; tab-switch
               tracking, and a live trust score that you can read post-exam.
             </p>
+          </SpotlightCard>
+
+          <SpotlightCard className="!p-5" data-testid="card-persona-switcher">
+            <div className="flex items-center gap-2 mb-1">
+              <Compass className="h-4 w-4 text-fuchsia-300" />
+              <h3 className="font-display text-lg font-bold">Professional mode</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Tailor terminology and framing across every portal to how you
+              practise.
+            </p>
+            {code ? (
+              <div className="space-y-2">
+                {PERSONA_ROLES.map((r) => {
+                  const active = r === role;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      data-testid={`button-persona-${r}`}
+                      disabled={saving}
+                      onClick={() => handleSwitchRole(r)}
+                      className={`w-full text-left rounded-xl border px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                        active
+                          ? "border-fuchsia-500/50 bg-fuchsia-500/10"
+                          : "border-white/10 hover:border-white/20 hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{PERSONA_LABELS[r]}</span>
+                        {saving && active ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-fuchsia-300" />
+                        ) : active ? (
+                          <Check className="h-4 w-4 text-fuchsia-300" />
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {PERSONA_DESCRIPTIONS[r]}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                data-testid="text-persona-login-hint"
+                className="text-sm text-muted-foreground bg-white/5 border border-white/10 rounded-lg px-3 py-3"
+              >
+                Log in again with your access code to choose a professional mode.
+              </div>
+            )}
           </SpotlightCard>
         </div>
       </section>

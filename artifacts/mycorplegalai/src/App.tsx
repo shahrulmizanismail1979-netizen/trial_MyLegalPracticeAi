@@ -19,9 +19,11 @@ import AdminPage from "@/pages/AdminPage";
 import PricingPage from "@/pages/PricingPage";
 import CaseLawPage from "@/pages/CaseLawPage";
 import NotFound from "@/pages/not-found";
+import { configurePersonaAuthHeaders } from "@workspace/persona-client";
 
 const queryClient = new QueryClient();
 
+  const t = localStorage.getItem("auth_token");
 function Router() {
   return (
     <Switch>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { setAuthTokenGetter } from '@workspace/api-client-react';
+import { clearStoredPersona, configurePersonaAuthHeaders } from '@workspace/persona-client';
 import { SectionId, DocumentDef } from '@/lib/data';
 import { fetchMe } from '@/lib/subscription';
 import type { Tier } from '@/lib/tier';
@@ -8,6 +9,10 @@ import type { Tier } from '@/lib/tier';
 // token saved at login. Kept outside the component so it runs before any request.
 setAuthTokenGetter(() => localStorage.getItem('convey_token'));
 
+// Persona UPDATES require this portal's session. Since this portal authenticates
+// with a bearer token (not a cookie session), reuse the same token getter to
+// attach the Authorization header on shared /api/personas writes.
+configurePersonaAuthHeaders(() => {
 export type AiMode = 'tutor' | 'drafter' | 'risk' | 'checklist' | 'deadlines' | 'reviewer' | 'comparator' | 'title' | 'quotation' | 'advice' | 'duediligence' | 'opinion' | 'requisition' | 'completion' | 'caseresearch' | 'stampduty' | 'rpgt' | 'tenancy' | 'poa' | 'caveat' | 'landsearch' | 'devclaim' | 'bankruptcy' | 'foreignpurchase' | 'loandoc' | 'taxcompliance' | 'strata' | 'quiz' | 'simulator' | 'clauselib' | 'docanalyzer' | 'compliance' | 'timeline' | 'mockexam' | 'caseanalyzer' | 'corpresolution' | 'corpdd' | 'jvagreement' | 'guarantee';
 
 export interface CurrentUser {
@@ -108,6 +113,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('convey_auth');
     localStorage.removeItem('convey_user');
     localStorage.removeItem('convey_token');
+    // Drop the shared persona cache so the next subscriber on a shared browser
+    // never sees or edits the previous subscriber's professional mode.
+    clearStoredPersona();
   };
 
   return (
@@ -147,3 +155,5 @@ export function useApp() {
   }
   return context;
 }
+
+  const token = localStorage.getItem('convey_token');

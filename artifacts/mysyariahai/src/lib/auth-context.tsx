@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { clearStoredPersona } from "@workspace/persona-client";
 
 interface User {
   id: number;
@@ -62,6 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
       }
+      // Session expired / invalidated — clear the shared persona cache so the
+      // next subscriber on a shared browser never inherits this one's mode.
+      clearStoredPersona();
       setUser(null);
     } catch {
     }
@@ -129,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
     } catch {
     }
+    clearStoredPersona();
     setUser(null);
   };
 

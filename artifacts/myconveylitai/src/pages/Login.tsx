@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { Scale, KeyRound, Mail, Lock, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useVerifyPassword } from '@workspace/api-client-react';
+import { lookupPersona } from '@workspace/persona-client';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -152,6 +153,10 @@ export function Login() {
       const payload = result as typeof result & { token?: string };
       if (payload.success && payload.user) {
         if (payload.token) setAuthToken(payload.token);
+        // Fire-and-forget persona lookup on the access-code path only. Must
+        // never block or fail login; the lib caches the result in shared
+        // localStorage for the dashboard/switcher.
+        if (mode === 'code') void lookupPersona(accessCode.trim());
         setCurrentUser(payload.user as any);
         setIsAuthenticated(true);
       } else {

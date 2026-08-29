@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { vaultLogin, vaultSsoLogin } from "@/lib/irac-api";
+import { lookupPersona } from "@workspace/persona-client";
 
 const APP_SLUG = "lit-irac";
 
@@ -78,6 +79,8 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
     setError("");
     try {
       await vaultLogin(code.trim());
+      // Fire-and-forget persona lookup — must never block or fail login.
+      void lookupPersona(code.trim());
       onSuccess();
     } catch (ex) {
       setError((ex as Error).message || invalidCodeMsg);
@@ -97,6 +100,8 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
     const result = await vaultSsoLogin(msTicket, linkCode.trim());
     setLoading(false);
     if (result.success) {
+      // Fire-and-forget persona lookup — the linked access code is available here.
+      void lookupPersona(linkCode.trim());
       onSuccess();
     } else {
       setError(result.error || invalidCodeMsg);

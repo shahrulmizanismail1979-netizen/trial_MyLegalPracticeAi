@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { lookupPersona } from "@workspace/persona-client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,8 +100,14 @@ export default function LoginPage() {
     e.preventDefault();
     setCodeError("");
     setCodeLoading(true);
-    const result = await login(code.trim().toUpperCase());
-    if (!result.success) setCodeError(result.error || "Invalid access code");
+    const enteredCode = code.trim().toUpperCase();
+    const result = await login(enteredCode);
+    if (result.success) {
+      // Fire-and-forget: persona lookup must never block or fail login.
+      void lookupPersona(enteredCode);
+    } else {
+      setCodeError(result.error || "Invalid access code");
+    }
     setCodeLoading(false);
   };
 
