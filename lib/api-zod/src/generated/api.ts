@@ -1940,6 +1940,7 @@ export const CrimGetCaseLawResponse = zod.object({
 export const CrimListCausePapersQueryParams = zod.object({
   category: zod.coerce.string().optional(),
   court: zod.coerce.string().optional(),
+  language: zod.enum(["ms", "en"]).optional(),
 });
 
 export const CrimListCausePapersResponseItem = zod.object({
@@ -1949,6 +1950,9 @@ export const CrimListCausePapersResponseItem = zod.object({
   description: zod.string(),
   templateContent: zod.string(),
   category: zod.string(),
+  language: zod.enum(["ms", "en"]),
+  sourceId: zod.number().nullable(),
+  pairedVersionId: zod.number().nullable(),
   createdAt: zod.coerce.date(),
 });
 export const CrimListCausePapersResponse = zod.array(
@@ -1969,6 +1973,9 @@ export const CrimGetCausePaperResponse = zod.object({
   description: zod.string(),
   templateContent: zod.string(),
   category: zod.string(),
+  language: zod.enum(["ms", "en"]),
+  sourceId: zod.number().nullable(),
+  pairedVersionId: zod.number().nullable(),
   createdAt: zod.coerce.date(),
 });
 
@@ -2014,6 +2021,7 @@ export const CrimGetWorkflowResponse = zod.object({
  */
 export const CrimListSampleDocumentsQueryParams = zod.object({
   category: zod.coerce.string().optional(),
+  language: zod.enum(["ms", "en"]).optional(),
 });
 
 export const CrimListSampleDocumentsResponseItem = zod.object({
@@ -2023,6 +2031,9 @@ export const CrimListSampleDocumentsResponseItem = zod.object({
   documentType: zod.string(),
   content: zod.string(),
   category: zod.string(),
+  language: zod.enum(["ms", "en"]),
+  sourceId: zod.number().nullable(),
+  pairedVersionId: zod.number().nullable(),
   createdAt: zod.coerce.date(),
 });
 export const CrimListSampleDocumentsResponse = zod.array(
@@ -2043,6 +2054,9 @@ export const CrimGetSampleDocumentResponse = zod.object({
   documentType: zod.string(),
   content: zod.string(),
   category: zod.string(),
+  language: zod.enum(["ms", "en"]),
+  sourceId: zod.number().nullable(),
+  pairedVersionId: zod.number().nullable(),
   createdAt: zod.coerce.date(),
 });
 

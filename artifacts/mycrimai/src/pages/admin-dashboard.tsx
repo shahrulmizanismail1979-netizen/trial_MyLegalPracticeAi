@@ -49,6 +49,8 @@ const RESOURCES: Resource[] = [
       { name: "title", label: "Title", type: "text" },
       { name: "court", label: "Court", type: "text" },
       { name: "category", label: "Category", type: "text" },
+      { name: "language", label: "Language (ms or en; defaults to ms)", type: "text" },
+      { name: "sourceId", label: "Paired Malay ID (English only)", type: "number" },
       { name: "description", label: "Description", type: "textarea" },
       { name: "templateContent", label: "Template Content", type: "textarea" },
     ],
@@ -71,6 +73,8 @@ const RESOURCES: Resource[] = [
       { name: "title", label: "Title", type: "text" },
       { name: "documentType", label: "Document Type", type: "text" },
       { name: "category", label: "Category", type: "text" },
+      { name: "language", label: "Language (ms or en; defaults to ms)", type: "text" },
+      { name: "sourceId", label: "Paired Malay ID (English only)", type: "number" },
       { name: "description", label: "Description", type: "textarea" },
       { name: "content", label: "Content", type: "textarea" },
     ],
@@ -418,7 +422,9 @@ function ResourcePanel({ resource }: { resource: Resource }) {
 
   const blank = () => {
     const obj: any = {};
-    resource.fields.forEach((f) => { obj[f.name] = f.type === "number" ? 0 : ""; });
+    resource.fields.forEach((f) => {
+      obj[f.name] = f.name === "language" ? "ms" : f.type === "number" ? 0 : "";
+    });
     return obj;
   };
 

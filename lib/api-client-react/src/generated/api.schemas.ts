@@ -1494,6 +1494,14 @@ export interface CrimCaseLaw {
   createdAt: string;
 }
 
+export type CrimCausePaperLanguage =
+  (typeof CrimCausePaperLanguage)[keyof typeof CrimCausePaperLanguage];
+
+export const CrimCausePaperLanguage = {
+  ms: "ms",
+  en: "en",
+} as const;
+
 export interface CrimCausePaper {
   id: number;
   title: string;
@@ -1501,6 +1509,9 @@ export interface CrimCausePaper {
   description: string;
   templateContent: string;
   category: string;
+  language: CrimCausePaperLanguage;
+  sourceId: number | null;
+  pairedVersionId: number | null;
   createdAt: string;
 }
 
@@ -1514,6 +1525,14 @@ export interface CrimWorkflow {
   createdAt: string;
 }
 
+export type CrimSampleDocumentLanguage =
+  (typeof CrimSampleDocumentLanguage)[keyof typeof CrimSampleDocumentLanguage];
+
+export const CrimSampleDocumentLanguage = {
+  ms: "ms",
+  en: "en",
+} as const;
+
 export interface CrimSampleDocument {
   id: number;
   title: string;
@@ -1521,6 +1540,9 @@ export interface CrimSampleDocument {
   documentType: string;
   content: string;
   category: string;
+  language: CrimSampleDocumentLanguage;
+  sourceId: number | null;
+  pairedVersionId: number | null;
   createdAt: string;
 }
 
@@ -1722,7 +1744,16 @@ export type CrimListCaseLawsParams = {
 export type CrimListCausePapersParams = {
   category?: string;
   court?: string;
+  language?: CrimListCausePapersLanguage;
 };
+
+export type CrimListCausePapersLanguage =
+  (typeof CrimListCausePapersLanguage)[keyof typeof CrimListCausePapersLanguage];
+
+export const CrimListCausePapersLanguage = {
+  ms: "ms",
+  en: "en",
+} as const;
 
 export type CrimListWorkflowsParams = {
   category?: string;
@@ -1730,7 +1761,16 @@ export type CrimListWorkflowsParams = {
 
 export type CrimListSampleDocumentsParams = {
   category?: string;
+  language?: CrimListSampleDocumentsLanguage;
 };
+
+export type CrimListSampleDocumentsLanguage =
+  (typeof CrimListSampleDocumentsLanguage)[keyof typeof CrimListSampleDocumentsLanguage];
+
+export const CrimListSampleDocumentsLanguage = {
+  ms: "ms",
+  en: "en",
+} as const;
 
 export type CrimListGlossaryTermsParams = {
   letter?: string;

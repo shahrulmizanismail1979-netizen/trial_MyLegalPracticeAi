@@ -39,6 +39,14 @@ export function CausePaperDetailPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Badge variant="outline" className="flex items-center gap-1 font-medium px-2 py-1"><Tag className="h-3 w-3" />{paper.category}</Badge>
             <Badge variant="outline" className="flex items-center gap-1 font-medium px-2 py-1"><Building2 className="h-3 w-3" />{paper.court}</Badge>
+            <Badge className="px-2 py-1">{paper.language === "en" ? "English" : "Bahasa Melayu"}</Badge>
+            {paper.pairedVersionId && (
+              <Button variant="link" size="sm" className="h-auto px-1" asChild>
+                <Link href={`/workspace/cause-papers/${paper.pairedVersionId}`}>
+                  View {paper.language === "en" ? "Bahasa Melayu" : "English"} version
+                </Link>
+              </Button>
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl font-serif font-bold tracking-tight text-foreground leading-tight">{paper.title}</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">{paper.description}</p>

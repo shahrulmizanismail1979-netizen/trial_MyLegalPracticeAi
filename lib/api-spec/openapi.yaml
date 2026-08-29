@@ -2243,6 +2243,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ms, en]
       responses:
         "200":
           description: List of cause papers
@@ -2335,6 +2341,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ms, en]
       responses:
         "200":
           description: List of sample documents
@@ -5195,6 +5207,15 @@ components:
           type: string
         category:
           type: string
+        language:
+          type: string
+          enum: [ms, en]
+        sourceId:
+          type: integer
+          nullable: true
+        pairedVersionId:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -5205,6 +5226,9 @@ components:
         - description
         - templateContent
         - category
+        - language
+        - sourceId
+        - pairedVersionId
         - createdAt
     CrimWorkflow:
       type: object
@@ -5247,6 +5271,15 @@ components:
           type: string
         category:
           type: string
+        language:
+          type: string
+          enum: [ms, en]
+        sourceId:
+          type: integer
+          nullable: true
+        pairedVersionId:
+          type: integer
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -5257,6 +5290,9 @@ components:
         - documentType
         - content
         - category
+        - language
+        - sourceId
+        - pairedVersionId
         - createdAt
     CrimGlossaryTerm:
       type: object

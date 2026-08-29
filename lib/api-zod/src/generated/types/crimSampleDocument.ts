@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CrimSampleDocumentLanguage } from "./crimSampleDocumentLanguage";
 
 export interface CrimSampleDocument {
   id: number;
@@ -13,5 +14,8 @@ export interface CrimSampleDocument {
   documentType: string;
   content: string;
   category: string;
+  language: CrimSampleDocumentLanguage;
+  sourceId: number | null;
+  pairedVersionId: number | null;
   createdAt: Date;
 }

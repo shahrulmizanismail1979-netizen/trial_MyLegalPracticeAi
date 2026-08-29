@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CrimCausePaperLanguage } from "./crimCausePaperLanguage";
 
 export interface CrimCausePaper {
   id: number;
@@ -13,5 +14,8 @@ export interface CrimCausePaper {
   description: string;
   templateContent: string;
   category: string;
+  language: CrimCausePaperLanguage;
+  sourceId: number | null;
+  pairedVersionId: number | null;
   createdAt: Date;
 }

@@ -39,6 +39,14 @@ export function SampleDocumentDetailPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Badge variant="outline" className="flex items-center gap-1 font-medium px-2 py-1"><Tag className="h-3 w-3" />{doc.category}</Badge>
             <Badge variant="outline" className="flex items-center gap-1 font-medium px-2 py-1"><FileType className="h-3 w-3" />{doc.documentType}</Badge>
+            <Badge className="px-2 py-1">{doc.language === "en" ? "English" : "Bahasa Melayu"}</Badge>
+            {doc.pairedVersionId && (
+              <Button variant="link" size="sm" className="h-auto px-1" asChild>
+                <Link href={`/workspace/sample-documents/${doc.pairedVersionId}`}>
+                  View {doc.language === "en" ? "Bahasa Melayu" : "English"} version
+                </Link>
+              </Button>
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl font-serif font-bold tracking-tight text-foreground leading-tight">{doc.title}</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">{doc.description}</p>

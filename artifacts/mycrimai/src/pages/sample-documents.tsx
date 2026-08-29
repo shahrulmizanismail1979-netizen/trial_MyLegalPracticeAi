@@ -6,15 +6,20 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 export function SampleDocumentsPage() {
   const [search, setSearch] = useState("");
-  const { data: docs, isLoading } = useCrimListSampleDocuments();
+  const [language, setLanguage] = useState<"all" | "en" | "ms">("all");
+  const { data: docs, isLoading } = useCrimListSampleDocuments(
+    language === "all" ? undefined : { language },
+  );
 
   const filtered = docs?.filter(d =>
     d.title.toLowerCase().includes(search.toLowerCase()) ||
     d.description.toLowerCase().includes(search.toLowerCase()) ||
-    d.category.toLowerCase().includes(search.toLowerCase())
+    d.category.toLowerCase().includes(search.toLowerCase()) ||
+    (d.language === "en" ? "english" : "bahasa melayu malay").includes(search.toLowerCase())
   );
 
   return (
@@ -31,6 +36,13 @@ export function SampleDocumentsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search documents..." className="pl-9 bg-background/50 backdrop-blur-sm" value={search} onChange={(e) => setSearch(e.target.value)} data-testid="input-search-documents" />
         </div>
+      </div>
+      <div className="flex gap-2" role="group" aria-label="Filter sample documents by language">
+        {([["all", "All"], ["en", "English"], ["ms", "Bahasa Melayu"]] as const).map(([value, label]) => (
+          <Button key={value} type="button" variant={language === value ? "default" : "outline"} size="sm" onClick={() => setLanguage(value)}>
+            {label}
+          </Button>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -56,6 +68,7 @@ export function SampleDocumentsPage() {
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant="secondary" className="font-medium bg-secondary/50">{doc.category}</Badge>
                     <Badge variant="outline">{doc.documentType}</Badge>
+                     <Badge variant={doc.language === "en" ? "default" : "outline"}>{doc.language === "en" ? "English" : "Bahasa Melayu"}</Badge>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1" />
                 </CardContent>

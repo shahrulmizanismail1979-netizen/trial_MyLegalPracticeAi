@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CrimListCausePapersLanguage } from "./crimListCausePapersLanguage";
 
 export type CrimListCausePapersParams = {
   category?: string;
   court?: string;
+  language?: CrimListCausePapersLanguage;
 };

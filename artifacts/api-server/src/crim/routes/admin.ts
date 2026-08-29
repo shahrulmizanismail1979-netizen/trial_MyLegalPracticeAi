@@ -182,7 +182,13 @@ function crudRoutes(
   const pick = (body: any) => {
     const out: any = {};
     for (const f of allowedFields) {
-      if (body && Object.prototype.hasOwnProperty.call(body, f)) out[f] = body[f];
+      if (!body || !Object.prototype.hasOwnProperty.call(body, f)) continue;
+      if (f === "language" && body[f] === "") continue;
+      if (f === "sourceId" && (!body[f] || Number(body[f]) <= 0)) {
+        out[f] = null;
+        continue;
+      }
+      out[f] = body[f];
     }
     return out;
   };
@@ -240,11 +246,11 @@ crudRoutes("topics", topicsTable,
 crudRoutes("case-laws", caseLawsTable,
   ["caseName", "citation", "court", "year", "summary", "keyPrinciples", "category", "fullText"]);
 crudRoutes("cause-papers", causePapersTable,
-  ["title", "court", "description", "templateContent", "category"]);
+  ["title", "court", "description", "templateContent", "category", "language", "sourceId"]);
 crudRoutes("workflows", workflowsTable,
   ["title", "description", "steps", "category", "estimatedDuration"]);
 crudRoutes("sample-documents", sampleDocumentsTable,
-  ["title", "description", "documentType", "content", "category"]);
+  ["title", "description", "documentType", "content", "category", "language", "sourceId"]);
 crudRoutes("glossary", glossaryTermsTable,
   ["term", "definition", "malayTranslation", "relatedTerms"]);
 crudRoutes("costs-fees", costsFeesTable,

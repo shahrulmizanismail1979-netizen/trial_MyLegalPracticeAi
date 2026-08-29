@@ -6,15 +6,21 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 export function CausePapersPage() {
   const [search, setSearch] = useState("");
-  const { data: causePapers, isLoading } = useCrimListCausePapers();
+  const [language, setLanguage] = useState<"all" | "en" | "ms">("all");
+  const { data: causePapers, isLoading } = useCrimListCausePapers(
+    language === "all" ? undefined : { language },
+  );
 
   const filtered = causePapers?.filter(p =>
     p.title.toLowerCase().includes(search.toLowerCase()) ||
+    p.description.toLowerCase().includes(search.toLowerCase()) ||
     p.court.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+    p.category.toLowerCase().includes(search.toLowerCase()) ||
+    (p.language === "en" ? "english" : "bahasa melayu malay").includes(search.toLowerCase())
   );
 
   return (
@@ -31,6 +37,13 @@ export function CausePapersPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search cause papers..." className="pl-9 bg-background/50 backdrop-blur-sm" value={search} onChange={(e) => setSearch(e.target.value)} data-testid="input-search-cause-papers" />
         </div>
+      </div>
+      <div className="flex gap-2" role="group" aria-label="Filter cause papers by language">
+        {([["all", "All"], ["en", "English"], ["ms", "Bahasa Melayu"]] as const).map(([value, label]) => (
+          <Button key={value} type="button" variant={language === value ? "default" : "outline"} size="sm" onClick={() => setLanguage(value)}>
+            {label}
+          </Button>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -56,6 +69,7 @@ export function CausePapersPage() {
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant="secondary" className="font-medium bg-secondary/50">{paper.category}</Badge>
                     <Badge variant="outline">{paper.court}</Badge>
+                     <Badge variant={paper.language === "en" ? "default" : "outline"}>{paper.language === "en" ? "English" : "Bahasa Melayu"}</Badge>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1" />
                 </CardContent>
