@@ -1,9 +1,12 @@
 import { Router, type IRouter } from "express";
 import mammoth from "mammoth";
 import { db, corpPendingUploads } from "@workspace/db";
-import { and, eq, gt, lt, sql } from "drizzle-orm";
+import { and, eq, gt, lt, lte, sql } from "drizzle-orm";
 import { logger } from "../../../lib/logger";
-import { ObjectStorageService } from "../../../lib/objectStorage";
+import {
+  ObjectStorageService,
+  ObjectNotFoundError,
+} from "../../../lib/objectStorage";
 import { requireSession } from "../../lib/requireSession";
 
 // Document upload + text extraction for corp AI tools (e.g. Legal Opinion
@@ -50,25 +53,75 @@ const ensureTable = db
 // Sweep all expired corp_pending_uploads rows and delete their storage objects.
 // Called opportunistically on each upload-url request, and also on a periodic
 // schedule so orphaned objects (from tab-closes mid-upload) are bounded.
+//
+// Safe deletion order: select expired rows → delete storage object first →
+// only then delete the DB row. A transient storage error leaves the row alive
+// for the next sweep to retry. ObjectNotFoundError (object never uploaded or
+// already gone) is treated as success so the row is still pruned.
 export async function sweepExpiredCorpUploads(): Promise<void> {
-  await ensureTable;
-  const expired = await db
-    .delete(corpPendingUploads)
-    .where(lt(corpPendingUploads.expiresAt, new Date()))
-    .returning({ objectPath: corpPendingUploads.objectPath });
-  for (const row of expired) {
-    try {
-      const file = await objectStorage.getObjectEntityFile(row.objectPath);
-      await file.delete({ ignoreNotFound: true });
-    } catch {
-      /* never uploaded or already gone — nothing to clean */
-    }
-  }
-  if (expired.length > 0) {
+  try {
+    await ensureTable;
+    const now = new Date();
+    // SELECT first — don't delete rows until the storage object is gone.
+    const expired = await db
+      .select({
+        id: corpPendingUploads.id,
+        objectPath: corpPendingUploads.objectPath,
+      })
+      .from(corpPendingUploads)
+      .where(lte(corpPendingUploads.expiresAt, now));
+
+    if (expired.length === 0) return;
+
     logger.info(
       { count: expired.length },
-      "Swept expired corp pending uploads",
+      "Corp upload sweep: found expired pending uploads",
     );
+
+    let deleted = 0;
+    let storageErrors = 0;
+    for (const row of expired) {
+      let objectGone = false;
+      try {
+        const file = await objectStorage.getObjectEntityFile(row.objectPath);
+        // ignoreNotFound on the delete call handles the race where another
+        // process deleted it between getObjectEntityFile and delete.
+        await file.delete({ ignoreNotFound: true });
+        objectGone = true;
+      } catch (err) {
+        if (err instanceof ObjectNotFoundError) {
+          // Object was never uploaded or is already absent — safe to delete
+          // the registry row so we don't retry it forever.
+          objectGone = true;
+        } else {
+          // Genuine transient storage failure — leave the DB row alive so the
+          // next sweep can retry. Count but don't log object paths (may contain IDs).
+          storageErrors += 1;
+        }
+      }
+      if (!objectGone) continue;
+      // Object confirmed gone — now safe to remove the registry row.
+      try {
+        await db
+          .delete(corpPendingUploads)
+          .where(eq(corpPendingUploads.id, row.id));
+        deleted += 1;
+      } catch (dbErr) {
+        logger.error({ err: dbErr }, "Corp upload sweep: DB row delete failed");
+      }
+    }
+
+    if (deleted > 0) {
+      logger.info({ deleted }, "Corp upload sweep: pruned expired uploads");
+    }
+    if (storageErrors > 0) {
+      logger.warn(
+        { storageErrors },
+        "Corp upload sweep: storage deletions failed — rows kept for retry",
+      );
+    }
+  } catch (err) {
+    logger.error({ err }, "Corp upload sweep failed (non-fatal)");
   }
 }
 

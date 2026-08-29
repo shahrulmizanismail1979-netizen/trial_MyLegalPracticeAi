@@ -9,6 +9,8 @@
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import crypto from "node:crypto";
+import express from "express";
+import request from "supertest";
 import { db, corpAccessCodes, corpPendingUploads } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -21,30 +23,48 @@ const mockDelete = vi.fn().mockResolvedValue(undefined);
 const mockGetObjectEntityFile = vi.fn().mockResolvedValue({
   delete: mockDelete,
 });
+const mockUploadURL = "https://storage.example.com/uploads/route-test?sig=x";
+const mockRouteObjectPath = "/objects/uploads/route-test";
+const mockAuth = vi.hoisted(() => ({ accessCodeId: 0 }));
 
 vi.mock("../../../lib/objectStorage", () => {
+  class ObjectNotFoundError extends Error {
+    constructor() {
+      super("Object not found");
+      this.name = "ObjectNotFoundError";
+      Object.setPrototypeOf(this, ObjectNotFoundError.prototype);
+    }
+  }
+
   function ObjectStorageService(this: unknown) {
     (this as Record<string, unknown>).getObjectEntityFile =
       mockGetObjectEntityFile;
+    (this as Record<string, unknown>).getObjectEntityUploadURL =
+      vi.fn().mockResolvedValue(mockUploadURL);
+    (this as Record<string, unknown>).normalizeObjectEntityPath =
+      vi.fn().mockReturnValue(mockRouteObjectPath);
   }
-  return { ObjectStorageService };
+  return { ObjectStorageService, ObjectNotFoundError };
 });
 
-// Also mock Clerk so the app module can load without real credentials.
-vi.mock("@clerk/express", () => ({
-  clerkMiddleware:
-    () =>
-    (_req: unknown, _res: unknown, next: () => void): void =>
-      next(),
-  getAuth: () => ({ userId: null }),
-  clerkClient: {
-    users: { getUser: async () => Promise.reject(new Error("not found")) },
+vi.mock("../../lib/requireSession", () => ({
+  requireSession: (
+    _req: unknown,
+    res: { locals: Record<string, unknown> },
+    next: () => void,
+  ): void => {
+    res.locals.accessCodeId = mockAuth.accessCodeId;
+    next();
   },
 }));
 
 // Import the functions under test AFTER mocks are registered.
-const { sweepExpiredCorpUploads, registerPendingUpload, consumePendingUpload } =
-  await import("./uploads");
+const {
+  default: uploadsRouter,
+  sweepExpiredCorpUploads,
+  registerPendingUpload,
+  consumePendingUpload,
+} = await import("./uploads");
 
 // ── Test data ────────────────────────────────────────────────────────────────
 
@@ -62,6 +82,7 @@ beforeAll(async () => {
     .values({ code: CODE_A, label: `Sweep test A ${RUN_ID}`, isActive: true })
     .returning();
   codeId = rowA.id;
+  mockAuth.accessCodeId = codeId;
 
   const [rowB] = await db
     .insert(corpAccessCodes)
@@ -129,21 +150,60 @@ describe("sweepExpiredCorpUploads", () => {
     expect(mockDelete).toHaveBeenCalledWith({ ignoreNotFound: true });
   });
 
-  it("still removes the DB row even when the storage delete throws (object already gone)", async () => {
+  it("removes the DB row when the object is already absent", async () => {
     const objectPath = `/objects/sweep-test-${RUN_ID}-fail`;
     await insertExpiredRow(objectPath);
     expect(await rowExists(objectPath)).toBe(true);
 
-    // Simulate a storage error (e.g. object was never uploaded, GCS returns 404).
+    // getObjectEntityFile throws ObjectNotFoundError when the object was never
+    // uploaded (abandoned presigned URL) or was already cleaned up.
     mockGetObjectEntityFile.mockRejectedValueOnce(
-      new Error("Object not found in storage"),
+      new (await import("../../../lib/objectStorage")).ObjectNotFoundError(),
     );
 
-    // sweepExpiredCorpUploads must NOT throw.
+    // sweepExpiredCorpUploads must NOT throw, and the row should be pruned
+    // because the object is definitively gone.
     await expect(sweepExpiredCorpUploads()).resolves.toBeUndefined();
 
-    // DB row must be gone regardless of the storage error.
+    // DB row must be gone.
     expect(await rowExists(objectPath)).toBe(false);
+  });
+
+  it("retains the DB row when storage has a transient failure", async () => {
+    const objectPath = `/objects/sweep-test-${RUN_ID}-transient`;
+    await insertExpiredRow(objectPath);
+    expect(await rowExists(objectPath)).toBe(true);
+
+    mockGetObjectEntityFile.mockRejectedValueOnce(new Error("Network timeout"));
+
+    await expect(sweepExpiredCorpUploads()).resolves.toBeUndefined();
+
+    // Keep the registry row so a later scheduled sweep can retry.
+    expect(await rowExists(objectPath)).toBe(true);
+    await db.delete(corpPendingUploads).where(eq(corpPendingUploads.objectPath, objectPath));
+  });
+});
+
+describe("POST /legal/uploads/upload-url", () => {
+  it("normalizes the presigned URL and registers that object path", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use(uploadsRouter);
+
+    const response = await request(app)
+      .post("/legal/uploads/upload-url")
+      .send({ fileName: "risk-scan.pdf" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      uploadURL: mockUploadURL,
+      objectPath: mockRouteObjectPath,
+    });
+    expect(await rowExists(mockRouteObjectPath)).toBe(true);
+
+    await db
+      .delete(corpPendingUploads)
+      .where(eq(corpPendingUploads.objectPath, mockRouteObjectPath));
   });
 });
 

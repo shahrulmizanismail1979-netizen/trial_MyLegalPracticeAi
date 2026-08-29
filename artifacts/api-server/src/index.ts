@@ -52,6 +52,7 @@ import { registerDriveIngestProcessor } from "./research/drive/driveIngestProces
 import { recoverStaleDriveIngestJobs } from "./research/drive/driveJobRecovery";
 import { getStripeSync, getStripeMode, warnIfTestModeInProduction, purgeTestModeStripeData } from "./stripeClient";
 import { startCorpUploadSweepWorker } from "./corp/corpUploadSweepWorker";
+import { sweepExpiredCorpUploads } from "./corp/routes/legal/uploads";
 import { ensureLandingCatalogPrices, resolveOrigin } from "./routes/stripe";
 
 function registerAllResearchProcessors(): void {
@@ -275,6 +276,12 @@ void seedLawyesEditorialIntake().catch((err) =>
 // automatically applied in deployed environments, so guarantee it before
 // opening the server to matter requests.
 await ensureMatterPreparationSchema();
+
+// Prune expired corp risk-scanner uploads immediately at boot. The standalone
+// hourly worker below handles ongoing cleanup when no new uploads arrive.
+void sweepExpiredCorpUploads().catch((err) =>
+  logger.error({ err }, "Corp upload boot sweep failed"),
+);
 
 // Best-effort backfill: make every confirmed subscriber's access code work
 // on all portals in their plan (idempotent upserts, no emails sent).

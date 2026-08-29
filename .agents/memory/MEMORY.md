@@ -58,6 +58,7 @@
 - [Public information sources](public-information-sources.md) — subscriber claims come only from admin-published records; keep live availability separate from checkout eligibility.
 - [MyCorpAI drafting contract](mycorp-ai-drafting-contract.md) — specialist tool identity and a terminal-completion stream are required before presenting a corporate draft as final.
 - [Private saved-draft upload safety](private-saved-draft-upload-safety.md) — direct-upload drafts must be attachment-only, atomically confirmed, and reclaim all redundant objects.
+- [Corp upload expiry cleanup](corp-upload-sweep.md) — delete storage first; classify missing objects as success and retain rows for transient failures.
 - [Post-merge setup under preview load](post-merge-setup-preview-load.md) — skip pnpm relinking for lockfile-stable merges and limit Drizzle/esbuild workers.
 - [Regression-safe delivery](regression-safe-delivery.md) — every change must protect adjacent working flows with targeted regression checks before it is called complete.
 - [Paid checkout capacity invariants](paid-checkout-capacity.md) — never release a slot after a payable remote session exists; delayed completion must count paid and live reserved allocations under one lock.
