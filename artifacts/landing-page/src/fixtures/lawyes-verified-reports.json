@@ -1,0 +1,448 @@
+{
+  "lee": {
+    "id": "lee-khoon-hoo",
+    "title": "Lee Khoon Hoo & Anor v Sabah Forest Industries Sdn Bhd",
+    "sourceUrl": "https://ekss-cmsc.kehakiman.gov.my/apps/ekss/cms/share/attachment_dl/M3NMOTBqOGpueWVKN29OcG9RWjBoUT09Ojrzpep_gQdCwVmu4rjeC_y0/?state=sabah",
+    "sourcePublisher": "e-Kehakiman Sabah and Sarawak",
+    "report": {
+      "authorities": [
+        {
+          "name": "Kilo Asset Sdn Bhd v Hew Tai Hong [2016] 1 MLJ 785",
+          "pinpoints": [
+            "[201-242]",
+            "[451]"
+          ],
+          "treatment": "applied"
+        },
+        {
+          "name": "MTV Digital Sales Sdn Bhd v First Omni Sdn Bhd [2018] 1 LNS 1520",
+          "pinpoints": [
+            "[327-368]",
+            "[461-462]"
+          ],
+          "treatment": "applied"
+        },
+        {
+          "name": "Sri Hartamas DVPT. Sdn. Bhd. V MBF Finance Bhd [1992] 1 CLJ (Rep) 303",
+          "pinpoints": [
+            "[495-496]",
+            "[527-540]"
+          ],
+          "treatment": "applied"
+        },
+        {
+          "name": "Affin Bank Berhad v Abu Bakar Ismail [2020] 3 CLJ 739",
+          "pinpoints": [
+            "[511-512]",
+            "[718]"
+          ],
+          "treatment": "applied"
+        }
+      ],
+      "catchwords": [
+        "Companies Winding-Up",
+        "Commercial Insolvency",
+        "Inability to pay debts",
+        "Statutory Demand",
+        "Companies Act 2016",
+        "Procedural Irregularity",
+        "Discretion to extend time"
+      ],
+      "citation": "[BKI-28NCC-31/6-2017]",
+      "coram": "YA Tuan Leonard David Shim",
+      "counsel": "For the Petitioners: Cindy Han of Messrs. S K Ting & Co; For the Respondent: Sukumaran Vanugopal of Messrs. S. Vanugopal & Partners; Other Counsel listed in [751-768]",
+      "court": "High Court in Sabah and Sarawak at Kota Kinabalu",
+      "decisionDate": "15 November 2021",
+      "disposition": {
+        "pinpoints": [
+          "[738-739]"
+        ],
+        "text": "The Petition is allowed with costs of RM5,000.00 to be paid out of the Respondent’s assets."
+      },
+      "facts": [
+        {
+          "pinpoints": [
+            "[74-76]"
+          ],
+          "text": "The Petitioners obtained a judgment against the Respondent in 2016, which remained unsatisfied [L74-76]."
+        },
+        {
+          "pinpoints": [
+            "[88-90]",
+            "[109-110]"
+          ],
+          "text": "The Respondent was served with a statutory notice of demand on 23.01.2017 but failed to satisfy the debt in full within the required period [L88-90, L109-110]."
+        },
+        {
+          "pinpoints": [
+            "[614-616]",
+            "[621-622]"
+          ],
+          "text": "The Respondent attempted to show solvency by citing a market value of RM2.087 billion, but failed to exhibit audited financial statements [L614-616, L621-622]."
+        }
+      ],
+      "headnote": "The High Court ordered the winding up of the Respondent company, finding it commercially insolvent and unable to pay its judgment debts. The Court exercised its discretion under the Winding-Up Rules to cure procedural irregularities in the filing of the Affidavit in Reply, holding that no substantial injustice had been caused. Further, the Court determined that the Petition, filed under the Companies Act 2016, was correctly brought despite the statutory demand being issued under the Companies Act 1965, as the right to present the petition accrued after the new Act came into force.",
+      "issues": [
+        {
+          "holding": "No; the Court exercised its discretion under the Winding-Up Rules to extend time, finding the delay inconsequential and that no injustice was caused to the Respondent [L249-251, L446-451].",
+          "issue": "Whether the Affidavit in Reply was fatally defective due to late filing.",
+          "pinpoints": [
+            "[249-251]",
+            "[436-440]",
+            "[446-451]"
+          ]
+        },
+        {
+          "holding": "No; the right to present the petition accrued after the 2016 Act's commencement, making the procedure valid [L375-383, L456-462].",
+          "issue": "Whether the Winding-Up Petition was defective for being brought under the Companies Act 2016 when the notice was issued under the 1965 Act.",
+          "pinpoints": [
+            "[375-383]",
+            "[456-462]"
+          ]
+        },
+        {
+          "holding": "Yes; the Respondent failed to prove its ability to pay current debts, and the Court was entitled to consider contingent and prospective liabilities [L487-491, L593-596, L647-649].",
+          "issue": "Whether the Respondent was commercially insolvent.",
+          "pinpoints": [
+            "[487-491]",
+            "[593-596]",
+            "[647-649]"
+          ]
+        }
+      ],
+      "legislation": [
+        "Companies Act 2016",
+        "Companies Act 1965",
+        "Companies (Winding-Up) Rules 1972",
+        "Interpretation Acts 1948 and 1967"
+      ],
+      "obiter": [
+        {
+          "pinpoints": [
+            "[728-731]"
+          ],
+          "text": "Delay in resolving corporate insolvency proceedings defeats equity, especially when a company has been given ample time to restructure without success [L728-731]."
+        }
+      ],
+      "paragraphs": [
+        {
+          "number": "1",
+          "text": "This is a Companies Winding-Up Petition (the WUP) to wind up the Respondent company under s. 465 of the Companies Act 2016."
+        },
+        {
+          "number": "4",
+          "text": "The JID has neither been stayed nor set aside. Therefore it is final, conclusive and binding on the Respondent."
+        },
+        {
+          "number": "11",
+          "text": "The grounds upon which the WUP is presented are that – i. The Respondent is unable to pay its debts – Section 465(1)(e) of the Companies Act 2016; and/or ii. It is just and equitable that the Respondent be wound up – Section 465(1)(i) of the Companies Act 2016."
+        },
+        {
+          "number": "18",
+          "text": "In particular, the Federal Court in Kilo Asset Sdn Bhd (Supra) held as follows... we find that it would not be right to adopt a purely mechanistic approach to this issue of time limits, and completely ignore the discretion of the court in extending the same under r 193 of the Winding-Up Rules."
+        },
+        {
+          "number": "21",
+          "text": "The Respondent contends that Affidavit in Reply (Encl. 5) was defective... the said delay by the Petitioners did not cause any injustice to the Respondent. Even if Encl. 5 is filed and served out of time, this is a proper case for the Court to exercise its discretion under Rules 193 and 194 of the Winding-Up Rules..."
+        },
+        {
+          "number": "25",
+          "text": "It is settled law that in a winding up petition, the burden is on the Respondent to establish by evidence that it is able to pay its debts see Sri Hartamas DVPT. Sdn. Bhd. V MBF Finance Bhd [1992] 1 CLJ (Rep) 303."
+        },
+        {
+          "number": "26",
+          "text": "A company is “unable to pay its debts” when it is “commercially insolvent”. That means inability to meet current demands irrespective of whether the company possesses assets which, if realised, would enable it to discharge its liabilities in full."
+        },
+        {
+          "number": "27",
+          "text": "In short, the question is not whether the debtor’s assets exceed his liabilities as appeared in the books of the debtor, but whether there are moneys presently available to the debtor, or which he is able to realize in time, to meet the debts as they become due."
+        },
+        {
+          "number": "29",
+          "text": "There is no evidence before this Court to establish that the Respondent has monies presently available or which it is able to realise in time, to meet the judgment debt presently due to the Petitioners herein."
+        },
+        {
+          "number": "32",
+          "text": "However, the Respondent did not exhibit its latest audited financial statements to substantiate their contention that they have substantial assets with a market value of RM2.087 billion..."
+        },
+        {
+          "number": "34",
+          "text": "In determining the issue of whether the Respondent is unable to pay its debts and should be wound up, the Court is entitled to take into account the contingent and prospective liabilities of the Respondent."
+        },
+        {
+          "number": "37",
+          "text": "There is no evidence to show that further restructuring will yield a better outcome and bring about a revival of the Respondent’s business operations... Therefore, it is unfair and unjust to make the Petitioners wait for another 9 months... Delay defeats equity."
+        }
+      ],
+      "practiceAreas": [
+        "Company Law",
+        "Insolvency"
+      ],
+      "proceduralHistory": [
+        {
+          "pinpoints": [
+            "[125]"
+          ],
+          "text": "The Winding-Up Petition was presented on 13.06.2017 [L125]."
+        },
+        {
+          "pinpoints": [
+            "[157-160]"
+          ],
+          "text": "A Restraining Order, obtained on 13.07.2017, was in effect until 14.07.2021 [L157-160]."
+        }
+      ],
+      "ratio": [
+        {
+          "pinpoints": [
+            "[498-501]",
+            "[518-522]"
+          ],
+          "text": "The test for commercial insolvency is not whether the company's total assets exceed its liabilities, but whether the company has sufficient funds presently available to meet its debts as they fall due [L498-501, L518-522]."
+        },
+        {
+          "pinpoints": [
+            "[220-227]",
+            "[446-451]"
+          ],
+          "text": "Courts have discretion under Rules 193 and 194 of the Winding-Up Rules to condone procedural irregularities provided such irregularities do not cause substantial injustice [L220-227, L446-451]."
+        },
+        {
+          "pinpoints": [
+            "[647-649]"
+          ],
+          "text": "The Court may take into account a company's contingent and prospective liabilities when determining its insolvency [L647-649]."
+        }
+      ],
+      "registry": "Kota Kinabalu"
+    }
+  },
+  "arsit": {
+    "id": "pp-arsit",
+    "title": "Public Prosecutor v Arsit bin Indanan",
+    "sourceUrl": "https://ekss-cmsc.kehakiman.gov.my/apps/ekss/cms/share/attachment_dl/bktCY0VPRjhlMmcvRjNsdE1hZitOdz09OjoLTPlmC2Z65dcwSqYtDyS-/?state=sabah",
+    "sourcePublisher": "e-Kehakiman Sabah and Sarawak",
+    "report": {
+      "authorities": [
+        {
+          "name": "Dalip Baghwan Singh v PP [1997] 4 CLJ 645",
+          "pinpoints": [
+            "42"
+          ],
+          "treatment": "Applied"
+        },
+        {
+          "name": "Looi Kow Chai & Anor v Public Prosecutor [2003] 1 CLJ 734",
+          "pinpoints": [
+            "72"
+          ],
+          "treatment": "Applied"
+        },
+        {
+          "name": "Lim Chun Jie v PP & Other Appeals [2022] 3 CLJ 543",
+          "pinpoints": [
+            "656",
+            "730"
+          ],
+          "treatment": "Applied"
+        },
+        {
+          "name": "Alowonle Oluwajuwon Gilbert v PP [2023] 1 LNS 2391",
+          "pinpoints": [
+            "857",
+            "950"
+          ],
+          "treatment": "Referred"
+        }
+      ],
+      "catchwords": [
+        "Murder",
+        "Section 302 Penal Code",
+        "Burden of proof",
+        "Prima facie case",
+        "Accomplice testimony",
+        "Corroboration",
+        "Bare denial defence",
+        "Sentencing guidelines",
+        "Abolition of Mandatory Death Penalty Act 2023"
+      ],
+      "citation": "[BKI-45B-2/3-2021]",
+      "coram": "Justice Leonard David Shim",
+      "counsel": "For the Prosecution: DPP Azreen Yas Binti Mohamad Ramli, DPP Rozanna Binti Abdul Hadi, and DPP Siti Hajar Binti Mazlan. For the Accused: Mohd Ari Nadzrah Bin Abd Rahman of AriI Rizidah & Co. [Assigned counsel]",
+      "court": "High Court in Sabah and Sarawak at Kota Kinabalu",
+      "decisionDate": "29 April 2024",
+      "disposition": {
+        "pinpoints": [
+          "826",
+          "828",
+          "1023",
+          "1028"
+        ],
+        "text": "Accused found guilty and convicted under section 302 of the Penal Code, sentenced to 40 years imprisonment and 12 strokes of whipping, to be followed by deportation."
+      },
+      "facts": [
+        {
+          "pinpoints": [
+            "17",
+            "28"
+          ],
+          "text": "The deceased, a Grab driver, was killed on 25 May 2019 in a vehicle near Jalan Marabahai, Tuaran, Sabah [L17-L28]."
+        },
+        {
+          "pinpoints": [
+            "30",
+            "31",
+            "341",
+            "349"
+          ],
+          "text": "The prosecution relied on evidence from 23 witnesses, including an accomplice (PW1) who witnessed the accused stabbing the deceased in the chest from behind [L30-L31, L341-L349]."
+        },
+        {
+          "pinpoints": [
+            "534",
+            "539"
+          ],
+          "text": "The accused's DNA was found on the deceased's identity card, and the deceased's body was dumped at Shahbandar [L534-L539]."
+        },
+        {
+          "pinpoints": [
+            "607",
+            "611"
+          ],
+          "text": "The defence argued that the accused was intoxicated and asleep, claiming PW1 was responsible for the murder [L607-L611]."
+        }
+      ],
+      "headnote": "The High Court found the accused guilty of murder under section 302 of the Penal Code after determining that the prosecution successfully established a prima facie case beyond reasonable doubt, while the accused's defence consisted merely of an afterthought and bare denial. Upon conviction, the Court considered both aggravating and mitigating factors, including the brutal nature of the act and the accused's status as a first-time offender, ultimately sentencing him to 40 years imprisonment and 12 strokes of whipping under the Abolition of Mandatory Death Penalty Act 2023.",
+      "issues": [
+        {
+          "holding": "Yes, through maximum evaluation of the evidence, the Court found the elements of murder proven beyond reasonable doubt.",
+          "issue": "Whether the prosecution established a prima facie case of murder under section 302 of the Penal Code.",
+          "pinpoints": [
+            "596",
+            "600"
+          ]
+        },
+        {
+          "holding": "While a conviction on uncorroborated accomplice testimony is not illegal, the Court found PW1's evidence was sufficiently corroborated by independent witnesses and forensic findings.",
+          "issue": "Whether the uncorroborated evidence of an accomplice (PW1) is sufficient for conviction.",
+          "pinpoints": [
+            "412",
+            "417",
+            "527",
+            "581"
+          ]
+        }
+      ],
+      "legislation": [
+        "Penal Code (Section 300, 302)",
+        "Evidence Act 1950 (Section 114, 133)",
+        "Abolition of Mandatory Death Penalty Act 2023 (Act 846)"
+      ],
+      "obiter": [
+        {
+          "pinpoints": [
+            "861",
+            "866"
+          ],
+          "text": "Regarding the imposition of the death penalty, it is reserved for the most heinous and exceptional cases that shock the collective conscience of society [L861-L866]."
+        }
+      ],
+      "paragraphs": [
+        {
+          "number": "4",
+          "text": "The meaning of prima facie had been elaborated in the case of DALIP BAGHWAN SINGH V PP [1997] 4 CLJ 645, pg. 658-659 as follows: “…the meaning of the test of prima facie case at the end of the prosecution’s case is, ‘on the assumption that the prosecution evidence was accurate, could the accused be lawfully convicted?"
+        },
+        {
+          "number": "6",
+          "text": "The meaning of prima facie is also decided in the case of LOOI KOW CHAI & ANOR V PUBLIC PROSECUTOR [2003] 1 CLJ 734, pg. 736 as follows: “The correct test to be applied in determining whether a prima facie case had been made out under s 180 of the Criminal Procedure Code... was that as encapsulated in the judgement of Hashim Yeop Sani FJ."
+        },
+        {
+          "number": "10",
+          "text": "In PP v Sanderasegaran Nithenanham [2024] 4 CJL 823 FC, the Federal Court succinctly stated the elements of an offence under s.302 read with s.300 (c) of the Penal Code."
+        },
+        {
+          "number": "17",
+          "text": "PW11, a forensic pathologist, in his testimony had stated that the deceased cause of death is multiple slash and stab wounds."
+        },
+        {
+          "number": "30",
+          "text": "The law of evidence on the evidence of an accomplice is clearly stated in section 133 of the Evidence Act 1950 [Act 56] whereby the law provides that an accomplice is a competent witness."
+        },
+        {
+          "number": "33",
+          "text": "In that case, Justice Abdul Hamid Mohamad FCJ held in a majority decision: “In the absence of any corroborative evidence, it is unsafe to convict the appellants on the evidence of an accomplice alone unless his evidence is unusually convincing or for some reason is of special weight."
+        },
+        {
+          "number": "34",
+          "text": "The Federal Court in that case also referred to another Federal Court case of YAP EE KONG & ANOR v. PUBLIC PROSECUTOR [1981] 1 MLJ 144 whereby Raja Azlan Shah CJ held that: “It is a matter of prudence except where circumstances make it safe to dispense with that there must be corroboration of the evidence of an accomplice.”"
+        },
+        {
+          "number": "44",
+          "text": "From all these evidences highlighted above, the Court finds that PW1’s evidence is sufficiently corroborated in material particulars and could be accepted by the Court to prove the charge against the Accused."
+        },
+        {
+          "number": "54",
+          "text": "It is trite law that a defence of bare denial is not a defence. In the case of LIM CHUN JIE v. PP & OTHER APPEALS [2022] 3 CLJ 543, pg. 579, the Court of Appeal held as follows: “It is trite that a bare denial is when the accused did not offer any explanation to the charge and merely denied the evidence of the prosecution. The defence of bare denial is no defence.”"
+        },
+        {
+          "number": "69",
+          "text": "Having seen and observed the demeanour of the Accused in Court during the trial and having regard to the serious inconsistency of the Accused’s version during the prosecution’s case and the defence stage, the Court finds that the accused’s version amounts to a bare denial and an afterthought."
+        },
+        {
+          "number": "70",
+          "text": "From the totality of the evidence adduced by the Prosecution and the defence which the Court has carefully evaluated, the Court finds that the Accused has failed to raise a reasonable doubt in the prosecution case for the offence of murder under s.302 of the Penal Code."
+        },
+        {
+          "number": "85",
+          "text": "Having considered the mitigating and aggravating factors of the present case and the public interest and having regard to the Abolition of Mandatory Death Penalty Act 2023 (Act 846), the Court sentenced the Accused to life imprisonment of 40 years and 12 strokes of whipping."
+        }
+      ],
+      "practiceAreas": [
+        "Criminal Law"
+      ],
+      "proceduralHistory": [
+        {
+          "pinpoints": [
+            "17",
+            "596",
+            "602"
+          ],
+          "text": "The court heard a murder trial under section 302 of the Penal Code, concluding on 10 January 2024 that a prima facie case was established [L17, L596-L602]."
+        },
+        {
+          "pinpoints": [
+            "826",
+            "828",
+            "1031"
+          ],
+          "text": "The court delivered its verdict on 29 April 2024, finding the accused guilty as charged [L826-L828, L1031]."
+        }
+      ],
+      "ratio": [
+        {
+          "pinpoints": [
+            "45",
+            "54"
+          ],
+          "text": "To establish a prima facie case at the end of the prosecution’s case, the evidence must be sufficient to prove each ingredient of the offence such that, if unrebutted, it warrants a conviction [L45-L54]."
+        },
+        {
+          "pinpoints": [
+            "655",
+            "662",
+            "663"
+          ],
+          "text": "A defence of bare denial, where the accused offers no explanation and merely denies the prosecution's evidence, is insufficient to raise reasonable doubt [L655, L662-L663]."
+        },
+        {
+          "pinpoints": [
+            "161",
+            "165"
+          ],
+          "text": "Under section 300(c) of the Penal Code, the prosecution must prove that the accused voluntarily inflicted bodily injury sufficient in the ordinary course of nature to cause death [L161-L165]."
+        }
+      ],
+      "registry": "Kota Kinabalu"
+    }
+  }
+}

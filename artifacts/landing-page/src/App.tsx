@@ -29,6 +29,7 @@ import {
 } from "@/lib/clerk";
 
 import { PersonaProvider } from "@/lib/persona";
+import LawYesSafePreview from "@/pages/lawyes-safe-preview";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +144,7 @@ function Router() {
           <DocumentsPage />
         </AdminGuard>
       </Route>
+      <Route path="/lawyes-safe-preview" component={LawYesSafePreview} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -180,6 +182,15 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
+  // This route deliberately renders before Clerk, React Query, and every
+  // application provider. The preview is a standalone browser-only artifact.
+  if (
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/\/+$/, "") === "/lawyes-safe-preview"
+  ) {
+    return <LawYesSafePreview />;
+  }
+
   return (
     <LandingErrorBoundary>
       <PersonaProvider>
