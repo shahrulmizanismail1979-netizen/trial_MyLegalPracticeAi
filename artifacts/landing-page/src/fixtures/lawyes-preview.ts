@@ -314,7 +314,7 @@ export const DECISION_TREES: readonly DecisionTree[] = Object.freeze([
 export const AUDIT = {
   reviewedOn: "30 August 2026",
   sourcesReviewed: SOURCES.length,
-  verifiedCurrentAdditions: RESOURCES.filter((resource) => resource.status === "Verified current").length,
+  verifiedCurrentAdditions: SOURCES.filter((source) => source.editorialStatus === "Verified current").length,
   sarawakSubstantiveReports: REPORTS.filter((report) => report.jurisdiction === "Sarawak" && report.status === "Published").length,
   publishedReports: REPORTS.filter((report) => report.status === "Published").length,
   accessRecords: REPORTS.filter((report) => report.status === "Access record").length,

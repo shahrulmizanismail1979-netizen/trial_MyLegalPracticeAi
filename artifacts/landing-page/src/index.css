@@ -325,7 +325,7 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
-  
+
   /* Text gradient utility */
   @keyframes marquee {
     from { transform: translateX(0); }
@@ -335,4 +335,37 @@
   .text-gradient-gold {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-300 to-primary;
   }
+}
+
+/* LAWYes Safe Preview: route-scoped theme and overflow protection. */
+.safe-preview {
+  --background: 60 17% 97%;
+  --foreground: 170 12% 16%;
+  --border: 60 10% 88%;
+  --input: 60 10% 88%;
+  --ring: 171 67% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 170 12% 16%;
+  --card-border: 60 10% 90%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 170 12% 16%;
+  --popover-border: 60 10% 88%;
+  --primary: 171 67% 15%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 42 39% 52%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 60 12% 93%;
+  --muted-foreground: 170 8% 45%;
+  --accent: 171 20% 92%;
+  --accent-foreground: 171 67% 15%;
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
+}
+.safe-preview .no-scrollbar::-webkit-scrollbar { display: none; }
+.safe-preview .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.safe-preview button, .safe-preview input, .safe-preview select, .safe-preview textarea { min-height: 44px; }
+.safe-preview input[type=checkbox] { min-height: auto; }
+@media (max-width: 767px) {
+  .safe-preview { padding-bottom: env(safe-area-inset-bottom); }
 }

@@ -21,6 +21,7 @@ describe("LAWYes preview fixture", () => {
     expect(PLAYBOOKS.map(item => item.track)).toEqual(["Civil", "Criminal", "Conveyancing / land"]);
     expect(CHECKLISTS).toHaveLength(3);
     expect(DECISION_TREES).toHaveLength(2);
+    expect(AUDIT.verifiedCurrentAdditions).toBe(SOURCES.filter(source => source.editorialStatus === "Verified current").length);
     expect(AUDIT.sarawakSubstantiveReports).toBe(0);
     expect(REPORTS.some(r => r.jurisdiction === "Sarawak" && r.status === "Access record")).toBe(true);
   });

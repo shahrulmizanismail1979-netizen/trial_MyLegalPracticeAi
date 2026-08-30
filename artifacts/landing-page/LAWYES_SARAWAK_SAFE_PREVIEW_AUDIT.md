@@ -1,6 +1,6 @@
 # LAWYes Sarawak Safe Preview audit
 
-**Review date:** 30 August 2026  
+**Review date:** 30 August 2026
 **Release boundary:** Static Safe Preview only. No production API, database, Drive, upload, billing, subscriber entitlement, or local-storage changes.
 
 ## Sources reviewed
@@ -21,7 +21,7 @@ The preview does not infer a rule, procedure, fee, form, deadline, or legal outc
 
 ## Verified-current additions
 
-- Six official/public gateway records were reachable and recorded as verified-current on the review date.
+- Seven official/public source records were reachable and recorded as verified-current on the review date.
 - One professional-association gateway was intermittent and remains verification-required.
 - Sarawak LawNet is exposed as the legislation discovery source, but every individual instrument still requires an item-level currency and amendment check.
 - National and federal material remains available and visibly distinct from Sarawak-specific material.
@@ -35,7 +35,7 @@ The preview does not infer a rule, procedure, fee, form, deadline, or legal outc
 
 ## Practice coverage
 
-The structured Sarawak discovery model covers civil, criminal, conveyancing/land, Native law, professional practice, probate/estates, family, employment, commercial/company, insolvency, public law, local government, and state regulatory work.
+The structured Sarawak discovery model covers six specified Practice Centre categories: Civil Litigation, Criminal Litigation, Conveyancing & Land, NCR & Native Law, Probate & Estates, and Professional Practice.
 
 Each practice card is verification-required. It is a source-discovery path, not a completeness or legal-content claim.
 
@@ -64,11 +64,13 @@ The implementation passed:
 
 - Seven fixture tests covering publication gates, provenance, search aliases, jurisdiction, exports, and isolation.
 - Landing-page TypeScript checking and production build.
-- Desktop and 390 × 844 browser checks covering navigation, jurisdiction switching, empty state, source links, filters, report access, document intake, safe export controls, and horizontal overflow.
-- Browser download events confirmed non-empty report TXT/DOCX and drafting-pack TXT/DOCX files with the expected filename extensions.
-- A source-code and browser isolation check confirming no network client, application endpoint, storage, account, upload, payment, or server-write integration exists in the preview.
+- Desktop 1440 × 1000 and mobile 390 × 844 browser checks covering the four-action opening, progressive search filters, empty/reset states, report selection, guided drafting, the demonstration matter flow, six Practice Centre categories, Sources & Verification, browser Back, keyboard focus and horizontal overflow.
+- Browser download events confirmed non-empty published-report TXT (6,212 bytes) and DOCX (9,352 bytes), result CSV (2,238 bytes) and JSON (28,430 bytes), and drafting-pack TXT (887 bytes) and DOCX (2,931 bytes).
+- A permanent browser regression test confirms that a selected published report exposes its report-specific official judgment URL, separately from the generic source-register gateway.
+- Source-code and browser isolation checks found no preview-originated application API, storage, account, upload, payment, AI, persistence or server-write request.
+- Existing API regressions: 1,067 tests passed across 102 files.
 
-The shared landing-page document loads its existing Google Fonts stylesheet as a presentation asset. No runtime application-data request was observed after the preview loaded.
+The configured multi-portal E2E workflow still fails in the pre-existing MyCorpLegalAI draft test because the expected `Practitioner` text is absent after sign-in. The failure is outside `/lawyes-safe-preview` and this work did not alter that portal.
 
 ## Production-release risks
 
