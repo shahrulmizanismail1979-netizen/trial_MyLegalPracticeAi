@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { NOT_STATED, REPORTS, canPublish, exportRecords, filterReports, reportText, validatePublication } from "./lawyes-preview";
+import {
+  SARAWAK_PLAYBOOKS,
+  SARAWAK_PRECEDENT_PACKS,
+  SARAWAK_SOURCE_RECORDS,
+  searchSarawakSources,
+  sourceById,
+} from "./lawyes-sarawak-preview";
 
 describe("LAWYes preview fixture", () => {
   it("has the fixed publication inventory", () => {
-    expect(REPORTS).toHaveLength(18);
+    expect(REPORTS).toHaveLength(22);
     expect(REPORTS.filter(r => r.status === "Published")).toHaveLength(2);
-    expect(REPORTS.filter(r => r.status === "Access record")).toHaveLength(16);
+    expect(REPORTS.filter(r => r.status === "Access record")).toHaveLength(20);
     expect(REPORTS.every(validatePublication)).toBe(true);
     expect(canPublish({ officialSourceVerified: true, paragraphSupportVerified: true, humanApproved: true })).toBe(true);
     expect(canPublish({ officialSourceVerified: true, paragraphSupportVerified: false, humanApproved: true })).toBe(false);
@@ -30,13 +37,41 @@ describe("LAWYes preview fixture", () => {
     }
   });
   it("builds honest exports", () => {
-    expect(exportRecords(REPORTS)).toHaveLength(18);
+    expect(exportRecords(REPORTS)).toHaveLength(22);
     expect(reportText(REPORTS[0])).toContain("Official source:");
     expect(reportText(REPORTS.find(r => r.status === "Access record")!)).toContain("Access record only");
   });
   it("contains no preview network, API, storage, or application-client reference", () => {
     const here = fileURLToPath(new URL(".", import.meta.url));
-    const source = readFileSync(`${here}lawyes-preview.ts`, "utf8") + readFileSync(`${here}../pages/lawyes-safe-preview.tsx`, "utf8");
+    const source =
+      readFileSync(`${here}lawyes-preview.ts`, "utf8") +
+      readFileSync(`${here}lawyes-sarawak-preview.ts`, "utf8") +
+      readFileSync(`${here}../pages/lawyes-safe-preview.tsx`, "utf8");
     expect(source).not.toMatch(/fetch\s*\(|axios|\/api\/|localStorage|Clerk|QueryClient|useQuery|useMutation/);
+  });
+  it("treats Sarawak sources as first-class verified records", () => {
+    expect(SARAWAK_SOURCE_RECORDS.length).toBeGreaterThanOrEqual(10);
+    expect(SARAWAK_SOURCE_RECORDS.every(record => record.jurisdiction.includes("Sarawak") || record.jurisdiction === "Malaysia")).toBe(true);
+    expect(SARAWAK_SOURCE_RECORDS.every(record => record.lastVerified && record.currency && record.editorialState)).toBe(true);
+    expect(SARAWAK_SOURCE_RECORDS.every(record => new URL(record.url).protocol === "https:")).toBe(true);
+    expect(sourceById("land-code")?.currency).toContain("31 December 2024");
+  });
+  it("searches Sarawak terminology and exposes practical coverage", () => {
+    expect(searchSarawakSources("NCR").map(record => record.id)).toContain("land-code");
+    expect(searchSarawakSources("mahkamah bumiputera").map(record => record.id)).toContain("native-courts");
+    expect(searchSarawakSources("Kuching registry").map(record => record.id)).toContain("judiciary-registry");
+    expect(SARAWAK_PLAYBOOKS.map(item => item.area)).toEqual(expect.arrayContaining([
+      "Civil litigation",
+      "Criminal litigation",
+      "Conveyancing and land",
+      "Native law and jurisdiction",
+      "Professional practice",
+    ]));
+    expect(SARAWAK_PRECEDENT_PACKS.map(item => item.area)).toEqual(expect.arrayContaining([
+      "Civil litigation",
+      "Criminal litigation",
+      "Conveyancing and land",
+      "Probate and estates",
+    ]));
   });
 });

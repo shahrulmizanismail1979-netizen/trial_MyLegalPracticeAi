@@ -40,3 +40,10 @@ uri = "file://research/malaysia-corporate-legal-needs.md"
 type = "text"
 title = "Malaysian Corporate Legal Needs Research"
 description = "Deep evidence-backed report on practitioner problem statements, real needs, product priorities, and research limits."
+
+[[outputs]]
+id = "WqEImPxyrTd2jXe_an7gI"
+uri = "file://docs/lawyes-sarawak-safe-preview-audit.md"
+type = "text"
+title = "LAWYes Sarawak Safe Preview Audit"
+description = "Source inventory, verified additions, transparent gaps, test results, and exact production-release risks."
