@@ -1,6 +1,6 @@
 # LAWYes Sarawak Safe Preview Audit
 
-**Review date:** 30 August 2026
+**Review date:** 31 August 2026
 **Release state:** Safe Preview only
 **Production publication:** Not performed
 
@@ -8,10 +8,10 @@
 
 - Merged the dual Sarawak and preview fixtures into one canonical dataset.
 - Redesigned the opening experience to show exactly four primary actions with clear progressive disclosure.
-- Built a streamlined Legal Search with basic defaults and advanced fields behind a toggle.
-- Created a guided Draft Document flow spanning template selection, intake, readiness checks, and local export.
-- Created a safe Matter setup demonstration flow simulating task organization without persistent storage.
-- Consolidated verification information, coverage statistics, and methodology into a single Verification view.
+- Built a guided Legal Search with an explicit all-jurisdictions default, three exact-jurisdiction modes, guided queries, a deterministic lawyer-reviewed view, advanced fields behind a toggle, validated deep links, selected materials, report-specific source links, pinpoint focus, and visible copy/export feedback.
+- Created a guided Draft Document flow spanning three pack-specific intakes, required safeguards, source/uncertainty/gap manifests, practitioner-review warnings, browser Back, and local TXT/DOCX/print actions.
+- Created a safe Matter setup demonstration that requires at least one resolved material, carries matter/client/task details into confirmation, supports Search/Draft handoffs and local TXT/JSON exports, and never persists.
+- Consolidated structured verification information, coverage statistics, source access requirements, verification steps, usage notes, change histories, and methodology into a single Verification view.
 - Ensured a mobile-first responsive layout with four-item sticky bottom navigation and no horizontal overflow.
 - Preserved the Safe Preview boundary: no authentication, application API, database, storage, upload, billing, AI, local-storage or server-write integration.
 
@@ -44,7 +44,7 @@ The substantive reports are provided as reviewed examples. The remaining records
 2. Criminal representation / bail / mitigation pack.
 3. Sarawak land / NCR transaction pack.
 
-Each pack provides guided intake fields, required facts and exhibits, filing/service checks, source references and a local DOCX export. These are labelled as access records or verification-required practitioner-review templates rather than approved court forms.
+Each pack provides pack-specific required intake fields, facts and exhibits, filing/service checks, source references, uncertainty prompts, known-gap notices, required acknowledgements, and local TXT/DOCX/print actions. Civil and criminal packs have no land-specific defaults. Generation is blocked until required intake and every displayed safeguard are complete. These remain verification-required practitioner-review templates rather than approved court forms.
 
 ## Items awaiting verification
 
@@ -56,21 +56,21 @@ Each pack provides guided intake fields, required facts and exhibits, filing/ser
 
 ## Verification completed
 
-- Landing-page TypeScript check: passed.
-- LAWYes fixture tests: 7 passed.
-- Landing-page production build: passed.
+- Landing-page TypeScript check and production build: passed.
+- LAWYes fixture, URL-state, terminal-state normalization, publication, manifest, provenance, and recursive isolation tests: 26 passed.
+- Dedicated LAWYes Playwright regression file: 10 passed with one worker.
 - Desktop browser test at 1440 x 1000: passed.
-- Mobile browser test at 390 x 844: passed with a single-column layout, four-item bottom navigation and 390/390 document/viewport width.
-- Opening four-action workspace, basic/advanced search, empty/reset state, access-record export guard, selected-report details, guided drafting, four-step demonstration matter flow, six Practice Centre categories, Sources & Verification, keyboard focus and browser Back: passed.
-- Published-report TXT (6,212 bytes) and DOCX (9,352 bytes), result CSV (2,238 bytes) and JSON (28,430 bytes), and drafting-pack TXT (887 bytes) and DOCX (2,931 bytes): passed.
-- Report-specific official judgment link UI regression test: 1 passed.
+- Mobile browser test at 390 x 844: passed with a single-column layout, four-item bottom navigation, reader open/close, and 390/390 document/viewport width.
+- Opening four-action workspace and Enter handoff, guided/basic/advanced search, exact/all-jurisdiction behavior, empty/reset state, access-record distinction, two-report lawyer-reviewed view, report-specific source, pinpoint focus, citation feedback, all three guarded drafting packs, local Matter confirmation and handoffs, all six Practice Centre categories, structured source verification, keyboard focus, deep-link reload, and browser Back: passed.
+- TXT, DOCX, JSON, and print actions expose visible/assistive success or failure feedback; Playwright confirmed the Matter TXT download.
 - Browser console: no errors.
 - Source and runtime isolation: passed; no preview-originated application API, storage, authentication, upload, billing, AI, persistence or write requests.
 - Existing API regression workflow: 1,067 tests passed across 102 files.
 
 ## Existing unrelated failure
 
-- The configured multi-portal E2E workflow fails in its pre-existing MyCorpLegalAI draft test because `Practitioner` is not found after sign-in. The failure is outside `/lawyes-safe-preview`; this task did not modify that portal.
+- Some intermediate browser reruns reached the container's Chromium thread/PID ceiling while unrelated development previews were active. After enough development-only thread capacity was released, the final dedicated ten-test file passed 10/10 with one worker.
+- The configured aggregate multi-portal E2E workflow still records its pre-existing MyCorpLegalAI draft failure because `Practitioner` is not found after sign-in. The failure is outside `/lawyes-safe-preview`; this task did not modify that portal.
 
 ## Production-release risks
 

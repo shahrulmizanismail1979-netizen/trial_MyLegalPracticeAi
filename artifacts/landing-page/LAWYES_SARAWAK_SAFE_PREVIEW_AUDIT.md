@@ -1,11 +1,11 @@
 # LAWYes Sarawak Safe Preview audit
 
-**Review date:** 30 August 2026
+**Review date:** 31 August 2026
 **Release boundary:** Static Safe Preview only. No production API, database, Drive, upload, billing, subscriber entitlement, or local-storage changes.
 
 ## Sources reviewed
 
-The fixture records direct HTTPS links, source type, jurisdiction, rights status, last-verified date, editorial status, and audit notes for:
+The fixture records direct HTTPS links, source type, jurisdiction, rights status, last-verified date, editorial status, audit notes, what can be found, access requirements, verification steps, usage limits, and change history for:
 
 1. Sarawak LawNet legislation and subsidiary-legislation index.
 2. Sarawak Judiciary E-Court gateway.
@@ -37,7 +37,9 @@ The preview does not infer a rule, procedure, fee, form, deadline, or legal outc
 
 The structured Sarawak discovery model covers six specified Practice Centre categories: Civil Litigation, Criminal Litigation, Conveyancing & Land, NCR & Native Law, Probate & Estates, and Professional Practice.
 
-Each practice card is verification-required. It is a source-discovery path, not a completeness or legal-content claim.
+Each category now includes suitable-use boundaries, explicit limits, a staged workflow, examples, source notes, updated/verification metadata, and gap notices. Each practice card remains verification-required: it is a source-discovery path, not a completeness or legal-content claim.
+
+The opening remains limited to one natural-language instruction field and four primary actions. Detailed practice material, source histories, filters, and audit information are progressively disclosed after entry.
 
 ## Practical packs and precedents
 
@@ -47,7 +49,15 @@ Three practitioner-review templates are included:
 - Criminal representation / bail / mitigation pack.
 - Sarawak land / NCR transaction pack.
 
-Each pack includes guided intake, facts/exhibits, jurisdiction and registry checks, cause-paper or working-document structure, filing/service readiness prompts, editable notes, source references, risk flags, and TXT/DOCX/print-ready PDF export. No template is presented as an approved court form or filing instruction.
+Each pack includes pack-specific required intake, facts/exhibits, jurisdiction and registry checks, cause-paper or working-document structure, filing/service readiness prompts, editable notes, source references, risk flags, uncertainty prompts, known gaps, examples, and TXT/DOCX/print export. Civil and criminal packs have no land-specific defaults. All displayed safeguards and required fields must be completed before generation. Every generated result is an editable practitioner-review template with a source and unresolved-gap manifest; none is presented as an approved court form or filing instruction.
+
+## Search and matter workflow
+
+- Search opens on the complete 20-record preview inventory, with exact Sarawak, Sabah & Sarawak, and Malaysia jurisdiction modes plus guided queries and a deterministic two-report lawyer-reviewed view.
+- Query, filters, selected report, selected materials, pack, Practice Centre, and workflow steps are represented in validated URL state. Invalid values are discarded; reload and browser Back/Forward restore meaningful state without one history entry per keystroke.
+- Copy, TXT, DOCX, JSON, and print actions provide visible and assistive-technology feedback, including explicit clipboard failure states.
+- Matter confirmation requires an internal reference, client reference, purpose, verification acknowledgement, and at least one resolved fixture material. Confirmation carries the entered details and selected materials into a local manifest, with Search and Draft handoffs.
+- Matter and draft state remains in memory/URL only. Nothing is uploaded, persisted, authenticated, billed, or sent to an AI service.
 
 ## Verification gaps
 
@@ -62,15 +72,15 @@ Each pack includes guided intake, facts/exhibits, jurisdiction and registry chec
 
 The implementation passed:
 
-- Seven fixture tests covering publication gates, provenance, search aliases, jurisdiction, exports, and isolation.
+- 26 focused Vitest checks covering canonical inventories, publication gates, nested guidance depth, provenance, guided taxonomies, exact/all-jurisdiction behavior, editorial-status mapping, pack-specific defaults, matter manifests, URL normalization/round-tripping, forged terminal-state normalization, exports, and recursive static-isolation scanning.
 - Landing-page TypeScript checking and production build.
-- Desktop 1440 × 1000 and mobile 390 × 844 browser checks covering the four-action opening, progressive search filters, empty/reset states, report selection, guided drafting, the demonstration matter flow, six Practice Centre categories, Sources & Verification, browser Back, keyboard focus and horizontal overflow.
-- Browser download events confirmed non-empty published-report TXT (6,212 bytes) and DOCX (9,352 bytes), result CSV (2,238 bytes) and JSON (28,430 bytes), and drafting-pack TXT (887 bytes) and DOCX (2,931 bytes).
-- A permanent browser regression test confirms that a selected published report exposes its report-specific official judgment URL, separately from the generic source-register gateway.
+- Ten permanent Playwright regressions covering the four-action opening and Enter handoff, validated deep links and safe terminal-state reloads, guided search/reset/material selection, guarded draft generation and manifests, matter validation/confirmation/handoffs/download, browser Back, all six Practice Centre categories, category-specific disclosures, honest source-action labels, source verification guidance, and 390 px overflow/bottom-navigation safety.
+- A complete browser test drive at 1440 × 1000 and 390 × 844 covering all four journeys, all three drafting packs, all six Practice Centre categories, source disclosures, keyboard focus, report pinpoints, clipboard/download feedback, URL restoration, browser Back, and mobile reader open/close.
+- Browser checks confirmed the two-report lawyer-reviewed filter, a report-specific official judgment URL, visible citation-copy feedback, and visible/focusable paragraph targets from report pinpoints.
 - Source-code and browser isolation checks found no preview-originated application API, storage, account, upload, payment, AI, persistence or server-write request.
 - Existing API regressions: 1,067 tests passed across 102 files.
 
-The configured multi-portal E2E workflow still fails in the pre-existing MyCorpLegalAI draft test because the expected `Practitioner` text is absent after sign-in. The failure is outside `/lawyes-safe-preview` and this work did not alter that portal.
+Some intermediate local Playwright reruns were interrupted by the container's Chromium thread/PID ceiling while unrelated development previews were active. After enough development-only thread capacity was released, the final ten-test file passed 10/10 with one worker. The configured aggregate multi-portal E2E workflow still records its pre-existing MyCorpLegalAI draft failure because the expected `Practitioner` text is absent after sign-in; that failure is outside `/lawyes-safe-preview` and this work did not alter that portal.
 
 ## Production-release risks
 

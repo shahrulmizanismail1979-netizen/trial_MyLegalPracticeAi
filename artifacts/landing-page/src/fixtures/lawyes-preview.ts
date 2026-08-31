@@ -18,6 +18,11 @@ export type SourceRecord = Readonly<{
   rightsStatus: "Official public source" | "Lawfully accessible public material";
   editorialStatus: EditorialStatus;
   notes: string;
+  whatYouCanFind: readonly string[];
+  accessRequirements: readonly string[];
+  verificationSteps: readonly string[];
+  usageNotes: readonly string[];
+  changeHistory: readonly string[];
 }>;
 
 export type Report = Readonly<{
@@ -61,7 +66,17 @@ export type Playbook = Readonly<{
   intake: readonly string[];
   structure: readonly string[];
   riskFlags: readonly string[];
+  intakeFields: readonly IntakeField[];
+  sections: readonly GuidanceSection[];
+  safeguards: readonly string[];
+  outputManifestGuidance: readonly string[];
+  uncertaintyPrompts: readonly string[];
+  examples: readonly string[];
+  knownGaps: readonly string[];
 }>;
+
+export type IntakeField = Readonly<{ id: string; label: string; type: "text" | "textarea" | "select" | "date" | "checkbox"; options?: readonly string[]; required: boolean; placeholder?: string; defaultValue?: string }>;
+export type GuidanceSection = Readonly<{ title: string; purpose: string; prompts: readonly string[] }>;
 
 export type Checklist = Readonly<{
   id: string;
@@ -70,6 +85,10 @@ export type Checklist = Readonly<{
   sourceIds: readonly string[];
   items: readonly string[];
   deadlineNote: string;
+  practicalSteps: readonly string[];
+  sourceNotes: readonly string[];
+  verificationNotes: readonly string[];
+  practitionerReviewWarning: string;
 }>;
 
 export type DecisionTree = Readonly<{
@@ -79,6 +98,17 @@ export type DecisionTree = Readonly<{
   sourceIds: readonly string[];
   questions: readonly string[];
   disclaimer: string;
+  outcomes: readonly string[];
+  sourceNotes: readonly string[];
+  verificationNotes: readonly string[];
+  practitionerReviewWarning: string;
+}>;
+
+export type PracticeCentre = Readonly<{
+  id: string; name: string; jurisdiction: "Sarawak"; overview: string; suitableFor: readonly string[];
+  limits: readonly string[]; workflowStages: readonly string[]; examples: readonly string[];
+  sourceNotes: readonly string[]; gapNotices: readonly string[]; updatedOn: string;
+  verificationStatus: EditorialStatus; verificationSteps: readonly string[];
 }>;
 
 export const SOURCES: readonly SourceRecord[] = Object.freeze([
@@ -92,6 +122,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Index gateway reviewed; individual instruments still require item-level currency review.",
+    whatYouCanFind: ["A public gateway for state legislation and subsidiary legislation index.", "Official statutory lists and amendment histories."],
+    accessRequirements: ["Open the HTTPS source directly.", "Check for subscription requirements to view full text."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify the specific ordinance and section via the official index.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not rely on index entries without reading the full instrument text."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: re-check individual instrument updates before reliance."]
   },
   {
     id: "sarawak-judiciary",
@@ -103,6 +138,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Gateway only; no filing requirement, fee, or deadline is inferred from this record.",
+    whatYouCanFind: ["A public gateway for official judiciary information and e-court gateway.", "Court directories and general practice information."],
+    accessRequirements: ["Open the HTTPS source directly.", "Navigate via the public interface."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify practice directions and court notices.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not infer filing routes, fees, deadlines, rights, or outcomes from gateway availability."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: re-check practice directions for updates."]
   },
   {
     id: "ekss-portal",
@@ -114,6 +154,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Search and judgment gateway; access and document availability must be checked per record.",
+    whatYouCanFind: ["A public gateway for official judgment and registrar portal.", "Searchable database of judgments."],
+    accessRequirements: ["Open the HTTPS source directly.", "Perform a search for the specific judgment name or citation."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Download and read the official judgment PDF.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not assume all judgments are available; many remain unreported."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: confirm whether judgments have been appealed."]
   },
   {
     id: "ekss-cmsa",
@@ -125,6 +170,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Login/service gateway; this preview does not infer account-only processes.",
+    whatYouCanFind: ["A public gateway for official e-filing and case administration gateway.", "Login interface for the community system."],
+    accessRequirements: ["Open the HTTPS source directly.", "Requires advocate login credentials to access case files."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify case status internally using advocate credentials.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not use for public legal research without account access."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: re-check portal availability."]
   },
   {
     id: "land-survey",
@@ -136,6 +186,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Department gateway; land category, instrument, and transaction checks remain verification-required.",
+    whatYouCanFind: ["A public gateway for state department public information gateway.", "Land administration guidelines and forms."],
+    accessRequirements: ["Open the HTTPS source directly.", "Visit physical registry for title searches."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify guidelines directly against statutory sources.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not rely on web forms without verifying with the land registry."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: re-check forms and fees."]
   },
   {
     id: "native-courts",
@@ -147,6 +202,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "Public gateway used for orientation only; no customary-law proposition is published here.",
+    whatYouCanFind: ["A public gateway for state native courts information gateway.", "Administrative details for native courts."],
+    accessRequirements: ["Open the HTTPS source directly.", "Review public directory and notices."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify specific native customary law with local experts.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not use as a definitive source for substantive customary law."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: re-check registry details."]
   },
   {
     id: "sarawak-advocates",
@@ -158,6 +218,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Lawfully accessible public material",
     editorialStatus: "Verification required",
     notes: "Gateway availability was intermittent during audit; professional material is not treated as official law.",
+    whatYouCanFind: ["A public gateway for professional association public gateway.", "Practice directions and association news."],
+    accessRequirements: ["Open the HTTPS source directly.", "Some sections may require member login."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Verify if the information is authoritative or just guidance.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not treat professional association guidance as binding law."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verification required status recorded.", "Future change: verify intermittent access issues."]
   },
   {
     id: "malaysian-ejudgment",
@@ -169,6 +234,11 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Official public source",
     editorialStatus: "Verified current",
     notes: "National source retained so Malaysian material remains equally reachable.",
+    whatYouCanFind: ["A public gateway for official malaysian judiciary judgment gateway.", "Federal court judgments."],
+    accessRequirements: ["Open the HTTPS source directly.", "Search using case details."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Review judgment PDF for paragraph numbers.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not assume all judgments are available."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verified current status recorded.", "Future change: confirm whether judgments have been appealed."]
   },
   {
     id: "maria-copy",
@@ -180,7 +250,12 @@ export const SOURCES: readonly SourceRecord[] = Object.freeze([
     rightsStatus: "Lawfully accessible public material",
     editorialStatus: "Verification required",
     notes: "Readable copy located for access research; official provenance and stable paragraph mapping are not yet confirmed.",
-  },
+    whatYouCanFind: ["A lawfully accessible public judgment copy.", "A PDF download of the judgment."],
+    accessRequirements: ["Open the HTTPS source directly.", "Download the file from the article page."],
+    verificationSteps: ["Record the page title, URL, and access date.", "Compare with an official court copy if possible.", "Check currency, completeness, and provenance before using any material."],
+    usageNotes: ["Use this record to locate and verify material, not as a statement of legal effect.", "Do not treat this third-party copy as an official court report."],
+    changeHistory: ["30 August 2026 — gateway access reviewed; verification required status recorded.", "Future change: verify against official e-Kehakiman record."]
+  }
 ]);
 
 export const GATEWAYS = SOURCES.map((source) => [source.name, source.url] as const);
@@ -294,25 +369,118 @@ export const RESOURCES: readonly PractitionerResource[] = Object.freeze([
   { id: "update-advocates", label: "Advocates Association public gateway", category: "Professional", jurisdiction: "Sarawak", sourceId: "sarawak-advocates", summary: "Professional association source kept distinct from official law and marked for verification.", verifiedDate: "30 August 2026", status: "Verification required" },
 ]);
 
-export const PLAYBOOKS: readonly Playbook[] = Object.freeze([
+
+
+
+
+
+
+const playbookDetails: Record<string, Pick<Playbook, "intakeFields" | "sections" | "safeguards" | "outputManifestGuidance" | "uncertaintyPrompts" | "examples" | "knownGaps">> = {
+  "civil-application": {
+    intakeFields: [
+      { id: "clientReference", label: "Client / matter reference", type: "text", required: true, placeholder: "Internal reference only" },
+      { id: "proposedCourt", label: "Proposed court / registry as instructed", type: "text", required: true, placeholder: "Record, do not select a forum" },
+      { id: "relief", label: "Relief or purpose to be reviewed", type: "textarea", required: true, placeholder: "Use the instruction wording" },
+      { id: "urgency", label: "Urgency indicated", type: "select", options: ["Not stated", "Yes — counsel review required", "No"], required: true, defaultValue: "Not stated" },
+    ],
+    sections: [{ title: "Instruction record", purpose: "Keep supplied facts separate from assumptions.", prompts: ["What is supplied?", "What document supports it?"] }, { title: "Drafting map", purpose: "Create editable headings only.", prompts: ["Which facts need affidavit support?", "Which authority must be independently checked?"] }],
+    safeguards: ["Require practitioner review before use.", "Do not calculate a deadline or choose a forum.", "Keep unverified facts marked as instructions."],
+    outputManifestGuidance: ["List source IDs and URLs consulted.", "List each missing document and unresolved date.", "Mark the output as a practitioner-review template."],
+    uncertaintyPrompts: ["Which rule, form, or direction has not been checked?", "Which service or filing detail needs registry confirmation?"],
+    examples: ["Example: organise an affidavit exhibit list from supplied documents; do not state admissibility or procedural compliance."],
+    knownGaps: ["No current form library, fee table, deadline calculator, or registry confirmation is included."],
+  },
+  "criminal-pack": {
+    intakeFields: [
+      { id: "clientReference", label: "Client / matter reference", type: "text", required: true, placeholder: "Internal reference only" },
+      { id: "chargeWording", label: "Charge wording as supplied", type: "textarea", required: true, placeholder: "Transcribe instructions; do not classify" },
+      { id: "nextDate", label: "Next date as recorded", type: "date", required: false },
+      { id: "instructionPurpose", label: "Requested working purpose", type: "select", options: ["Representation notes", "Bail preparation notes", "Mitigation preparation notes", "Other — counsel to specify"], required: true, defaultValue: "Representation notes" },
+    ],
+    sections: [{ title: "Charge and chronology record", purpose: "Organise instructions without characterising evidence.", prompts: ["What is the charge wording?", "What is the source of each event?"] }, { title: "Review map", purpose: "Identify matters for counsel.", prompts: ["What must be verified from the court file?", "What liberty or urgency issue needs escalation?"] }],
+    safeguards: ["Escalate liberty, custody, and urgency issues to counsel.", "Do not predict bail, sentence, or outcome.", "Verify charge and current procedure from authoritative material."],
+    outputManifestGuidance: ["State the charge is transcribed from instructions.", "List missing court-file documents and the next-date source.", "Label every output practitioner-review only."],
+    uncertaintyPrompts: ["Has the current charge and court date been checked?", "What evidence or instruction is incomplete?"],
+    examples: ["Example: prepare a chronology and exhibit index for counsel; do not advise on entitlement or likely result."],
+    knownGaps: ["No charge database, sentencing calculation, bail prediction, or live court-list access is included."],
+  },
+  "land-ncr": {
+    intakeFields: [
+      { id: "clientReference", label: "Client / matter reference", type: "text", required: true, placeholder: "Internal reference only" },
+      { id: "titleReference", label: "Title / reference as stated", type: "text", required: true, placeholder: "Do not infer category or ownership" },
+      { id: "division", label: "Division / registry to verify", type: "text", required: true, placeholder: "Use supplied record" },
+      { id: "ncrFlag", label: "NCR / native-law issue expressly raised?", type: "select", options: ["Not stated", "Yes — specialist review required", "No"], required: true, defaultValue: "Not stated" },
+    ],
+    sections: [{ title: "Title verification log", purpose: "Track supplied identifiers and missing official records.", prompts: ["Which title details are supplied?", "What official search remains needed?"] }, { title: "Issue and document map", purpose: "Route specialist questions without determining status.", prompts: ["Is NCR expressly raised?", "Which plans, consents, or instruments are missing?"] }],
+    safeguards: ["Do not determine title, NCR status, consent, fee, or timeline.", "Obtain specialist and practitioner review.", "Verify every instrument and current record at item level."],
+    outputManifestGuidance: ["Include title/reference as supplied, not verified.", "List source gateways and documents still required.", "Attach an unresolved-issues list."],
+    uncertaintyPrompts: ["Which land category or registry record is unverified?", "What evidence would a specialist need to assess the issue?"],
+    examples: ["Example: make a document-request list for a stated title reference; do not state ownership or transaction validity."],
+    knownGaps: ["No title search, map, consent status, fee, or substantive NCR conclusion is supplied."],
+  },
+};
+
+const enrichPlaybook = (playbook: Omit<Playbook, keyof Pick<Playbook, "intakeFields" | "sections" | "safeguards" | "outputManifestGuidance" | "uncertaintyPrompts" | "examples" | "knownGaps">>): Playbook => ({ ...playbook, ...playbookDetails[playbook.id] });
+
+export const PLAYBOOKS: readonly Playbook[] = Object.freeze(([
   { id: "civil-application", title: "Civil application / affidavit pack", track: "Civil", jurisdiction: "Sarawak", status: "Practitioner-review template", sourceIds: ["sarawak-judiciary", "ekss-cmsa"], intake: ["Parties and capacity", "Matter type and relief sought", "Court / registry proposed", "Material facts and exhibits", "Service and urgency notes"], structure: ["Court heading and cause-paper fields", "Affidavit or submission working sections", "Exhibit index", "Filing and service checklist", "Editable practitioner notes"], riskFlags: ["Jurisdiction and forum not verified", "Deadline / limitation not calculated", "Authority and form version require review"] },
   { id: "criminal-pack", title: "Criminal representation / bail / mitigation pack", track: "Criminal", jurisdiction: "Sarawak", status: "Practitioner-review template", sourceIds: ["sarawak-judiciary", "ekss-cmsa"], intake: ["Accused details and charge as stated", "Court and registry", "Next mention / hearing date", "Instructions and supporting exhibits", "Requested outcome for lawyer review"], structure: ["Court heading", "Instruction and chronology notes", "Evidence / exhibit index", "Draft representation, bail, or mitigation headings", "Filing / service readiness list"], riskFlags: ["Charge and current procedure require verification", "No outcome or sentence is inferred", "Urgency and liberty risks require lawyer review"] },
   { id: "land-ncr", title: "Sarawak land / NCR transaction pack", track: "Conveyancing / land", jurisdiction: "Sarawak", status: "Practitioner-review template", sourceIds: ["land-survey", "sarawak-lawnet", "native-courts"], intake: ["Land title / category as stated", "Division and Land Registry", "Parties and capacity", "Instrument and transaction objective", "NCR or native-law issue flag", "Plans, searches, consents, and exhibits"], structure: ["Transaction fact sheet", "Title and registry verification log", "NCR issue map", "Instrument checklist", "Open questions and counsel sign-off"], riskFlags: ["Land category and title status not verified", "NCR status and evidence require specialist review", "Instrument, consent, fee, and timeline are not supplied by this template"] },
-]);
+] as any[]).map(enrichPlaybook));
 
-export const CHECKLISTS: readonly Checklist[] = Object.freeze([
+const enrichChecklist = (checklist: Omit<Checklist, "practicalSteps" | "sourceNotes" | "verificationNotes" | "practitionerReviewWarning">): Checklist => ({
+  ...checklist,
+  practicalSteps: ["Open a matter note and record who supplied each fact.", ...checklist.items, "Save the source URL, access date, and outstanding question.", "Separate confirmed records from assumptions before drafting."],
+  sourceNotes: checklist.sourceIds.map((id) => `${sourceName(id)} is a gateway for source discovery; check the underlying item before reliance.`),
+  verificationNotes: ["Check the current version and effective date of any underlying material.", "Confirm registry-specific information directly where required.", "This checklist does not calculate a deadline, fee, entitlement, or outcome."],
+  practitionerReviewWarning: "Practitioner review is required. This is a verification aid, not legal advice or a substitute for current authoritative material.",
+});
+
+export const CHECKLISTS: readonly Checklist[] = Object.freeze(([
   { id: "civil-deadline", title: "Civil deadline and limitation check", jurisdiction: "Sarawak", sourceIds: ["sarawak-judiciary", "sarawak-lawnet"], items: ["Record cause of action and event dates", "Identify proposed court and registry", "Locate the current source instrument", "Check applicable rule, order, or direction", "Obtain lawyer sign-off before relying on any date"], deadlineNote: "No deadline is calculated in this preview; current law and registry practice must be checked for the matter." },
   { id: "criminal-readiness", title: "Criminal filing and hearing readiness", jurisdiction: "Sarawak", sourceIds: ["sarawak-judiciary", "ekss-cmsa"], items: ["Confirm court, registry, and next date from the file", "Record charge exactly as supplied", "List instructions and exhibits", "Check service / filing route with the registry", "Escalate liberty and urgency issues to counsel"], deadlineNote: "No filing window or procedural entitlement is stated here." },
   { id: "land-readiness", title: "Land / NCR verification checklist", jurisdiction: "Sarawak", sourceIds: ["land-survey", "sarawak-lawnet", "native-courts"], items: ["Confirm title, land category, division, and registry", "Identify any NCR / native-law issue", "Record searches, plans, consents, and exhibits", "Verify current instrument and subsidiary legislation", "Record unresolved gaps before drafting"], deadlineNote: "No fee, consent, or timeline is asserted; use the source links and obtain current advice." },
-]);
+] as any).map(enrichChecklist));
 
-export const DECISION_TREES: readonly DecisionTree[] = Object.freeze([
+const enrichDecisionTree = (tree: Omit<DecisionTree, "outcomes" | "sourceNotes" | "verificationNotes" | "practitionerReviewWarning">): DecisionTree => ({
+  ...tree,
+  outcomes: ["Record the next verification action and source ID.", "If an account-only or registry-specific route is indicated, seek direct confirmation.", "Escalate unresolved, urgent, liberty, title, or customary-law questions to a practitioner."],
+  sourceNotes: tree.sourceIds.map((id) => `${sourceName(id)} is listed as a source gateway, not as proof of a proposition.`),
+  verificationNotes: ["Check the underlying current record and provenance.", "Record the access date and what could not be verified.", "Do not use a branch as a legal conclusion."],
+  practitionerReviewWarning: "Practitioner review is mandatory before acting on any route suggested by this orientation tool.",
+});
+
+export const DECISION_TREES: readonly DecisionTree[] = Object.freeze(([
   { id: "land-ncr-tree", title: "Conveyancing / land and NCR issue triage", jurisdiction: "Sarawak", sourceIds: ["land-survey", "sarawak-lawnet", "native-courts"], questions: ["What land category and title information is recorded?", "Which Division and registry should be checked?", "Is a native customary rights issue expressly raised?", "Which current source instrument or official record answers the open question?", "Has a Sarawak practitioner reviewed the result?"], disclaimer: "Decision tree only. It routes verification questions and does not determine title, NCR status, consent, fee, or outcome." },
   { id: "court-path-tree", title: "Court and registry orientation", jurisdiction: "Sarawak", sourceIds: ["sarawak-judiciary", "ekss-cmsa"], questions: ["Is the matter civil, criminal, land, Native Court, or another track?", "Which court and registry are recorded in the instructions?", "Is the route public information or account-only?", "What current direction or registry confirmation is needed?", "Has filing and service been confirmed by counsel?"], disclaimer: "Orientation only. It does not select a forum or replace registry confirmation." },
-]);
+] as any).map(enrichDecisionTree));
+
+
+export const PRACTICE_CENTRES: readonly PracticeCentre[] = Object.freeze([
+  ["civil-litigation", "Civil Litigation", ["civil", "public"]],
+  ["criminal-litigation", "Criminal Litigation", ["criminal"]],
+  ["conveyancing-land", "Conveyancing & Land", ["land", "commercial", "local-government", "state-regulatory", "insolvency"]],
+  ["ncr-native-law", "NCR & Native Law", ["native"]],
+  ["probate-estates", "Probate & Estates", ["probate", "family"]],
+  ["professional-practice", "Professional Practice", ["professional"]],
+].map(([id, name, coverageIds]): PracticeCentre => {
+  const rows = COVERAGE.filter((item) => (coverageIds as string[]).includes(item.id));
+  return {
+    id: id as string, name: name as string, jurisdiction: "Sarawak",
+    overview: `${name} is an orientation workspace for finding sources, recording instructions, and routing verification.`,
+    suitableFor: ["Building a source-and-document checklist.", "Preparing questions for practitioner or registry review."],
+    limits: ["It is not legal advice and does not determine rights, procedure, forum, deadline, or outcome.", "Coverage paths are not a completeness claim."],
+    workflowStages: ["Record instructions and client reference.", "Locate the relevant gateway and underlying item.", "Verify currency, provenance, and applicability.", "Record gaps and obtain practitioner review."],
+    examples: [`Example: use the ${name} path to list records to obtain; do not treat the list as an authoritative answer.`],
+    sourceNotes: rows.map((row) => `${row.label}: ${sourceName(row.sourceId)} gateway; ${row.coverageNote}`),
+    gapNotices: rows.map((row) => `${row.label}: substantive content remains withheld pending item-level verification.`),
+    updatedOn: "30 August 2026", verificationStatus: "Verification required",
+    verificationSteps: ["Open the linked official or lawfully accessible source.", "Identify the underlying record and its date.", "Have a practitioner assess relevance and current status."],
+  };
+}));
 
 export const AUDIT = {
-  reviewedOn: "30 August 2026",
+  reviewedOn: "31 August 2026",
   sourcesReviewed: SOURCES.length,
   verifiedCurrentAdditions: SOURCES.filter((source) => source.editorialStatus === "Verified current").length,
   sarawakSubstantiveReports: REPORTS.filter((report) => report.jurisdiction === "Sarawak" && report.status === "Published").length,
@@ -321,6 +489,40 @@ export const AUDIT = {
   precedentsAdded: PLAYBOOKS.length,
   verificationGaps: COVERAGE.length + REPORTS.filter((report) => report.verificationGap).length,
 } as const;
+
+
+export const GUIDED_SEARCH_TAXONOMY = Object.freeze({
+  jurisdictions: [
+    { id: "", label: "All jurisdictions", mode: "all" },
+    { id: "Sarawak", label: "Sarawak only", mode: "exact" },
+    { id: "Sabah & Sarawak", label: "Sabah & Sarawak", mode: "exact" },
+    { id: "Malaysia", label: "Malaysia only", mode: "exact" },
+  ],
+  courts: ["High Court in Sabah and Sarawak", "High Court of Malaya", "Industrial Court of Malaysia", "Native Court of Appeal of Sarawak"],
+  years: ["2026", "2025", "2024", "2022", "2021", "2015"],
+  datePresets: [{ id: "last-12-months", label: "Last 12 months in fixture", from: "2025-08-30", to: "2026-08-30" }, { id: "2024", label: "2024 decisions", from: "2024-01-01", to: "2024-12-31" }],
+  subjectAreas: ["Civil", "Criminal", "Conveyancing / land", "Native law", "Company Law", "Insolvency", "Industrial relations"],
+  documentTypes: ["Published report", "Access record", "Official judgment gateway", "Lawfully accessible public copy"],
+  verificationStatuses: ["Lawyer reviewed", "Verified current", "Access record", "Verification required"],
+  exampleQueries: ["tanah", "NCR", "commercial insolvency", "criminal bail", "Kota Kinabalu"],
+} as const);
+
+export const MATTER_WORKFLOW = Object.freeze({
+  localOnlyNotice: "This demonstration keeps matter selections in the current browser session only; it does not save, upload, or send a matter.",
+  stages: ["Name the internal client or matter reference.", "Select only source-backed materials to review.", "Record purpose, open questions, and missing documents.", "Generate a local review manifest and obtain practitioner review."],
+  requiredBeforeHandoff: ["Internal reference", "At least one selected material", "Purpose or question", "Acknowledgement that materials require verification"],
+  handoffWarning: "A selection is not advice, approval, filing, or a complete matter record.",
+} as const);
+
+export type LocalExportManifest = Readonly<{ kind: "LAWYes Safe Preview local manifest"; createdFor: string; sourceIds: readonly string[]; materials: readonly { id: string; title: string; status: Status; sourceUrl: string; verificationGap: string }[]; warnings: readonly string[] }>;
+export function buildLocalExportManifest(records: readonly Report[], createdFor = "Unspecified internal reference"): LocalExportManifest {
+  return {
+    kind: "LAWYes Safe Preview local manifest", createdFor,
+    sourceIds: [...new Set(records.map((record) => SOURCES.find((source) => source.url === record.sourceUrl)?.id ?? "unmapped-source"))],
+    materials: records.map((record) => ({ id: record.id, title: record.title, status: record.status, sourceUrl: record.sourceUrl, verificationGap: record.verificationGap })),
+    warnings: ["Local demonstration data only; no upload, persistence, or lawyer approval occurs.", "Verify source provenance, currency, and applicability before reliance.", "Access records contain no substantive report."],
+  };
+}
 
 export const canPublish = (r: Pick<Report, "officialSourceVerified" | "paragraphSupportVerified" | "humanApproved">) =>
   r.officialSourceVerified && r.paragraphSupportVerified && r.humanApproved;
@@ -344,10 +546,9 @@ export function searchableText(r: Report) {
 }
 
 export function filterReports(records: readonly Report[], filters: Record<string, string>) {
-  const jurisdiction = filters.jurisdiction || "Sarawak";
+  const jurisdiction = filters.jurisdiction;
   return records.filter((r) => {
-    if (jurisdiction === "Sarawak" && r.jurisdiction === "Malaysia") return false;
-    if (jurisdiction === "Malaysia" && r.jurisdiction === "Sarawak") return false;
+    if (jurisdiction && r.jurisdiction !== jurisdiction) return false;
     return Object.entries(filters).every(([key, value]) => {
       if (!value || key === "jurisdiction") return true;
       const term = value.toLowerCase();
@@ -358,6 +559,7 @@ export function filterReports(records: readonly Report[], filters: Record<string
         : key === "case" ? `${r.title} ${r.citation}`
         : key === "practiceArea" ? r.practiceAreas.join(" ")
         : key === "catchwords" ? r.catchwords.join(" ")
+        : key === "status" ? `${r.status} ${r.editorialStatus}`
         : (r as Record<string, unknown>)[key];
       return String(valueOf ?? "").toLowerCase().includes(term);
     });
