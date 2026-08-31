@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Server-selected plan currently available to this cohort.
+ */
 export type Sarawak20CohortCurrentPlan =
   (typeof Sarawak20CohortCurrentPlan)[keyof typeof Sarawak20CohortCurrentPlan];
 

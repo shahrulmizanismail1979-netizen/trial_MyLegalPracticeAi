@@ -18,9 +18,16 @@ export interface Sarawak20Cohort {
   remaining: number;
   soldOut: boolean;
   foundingSoldOut: boolean;
+  /** Server-selected plan currently available to this cohort. */
   currentPlan: Sarawak20CohortCurrentPlan;
   price: Sarawak20Price;
+  /**
+   * Maximum simultaneously active users for the issued access code.
+   * @minimum 1
+   */
   licenses: number;
+  /** Whether this offer is outside the founding-place capacity cap. */
   unlimited: boolean;
+  /** Always true for public checkout; the eligibility evidence differs by cohort. */
   requiresEligibility: boolean;
 }

@@ -10,6 +10,10 @@ import type { Sarawak20Price } from "./sarawak20Price";
 
 export interface Sarawak20Status {
   programme: string;
+  /**
+   * Legacy RM49 baseline retained for backward compatibility. Use each cohort's price and currentPlan for checkout display.
+   * @deprecated
+   */
   price: Sarawak20Price;
   foundingRateMonths: number;
   cancellableAnytime: boolean;

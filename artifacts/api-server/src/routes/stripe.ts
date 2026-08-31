@@ -780,7 +780,10 @@ router.post(
     } catch (err) {
       await releaseSarawak20Reservation(claim.id).catch(() => undefined);
       req.log.error(
-        { err, cohort },
+        {
+          cohort,
+          errorType: err instanceof Error ? err.name : typeof err,
+        },
         "Project Sarawak 20 price resolution failed",
       );
       res
@@ -807,7 +810,10 @@ router.post(
     } catch (err) {
       await releaseSarawak20Reservation(claim.id).catch(() => undefined);
       req.log.error(
-        { err, cohort },
+        {
+          cohort,
+          errorType: err instanceof Error ? err.name : typeof err,
+        },
         "Project Sarawak 20 checkout creation failed",
       );
       res
@@ -818,7 +824,7 @@ router.post(
 
     if (!session.url) {
       req.log.error(
-        { cohort, reservationId: claim.id, sessionId: session.id },
+        { cohort },
         "Stripe checkout exists without a hosted URL; retaining reservation",
       );
       res
@@ -838,7 +844,10 @@ router.post(
       });
     } catch (err) {
       req.log.error(
-        { err, cohort, reservationId: claim.id, sessionId: session.id },
+        {
+          cohort,
+          errorType: err instanceof Error ? err.name : typeof err,
+        },
         "Stripe checkout exists but local attachment failed; retaining reservation",
       );
     }
@@ -962,7 +971,10 @@ router.get("/session-info", async (req, res) => {
       trial: result.trial,
     });
   } catch (err) {
-    req.log.error({ err, sessionId }, "session-info lookup failed");
+    req.log.error(
+      { errorType: err instanceof Error ? err.name : typeof err },
+      "session-info lookup failed",
+    );
     res.status(404).json({ error: "Checkout session not found." });
   }
 });

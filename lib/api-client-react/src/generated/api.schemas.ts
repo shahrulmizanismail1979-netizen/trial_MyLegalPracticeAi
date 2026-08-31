@@ -117,6 +117,9 @@ export const Sarawak20CohortCohort = {
   chambering: "chambering",
 } as const;
 
+/**
+ * Server-selected plan currently available to this cohort.
+ */
 export type Sarawak20CohortCurrentPlan =
   (typeof Sarawak20CohortCurrentPlan)[keyof typeof Sarawak20CohortCurrentPlan];
 
@@ -156,15 +159,26 @@ export interface Sarawak20Cohort {
   remaining: number;
   soldOut: boolean;
   foundingSoldOut: boolean;
+  /** Server-selected plan currently available to this cohort. */
   currentPlan: Sarawak20CohortCurrentPlan;
   price: Sarawak20Price;
+  /**
+   * Maximum simultaneously active users for the issued access code.
+   * @minimum 1
+   */
   licenses: number;
+  /** Whether this offer is outside the founding-place capacity cap. */
   unlimited: boolean;
+  /** Always true for public checkout; the eligibility evidence differs by cohort. */
   requiresEligibility: boolean;
 }
 
 export interface Sarawak20Status {
   programme: string;
+  /**
+   * Legacy RM49 baseline retained for backward compatibility. Use each cohort's price and currentPlan for checkout display.
+   * @deprecated
+   */
   price: Sarawak20Price;
   foundingRateMonths: number;
   cancellableAnytime: boolean;
@@ -182,6 +196,7 @@ export const Sarawak20CheckoutInputCohort = {
 export interface Sarawak20CheckoutInput {
   cohort: Sarawak20CheckoutInputCohort;
   requestId: string;
+  /** Verified eligibility record returned by the eligibility endpoint for this cohort. */
   eligibilityId: string;
 }
 

@@ -194,7 +194,10 @@ export async function getSarawak20Status() {
         },
         licenses: offer.licenses,
         unlimited: !offer.capped,
-        requiresEligibility: currentPlan === "aas_firm",
+        // Every public plan is eligibility-gated. Firm plans are checked
+        // against the AAS directory; chambering applications use the
+        // submitted pupillage details and declarations.
+        requiresEligibility: true,
       };
     }),
   };

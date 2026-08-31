@@ -206,7 +206,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+ * Returns the current plan, MYR monthly price, seat entitlement, eligibility requirement, and founding-place availability for each cohort. The firm offer transitions from the capped RM69 founding plan to the uncapped verified-AAS RM99 three-seat plan; chambering remains capped at RM49.
  * @summary Get live Project Sarawak 20 availability
  */
 export const getGetSarawak20StatusUrl = () => {
@@ -282,8 +282,8 @@ export function useGetSarawak20Status<
 }
 
 /**
- * Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
- * @summary Reserve a founding place and start Stripe checkout
+ * Atomically reserves founding capacity when applicable and creates Stripe Checkout for the server-selected current plan. Every request requires a verified eligibility record; the server, not the browser, selects RM69 firm-founding, RM49 chambering, or RM99 AAS-firm pricing.
+ * @summary Verify eligibility, reserve capacity, and start Stripe checkout
  */
 export const getCreateSarawak20CheckoutUrl = () => {
   return `/api/stripe/sarawak20/checkout`;
@@ -347,7 +347,7 @@ export type CreateSarawak20CheckoutMutationBody =
 export type CreateSarawak20CheckoutMutationError = ErrorType<void>;
 
 /**
- * @summary Reserve a founding place and start Stripe checkout
+ * @summary Verify eligibility, reserve capacity, and start Stripe checkout
  */
 export const useCreateSarawak20Checkout = <
   TError = ErrorType<void>,

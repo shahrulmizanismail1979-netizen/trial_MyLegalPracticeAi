@@ -40,7 +40,7 @@ paths:
       tags:
         - sarawak20
       summary: Get live Project Sarawak 20 availability
-      description: Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+      description: Returns the current plan, MYR monthly price, seat entitlement, eligibility requirement, and founding-place availability for each cohort. The firm offer transitions from the capped RM69 founding plan to the uncapped verified-AAS RM99 three-seat plan; chambering remains capped at RM49.
       responses:
         "200":
           description: Current programme availability
@@ -55,8 +55,8 @@ paths:
       operationId: createSarawak20Checkout
       tags:
         - sarawak20
-      summary: Reserve a founding place and start Stripe checkout
-      description: Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
+      summary: Verify eligibility, reserve capacity, and start Stripe checkout
+      description: Atomically reserves founding capacity when applicable and creates Stripe Checkout for the server-selected current plan. Every request requires a verified eligibility record; the server, not the browser, selects RM69 firm-founding, RM49 chambering, or RM99 AAS-firm pricing.
       requestBody:
         required: true
         content:
@@ -2944,14 +2944,19 @@ components:
         currentPlan:
           type: string
           enum: [firm_founding, chambering_founding, aas_firm]
+          description: Server-selected plan currently available to this cohort.
         price:
           $ref: "#/components/schemas/Sarawak20Price"
         licenses:
           type: integer
+          minimum: 1
+          description: Maximum simultaneously active users for the issued access code.
         unlimited:
           type: boolean
+          description: Whether this offer is outside the founding-place capacity cap.
         requiresEligibility:
           type: boolean
+          description: Always true for public checkout; the eligibility evidence differs by cohort.
       required:
         - cohort
         - label
@@ -2991,6 +2996,8 @@ components:
           type: string
         price:
           $ref: "#/components/schemas/Sarawak20Price"
+          deprecated: true
+          description: Legacy RM49 baseline retained for backward compatibility. Use each cohort's price and currentPlan for checkout display.
         foundingRateMonths:
           type: integer
         cancellableAnytime:
@@ -3019,6 +3026,7 @@ components:
         eligibilityId:
           type: string
           format: uuid
+          description: Verified eligibility record returned by the eligibility endpoint for this cohort.
       required:
         - cohort
         - requestId

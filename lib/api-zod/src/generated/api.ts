@@ -8,16 +8,21 @@
 import * as zod from "zod";
 
 /**
- * Returns the verified RM49 monthly offer and remaining places for each separately capped cohort.
+ * Returns the current plan, MYR monthly price, seat entitlement, eligibility requirement, and founding-place availability for each cohort. The firm offer transitions from the capped RM69 founding plan to the uncapped verified-AAS RM99 three-seat plan; chambering remains capped at RM49.
  * @summary Get live Project Sarawak 20 availability
  */
+
 export const GetSarawak20StatusResponse = zod.object({
   programme: zod.string(),
-  price: zod.object({
-    amount: zod.number().describe("Price in minor currency units."),
-    currency: zod.enum(["myr"]),
-    interval: zod.enum(["month"]),
-  }),
+  price: zod
+    .object({
+      amount: zod.number().describe("Price in minor currency units."),
+      currency: zod.enum(["myr"]),
+      interval: zod.enum(["month"]),
+    })
+    .describe(
+      "Legacy RM49 baseline retained for backward compatibility. Use each cohort's price and currentPlan for checkout display.",
+    ),
   foundingRateMonths: zod.number(),
   cancellableAnytime: zod.boolean(),
   cohorts: zod.array(
@@ -30,31 +35,47 @@ export const GetSarawak20StatusResponse = zod.object({
       remaining: zod.number(),
       soldOut: zod.boolean(),
       foundingSoldOut: zod.boolean(),
-      currentPlan: zod.enum([
-        "firm_founding",
-        "chambering_founding",
-        "aas_firm",
-      ]),
+      currentPlan: zod
+        .enum(["firm_founding", "chambering_founding", "aas_firm"])
+        .describe("Server-selected plan currently available to this cohort."),
       price: zod.object({
         amount: zod.number().describe("Price in minor currency units."),
         currency: zod.enum(["myr"]),
         interval: zod.enum(["month"]),
       }),
-      licenses: zod.number(),
-      unlimited: zod.boolean(),
-      requiresEligibility: zod.boolean(),
+      licenses: zod
+        .number()
+        .min(1)
+        .describe(
+          "Maximum simultaneously active users for the issued access code.",
+        ),
+      unlimited: zod
+        .boolean()
+        .describe(
+          "Whether this offer is outside the founding-place capacity cap.",
+        ),
+      requiresEligibility: zod
+        .boolean()
+        .describe(
+          "Always true for public checkout; the eligibility evidence differs by cohort.",
+        ),
     }),
   ),
 });
 
 /**
- * Atomically reserves one place in the selected cohort before creating an RM49 monthly Stripe Checkout session.
- * @summary Reserve a founding place and start Stripe checkout
+ * Atomically reserves founding capacity when applicable and creates Stripe Checkout for the server-selected current plan. Every request requires a verified eligibility record; the server, not the browser, selects RM69 firm-founding, RM49 chambering, or RM99 AAS-firm pricing.
+ * @summary Verify eligibility, reserve capacity, and start Stripe checkout
  */
 export const CreateSarawak20CheckoutBody = zod.object({
   cohort: zod.enum(["firm", "chambering"]),
   requestId: zod.string().uuid(),
-  eligibilityId: zod.string().uuid(),
+  eligibilityId: zod
+    .string()
+    .uuid()
+    .describe(
+      "Verified eligibility record returned by the eligibility endpoint for this cohort.",
+    ),
 });
 
 export const CreateSarawak20CheckoutResponse = zod.object({

@@ -10,5 +10,6 @@ import type { Sarawak20CheckoutInputCohort } from "./sarawak20CheckoutInputCohor
 export interface Sarawak20CheckoutInput {
   cohort: Sarawak20CheckoutInputCohort;
   requestId: string;
+  /** Verified eligibility record returned by the eligibility endpoint for this cohort. */
   eligibilityId: string;
 }

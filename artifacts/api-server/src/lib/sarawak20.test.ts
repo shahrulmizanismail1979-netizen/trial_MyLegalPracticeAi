@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { inArray } from "drizzle-orm";
 import {
   attachSarawak20Checkout,
@@ -39,6 +40,16 @@ describe("Project Sarawak 20 capacity ledger", () => {
     const chamberingBefore = before.cohorts.find(
       (item) => item.cohort === "chambering",
     )!;
+    expect(firmBefore.price.amount).toBe(
+      firmBefore.currentPlan === "aas_firm"
+        ? SARAWAK20_PLANS.aas_firm.amount
+        : SARAWAK20_PLANS.firm_founding.amount,
+    );
+    expect(chamberingBefore.price.amount).toBe(
+      SARAWAK20_PLANS.chambering_founding.amount,
+    );
+    expect(firmBefore.requiresEligibility).toBe(true);
+    expect(chamberingBefore.requiresEligibility).toBe(true);
 
     const claim = await claimSarawak20Reservation("firm", randomUUID());
     expect(claim.kind).toBe("created");
@@ -81,6 +92,9 @@ describe("Project Sarawak 20 capacity ledger", () => {
     expect(firm.remaining).toBe(0);
     expect(firm.foundingSoldOut).toBe(true);
     expect(firm.currentPlan).toBe("aas_firm");
+    expect(firm.price.amount).toBe(SARAWAK20_PLANS.aas_firm.amount);
+    expect(firm.licenses).toBe(3);
+    expect(firm.unlimited).toBe(true);
   });
 
   it("reuses a completed checkout attachment for the same request", async () => {
@@ -238,6 +252,28 @@ describe("Project Sarawak 20 capacity ledger", () => {
 });
 
 describe("Project Sarawak 20 Stripe contract", () => {
+  it("never writes checkout bearer identifiers into route logs", () => {
+    const stripeRouteSource = readFileSync(
+      new URL("../routes/stripe.ts", import.meta.url),
+      "utf8",
+    );
+    const sarawakRoute = stripeRouteSource.slice(
+      stripeRouteSource.indexOf('router.get("/sarawak20/status"'),
+      stripeRouteSource.indexOf("// Public self-service billing handoff"),
+    );
+    const sessionInfoRoute = stripeRouteSource.slice(
+      stripeRouteSource.indexOf('router.get("/session-info"'),
+      stripeRouteSource.indexOf("/**", stripeRouteSource.indexOf('router.get("/session-info"')),
+    );
+
+    for (const routeSource of [sarawakRoute, sessionInfoRoute]) {
+      const logCalls = routeSource.match(/req\.log\.(?:error|warn|info)\([\s\S]*?\);/g) ?? [];
+      expect(logCalls.join("\n")).not.toMatch(
+        /\b(?:sessionId|session_id|reservationId|accessCode)\b/,
+      );
+    }
+  });
+
   it("does not accept echoed search input or values from separate directory cards", () => {
     expect(
       aasDirectoryHasMatchingCard(
