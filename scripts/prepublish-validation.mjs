@@ -5,15 +5,52 @@ import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const artifactsDir = join(root, "artifacts");
-const recognizedArtifactKinds = [
-  "web",
-  "api",
-  "design",
-  "mobile",
-  "slides",
-  "video",
-  "design-system",
-];
+const artifactKindCatalogPath = join(root, "scripts", "supported-artifact-kinds.json");
+const artifactKindSafeguards = {
+  api: {},
+  design: {},
+  "design-system": {},
+  mobile: {},
+  slides: {},
+  video: {},
+  web: { requiredServiceEnv: ["PORT", "BASE_PATH"] },
+};
+
+export function parseSupportedManifestKinds(text) {
+  let kinds;
+  try {
+    kinds = JSON.parse(text);
+  } catch {
+    throw new Error("scripts/supported-artifact-kinds.json must contain valid JSON");
+  }
+  if (
+    !Array.isArray(kinds) ||
+    kinds.length === 0 ||
+    kinds.some((kind) => typeof kind !== "string" || kind.length === 0) ||
+    new Set(kinds).size !== kinds.length
+  ) {
+    throw new Error("Supported manifest-kind list must be non-empty and contain no duplicates");
+  }
+  return kinds;
+}
+
+export function validateArtifactKindSafeguards(
+  supportedKinds = parseSupportedManifestKinds(
+    readFileSync(artifactKindCatalogPath, "utf8"),
+  ),
+  safeguards = artifactKindSafeguards,
+) {
+  const missing = supportedKinds.filter((kind) => safeguards[kind] === undefined);
+  const stale = Object.keys(safeguards).filter((kind) => !supportedKinds.includes(kind));
+  if (missing.length > 0 || stale.length > 0) {
+    const details = [
+      missing.length > 0 ? `missing safeguards for: ${missing.join(", ")}` : undefined,
+      stale.length > 0 ? `not in the supported catalog: ${stale.join(", ")}` : undefined,
+    ].filter(Boolean);
+    throw new Error(`Artifact publish safeguards are out of sync (${details.join("; ")})`);
+  }
+  return safeguards;
+}
 
 function stripTomlComment(value) {
   let result = "";
@@ -187,10 +224,15 @@ export function parseManifest(filePath) {
   };
 }
 
-export function validateArtifact(artifact, filePath) {
+export function validateArtifact(
+  artifact,
+  filePath,
+  safeguards = validateArtifactKindSafeguards(),
+) {
   if (!artifact.productionBuildDeclared) return;
 
-  if (!recognizedArtifactKinds.includes(artifact.kind)) {
+  const recognizedArtifactKinds = Object.keys(safeguards);
+  if (safeguards[artifact.kind] === undefined) {
     const receivedKind =
       artifact.kind === undefined ? "missing or malformed" : JSON.stringify(artifact.kind);
     throw new Error(
@@ -200,8 +242,9 @@ export function validateArtifact(artifact, filePath) {
     );
   }
 
-  if (artifact.kind === "web") {
-    const missing = ["PORT", "BASE_PATH"].filter(
+  const requiredServiceEnv = safeguards[artifact.kind].requiredServiceEnv ?? [];
+  if (requiredServiceEnv.length > 0) {
+    const missing = requiredServiceEnv.filter(
       (key) => !artifact.serviceEnv[key],
     );
     if (missing.length > 0) {
@@ -244,12 +287,13 @@ export function discoverManifests() {
 }
 
 export function main() {
+  const safeguards = validateArtifactKindSafeguards();
   run("Full workspace typecheck", ["pnpm", "run", "typecheck"]);
 
   const manifests = discoverManifests();
   for (const filePath of manifests) {
     const artifact = parseManifest(filePath);
-    validateArtifact(artifact, filePath);
+    validateArtifact(artifact, filePath, safeguards);
     if (!artifact.build) {
       console.log(`\n==> ${artifact.title}: no production build declared; skipped`);
       continue;

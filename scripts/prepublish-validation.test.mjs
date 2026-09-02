@@ -3,11 +3,27 @@ import { test } from "node:test";
 import { join } from "node:path";
 import {
   parseManifest,
+  parseSupportedManifestKinds,
   validateArtifact,
+  validateArtifactKindSafeguards,
 } from "./prepublish-validation.mjs";
 
 const fixturesDir = join(process.cwd(), "scripts", "fixtures", "prepublish");
 const fixture = (name) => join(fixturesDir, name);
+
+test("keeps supported manifest kinds synchronized with publish safeguards", () => {
+  const catalog = JSON.stringify(["web", "future-kind"]);
+  const supportedKinds = parseSupportedManifestKinds(catalog);
+
+  assert.deepEqual(supportedKinds, ["web", "future-kind"]);
+  assert.throws(
+    () =>
+      validateArtifactKindSafeguards(supportedKinds, {
+        web: { requiredServiceEnv: ["PORT", "BASE_PATH"] },
+      }),
+    /Artifact publish safeguards are out of sync \(missing safeguards for: future-kind\)/,
+  );
+});
 
 test("parses the inline production build shape, including multiline arrays", () => {
   const artifact = parseManifest(fixture("inline-web.toml"));
