@@ -1,0 +1,5 @@
+kind = "web"
+title = "Invalid build commas fixture"
+
+[services.production]
+build = [,"pnpm",, "run", "build"]

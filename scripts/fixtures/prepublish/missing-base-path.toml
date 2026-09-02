@@ -1,0 +1,8 @@
+kind = "web"
+title = "Missing BASE_PATH fixture"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/fixture", "run", "build"]
+
+[services.env]
+PORT = "19002"

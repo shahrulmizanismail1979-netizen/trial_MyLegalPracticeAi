@@ -1,0 +1,5 @@
+kind = "web"
+title = "Empty build fixture"
+
+[services.production]
+build = # command accidentally removed

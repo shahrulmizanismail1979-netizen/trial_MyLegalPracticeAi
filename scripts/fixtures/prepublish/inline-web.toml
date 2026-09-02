@@ -1,0 +1,16 @@
+kind = "web"
+title = "Inline web fixture"
+
+[services.production]
+# Formatting the command across lines must not remove it from validation.
+build = [
+  "pnpm", # executable
+  "--filter",
+  "@workspace/fixture-inline",
+  "run",
+  "build",
+]
+
+[services.env]
+PORT = "19001"
+BASE_PATH = "/inline/"

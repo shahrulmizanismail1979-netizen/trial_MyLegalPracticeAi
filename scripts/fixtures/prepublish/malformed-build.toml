@@ -1,0 +1,10 @@
+kind = "web"
+title = "Malformed build fixture"
+
+[services.production]
+build = [
+  "pnpm",
+  "--filter",
+  "@workspace/fixture",
+  "run",
+  "build"

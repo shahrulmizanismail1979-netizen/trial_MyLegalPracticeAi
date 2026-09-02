@@ -1,0 +1,14 @@
+kind = "api"
+title = "Table API fixture"
+
+[services.production.build]
+args = [
+  "pnpm",
+  "--filter",
+  "@workspace/fixture-table",
+  "run",
+  "build",
+]
+
+[services.production.build.env]
+NODE_ENV = "production"

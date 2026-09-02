@@ -1,0 +1,8 @@
+kind = "web"
+title = "Missing PORT fixture"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/fixture", "run", "build"]
+
+[services.env]
+BASE_PATH = "/missing-port/"
