@@ -63,3 +63,4 @@
 - [Regression-safe delivery](regression-safe-delivery.md) — every change must protect adjacent working flows with targeted regression checks before it is called complete.
 - [Paid checkout capacity invariants](paid-checkout-capacity.md) — never release a slot after a payable remote session exists; delayed completion must count paid and live reserved allocations under one lock.
 - [Artifact-aware publish preflight](artifact-aware-publish-preflight.md) — recursive builds omit manifest env; validate each web build with its own PORT and BASE_PATH.
+- [Decision preservation](decision-preservation.md) — explicit user decisions are hard constraints; re-check them before proposing, editing, or “improving” settled behavior.
