@@ -65,3 +65,4 @@
 - [Artifact-aware publish preflight](artifact-aware-publish-preflight.md) — recursive builds omit manifest env; validate each web build with its own PORT and BASE_PATH.
 - [Decision preservation](decision-preservation.md) — explicit user decisions are hard constraints; re-check them before proposing, editing, or “improving” settled behavior.
 - [LAWYes primary workspace](lawyes-primary-workspace.md) — LAWYes is the main mylegalpracticeai.life experience; specialist portals remain capabilities behind it, not the front door.
+- [LAWYes first matter slice](lawyes-matter-slice.md) — LAWYes reuses MyLitAI’s access-code tenant and canonical matter stores; never infer matter conversations without an explicit link.

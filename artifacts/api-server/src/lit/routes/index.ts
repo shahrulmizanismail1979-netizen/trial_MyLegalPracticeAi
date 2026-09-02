@@ -28,7 +28,9 @@ import affidavitsRouter from "./affidavits";
 import practiceDirectionsRouter from "./practice-directions";
 import barCouncilRouter from "./bar-council";
 import clientsRouter from "./clients";
+import lawyesRouter from "./lawyes";
 import { aiRateLimit } from "../../lib/aiRateLimit";
+import { requireSubscription } from "./billing";
 
 const router: IRouter = Router();
 
@@ -56,6 +58,13 @@ router.use("/ai", litAuth, aiRateLimit, aiRouter);
 router.use("/gemini", litAuth, aiRateLimit, geminiRouter);
 router.use("/irac", litAuth, aiRateLimit, iracRouter);
 router.use("/banking-recovery", litAuth, aiRateLimit, bankingRecoveryRouter);
+router.use(
+  "/lawyes",
+  litAuth,
+  (req, res, next) => void requireSubscription(req, res, next),
+  aiRateLimit,
+  lawyesRouter,
+);
 router.use("/uploads", uploadsRouter);
 router.use("/exports", exportsRouter);
 router.use("/saved-work", savedWorkRouter);

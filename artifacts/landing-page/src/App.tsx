@@ -19,6 +19,7 @@ import PricingPage from "@/pages/admin/pricing";
 import VouchersPage from "@/pages/admin/vouchers";
 import ContributionsPage from "@/pages/admin/contributions";
 import DocumentsPage from "@/pages/admin/documents";
+import LawYesApp from "@/pages/lawyes";
 import {
   clerkPubKey,
   clerkProxyUrl,
@@ -145,6 +146,8 @@ function Router() {
           <DocumentsPage />
         </AdminGuard>
       </Route>
+      <Route path="/lawyes" component={LawYesApp} />
+      <Route path="/lawyes/:matterId" component={LawYesApp} />
       <Route path="/lawyes-safe-preview" component={LawYesSafePreview} />
       <Route component={NotFound} />
     </Switch>
