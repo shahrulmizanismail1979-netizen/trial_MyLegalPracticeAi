@@ -6,12 +6,14 @@ id = "2VcRMcCAqcXifbp6E-Wst"
 uri = "file://exports/ai-web-books-app.zip"
 type = "unspecified"
 title = "AI Web Books — Complete App Source (ZIP)"
+logical_id = "619fdb5c-3a68-4b0f-88b2-28ed9026a648"
 
 [[outputs]]
 id = "CEIZDBwl-MHNk178UzBe3"
 uri = "file://exports/ai-web-books-source.zip"
 type = "unspecified"
 title = "AI Web Books — Full Source Code"
+logical_id = "3a69cb27-899e-48f1-8b9b-5c1be5112a3b"
 
 [[outputs]]
 id = "WfDiVwVGKjZRg7YQAmu98"
@@ -19,6 +21,7 @@ uri = "file://poster-assets/poster-A1.pdf"
 type = "pdf"
 title = "Poster A1 — Paralegal Maya Pertama di Malaysia"
 description = "Poster pertandingan HIK@M 2026, saiz A1 (594mm × 841mm), sedia untuk cetak."
+logical_id = "b8d316c0-9dcd-4631-a5cc-742c14557355"
 
 [[outputs]]
 id = "2_IjQPojJBrUH_pE1HUoI"
@@ -26,6 +29,7 @@ uri = "file://poster-assets/poster-A1-melaka.pdf"
 type = "pdf"
 title = "Poster A1 (Potret) — Paralegal Maya Pertama di Malaysia · Edisi Melaka"
 description = "Poster HIK@M 2026 saiz A1 potret (594mm × 841mm), reka bentuk baharu dengan fokus Melaka — Melaka Maju Fasa II, Bandar Pintar, IPT Melaka, PKS & B40/M40 Melaka. Sedia untuk cetak."
+logical_id = "f21c18e7-cb1c-4682-a588-f2ad25286d4e"
 
 [[outputs]]
 id = "QTb_ZKS7R01S7hnRjLKe6"
@@ -33,6 +37,7 @@ uri = "file://research/notes.md"
 type = "text"
 title = "Research Notes: Malaysian Corporate Legal Needs"
 description = "Research plan and running findings log for the Malaysia corporate-law practitioner and in-house counsel study."
+logical_id = "11b684ee-cdbd-49c7-8318-5dfbb3f5caab"
 
 [[outputs]]
 id = "Bv6FhCm8DGF1CJ7mg_u2d"
@@ -40,6 +45,7 @@ uri = "file://research/malaysia-corporate-legal-needs.md"
 type = "text"
 title = "Malaysian Corporate Legal Needs Research"
 description = "Deep evidence-backed report on practitioner problem statements, real needs, product priorities, and research limits."
+logical_id = "6cf68455-d05a-4ce0-8431-d652b5375dfc"
 
 [[outputs]]
 id = "WqEImPxyrTd2jXe_an7gI"
@@ -47,3 +53,18 @@ uri = "file://docs/lawyes-sarawak-safe-preview-audit.md"
 type = "text"
 title = "LAWYes Sarawak Safe Preview Audit"
 description = "Source inventory, verified additions, transparent gaps, test results, and exact production-release risks."
+logical_id = "c160d088-00f3-4ba5-abd7-04ee726b3a64"
+
+[[outputs]]
+id = "7gQfKHCqUWq2Ef85C4koL"
+uri = "file://records/main-build-record-2026-09-02.zip"
+type = "unspecified"
+title = "Complete Main Build Chat and Task Record"
+description = "Corrected archive with the preserved chat record, all 62 local task-plan files verbatim, a combined 500 KB task document, and a CSV index."
+logical_id = "a98be323-8cb1-4095-9c39-5cdde33554a8"
+content_hash = "sha256:8f261b5b4c40cff7b82bdb910031b95bd64525351ed88dfe64027da483d2a07f"
+size = 288447
+mtime_ms = 1788329266465
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b38dab63-c810-4e35-a3e2-aa65a296c8ac/a98be323-8cb1-4095-9c39-5cdde33554a8/473663b5-785a-4ea1-a475-c0a07f569122"
+storage_version_token = "1788329269116589"
+content_type = "application/octet-stream"
