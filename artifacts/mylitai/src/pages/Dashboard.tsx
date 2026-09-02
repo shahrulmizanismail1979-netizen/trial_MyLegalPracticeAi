@@ -3,6 +3,12 @@ import { useUpcomingDeadlines, categoryMeta, daysUntil } from '@/hooks/use-matte
 import { BookOpen, GitBranch, FileText, Gavel, ArrowRight, AlertTriangle, Calculator, BookA, FolderOpen, Scale, CalendarClock, Clock, FolderKanban, Plus, UserCog } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, PageHeader, Badge, Select } from '@/components/ui';
 import {
+  PERSONA_DASHBOARD_FRAMING,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_LABELS,
+  PERSONA_ROLES,
+  usePersona,
+} from '@workspace/persona-client';
 import { useToast } from '@/hooks/use-toast';
 function DeadlineRadar() {
   const { data, isLoading } = useUpcomingDeadlines(30);

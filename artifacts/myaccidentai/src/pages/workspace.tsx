@@ -10,7 +10,7 @@ import {
   BookOpen, Scale, FileText, Activity, Shield, Search,
   ChevronDown, LogOut, Home, MessageSquare, Calculator,
   FileEdit, Map, Gavel, Users, Clock, ArrowRight, BookMarked,
-  CheckSquare, Library, Info, ExternalLink, Folder, Briefcase, Sparkles, AlertTriangle
+  CheckSquare, Library, Info, ExternalLink, Folder, Briefcase, Sparkles, AlertTriangle, UserCog
 } from "lucide-react";
 import { MatterPicker } from "@/components/MatterPicker";
 import { type Matter } from "@/hooks/use-matters";

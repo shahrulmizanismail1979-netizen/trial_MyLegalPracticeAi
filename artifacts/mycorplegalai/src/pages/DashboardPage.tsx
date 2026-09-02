@@ -17,8 +17,15 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FolderKanban, Plus, ArrowRight, CalendarClock,
   AlertTriangle, Scale, Sparkles, BrainCircuit, ChevronRight,
-  ListChecks, Loader2, RefreshCw, Target,
+  ListChecks, Loader2, RefreshCw, Target, UserCog,
 } from "lucide-react";
+import {
+  PERSONA_DASHBOARD_FRAMING,
+  PERSONA_DESCRIPTIONS,
+  PERSONA_LABELS,
+  PERSONA_ROLES,
+  usePersona,
+} from "@workspace/persona-client";
 
 
 const STATUS_META: Record<string, { label: string; color: string }> = {

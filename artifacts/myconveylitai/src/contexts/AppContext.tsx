@@ -13,6 +13,10 @@ setAuthTokenGetter(() => localStorage.getItem('convey_token'));
 // with a bearer token (not a cookie session), reuse the same token getter to
 // attach the Authorization header on shared /api/personas writes.
 configurePersonaAuthHeaders(() => {
+  const token = localStorage.getItem('convey_token');
+  return token ? { Authorization: `Bearer ${token}` } : null;
+});
+
 export type AiMode = 'tutor' | 'drafter' | 'risk' | 'checklist' | 'deadlines' | 'reviewer' | 'comparator' | 'title' | 'quotation' | 'advice' | 'duediligence' | 'opinion' | 'requisition' | 'completion' | 'caseresearch' | 'stampduty' | 'rpgt' | 'tenancy' | 'poa' | 'caveat' | 'landsearch' | 'devclaim' | 'bankruptcy' | 'foreignpurchase' | 'loandoc' | 'taxcompliance' | 'strata' | 'quiz' | 'simulator' | 'clauselib' | 'docanalyzer' | 'compliance' | 'timeline' | 'mockexam' | 'caseanalyzer' | 'corpresolution' | 'corpdd' | 'jvagreement' | 'guarantee';
 
 export interface CurrentUser {

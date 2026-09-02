@@ -23,7 +23,11 @@ import { configurePersonaAuthHeaders } from "@workspace/persona-client";
 
 const queryClient = new QueryClient();
 
+configurePersonaAuthHeaders(() => {
   const t = localStorage.getItem("auth_token");
+  return t ? { Authorization: `Bearer ${t}` } : null;
+});
+
 function Router() {
   return (
     <Switch>
