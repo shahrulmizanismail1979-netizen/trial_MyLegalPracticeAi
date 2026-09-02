@@ -98,7 +98,8 @@ function ClerkQueryClientCacheInvalidator() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={LawYesSafePreview} />
+      <Route path="/apps" component={Home} />
       <Route path="/contribute" component={ContributePage} />
       <Route path="/manage-subscription" component={ManageSubscriptionPage} />
       <Route path="/unsubscribe" component={ManageSubscriptionPage} />
@@ -182,12 +183,15 @@ function ClerkProviderWithRoutes() {
 }
 
 function App() {
-  // This route deliberately renders before Clerk, React Query, and every
-  // application provider. The preview is a standalone browser-only artifact.
-  if (
-    typeof window !== "undefined" &&
-    window.location.pathname.replace(/\/+$/, "") === "/lawyes-safe-preview"
-  ) {
+  // LAWYes is the primary experience. It deliberately renders before Clerk,
+  // React Query, and every production provider while the unified identity and
+  // ownership model is still being completed. The former Safe Preview URL
+  // remains as a compatibility alias.
+  const pathname =
+    typeof window !== "undefined"
+      ? window.location.pathname.replace(/\/+$/, "") || "/"
+      : "";
+  if (pathname === "/" || pathname === "/lawyes-safe-preview") {
     return <LawYesSafePreview />;
   }
 

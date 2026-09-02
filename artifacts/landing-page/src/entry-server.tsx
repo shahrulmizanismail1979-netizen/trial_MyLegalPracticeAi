@@ -7,8 +7,13 @@ import { CurrencyProvider } from "@/lib/currency";
 import { PersonaProvider } from "@/lib/persona";
 import Home from "@/pages/home";
 import ContributePage from "@/pages/contribute";
+import LawYesSafePreview from "@/pages/lawyes-safe-preview";
 
 export function render(path: string = "/"): string {
+  if (path === "/" || path === "/lawyes-safe-preview") {
+    return renderToString(<LawYesSafePreview />);
+  }
+
   const queryClient = new QueryClient();
 
   let PageComponent: () => React.ReactNode;

@@ -11,6 +11,15 @@ const verifiedReports = JSON.parse(readFileSync(fixturePath, "utf8")) as Record<
 >;
 const publishedReport = Object.values(verifiedReports)[0];
 
+test("LAWYes is the primary root experience and the Safe Preview URL remains compatible", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Search Law & Cases" })).toBeVisible();
+
+  await page.goto("/lawyes-safe-preview");
+  await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+});
+
 test("selected LAWYes report links to its report-specific official judgment", async ({ page }) => {
   await page.goto("/lawyes-safe-preview");
   await page.getByRole("button", { name: "Search Law & Cases" }).click();
