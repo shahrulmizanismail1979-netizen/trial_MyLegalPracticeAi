@@ -148,7 +148,7 @@ export function SkillsView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-[#f9fafa] p-6 md:p-8">
+      <div className="flex-1 overflow-y-auto bg-background/50 p-6 md:p-8">
         <div className="mx-auto max-w-5xl space-y-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span data-testid="status-capability-count">{filteredCapabilities.length} proven capability groups</span>
@@ -190,7 +190,7 @@ export function SkillsView({
                 </button>
 
                 {expanded && (
-                  <div className="border-t border-muted/50 bg-[#fffefa] px-6 pb-6 pt-5 animate-in slide-in-from-top-2" data-testid={`detail-capability-${capability.id}`}>
+                  <div className="border-t border-muted/50 bg-card px-6 pb-6 pt-5 animate-in slide-in-from-top-2" data-testid={`detail-capability-${capability.id}`}>
                     <div className="grid gap-6 md:grid-cols-2">
                       <div className="space-y-5">
                         <section>

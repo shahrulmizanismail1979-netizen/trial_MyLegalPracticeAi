@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers } from "lucide-react";
-import { AUDIT, REPORTS, validatePublication } from "@/fixtures/lawyes-preview";
+import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers, MessageSquare, Wrench, ChevronDown } from "lucide-react";
 import { useRouterState, type RouterState } from "./lawyes-safe-preview/use-router-state";
 import { HomeView } from "./lawyes-safe-preview/home";
 import { SearchView } from "./lawyes-safe-preview/search";
@@ -13,6 +12,7 @@ import { SkillsView } from "./lawyes-safe-preview/skills";
 export default function LawYesSafePreview() {
   const { state, updateState, navigate } = useRouterState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   const handleNavigate = (view: typeof state.view, params?: Partial<RouterState>) => {
     navigate(view, params);
@@ -24,10 +24,10 @@ export default function LawYesSafePreview() {
       onClick={() => handleNavigate(view)}
       aria-label={`${view} workspace navigation`}
       data-testid={`button-sidebar-${view}`}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
         active
-          ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-[hsl(var(--lawyes-sidebar-text))]"
-          : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-[hsl(var(--lawyes-sidebar-text))]"
+          ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm"
+          : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white"
       }`}
     >
       {icon}
@@ -46,66 +46,99 @@ export default function LawYesSafePreview() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col border-r border-[hsl(var(--lawyes-sidebar-border))] transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
          {/* Top Logo & New Task */}
-         <div className="p-4 flex flex-col gap-4">
-           <div className="flex items-center justify-between">
-              <button
-                onClick={() => handleNavigate("home")}
-                className="flex items-center gap-2 font-serif text-xl tracking-tight text-white hover:opacity-80 transition-opacity"
-                data-testid="button-sidebar-home"
-              >
-               <span className="w-8 h-8 flex items-center justify-center bg-secondary text-secondary-foreground font-bold rounded-md">L</span>
-               LAW<span className="italic text-secondary">Yes</span>
+         <div className="p-3 flex items-center justify-between">
+           <button
+             onClick={() => handleNavigate("home")}
+             className="flex items-center gap-2 font-serif text-lg tracking-tight text-white hover:opacity-80 transition-opacity px-2"
+             data-testid="button-sidebar-home"
+           >
+             <span className="w-6 h-6 flex items-center justify-center bg-secondary text-secondary-foreground font-bold rounded text-xs">L</span>
+             LAW<span className="italic text-secondary">Yes</span>
+           </button>
+           <div className="flex items-center gap-1">
+             <button
+               onClick={() => handleNavigate("home")}
+               className="p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-colors"
+               aria-label="New Workspace"
+               data-testid="button-new-workspace"
+             >
+               <Plus size={18} />
              </button>
-              <button
-                className="md:hidden p-1 text-[hsl(var(--lawyes-sidebar-muted))] hover:text-white"
-                onClick={() => setSidebarOpen(false)}
-                aria-label="Close workspace navigation"
-                data-testid="button-close-sidebar"
-              >
-               <X size={20} />
+             <button
+               className="md:hidden p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-colors"
+               onClick={() => setSidebarOpen(false)}
+               aria-label="Close workspace navigation"
+               data-testid="button-close-sidebar"
+             >
+               <X size={18} />
              </button>
            </div>
-
-            <button
-              onClick={() => handleNavigate("home")}
-              className="flex items-center gap-2 w-full bg-[hsl(var(--lawyes-sidebar-hover))] hover:bg-[hsl(var(--lawyes-sidebar-border))]/80 text-white px-4 py-3 rounded-xl transition-colors font-medium text-sm border border-[hsl(var(--lawyes-sidebar-border))] shadow-sm mt-2"
-              data-testid="button-new-workspace"
-            >
-             <Plus size={18} />
-             New Workspace
-           </button>
          </div>
 
-         {/* Nav Links */}
-         <nav className="flex-1 overflow-y-auto p-4 space-y-1 no-scrollbar pb-24 md:pb-4">
-           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mb-3 px-2">Discovery</div>
-           <NavButton view="skills" icon={<Layers size={16}/>} label="Skills Registry" active={state.view === "skills"} />
+         {/* Conversation rail */}
+         <nav className="flex-1 overflow-y-auto p-3 no-scrollbar pb-24 md:pb-4 mt-2">
+            <div className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))]">Today</div>
+            <button
+              onClick={() => handleNavigate("home")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors ${
+                state.view === "home"
+                  ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white"
+                  : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white"
+              }`}
+              aria-label="Open current conversation"
+            >
+              <MessageSquare size={16} />
+              <span className="truncate">New legal workspace</span>
+            </button>
 
-           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mt-8 mb-3 px-2">Work Modes</div>
-           <NavButton view="search" icon={<Search size={16}/>} label="Search Law & Cases" active={state.view === "search"} />
-           <NavButton view="draft" icon={<FileText size={16}/>} label="Draft Document" active={state.view === "draft"} />
-           <NavButton view="matter" icon={<Briefcase size={16}/>} label="Matter Workspace" active={state.view === "matter"} />
-
-           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mt-8 mb-3 px-2">Knowledge Base</div>
-           <NavButton view="practice" icon={<Gavel size={16}/>} label="Practice Centre" active={state.view === "practice"} />
-
-           {/* Context awareness */}
+            {/* Context awareness */}
            {(state.matterName || state.clientRef) && (
-             <div className="mt-8 mx-2 p-3 bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg border border-[hsl(var(--lawyes-sidebar-border))] animate-in fade-in slide-in-from-left-2">
-               <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mb-1 flex items-center justify-between">
-                 Local Matter
-                 <Briefcase size={10} />
-               </div>
-               <div className="text-sm font-medium text-white line-clamp-1 truncate">{state.matterName || "Unnamed Matter"}</div>
-               <div className="text-xs text-[hsl(var(--lawyes-sidebar-muted))] mt-1 truncate">{state.clientRef}</div>
-             </div>
+              <button
+                onClick={() => handleNavigate("matter")}
+                className="mt-1 w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white transition-colors"
+                aria-label="Open active matter conversation"
+              >
+                <Briefcase size={16} className="mt-0.5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm">{state.matterName || "Active matter"}</span>
+                  {state.clientRef && <span className="block truncate text-[11px] text-[hsl(var(--lawyes-sidebar-muted))]">{state.clientRef}</span>}
+                </span>
+              </button>
            )}
+
+            <div className="mt-6 border-t border-[hsl(var(--lawyes-sidebar-border))] pt-3">
+              <button
+                type="button"
+                onClick={() => setToolsOpen((open) => !open)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/75 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white transition-colors"
+                aria-expanded={toolsOpen}
+                aria-controls="lawyes-tools-menu"
+              >
+                <Wrench size={16} />
+                <span className="flex-1 text-left">Tools</span>
+                <ChevronDown size={14} className={`transition-transform ${toolsOpen ? "rotate-180" : ""}`} />
+              </button>
+              <div
+                id="lawyes-tools-menu"
+                className={`grid transition-[grid-template-rows,opacity] duration-200 ${
+                  toolsOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden space-y-0.5 pt-1">
+                  <NavButton view="search" icon={<Search size={16}/>} label="Search Law & Cases" active={state.view === "search"} />
+                  <NavButton view="draft" icon={<FileText size={16}/>} label="Draft Document" active={state.view === "draft"} />
+                  <NavButton view="matter" icon={<Briefcase size={16}/>} label="Matter Workspace" active={state.view === "matter"} />
+                  <NavButton view="practice" icon={<Gavel size={16}/>} label="Practice Centre" active={state.view === "practice"} />
+                  <NavButton view="skills" icon={<Layers size={16}/>} label="All capabilities" active={state.view === "skills"} />
+                </div>
+              </div>
+            </div>
          </nav>
 
          {/* Footer */}
-         <div className="p-4 border-t border-[hsl(var(--lawyes-sidebar-border))] flex flex-col gap-3 bg-[hsl(var(--lawyes-sidebar))]">
+         <div className="p-3 border-t border-[hsl(var(--lawyes-sidebar-border))]">
             <button
               onClick={() => handleNavigate("verification")}
               className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${state.view === 'verification' ? 'bg-[hsl(var(--lawyes-sidebar-hover))] text-white' : 'text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white'}`}
@@ -114,36 +147,32 @@ export default function LawYesSafePreview() {
              <ShieldCheck size={16} />
              Sources & Verification
            </button>
-           <div className="flex items-center gap-2 px-3 py-1">
-             <div className="w-2 h-2 rounded-full bg-secondary"></div>
-             <span className="text-[11px] text-[hsl(var(--lawyes-sidebar-muted))] font-medium uppercase tracking-wider">Safe Preview Session</span>
-           </div>
          </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-[100dvh] relative bg-background">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-border shrink-0 z-20 shadow-sm">
+        <header className="md:hidden flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0 z-20 shadow-sm">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 text-foreground focus:outline-none"
+            className="p-2 text-foreground focus:outline-none hover:bg-muted rounded-lg transition-colors"
             aria-label="Open workspace navigation"
             data-testid="button-open-sidebar"
           >
             <Menu size={20} />
           </button>
-          <div className="font-serif font-medium text-foreground flex items-center gap-1">
-            <span className="w-5 h-5 flex items-center justify-center bg-secondary text-secondary-foreground text-xs font-bold rounded-sm">L</span>
+          <div className="font-serif font-medium text-foreground flex items-center gap-1.5">
+            <span className="w-5 h-5 flex items-center justify-center bg-secondary text-secondary-foreground text-[10px] font-bold rounded-sm">L</span>
             LAW<span className="italic text-secondary">Yes</span>
           </div>
           <button
             onClick={() => handleNavigate("home")}
-            className="p-2 -mr-2 text-foreground focus:outline-none"
+            className="p-2 text-foreground focus:outline-none hover:bg-muted rounded-lg transition-colors"
             aria-label="Start new workspace"
             data-testid="button-mobile-new-workspace"
           >
-            <Plus size={20} />
+            <MessageSquare size={20} />
           </button>
         </header>
 
@@ -158,26 +187,23 @@ export default function LawYesSafePreview() {
           {state.view === "verification" && <VerificationView navigate={handleNavigate} />}
         </div>
 
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 border-t border-border bg-white/95 backdrop-blur flex items-center justify-around px-2 pb-safe">
-          <button onClick={() => handleNavigate("home")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'home' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-home">
-            <Plus size={18} />
-            New
+        {/* Keeping Mobile Bottom Nav for progressive disclosure, but make it very clean */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-[calc(60px+env(safe-area-inset-bottom))] border-t border-border bg-card/90 backdrop-blur-md flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+          <button onClick={() => handleNavigate("home")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${state.view === 'home' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-home">
+            <MessageSquare size={20} />
+            Chat
           </button>
-          <button onClick={() => handleNavigate("search")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'search' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-search">
-            <Search size={18} />
+          <button onClick={() => handleNavigate("search")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${state.view === 'search' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-search">
+            <Search size={20} />
             Search
           </button>
-          <button onClick={() => handleNavigate("draft")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'draft' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-draft">
-            <FileText size={18} />
+          <button onClick={() => handleNavigate("draft")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${state.view === 'draft' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-draft">
+            <FileText size={20} />
             Draft
           </button>
-          <button onClick={() => handleNavigate("matter")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'matter' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-matter">
-            <Briefcase size={18} />
+          <button onClick={() => handleNavigate("matter")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors ${state.view === 'matter' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-matter">
+            <Briefcase size={20} />
             Matter
-          </button>
-          <button onClick={() => handleNavigate("skills")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'skills' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-skills">
-            <Layers size={18} />
-            Skills
           </button>
         </nav>
       </main>

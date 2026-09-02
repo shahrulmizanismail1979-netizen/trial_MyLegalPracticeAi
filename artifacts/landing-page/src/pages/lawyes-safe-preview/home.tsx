@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, FileText, Briefcase, Gavel, ArrowRight, ShieldAlert, Sparkles, ChevronRight, Layers } from "lucide-react";
+import { Search, FileText, Briefcase, Gavel, ArrowUp, ShieldAlert, Sparkles, ChevronRight, Layers } from "lucide-react";
 import type { RouterState } from "./use-router-state";
 import { findCapabilities } from "../../fixtures/lawyes-skills";
 
@@ -26,18 +26,16 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
   };
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto no-scrollbar pb-24 md:pb-8 relative animate-in fade-in duration-500">
-      <div className="flex-1 flex flex-col justify-center items-center max-w-4xl mx-auto w-full px-4 md:px-8 py-12 md:py-24">
-
-        {/* Central Instruction Surface */}
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+    <div className="h-full flex flex-col relative animate-in fade-in duration-500 bg-background text-foreground overflow-y-auto no-scrollbar pb-[100px] md:pb-8">
+      <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full px-4 md:px-8">
+        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Find the law. Draft the document. Prepare the matter.
         </h2>
-        <h1 className="text-3xl md:text-5xl font-serif text-foreground text-center mb-10 tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-serif text-foreground text-center mb-8 tracking-tight">
           How can I assist your practice today?
         </h1>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-3xl bg-white border border-border shadow-sm rounded-2xl p-2 focus-within:ring-4 focus-within:ring-primary/10 focus-within:border-primary transition-all flex flex-col mb-16">
+        <form onSubmit={handleSubmit} className="w-full bg-card border border-border shadow-md rounded-[24px] p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all flex flex-col mb-8 relative">
           <textarea
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -50,13 +48,13 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
             placeholder="Describe your legal issue, search for a case, or ask a question..."
             aria-label="Search judgments, principles, and legal materials"
             data-testid="input-lawyes-instruction"
-            className="w-full resize-none outline-none p-4 text-lg bg-transparent text-foreground placeholder:text-muted-foreground min-h-[120px]"
+            className="w-full resize-none outline-none p-4 text-base bg-transparent text-foreground placeholder:text-muted-foreground min-h-[120px]"
           />
 
           {/* Capability routing suggestions */}
-          <div className="px-4 pb-3 flex flex-col gap-2">
+          <div className="px-4 pb-2 flex flex-col gap-2">
             {q.trim() && matchedSkills.length > 0 ? (
-              <div className="animate-in fade-in slide-in-from-top-1 space-y-1.5" data-testid="container-skill-suggestions">
+              <div className="animate-in fade-in slide-in-from-top-1 space-y-1.5 mb-2" data-testid="container-skill-suggestions">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 px-1">
                   <Sparkles size={12} /> Suggested Capabilities
                 </div>
@@ -71,93 +69,76 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                         navigate("skills", { q, capabilityId: skill.id });
                       }
                     }}
-                    className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg bg-muted/30 hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl bg-muted/50 hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary/30"
                     data-testid={`button-suggested-skill-${skill.id}`}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="shrink-0 w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center">
-                        <Layers size={12} />
+                      <div className="shrink-0 w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <Layers size={14} />
                       </div>
                       <div className="truncate">
-                        <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{skill.name}</div>
-                        <div className="text-xs text-muted-foreground truncate hidden sm:block">{skill.description}</div>
+                        <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{skill.name}</div>
                       </div>
                     </div>
                     <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="animate-in fade-in" data-testid="container-browse-skills">
-                <button
-                  onClick={(e) => { e.preventDefault(); navigate("skills"); }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  data-testid="button-browse-skills-inline"
-                >
-                  <Layers size={14} /> Browse all proven capabilities
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
 
-          <div className="flex justify-between items-center px-3 pb-2 pt-1 border-t border-muted/50 mt-2">
-            <div className="flex gap-2 items-center">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-2 py-1 bg-muted/50 rounded flex items-center gap-1.5">
-                 <ShieldAlert size={12} className="text-secondary" />
-                 Safe Preview Mode
-              </span>
-            </div>
+          <div className="flex justify-between items-center gap-3 px-2 pb-2">
+             <div className="flex items-center">
+               {!q.trim() && (
+                 <div className="animate-in fade-in" data-testid="container-browse-skills">
+                  <button
+                    onClick={(e) => { e.preventDefault(); navigate("skills"); }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    data-testid="button-browse-skills-inline"
+                  >
+                     <Layers size={14} /> Tools
+                  </button>
+                </div>
+               )}
+             </div>
+
             <button
               type="submit"
               disabled={!q.trim()}
-              className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
-              aria-label="Submit search"
+              className="w-10 h-10 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 disabled:opacity-50 disabled:bg-muted disabled:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-center shrink-0"
+              aria-label="Submit instruction"
               data-testid="button-submit-instruction"
             >
-              <ArrowRight size={18} />
+              <ArrowUp size={20} strokeWidth={2.5} />
             </button>
           </div>
         </form>
 
-        {/* 4 Primary Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
-          <button onClick={() => navigate("search")} className="group text-left p-5 bg-white border border-border rounded-xl hover:border-primary/40 hover:shadow-md transition-all flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-action-search">
-             <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform"><Search size={20} /></div>
-             <div>
-               <h2 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors">Search Law &amp; Cases</h2>
-               <div className="text-xs text-muted-foreground leading-relaxed">Find verified judgments, records, and statutes.</div>
-             </div>
+        {/* 4 Primary Actions as Suggestion Chips */}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 w-full animate-in fade-in slide-in-from-bottom-2">
+          <button onClick={() => navigate("search")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-full hover:border-primary/40 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow" data-testid="button-action-search">
+             <Search size={16} className="text-primary" />
+             <h2 className="text-sm font-medium">Search Law &amp; Cases</h2>
           </button>
 
-          <button onClick={() => navigate("draft")} className="group text-left p-5 bg-white border border-border rounded-xl hover:border-primary/40 hover:shadow-md transition-all flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-action-draft">
-             <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform"><FileText size={20} /></div>
-             <div>
-               <h2 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors">Draft a Legal Document</h2>
-               <div className="text-xs text-muted-foreground leading-relaxed">Editable templates with guided logic paths.</div>
-             </div>
+          <button onClick={() => navigate("draft")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-full hover:border-primary/40 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow" data-testid="button-action-draft">
+             <FileText size={16} className="text-primary" />
+             <h2 className="text-sm font-medium">Draft a Legal Document</h2>
           </button>
 
-          <button onClick={() => navigate("matter")} className="group text-left p-5 bg-white border border-border rounded-xl hover:border-primary/40 hover:shadow-md transition-all flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-action-matter">
-             <div className="w-10 h-10 rounded-lg bg-primary/5 text-primary flex items-center justify-center group-hover:scale-110 transition-transform"><Briefcase size={20} /></div>
-             <div>
-               <h2 className="font-medium text-foreground mb-1 group-hover:text-primary transition-colors">Work on a Matter</h2>
-               <div className="text-xs text-muted-foreground leading-relaxed">Consolidate findings into a local workspace.</div>
-             </div>
+          <button onClick={() => navigate("matter")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-border rounded-full hover:border-primary/40 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm hover:shadow" data-testid="button-action-matter">
+             <Briefcase size={16} className="text-primary" />
+             <h2 className="text-sm font-medium">Work on a Matter</h2>
           </button>
 
-          <button onClick={() => navigate("practice")} className="group text-left p-5 bg-primary text-white border border-primary rounded-xl hover:bg-primary/95 hover:shadow-md transition-all flex flex-col gap-3 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/50" data-testid="button-action-practice">
-             <div className="absolute right-0 top-0 w-24 h-24 bg-white/5 rounded-bl-full -mr-4 -mt-4 pointer-events-none"></div>
-             <div className="w-10 h-10 rounded-lg bg-white/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform relative z-10"><Gavel size={20} /></div>
-             <div className="relative z-10">
-               <h2 className="font-medium mb-1">Sarawak Practice Centre</h2>
-               <div className="text-xs text-white/70 leading-relaxed">Specific workflows for Sarawak litigation.</div>
-             </div>
+          <button onClick={() => navigate("practice")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-secondary/40 rounded-full hover:border-secondary/60 hover:bg-secondary/10 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 shadow-sm hover:shadow" data-testid="button-action-practice">
+             <Gavel size={16} className="text-secondary" />
+             <h2 className="text-sm font-medium">Sarawak Practice Centre</h2>
           </button>
         </div>
-
-        <div className="mt-8 w-full rounded-xl border border-secondary/20 bg-secondary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground" data-testid="status-safe-preview-demonstration">
-          <span className="font-semibold text-foreground">Safe Preview Demonstration</span>
-          {" "}Uses reviewed local fixtures only. No production API, database, authentication, billing, upload, AI, persistence, or server write is active.
+        <div className="mt-5 flex items-center gap-1.5 text-[10px] text-muted-foreground" data-testid="status-safe-preview-demonstration">
+          <ShieldAlert size={12} />
+          <span>Safe Preview Demonstration</span>
         </div>
       </div>
     </div>
