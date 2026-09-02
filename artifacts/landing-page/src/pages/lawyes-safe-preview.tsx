@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck } from "lucide-react";
+import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers } from "lucide-react";
 import { AUDIT, REPORTS, validatePublication } from "@/fixtures/lawyes-preview";
 import { useRouterState, type RouterState } from "./lawyes-safe-preview/use-router-state";
 import { HomeView } from "./lawyes-safe-preview/home";
@@ -8,6 +8,7 @@ import { DraftView } from "./lawyes-safe-preview/draft";
 import { MatterView } from "./lawyes-safe-preview/matter";
 import { PracticeView } from "./lawyes-safe-preview/practice";
 import { VerificationView } from "./lawyes-safe-preview/verification";
+import { SkillsView } from "./lawyes-safe-preview/skills";
 
 export default function LawYesSafePreview() {
   const { state, updateState, navigate } = useRouterState();
@@ -79,7 +80,10 @@ export default function LawYesSafePreview() {
 
          {/* Nav Links */}
          <nav className="flex-1 overflow-y-auto p-4 space-y-1 no-scrollbar pb-24 md:pb-4">
-           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mb-3 px-2">Work Modes</div>
+           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mb-3 px-2">Discovery</div>
+           <NavButton view="skills" icon={<Layers size={16}/>} label="Skills Registry" active={state.view === "skills"} />
+
+           <div className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))] mt-8 mb-3 px-2">Work Modes</div>
            <NavButton view="search" icon={<Search size={16}/>} label="Search Law & Cases" active={state.view === "search"} />
            <NavButton view="draft" icon={<FileText size={16}/>} label="Draft Document" active={state.view === "draft"} />
            <NavButton view="matter" icon={<Briefcase size={16}/>} label="Matter Workspace" active={state.view === "matter"} />
@@ -150,25 +154,30 @@ export default function LawYesSafePreview() {
           {state.view === "draft" && <DraftView state={state} updateState={updateState} navigate={handleNavigate} />}
           {state.view === "matter" && <MatterView state={state} updateState={updateState} navigate={handleNavigate} />}
           {state.view === "practice" && <PracticeView state={state} updateState={updateState} navigate={handleNavigate} />}
+          {state.view === "skills" && <SkillsView state={state} navigate={handleNavigate} />}
           {state.view === "verification" && <VerificationView navigate={handleNavigate} />}
         </div>
 
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 h-16 border-t border-border bg-white/95 backdrop-blur flex items-center justify-around px-2 pb-safe">
-          <button onClick={() => handleNavigate("home")} className="flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground" data-testid="button-mobile-home">
+          <button onClick={() => handleNavigate("home")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'home' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-home">
             <Plus size={18} />
             New
           </button>
-          <button onClick={() => handleNavigate("search")} className="flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground" data-testid="button-mobile-search">
+          <button onClick={() => handleNavigate("search")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'search' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-search">
             <Search size={18} />
             Search
           </button>
-          <button onClick={() => handleNavigate("draft")} className="flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground" data-testid="button-mobile-draft">
+          <button onClick={() => handleNavigate("draft")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'draft' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-draft">
             <FileText size={18} />
             Draft
           </button>
-          <button onClick={() => handleNavigate("matter")} className="flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground" data-testid="button-mobile-matter">
+          <button onClick={() => handleNavigate("matter")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'matter' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-matter">
             <Briefcase size={18} />
             Matter
+          </button>
+          <button onClick={() => handleNavigate("skills")} className={`flex h-full flex-1 flex-col items-center justify-center gap-1 text-[10px] ${state.view === 'skills' ? 'text-primary' : 'text-muted-foreground'}`} data-testid="button-mobile-skills">
+            <Layers size={18} />
+            Skills
           </button>
         </nav>
       </main>

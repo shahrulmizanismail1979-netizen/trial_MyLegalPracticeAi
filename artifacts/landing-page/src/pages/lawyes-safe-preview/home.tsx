@@ -1,13 +1,28 @@
-import { useState } from "react";
-import { Search, FileText, Briefcase, Gavel, ArrowRight, ShieldAlert } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, FileText, Briefcase, Gavel, ArrowRight, ShieldAlert, Sparkles, ChevronRight, Layers } from "lucide-react";
 import type { RouterState } from "./use-router-state";
+import { findCapabilities } from "../../fixtures/lawyes-skills";
 
-export function HomeView({ state, navigate }: { state: RouterState; navigate: (view: "search" | "draft" | "matter" | "practice", params?: Partial<RouterState>) => void }) {
+export function HomeView({ state, navigate }: { state: RouterState; navigate: (view: "search" | "draft" | "matter" | "practice" | "skills", params?: Partial<RouterState>) => void }) {
   const [q, setQ] = useState(state.q || "");
+
+  const matchedSkills = useMemo(() => {
+    return findCapabilities(q);
+  }, [q]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (q.trim()) navigate("search", { q });
+    if (!q.trim()) return;
+    const firstMatch = matchedSkills[0];
+    if (firstMatch?.workspaceDestination) {
+      navigate(firstMatch.workspaceDestination, { q });
+      return;
+    }
+    if (firstMatch) {
+      navigate("skills", { q, capabilityId: firstMatch.id });
+      return;
+    }
+    navigate("skills", { q });
   };
 
   return (
@@ -37,6 +52,54 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
             data-testid="input-lawyes-instruction"
             className="w-full resize-none outline-none p-4 text-lg bg-transparent text-foreground placeholder:text-muted-foreground min-h-[120px]"
           />
+
+          {/* Capability routing suggestions */}
+          <div className="px-4 pb-3 flex flex-col gap-2">
+            {q.trim() && matchedSkills.length > 0 ? (
+              <div className="animate-in fade-in slide-in-from-top-1 space-y-1.5" data-testid="container-skill-suggestions">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 px-1">
+                  <Sparkles size={12} /> Suggested Capabilities
+                </div>
+                {matchedSkills.map(skill => (
+                  <button
+                    key={skill.id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (skill.workspaceDestination) {
+                        navigate(skill.workspaceDestination, { q });
+                      } else {
+                        navigate("skills", { q, capabilityId: skill.id });
+                      }
+                    }}
+                    className="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg bg-muted/30 hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-colors group focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    data-testid={`button-suggested-skill-${skill.id}`}
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="shrink-0 w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center">
+                        <Layers size={12} />
+                      </div>
+                      <div className="truncate">
+                        <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{skill.name}</div>
+                        <div className="text-xs text-muted-foreground truncate hidden sm:block">{skill.description}</div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="animate-in fade-in" data-testid="container-browse-skills">
+                <button
+                  onClick={(e) => { e.preventDefault(); navigate("skills"); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  data-testid="button-browse-skills-inline"
+                >
+                  <Layers size={14} /> Browse all proven capabilities
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-between items-center px-3 pb-2 pt-1 border-t border-muted/50 mt-2">
             <div className="flex gap-2 items-center">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-2 py-1 bg-muted/50 rounded flex items-center gap-1.5">

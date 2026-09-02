@@ -6,8 +6,9 @@ import {
   PRACTICE_CENTRES,
   PLAYBOOKS
 } from "@/fixtures/lawyes-preview";
+import { CAPABILITY_REGISTRY } from "@/fixtures/lawyes-skills";
 
-export type ViewState = "home" | "search" | "draft" | "matter" | "practice" | "verification";
+export type ViewState = "home" | "search" | "draft" | "matter" | "practice" | "verification" | "skills";
 
 // Defines the shape of our serializable state
 export type RouterState = {
@@ -21,6 +22,7 @@ export type RouterState = {
   reportId: string;
   playbook: string;
   practiceCentre: string;
+  capabilityId: string;
   selectedMaterials: string; // comma separated IDs
   clientRef: string;
   matterName: string;
@@ -41,6 +43,7 @@ export const defaultState: RouterState = {
   reportId: "",
   playbook: "",
   practiceCentre: "",
+  capabilityId: "",
   selectedMaterials: "",
   clientRef: "",
   matterName: "",
@@ -53,7 +56,7 @@ export const defaultState: RouterState = {
 export function sanitizeUrlState(state: Partial<RouterState>, fromUrl: boolean = false): RouterState {
   const result = { ...defaultState };
 
-  const validViews = ["home", "search", "draft", "matter", "practice", "verification"];
+  const validViews = ["home", "search", "draft", "matter", "practice", "verification", "skills"];
   result.view = validViews.includes(state.view as string) ? (state.view as ViewState) : "home";
 
   if (state.q) result.q = state.q;
@@ -88,6 +91,10 @@ export function sanitizeUrlState(state: Partial<RouterState>, fromUrl: boolean =
 
   if (state.practiceCentre && PRACTICE_CENTRES.some(c => c.id === state.practiceCentre)) {
     result.practiceCentre = state.practiceCentre;
+  }
+
+  if (state.capabilityId && CAPABILITY_REGISTRY.some((capability) => capability.id === state.capabilityId)) {
+    result.capabilityId = state.capabilityId;
   }
 
   if (state.selectedMaterials) {
