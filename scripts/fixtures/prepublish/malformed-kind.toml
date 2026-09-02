@@ -1,0 +1,9 @@
+kind = web
+title = "Malformed kind fixture"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/fixture", "run", "build"]
+
+[services.env]
+PORT = "19004"
+BASE_PATH = "/malformed-kind/"

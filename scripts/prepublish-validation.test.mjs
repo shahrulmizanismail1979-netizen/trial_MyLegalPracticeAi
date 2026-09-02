@@ -94,3 +94,34 @@ test("rejects invalid leading and repeated commas in a build array", () => {
     /declares a production build but its command must be a non-empty array of strings/,
   );
 });
+
+test("rejects a production build manifest with no artifact kind", () => {
+  const filePath = fixture("missing-kind.toml");
+  const artifact = parseManifest(filePath);
+
+  assert.throws(
+    () => validateArtifact(artifact, filePath),
+    /scripts[\\/]fixtures[\\/]prepublish[\\/]missing-kind\.toml.*must declare a recognized artifact kind/,
+  );
+});
+
+test("rejects a production build manifest with a malformed artifact kind", () => {
+  const filePath = fixture("malformed-kind.toml");
+  const artifact = parseManifest(filePath);
+
+  assert.equal(artifact.kind, undefined);
+  assert.throws(
+    () => validateArtifact(artifact, filePath),
+    /scripts[\\/]fixtures[\\/]prepublish[\\/]malformed-kind\.toml.*must declare a recognized artifact kind/,
+  );
+});
+
+test("rejects a production build manifest with an unsupported artifact kind", () => {
+  const filePath = fixture("unsupported-kind.toml");
+  const artifact = parseManifest(filePath);
+
+  assert.throws(
+    () => validateArtifact(artifact, filePath),
+    /scripts[\\/]fixtures[\\/]prepublish[\\/]unsupported-kind\.toml.*must declare a recognized artifact kind.*desktop/,
+  );
+});

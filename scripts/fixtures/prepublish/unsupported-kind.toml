@@ -1,0 +1,9 @@
+kind = "desktop"
+title = "Unsupported kind fixture"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/fixture", "run", "build"]
+
+[services.env]
+PORT = "19005"
+BASE_PATH = "/unsupported-kind/"

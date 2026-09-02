@@ -5,6 +5,15 @@ import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const artifactsDir = join(root, "artifacts");
+const recognizedArtifactKinds = [
+  "web",
+  "api",
+  "design",
+  "mobile",
+  "slides",
+  "video",
+  "design-system",
+];
 
 function stripTomlComment(value) {
   let result = "";
@@ -41,7 +50,9 @@ function stripTomlComment(value) {
 }
 
 function parseString(value) {
-  const match = stripTomlComment(value).trim().match(/^"((?:[^"\\]|\\.)*)"/);
+  const match = stripTomlComment(value)
+    .trim()
+    .match(/^"((?:[^"\\]|\\.)*)"$/);
   return match ? JSON.parse(`"${match[1]}"`) : undefined;
 }
 
@@ -177,7 +188,17 @@ export function parseManifest(filePath) {
 }
 
 export function validateArtifact(artifact, filePath) {
-  if (!artifact.build) return;
+  if (!artifact.productionBuildDeclared) return;
+
+  if (!recognizedArtifactKinds.includes(artifact.kind)) {
+    const receivedKind =
+      artifact.kind === undefined ? "missing or malformed" : JSON.stringify(artifact.kind);
+    throw new Error(
+      `${relative(root, filePath)} must declare a recognized artifact kind for ` +
+        `production builds (expected one of: ${recognizedArtifactKinds.join(", ")}; ` +
+        `received ${receivedKind})`,
+    );
+  }
 
   if (artifact.kind === "web") {
     const missing = ["PORT", "BASE_PATH"].filter(
