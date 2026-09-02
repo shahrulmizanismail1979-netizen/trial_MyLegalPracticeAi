@@ -63,7 +63,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
   const selectedMaterialsArray = state.selectedMaterials ? state.selectedMaterials.split(",") : [];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-73px)] md:h-[calc(100vh-65px)]">
+    <div className="flex flex-col h-full bg-background animate-in fade-in duration-300">
       {/* Search Header & Filters */}
       <div className="bg-white border-b border-border z-20 shrink-0">
         <div className="px-5 py-4 max-w-7xl mx-auto">
@@ -198,8 +198,8 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
       <div className="flex-1 flex overflow-hidden bg-background">
 
         {/* Results List */}
-        <div className={`flex-1 overflow-y-auto border-r border-border transition-all duration-300 ${selectedReport ? 'hidden md:block md:max-w-md lg:max-w-lg xl:max-w-xl' : 'w-full'}`}>
-          <div className="p-4 flex items-center justify-between border-b border-border bg-muted/30 sticky top-0 z-10 backdrop-blur-sm">
+        <div className={`flex-1 overflow-y-auto border-r border-border transition-all duration-300 ${selectedReport ? 'hidden md:block md:max-w-xs lg:max-w-sm xl:max-w-md' : 'w-full'}`}>
+          <div className="p-4 flex items-center justify-between border-b border-border bg-white sticky top-0 z-10">
             <h2 className="text-sm font-bold text-foreground">
               {results.length} {results.length === 1 ? 'Result' : 'Results'}
             </h2>
@@ -271,7 +271,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
 
         {/* Reader Pane */}
         {(selectedReport || !results.length) && (
-          <div className={`flex-1 overflow-hidden relative bg-muted/10 ${!selectedReport && 'hidden md:block'}`}>
+          <div className={`flex-[2] overflow-hidden relative bg-muted/10 ${!selectedReport && 'hidden md:block'}`}>
             {selectedReport ? (
               <div className="h-full overflow-y-auto">
                 <ReportReader report={selectedReport} onClose={() => updateState({ reportId: "" })} />

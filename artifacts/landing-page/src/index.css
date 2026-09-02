@@ -339,25 +339,32 @@
 
 /* LAWYes Safe Preview: route-scoped theme and overflow protection. */
 .safe-preview {
-  --background: 60 17% 97%;
-  --foreground: 170 12% 16%;
-  --border: 60 10% 88%;
-  --input: 60 10% 88%;
-  --ring: 171 67% 12%;
-  --card: 0 0% 100%;
-  --card-foreground: 170 12% 16%;
-  --card-border: 60 10% 90%;
+  --background: 40 20% 98%;      /* Warm off-white #faf9f6 */
+  --foreground: 165 50% 10%;     /* Very dark green-gray #0c2621 */
+  --card: 0 0% 100%;             /* White */
+  --card-foreground: 165 50% 10%;
+  --card-border: 40 15% 90%;
   --popover: 0 0% 100%;
-  --popover-foreground: 170 12% 16%;
-  --popover-border: 60 10% 88%;
-  --primary: 171 67% 15%;
+  --popover-foreground: 165 50% 10%;
+  --popover-border: 40 15% 90%;
+  --primary: 165 65% 15%;        /* #0d4033 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 42 39% 52%;
+  --secondary: 40 40% 50%;       /* Brass #b39552 */
   --secondary-foreground: 0 0% 100%;
-  --muted: 60 12% 93%;
-  --muted-foreground: 170 8% 45%;
-  --accent: 171 20% 92%;
-  --accent-foreground: 171 67% 15%;
+  --muted: 40 10% 93%;
+  --muted-foreground: 165 10% 45%;
+  --border: 40 15% 88%;
+  --input: 40 15% 88%;
+  --ring: 165 65% 15%;
+  --radius: 0.75rem;
+
+  /* Workspace Shell specific */
+  --lawyes-sidebar: 165 70% 8%;  /* Darkest green */
+  --lawyes-sidebar-text: 0 0% 100%;
+  --lawyes-sidebar-muted: 165 20% 60%;
+  --lawyes-sidebar-border: 165 70% 12%;
+  --lawyes-sidebar-hover: 165 70% 12%;
+
   min-height: 100dvh;
   max-width: 100%;
   overflow-x: clip;

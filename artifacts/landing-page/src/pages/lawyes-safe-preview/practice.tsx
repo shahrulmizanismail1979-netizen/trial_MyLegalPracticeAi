@@ -20,7 +20,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
 
   if (!centre) {
     return (
-      <div className="min-h-[calc(100vh-73px)] md:min-h-[calc(100vh-65px)] bg-background py-8 px-5">
+      <div className="h-full overflow-y-auto bg-background py-8 px-5 animate-in fade-in duration-300">
         <div className="max-w-6xl mx-auto">
           <div className="mb-10 text-center max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-serif text-foreground mb-4">Sarawak Practice Centre</h1>
@@ -111,7 +111,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
   );
 
   return (
-    <div className="min-h-[calc(100vh-73px)] md:min-h-[calc(100vh-65px)] bg-background py-8 px-5">
+    <div className="h-full overflow-y-auto bg-background py-8 px-5 animate-in fade-in duration-300">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <button onClick={() => updateState({ practiceCentre: "" })} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mb-4">

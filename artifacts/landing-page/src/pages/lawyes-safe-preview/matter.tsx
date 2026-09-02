@@ -70,7 +70,7 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
   };
 
   return (
-    <div className="min-h-[calc(100vh-73px)] md:min-h-[calc(100vh-65px)] bg-background py-8 px-5">
+    <div className="h-full overflow-y-auto bg-background py-8 px-5 animate-in fade-in duration-300">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <button onClick={() => navigate("home")} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mb-4">

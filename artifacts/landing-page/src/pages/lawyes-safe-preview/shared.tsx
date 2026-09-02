@@ -132,12 +132,12 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
 
   if (!report.report) {
     return (
-      <article ref={containerRef} className="bg-white border border-border shadow-sm focus:outline-none" tabIndex={-1}>
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-border p-4 flex items-center justify-between">
+      <article ref={containerRef} className="bg-white border-l border-border focus:outline-none h-full flex flex-col" tabIndex={-1}>
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-border p-4 flex items-center justify-between shrink-0">
           <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">Access Record</span>
           {onClose && <button onClick={onClose} aria-label="Close selected record" className="p-1 hover:bg-muted text-muted-foreground"><X size={16} /></button>}
         </div>
-        <div className="p-6 md:p-8 overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
+        <div className="p-6 md:p-8 overflow-y-auto flex-1">
           <h2 className="text-2xl md:text-3xl text-foreground font-serif leading-tight mb-6">{report.title}</h2>
 
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-8 text-sm text-amber-900 flex gap-3 items-start">
@@ -225,22 +225,22 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
   );
 
   return (
-    <article ref={containerRef} className="bg-white border border-border shadow-sm focus:outline-none" tabIndex={-1}>
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-border p-3 px-4 flex items-center justify-between">
+    <article ref={containerRef} className="bg-white border-l border-border focus:outline-none h-full flex flex-col" tabIndex={-1}>
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-border p-3 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold text-secondary uppercase tracking-widest hidden sm:inline">Published Preview</span>
           <SourceBadge status={report.status} />
           <span aria-live="polite" className="sr-only">{exportFeedback}</span>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => doExport("txt")} aria-label="Export as TXT" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5" type="button"><Download size={13} /> TXT</button>
-          <button onClick={() => doExport("docx")} aria-label="Export as DOCX" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5" type="button"><Download size={13} /> DOCX</button>
-          <button onClick={() => { window.print(); setExportFeedback("Print dialog opened"); setTimeout(() => setExportFeedback(""), 3000); }} aria-label="Print" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5" type="button"><Printer size={13} /> Print</button>
-          {onClose && <button onClick={onClose} aria-label="Close selected report" className="p-1.5 ml-2 text-muted-foreground hover:bg-muted transition-colors"><X size={16} /></button>}
+          <button onClick={() => doExport("txt")} aria-label="Export as TXT" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5 rounded" type="button"><Download size={13} /> TXT</button>
+          <button onClick={() => doExport("docx")} aria-label="Export as DOCX" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5 rounded" type="button"><Download size={13} /> DOCX</button>
+          <button onClick={() => { window.print(); setExportFeedback("Print dialog opened"); setTimeout(() => setExportFeedback(""), 3000); }} aria-label="Print" className="p-1.5 px-3 text-xs font-bold text-primary hover:bg-muted border border-transparent hover:border-border transition-colors flex items-center gap-1.5 rounded" type="button"><Printer size={13} /> Print</button>
+          {onClose && <button onClick={onClose} aria-label="Close selected report" className="p-1.5 ml-2 text-muted-foreground hover:bg-muted rounded transition-colors"><X size={16} /></button>}
         </div>
       </div>
 
-      <div className="p-6 md:p-10 overflow-y-auto no-scrollbar scroll-smooth" style={{ maxHeight: "calc(100vh - 120px)" }}>
+      <div className="p-6 md:p-10 overflow-y-auto no-scrollbar scroll-smooth flex-1">
         <h2 className="text-2xl md:text-4xl text-foreground font-serif leading-tight mb-8">{report.title}</h2>
 
         <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 text-xs p-5 bg-background border-l-4 border-l-secondary mb-8">

@@ -10,9 +10,9 @@ export function VerificationView({ navigate }: { navigate: (view: "home") => voi
   const activeSource = SOURCES.find(s => s.id === selectedSource) || SOURCES[0];
 
   return (
-    <div className="min-h-[calc(100vh-73px)] md:min-h-[calc(100vh-65px)] bg-background py-8 px-5">
+    <div className="h-full overflow-y-auto bg-background py-8 px-5 animate-in fade-in duration-300">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <button onClick={() => navigate("home")} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mb-4">
               <ArrowLeft size={16} /> Back to Home
@@ -25,8 +25,8 @@ export function VerificationView({ navigate }: { navigate: (view: "home") => voi
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-1 space-y-2 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 no-scrollbar">
+        <div className="grid md:grid-cols-3 gap-6 h-[calc(100vh-180px)] min-h-[500px]">
+          <div className="md:col-span-1 space-y-2 overflow-y-auto pr-2 no-scrollbar h-full">
             {SOURCES.map(source => (
               <button
                 key={source.id}
