@@ -82,6 +82,65 @@ test("home has four primary actions and hands an Enter instruction to Search", a
   await expect(page.getByRole("searchbox")).toHaveValue(instruction);
 });
 
+test("desktop navigation, composer, submit, and quick actions are keyboard reachable and operable", async ({ page }) => {
+  await page.goto("/lawyes-safe-preview");
+
+  const toolsToggle = page.getByTestId("button-toggle-tools");
+  const collapsedToolLinks = page.locator("#lawyes-tools-menu button");
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(collapsedToolLinks).toHaveCount(5);
+
+  await page.getByTestId("button-sidebar-home").focus();
+  const collapsedTabStops: string[] = [];
+  for (let index = 0; index < 8; index += 1) {
+    await page.keyboard.press("Tab");
+    collapsedTabStops.push(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.testid ?? ""));
+  }
+  expect(collapsedTabStops).not.toContain("button-sidebar-search");
+  expect(collapsedTabStops).not.toContain("button-sidebar-draft");
+  expect(collapsedTabStops).not.toContain("button-sidebar-matter");
+  expect(collapsedTabStops).not.toContain("button-sidebar-practice");
+  expect(collapsedTabStops).not.toContain("button-sidebar-skills");
+  expect(collapsedTabStops).toContain("input-lawyes-instruction");
+
+  await toolsToggle.focus();
+  await page.keyboard.press(" ");
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("button-sidebar-search")).toBeFocused();
+
+  await page.goto("/lawyes-safe-preview");
+  const instruction = page.getByTestId("input-lawyes-instruction");
+  await instruction.fill("Prepare a legal document");
+  await instruction.focus();
+  for (let index = 0; index < 8; index += 1) {
+    if (await page.getByTestId("button-submit-instruction").evaluate((element) => element === document.activeElement)) break;
+    await page.keyboard.press("Tab");
+  }
+  await expect(page.getByTestId("button-submit-instruction")).toBeFocused();
+
+  const quickActionTabStops: string[] = [];
+  for (let index = 0; index < 4; index += 1) {
+    await page.keyboard.press("Tab");
+    quickActionTabStops.push(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.testid ?? ""));
+  }
+  expect(quickActionTabStops).toEqual([
+    "button-action-search",
+    "button-action-draft",
+    "button-action-matter",
+    "button-action-practice",
+  ]);
+
+  const quickActions = ["search", "draft", "matter", "practice"];
+  for (const action of quickActions) {
+    await page.goto("/lawyes-safe-preview");
+    const button = page.getByTestId(`button-action-${action}`);
+    await button.focus();
+    await page.keyboard.press(action === "draft" || action === "practice" ? " " : "Enter");
+    await expect(page).toHaveURL(new RegExp(`view=${action}`));
+  }
+});
+
 test("restores valid URL state and safely falls back from an invalid view", async ({ page }) => {
   await page.goto("/lawyes-safe-preview?view=search&q=Maria&jurisdiction=Malaysia&sort=date");
   await expect(page.getByRole("searchbox")).toHaveValue("Maria");
@@ -290,5 +349,35 @@ test.describe("mobile Safe Preview", () => {
     await expect(page.getByTestId("button-toggle-tools")).toHaveAttribute("aria-expanded", "false");
     await page.getByTestId("button-close-sidebar").click();
     await expect(page.getByTestId("lawyes-instruction-composer")).toBeVisible();
+  });
+
+  test("keeps focus visible and restores it when the mobile rail opens and closes", async ({ page }) => {
+    await page.goto("/lawyes-safe-preview");
+
+    const openRail = page.getByTestId("button-open-sidebar");
+    await openRail.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("button-close-sidebar")).toBeFocused();
+
+    await page.getByTestId("button-toggle-tools").focus();
+    await page.keyboard.press(" ");
+    await expect(page.getByTestId("button-toggle-tools")).toHaveAttribute("aria-expanded", "true");
+
+    await page.getByTestId("button-close-sidebar").focus();
+    await page.keyboard.press(" ");
+    await expect(openRail).toBeFocused();
+    await expect(page.getByTestId("lawyes-conversation-rail")).toHaveAttribute("inert", "");
+
+    await page.keyboard.press("Tab");
+    await expect(page.getByTestId("button-mobile-new-workspace")).toBeFocused();
+
+    await openRail.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("button-toggle-tools")).toHaveAttribute("aria-expanded", "true");
+    await page.getByTestId("button-sidebar-search").focus();
+    await page.keyboard.press(" ");
+    await expect(page).toHaveURL(/view=search/);
+    await expect(openRail).toBeFocused();
+    await expect(page.getByTestId("lawyes-conversation-rail")).toHaveAttribute("inert", "");
   });
 });

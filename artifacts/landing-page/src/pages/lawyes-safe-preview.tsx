@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers, MessageSquare, Wrench, ChevronDown } from "lucide-react";
 import { useRouterState, type RouterState } from "./lawyes-safe-preview/use-router-state";
 import { HomeView } from "./lawyes-safe-preview/home";
@@ -24,10 +24,43 @@ export default function LawYesSafePreview() {
   const { state, updateState, navigate } = useRouterState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const openSidebarButtonRef = useRef<HTMLButtonElement>(null);
+  const closeSidebarButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const syncSidebarInteractivity = () => {
+      if (media.matches || sidebarOpen) {
+        sidebarRef.current?.removeAttribute("inert");
+      } else {
+        sidebarRef.current?.setAttribute("inert", "");
+      }
+    };
+
+    syncSidebarInteractivity();
+    media.addEventListener("change", syncSidebarInteractivity);
+    return () => media.removeEventListener("change", syncSidebarInteractivity);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      closeSidebarButtonRef.current?.focus();
+    }
+  }, [sidebarOpen]);
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    window.requestAnimationFrame(() => openSidebarButtonRef.current?.focus());
+  };
 
   const handleNavigate = (view: typeof state.view, params?: Partial<RouterState>) => {
     navigate(view, params);
-    setSidebarOpen(false);
+    if (sidebarOpen) {
+      closeSidebar();
+    } else {
+      setSidebarOpen(false);
+    }
   };
 
   const NavButton = ({ view, icon, label, active }: { view: typeof state.view, icon: React.ReactNode, label: string, active: boolean }) => (
@@ -52,12 +85,12 @@ export default function LawYesSafePreview() {
       {sidebarOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 z-40 animate-in fade-in duration-200"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar */}
-       <aside data-testid="lawyes-conversation-rail" className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
+       <aside ref={sidebarRef} data-testid="lawyes-conversation-rail" className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
          {/* Top Logo & New Task */}
          <div className="p-3 flex items-center justify-between">
            <button
@@ -78,8 +111,9 @@ export default function LawYesSafePreview() {
                <Plus size={18} />
              </button>
              <button
+                ref={closeSidebarButtonRef}
                className="md:hidden p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-all duration-200 active:scale-[0.95]"
-               onClick={() => setSidebarOpen(false)}
+                onClick={closeSidebar}
                aria-label="Close workspace navigation"
                data-testid="button-close-sidebar"
              >
@@ -169,6 +203,7 @@ export default function LawYesSafePreview() {
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0 z-20 shadow-sm">
           <button
+            ref={openSidebarButtonRef}
             onClick={() => setSidebarOpen(true)}
             className="p-2 text-foreground focus:outline-none hover:bg-muted rounded-lg transition-colors"
             aria-label="Open workspace navigation"
