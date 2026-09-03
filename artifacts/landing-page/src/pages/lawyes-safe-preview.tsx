@@ -46,7 +46,7 @@ export default function LawYesSafePreview() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
+       <aside data-testid="lawyes-conversation-rail" className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
          {/* Top Logo & New Task */}
          <div className="p-3 flex items-center justify-between">
            <button
@@ -115,6 +115,7 @@ export default function LawYesSafePreview() {
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/75 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white transition-colors"
                 aria-expanded={toolsOpen}
                 aria-controls="lawyes-tools-menu"
+                 data-testid="button-toggle-tools"
               >
                 <Wrench size={16} />
                 <span className="flex-1 text-left">Tools</span>
@@ -122,6 +123,8 @@ export default function LawYesSafePreview() {
               </button>
               <div
                 id="lawyes-tools-menu"
+                 data-testid="lawyes-tools-menu"
+                 hidden={!toolsOpen}
                 className={`grid transition-[grid-template-rows,opacity] duration-200 ${
                   toolsOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 }`}

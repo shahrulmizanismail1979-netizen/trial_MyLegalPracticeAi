@@ -20,6 +20,41 @@ test("LAWYes is the primary root experience and the Safe Preview URL remains com
   await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
 });
 
+test("LAWYes defaults to one conversation workspace with progressively disclosed legal tools", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByTestId("lawyes-conversation-canvas")).toHaveCount(1);
+  await expect(page.getByTestId("lawyes-instruction-composer")).toHaveCount(1);
+  await expect(page.getByTestId("lawyes-instruction-composer")).toBeVisible();
+
+  const rail = page.getByTestId("lawyes-conversation-rail");
+  await expect(rail.getByText("Today", { exact: true })).toBeVisible();
+  await expect(rail.getByRole("button", { name: "Open current conversation" })).toBeVisible();
+
+  const toolsToggle = page.getByTestId("button-toggle-tools");
+  const toolsMenu = page.getByTestId("lawyes-tools-menu");
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toolsMenu).toBeHidden();
+  await expect(page.getByTestId("button-sidebar-search")).toBeHidden();
+
+  const quickActions = [
+    "Search Law & Cases",
+    "Draft a Legal Document",
+    "Work on a Matter",
+    "Sarawak Practice Centre",
+  ];
+  for (const action of quickActions) {
+    const button = page.getByRole("button", { name: action });
+    await expect(button).toBeVisible();
+    await expect(button).toBeEnabled();
+  }
+
+  await toolsToggle.click();
+  await expect(toolsToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("button-sidebar-search")).toBeVisible();
+  await expect(page.getByTestId("button-sidebar-skills")).toBeVisible();
+});
+
 test("selected LAWYes report links to its report-specific official judgment", async ({ page }) => {
   await page.goto("/lawyes-safe-preview");
   await page.getByRole("button", { name: "Search Law & Cases" }).click();
@@ -40,7 +75,7 @@ test("home has four primary actions and hands an Enter instruction to Search", a
   await expect(page.getByRole("button", { name: "Work on a Matter" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sarawak Practice Centre" })).toBeVisible();
 
-  const instruction = "Maria";
+  const instruction = "Find judgment citation authority precedent statute";
   await page.getByRole("textbox", { name: /search judgments, principles/i }).fill(instruction);
   await page.getByRole("textbox", { name: /search judgments, principles/i }).press("Enter");
   await expect(page.getByRole("heading", { name: /\d+ Results?/ })).toBeVisible();
@@ -231,5 +266,29 @@ test.describe("mobile Safe Preview", () => {
     expect(noticeBox).not.toBeNull();
     expect(navBox).not.toBeNull();
     expect(noticeBox!.y + noticeBox!.height).toBeLessThanOrEqual(navBox!.y);
+  });
+
+  test("keeps the composer and mobile navigation usable without exposing the desktop rail", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("lawyes-conversation-canvas")).toHaveCount(1);
+    await expect(page.getByTestId("lawyes-instruction-composer")).toBeVisible();
+    await expect(page.getByTestId("button-submit-instruction")).toBeVisible();
+    const closedRailBox = await page.getByTestId("lawyes-conversation-rail").boundingBox();
+    expect(closedRailBox).not.toBeNull();
+    expect(closedRailBox!.x + closedRailBox!.width).toBeLessThanOrEqual(0);
+    await expect(page.getByTestId("button-open-sidebar")).toBeVisible();
+    await expect(page.getByTestId("button-mobile-home")).toBeVisible();
+    await expect(page.getByTestId("button-mobile-search")).toBeVisible();
+    await expect(page.getByTestId("button-mobile-draft")).toBeVisible();
+    await expect(page.getByTestId("button-mobile-matter")).toBeVisible();
+
+    expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBeTruthy();
+
+    await page.getByTestId("button-open-sidebar").click();
+    await expect(page.getByTestId("lawyes-conversation-rail")).toBeVisible();
+    await expect(page.getByTestId("button-toggle-tools")).toHaveAttribute("aria-expanded", "false");
+    await page.getByTestId("button-close-sidebar").click();
+    await expect(page.getByTestId("lawyes-instruction-composer")).toBeVisible();
   });
 });

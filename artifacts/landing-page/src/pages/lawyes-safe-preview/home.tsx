@@ -26,7 +26,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
   };
 
   return (
-    <div className="h-full flex flex-col relative animate-in fade-in duration-500 bg-background text-foreground overflow-y-auto no-scrollbar pb-[100px] md:pb-8">
+    <div data-testid="lawyes-conversation-canvas" className="h-full flex flex-col relative animate-in fade-in duration-500 bg-background text-foreground overflow-y-auto no-scrollbar pb-[100px] md:pb-8">
       <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full px-4 md:px-8">
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Find the law. Draft the document. Prepare the matter.
@@ -35,7 +35,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
           How can I assist your practice today?
         </h1>
 
-        <form onSubmit={handleSubmit} className="w-full bg-card border border-border shadow-md rounded-[24px] p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all flex flex-col mb-8 relative">
+        <form aria-label="Legal instruction composer" data-testid="lawyes-instruction-composer" onSubmit={handleSubmit} className="w-full bg-card border border-border shadow-md rounded-[24px] p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all flex flex-col mb-8 relative">
           <textarea
             value={q}
             onChange={(e) => setQ(e.target.value)}
