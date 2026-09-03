@@ -495,7 +495,7 @@ function SavedDraftsSection() {
 export default function Matters() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [prepareMatter, setPrepareMatter] = useState<MatterBriefing | null>(null);
-  const { data: matters, isLoading } = useMatters(statusFilter || undefined);
+  const { data: matters, isLoading } = useMatters();
   const createMatter = useCreateMatter();
   const { toast } = useToast();
 
@@ -543,15 +543,18 @@ export default function Matters() {
   };
 
   const list = matters ?? [];
-  // Sort by most-recently-updated for the default "All" view
-  const sorted = statusFilter ? list : [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  const filtered = statusFilter
+    ? list.filter((matter) => matter.status?.toLowerCase() === statusFilter.toLowerCase())
+    : list;
+  const sorted = [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   // Filter labels — include stage names too
-  const allStages = ['', 'active', 'on-hold', ...LIT_STAGES];
+  const allStages = ['', 'active', 'on-hold', ...LIT_STAGES.filter((stage) => stage !== 'Closed'), 'closed'];
   const filterLabels: Record<string, string> = {
     '': 'All',
     active: 'Active',
     'on-hold': 'On Hold',
+    closed: 'Closed',
     ...Object.fromEntries(LIT_STAGES.map(s => [s, s])),
   };
 
@@ -567,7 +570,7 @@ export default function Matters() {
         }
       />
 
-      <MyCasesSection onPrepare={setPrepareMatter} />
+      {!statusFilter && <MyCasesSection onPrepare={setPrepareMatter} />}
 
       <div className="flex items-center gap-2 mb-6 flex-wrap">
         {allStages.map((s) => (
