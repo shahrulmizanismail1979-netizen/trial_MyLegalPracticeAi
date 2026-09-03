@@ -37,6 +37,75 @@ export type Capability = Readonly<{
   workspaceDestination?: "search" | "draft" | "matter" | "practice";
 }>;
 
+export const REQUIRED_CAPABILITY_CATEGORIES: readonly CapabilityCategory[] = Object.freeze([
+  "Litigation",
+  "IRAC",
+  "Conveyancing",
+  "Corporate",
+  "Criminal",
+  "Syariah",
+  "Banking litigation",
+  "Accident",
+  "Research",
+  "Education",
+  "Firm management",
+]);
+
+const LOCAL_PREVIEW_ROUTE = /^Local .+; no production request$/;
+
+export function validateCapabilityRegistry(
+  capabilities: readonly Capability[],
+  registeredRouteFamilies: ReadonlySet<string>,
+): readonly string[] {
+  const errors: string[] = [];
+  const categories = new Set(capabilities.map((capability) => capability.category));
+
+  for (const category of REQUIRED_CAPABILITY_CATEGORIES) {
+    if (!categories.has(category)) {
+      errors.push(`Missing required LAWYes practice area: ${category}`);
+    }
+  }
+
+  for (const capability of capabilities) {
+    const isPreviewLocal = capability.readiness === "Available in LAWYes preview";
+    const localRoutes = capability.serviceRoutes.filter((route) => LOCAL_PREVIEW_ROUTE.test(route));
+    const specialistRoutes = capability.serviceRoutes.filter((route) => route.startsWith("/api/"));
+
+    if (capability.workspaceDestination && !isPreviewLocal) {
+      errors.push(
+        `${capability.id}: preview action "${capability.workspaceDestination}" is only allowed for browser-local capabilities`,
+      );
+    }
+    if (isPreviewLocal && !capability.workspaceDestination) {
+      errors.push(`${capability.id}: browser-local preview capability must declare a preview action`);
+    }
+    if (isPreviewLocal && localRoutes.length !== capability.serviceRoutes.length) {
+      errors.push(`${capability.id}: preview-ready capability may only use browser-local service routes`);
+    }
+    if (!isPreviewLocal && localRoutes.length > 0) {
+      errors.push(`${capability.id}: adapter-bound capability cannot claim a browser-local service route`);
+    }
+    if (capability.adapterBoundary.trim().length === 0) {
+      errors.push(`${capability.id}: capability must state its LAWYes adapter boundary`);
+    }
+    if (!isPreviewLocal && specialistRoutes.length === 0) {
+      errors.push(`${capability.id}: ${capability.readiness} capability must register a specialist API route`);
+    }
+
+    for (const route of specialistRoutes) {
+      const routeFamily = route.replace(/\/\*$/, "");
+      const segments = routeFamily.split("/").filter(Boolean);
+      const familyDepth = segments[1] === "lit" || segments[1] === "firm" ? 3 : 2;
+      const contractFamily = `/${segments.slice(0, familyDepth).join("/")}`;
+      if (!registeredRouteFamilies.has(contractFamily)) {
+        errors.push(`${capability.id}: registered specialist route family is missing from the server router surface: ${route}`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "lawyes-reviewed-research",
