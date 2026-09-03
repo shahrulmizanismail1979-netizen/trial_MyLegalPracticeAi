@@ -106,9 +106,13 @@ describe("LAWYes preview fixture", () => {
       expect(source.changeHistory.length).toBeGreaterThan(1);
     }
   });
-  it("has exactly six structured practice centres", () => {
+  it("has six nationwide practice centres with an explicit Sarawak specialist path", () => {
     expect(PRACTICE_CENTRES).toHaveLength(6);
     expect(PRACTICE_CENTRES.map(x => x.name)).toEqual(["Civil Litigation", "Criminal Litigation", "Conveyancing & Land", "NCR & Native Law", "Probate & Estates", "Professional Practice"]);
+    expect(PRACTICE_CENTRES.filter(x => x.jurisdiction === "Malaysia")).toHaveLength(5);
+    expect(PRACTICE_CENTRES.find(x => x.id === "ncr-native-law")).toMatchObject({ jurisdiction: "Sarawak" });
+    expect(PRACTICE_CENTRES.find(x => x.id === "ncr-native-law")?.overview).toMatch(/Sarawak specialist/);
+    expect(PRACTICE_CENTRES.every(x => x.scopeNote.length > 40)).toBe(true);
   });
   it("gives each practice centre source-aware limits and workflow depth", () => {
     for (const centre of PRACTICE_CENTRES) {
@@ -185,6 +189,9 @@ describe("LAWYes preview fixture", () => {
   });
 });
 describe("URL state synchronization", () => {
+  it("defaults nationwide search to a neutral title sort", () => {
+    expect(defaultState.sort).toBe("title");
+  });
   it("sanitizes invalid states", () => {
     const state = sanitizeUrlState({ view: "invalid" as any, jurisdiction: "Fake" as any, draftStep: 99 });
     expect(state.view).toBe("home");

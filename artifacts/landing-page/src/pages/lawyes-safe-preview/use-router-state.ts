@@ -39,7 +39,7 @@ export const defaultState: RouterState = {
   court: "",
   practiceArea: "",
   status: "",
-  sort: "sarawak",
+  sort: "title",
   reportId: "",
   playbook: "",
   practiceCentre: "",

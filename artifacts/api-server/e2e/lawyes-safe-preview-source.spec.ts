@@ -41,7 +41,7 @@ test("LAWYes defaults to one conversation workspace with progressively disclosed
     "Search Law & Cases",
     "Draft a Legal Document",
     "Work on a Matter",
-    "Sarawak Practice Centre",
+    "Malaysia Practice & State Sources",
   ];
   for (const action of quickActions) {
     const button = page.getByRole("button", { name: action });
@@ -73,7 +73,7 @@ test("home has four primary actions and hands an Enter instruction to Search", a
   await expect(page.getByRole("button", { name: "Search Law & Cases" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Draft a Legal Document" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Work on a Matter" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sarawak Practice Centre" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Malaysia Practice & State Sources" })).toBeVisible();
 
   const instruction = "Find judgment citation authority precedent statute";
   await page.getByRole("textbox", { name: /search judgments, principles/i }).fill(instruction);

@@ -24,7 +24,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
 
   const results = useMemo(() => {
     let filtered = filterReports(REPORTS, activeFilters);
-    const sort = state.sort || "sarawak";
+    const sort = state.sort || "title";
     return filtered.sort((left, right) => {
       if (sort === "date") return right.isoDate.localeCompare(left.isoDate);
       if (sort === "court") return left.court.localeCompare(right.court);
@@ -37,7 +37,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
   const hasFilters = state.q || state.court || state.practiceArea || state.status || state.jurisdiction;
 
   const handleReset = () => {
-    updateState({ q: "", jurisdiction: "", court: "", practiceArea: "", status: "", sort: "sarawak", reportId: "" }, true);
+    updateState({ q: "", jurisdiction: "", court: "", practiceArea: "", status: "", sort: "title", reportId: "" }, true);
   };
 
   const selectedReport = REPORTS.find(r => r.id === state.reportId) || null;
@@ -172,15 +172,15 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
                   <label htmlFor="lawyes-sort-filter" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Sort By</label>
                   <select 
                     id="lawyes-sort-filter"
-                    value={state.sort || "sarawak"}
+                    value={state.sort || "title"}
                     onChange={(e) => updateState({ sort: e.target.value }, true)}
                     className="w-full py-2 px-3 bg-background border border-border rounded-md text-sm"
                   >
-                    <option value="sarawak">Relevance (Sarawak first)</option>
-                    <option value="date">Date (Newest first)</option>
                     <option value="title">Title (A-Z)</option>
+                    <option value="date">Date (Newest first)</option>
                     <option value="court">Court (A-Z)</option>
                     <option value="status">Status (A-Z)</option>
+                    <option value="sarawak">Regional focus (Sarawak first)</option>
                   </select>
                 </div>
                 <div className="flex items-end pb-0.5">

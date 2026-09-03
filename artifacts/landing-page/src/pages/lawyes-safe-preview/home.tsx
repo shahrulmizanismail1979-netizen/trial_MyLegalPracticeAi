@@ -29,7 +29,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
     <div data-testid="lawyes-conversation-canvas" className="h-full flex flex-col relative animate-in fade-in duration-500 bg-background text-foreground overflow-y-auto no-scrollbar pb-[100px] md:pb-8">
       <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full px-4 md:px-8">
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Find the law. Draft the document. Prepare the matter.
+          Malaysia-wide legal work, with jurisdiction-specific safeguards.
         </h2>
         <h1 className="text-3xl md:text-4xl font-serif text-foreground text-center mb-8 tracking-tight">
           How can I assist your practice today?
@@ -133,7 +133,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
 
           <button onClick={() => navigate("practice")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-primary/30 rounded-full hover:border-primary/60 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow" data-testid="button-action-practice">
              <Gavel size={16} className="text-primary" />
-             <h2 className="text-sm font-medium">Sarawak Practice Centre</h2>
+              <h2 className="text-sm font-medium">Malaysia Practice &amp; State Sources</h2>
           </button>
         </div>
         <div className="mt-5 flex items-center gap-1.5 text-[10px] text-muted-foreground" data-testid="status-safe-preview-demonstration">

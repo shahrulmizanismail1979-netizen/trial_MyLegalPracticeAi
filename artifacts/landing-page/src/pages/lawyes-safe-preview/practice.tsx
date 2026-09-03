@@ -23,8 +23,8 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
       <div className="h-full overflow-y-auto bg-background py-8 px-5 animate-in fade-in duration-300">
         <div className="max-w-6xl mx-auto">
           <div className="mb-10 text-center max-w-3xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-serif text-foreground mb-4">Sarawak Practice Centre</h1>
-            <p className="text-lg text-foreground/70 leading-relaxed">Navigate the work, not just the case. Specific procedural workflows, checklists, and source paths for local litigation and native law.</p>
+            <h1 className="text-3xl md:text-4xl font-serif text-foreground mb-4">Malaysia Practice &amp; State Sources</h1>
+            <p className="text-lg text-foreground/70 leading-relaxed">Navigate Malaysian legal work nationwide, with jurisdiction-specific source paths and safeguards. Sarawak land, NCR and Native Law remain clearly identified specialist pathways.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -40,6 +40,9 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
                 <h2 className="text-xl font-serif text-foreground mb-2 group-hover:text-primary transition-colors">
                   {pc.name}
                 </h2>
+                 <span className="mb-3 w-fit rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                   {pc.jurisdiction === "Malaysia" ? "Malaysia-wide" : `${pc.jurisdiction} specialist`}
+                 </span>
                 <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 mb-6">
                   {pc.overview}
                 </p>
@@ -128,11 +131,12 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
               <div>
                 <h1 className="text-2xl md:text-3xl font-serif text-foreground leading-tight">{centre.name}</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Jurisdiction: {centre.jurisdiction} &middot; Status: {centre.verificationStatus} &middot; Updated {centre.updatedOn}
+                  Scope: {centre.jurisdiction === "Malaysia" ? "Malaysia-wide" : `${centre.jurisdiction} specialist`} &middot; Status: {centre.verificationStatus} &middot; Updated {centre.updatedOn}
                 </p>
               </div>
             </div>
             <p className="text-foreground/80 leading-relaxed max-w-2xl">{centre.overview}</p>
+            <p className="mt-3 max-w-2xl rounded-lg border border-primary/15 bg-white/70 px-3 py-2 text-sm text-foreground/70">{centre.scopeNote}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-0 border-b border-border">

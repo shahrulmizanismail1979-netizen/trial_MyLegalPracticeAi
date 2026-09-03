@@ -105,7 +105,7 @@ export type DecisionTree = Readonly<{
 }>;
 
 export type PracticeCentre = Readonly<{
-  id: string; name: string; jurisdiction: "Sarawak"; overview: string; suitableFor: readonly string[];
+  id: string; name: string; jurisdiction: Jurisdiction; scopeNote: string; overview: string; suitableFor: readonly string[];
   limits: readonly string[]; workflowStages: readonly string[]; examples: readonly string[];
   sourceNotes: readonly string[]; gapNotices: readonly string[]; updatedOn: string;
   verificationStatus: EditorialStatus; verificationSteps: readonly string[];
@@ -465,9 +465,17 @@ export const PRACTICE_CENTRES: readonly PracticeCentre[] = Object.freeze([
   ["professional-practice", "Professional Practice", ["professional"]],
 ].map(([id, name, coverageIds]): PracticeCentre => {
   const rows = COVERAGE.filter((item) => (coverageIds as string[]).includes(item.id));
+  const jurisdiction: Jurisdiction = id === "ncr-native-law" ? "Sarawak" : "Malaysia";
+  const scopeNote = id === "ncr-native-law"
+    ? "Sarawak specialist pathway. Native-law and NCR questions remain tied to the applicable Sarawak sources and practitioner verification."
+    : id === "conveyancing-land"
+      ? "Malaysia-wide practice area. The current state-source examples emphasize Sarawak land pathways and must not be generalized to other states."
+      : "Malaysia-wide practice area. Current preview records are illustrative and are not a completeness claim for every court, state, or territory.";
   return {
-    id: id as string, name: name as string, jurisdiction: "Sarawak",
-    overview: `${name} is an orientation workspace for finding sources, recording instructions, and routing verification.`,
+    id: id as string, name: name as string, jurisdiction, scopeNote,
+    overview: jurisdiction === "Sarawak"
+      ? `${name} is a Sarawak specialist workspace for finding applicable sources, recording instructions, and routing practitioner verification.`
+      : `${name} is a Malaysia-wide orientation workspace for finding sources, recording instructions, and routing jurisdiction-specific verification.`,
     suitableFor: ["Building a source-and-document checklist.", "Preparing questions for practitioner or registry review."],
     limits: ["It is not legal advice and does not determine rights, procedure, forum, deadline, or outcome.", "Coverage paths are not a completeness claim."],
     workflowStages: ["Record instructions and client reference.", "Locate the relevant gateway and underlying item.", "Verify currency, provenance, and applicability.", "Record gaps and obtain practitioner review."],
