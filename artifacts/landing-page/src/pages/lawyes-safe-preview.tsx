@@ -9,6 +9,17 @@ import { PracticeView } from "./lawyes-safe-preview/practice";
 import { VerificationView } from "./lawyes-safe-preview/verification";
 import { SkillsView } from "./lawyes-safe-preview/skills";
 
+function LawYesBrand({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
+      alt="LAWYes — Your Legal Work, Solved."
+      className={mobile ? "h-8 w-auto" : "h-9 w-auto"}
+      data-testid={mobile ? "lawyes-mobile-logo" : "lawyes-sidebar-logo"}
+    />
+  );
+}
+
 export default function LawYesSafePreview() {
   const { state, updateState, navigate } = useRouterState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,11 +62,11 @@ export default function LawYesSafePreview() {
          <div className="p-3 flex items-center justify-between">
            <button
              onClick={() => handleNavigate("home")}
-             className="flex items-center gap-2 font-serif text-lg tracking-tight text-white hover:opacity-80 transition-opacity px-2"
+             className="flex items-center rounded-lg bg-white/95 px-2 py-1 shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-secondary/70"
              data-testid="button-sidebar-home"
+             aria-label="LAWYes home — Your Legal Work, Solved."
            >
-             <span className="w-6 h-6 flex items-center justify-center bg-secondary text-secondary-foreground font-bold rounded text-xs">L</span>
-             LAW<span className="italic text-secondary">Yes</span>
+             <LawYesBrand />
            </button>
            <div className="flex items-center gap-1">
              <button
@@ -165,9 +176,8 @@ export default function LawYesSafePreview() {
           >
             <Menu size={20} />
           </button>
-          <div className="font-serif font-medium text-foreground flex items-center gap-1.5">
-            <span className="w-5 h-5 flex items-center justify-center bg-secondary text-secondary-foreground text-[10px] font-bold rounded-sm">L</span>
-            LAW<span className="italic text-secondary">Yes</span>
+          <div className="flex items-center" aria-label="LAWYes — Your Legal Work, Solved.">
+            <LawYesBrand mobile />
           </div>
           <button
             onClick={() => handleNavigate("home")}

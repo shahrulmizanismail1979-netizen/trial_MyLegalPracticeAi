@@ -26,7 +26,8 @@ Malaysian legal professionals:
 3. MyCorpAI (https://mycorpai.life) — Corporate Secretary
 4. MyConveyAI (https://myconveyai.life) — Conveyancing
 5. MyCrimAI (https://mycrimai.replit.app) — Criminal Law
-6. MyCCBLitAI (https://my-ccb-lit-ai.replit.app) — Construction Law (CCB)
+6. MyCCBLitAI (https://my-ccb-lit-ai.replit.app) — Corporate, Commercial & Banking Litigation
+7. MyAccidentAI (https://myaccidentai.life) — Accident & Personal Injury Litigation
 
 ## Preferred canonical homepage
 
