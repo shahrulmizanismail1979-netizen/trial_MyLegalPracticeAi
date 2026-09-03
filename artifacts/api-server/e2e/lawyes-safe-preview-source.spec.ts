@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+const logoPath = fileURLToPath(
+  new URL("../../landing-page/public/lawyes-logo.png", import.meta.url),
+);
 const fixturePath = fileURLToPath(
   new URL("../../landing-page/src/fixtures/lawyes-verified-reports.json", import.meta.url),
 );
@@ -10,6 +14,17 @@ const verifiedReports = JSON.parse(readFileSync(fixturePath, "utf8")) as Record<
   { title: string; sourceUrl: string }
 >;
 const publishedReport = Object.values(verifiedReports)[0];
+
+test("official LAWYes logo matches the approved brand asset", () => {
+  const fingerprint = createHash("sha256")
+    .update(readFileSync(logoPath))
+    .digest("hex");
+
+  expect(
+    fingerprint,
+    "LAWYes logo fingerprint changed. If this is an intentional official brand update, review the asset and replace the approved SHA-256 value in this test.",
+  ).toBe("fc08909524639fadd0966f6820fa6d173a4969409c6f5995ac194369b1d39413");
+});
 
 test("LAWYes is the primary root experience and the Safe Preview URL remains compatible", async ({ page }) => {
   await page.goto("/");
