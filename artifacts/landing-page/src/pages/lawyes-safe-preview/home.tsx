@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
-import { Search, FileText, Briefcase, Gavel, ArrowUp, ShieldAlert, Sparkles, ChevronRight, Layers } from "lucide-react";
+import { Search, FileText, Briefcase, Gavel, ArrowUp, ShieldAlert, Sparkles, ChevronRight, Layers, BookOpen, CreditCard, HeartHandshake, ShieldCheck, LogIn, Grid, ExternalLink } from "lucide-react";
 import type { RouterState } from "./use-router-state";
 import { findCapabilities } from "../../fixtures/lawyes-skills";
+import { LIVE_PORTALS } from "../../lib/product-catalog";
+import { FrontDoorAssistant } from "../../components/front-door-assistant";
 
 export function HomeView({ state, navigate }: { state: RouterState; navigate: (view: "search" | "draft" | "matter" | "practice" | "skills", params?: Partial<RouterState>) => void }) {
   const [q, setQ] = useState(state.q || "");
@@ -27,9 +29,10 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
 
   return (
     <div data-testid="lawyes-conversation-canvas" className="h-full flex flex-col relative animate-in fade-in duration-500 bg-background text-foreground overflow-y-auto no-scrollbar pb-[100px] md:pb-8">
-      <div className="flex-1 flex flex-col justify-center items-center max-w-3xl mx-auto w-full px-4 md:px-8">
-        <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Malaysia-wide legal work, with jurisdiction-specific safeguards.
+      <div className="flex-1 flex flex-col justify-start md:justify-center items-center max-w-5xl mx-auto w-full px-4 md:px-8 pt-12 md:pt-16 pb-8">
+        <div className="w-full max-w-3xl flex flex-col items-center">
+          <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground text-center">
+          Malaysia-wide legal work &middot; Explicit Sarawak Specialization &middot; Jurisdiction-specific safeguards
         </h2>
         <h1 className="text-3xl md:text-4xl font-serif text-foreground text-center mb-8 tracking-tight">
           How can I assist your practice today?
@@ -140,7 +143,100 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
           <ShieldAlert size={12} />
           <span>Safe Preview Demonstration</span>
         </div>
+        </div>
+
+        {/* Platform Depth Integration */}
+        <div className="w-full mt-16 mb-4 border-t border-border pt-10 animate-in fade-in slide-in-from-bottom-4">
+          <div className="mb-7 max-w-3xl">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+              The complete LAWYes platform
+            </p>
+            <h2 className="font-serif text-2xl text-foreground md:text-3xl">
+              Your workspace is only the beginning.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground md:text-base">
+              Continue into reviewed Malaysian judgments, persistent matter work, specialist practice
+              systems, professional access plans, contributions, and the platform&apos;s security and
+              verification commitments.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 text-left">
+            {/* Core Platform */}
+            <div className="space-y-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Layers size={14} /> Core Platform
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <a href="/mylitai/app/case-law" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-judgment-library">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><BookOpen size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">Judgment Library</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Reviewed Malaysian case-law research</div>
+                  </div>
+                </a>
+                <a href="/lawyes" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-my-matters">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><Briefcase size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">My Matters</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Documents, discussions, tasks and deadlines</div>
+                  </div>
+                </a>
+                <a href="/apps#pricing" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-pricing">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><CreditCard size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">Pricing &amp; Access</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Individual, firm, corporate and education plans</div>
+                  </div>
+                </a>
+                <a href="/sign-in" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-sign-in">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><LogIn size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">Sign In</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Return to your account and subscribed services</div>
+                  </div>
+                </a>
+                <a href="/contribute" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-contribute">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><HeartHandshake size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">Contribute</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Help expand the reviewed Malaysian corpus</div>
+                  </div>
+                </a>
+                <a href="/apps#about" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-trust">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><ShieldCheck size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold group-hover:text-primary transition-colors">Trust &amp; Security</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Privacy, verification and professional safeguards</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            {/* Specialist Portals */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Grid size={14} /> Specialist Practice Systems
+                </h3>
+                <a href="/apps" className="text-[10px] font-bold text-primary hover:underline" data-testid="link-home-all-portals">VIEW CATALOG</a>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                {LIVE_PORTALS.map(portal => (
+                  <a key={portal.id} href={portal.url} className="flex flex-col gap-1.5 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all group shadow-sm" data-testid={`link-home-portal-${portal.id}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold group-hover:text-primary transition-colors">{portal.title}</span>
+                      <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary shrink-0 ml-1" />
+                    </div>
+                    <span className="text-[10px] text-primary uppercase tracking-wider font-semibold">{portal.tag}</span>
+                    <span className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">{portal.description}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <FrontDoorAssistant workspace />
     </div>
   );
 }

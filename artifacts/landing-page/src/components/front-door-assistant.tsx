@@ -54,7 +54,7 @@ function renderContent(text: string) {
   });
 }
 
-export function FrontDoorAssistant() {
+export function FrontDoorAssistant({ workspace = false }: { workspace?: boolean }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -169,7 +169,13 @@ export function FrontDoorAssistant() {
   const showGreeting = !startedRef.current && messages.length === 0;
 
   return (
-    <div className="relative z-[60] mt-10 flex flex-col items-center md:fixed md:right-6 md:bottom-6 md:mt-0 md:items-end">
+    <div
+      className={
+        workspace
+          ? "fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-[60] flex flex-col items-end md:bottom-6 md:right-6"
+          : "relative z-[60] mt-10 flex flex-col items-center md:fixed md:right-6 md:bottom-6 md:mt-0 md:items-end"
+      }
+    >
       {open && (
         <div
           id="amani-role-guidance"
@@ -277,6 +283,7 @@ export function FrontDoorAssistant() {
         aria-controls="amani-role-guidance"
         aria-expanded={open}
         aria-label={open ? "Close Amani role guidance" : "Open Amani role guidance"}
+        data-testid="button-amani-role-guidance"
         className="h-14 rounded-full shadow-lg gap-2 bg-primary text-primary-foreground hover:bg-primary/90 pl-2 pr-5"
       >
         <AmaniAvatar size={40} />

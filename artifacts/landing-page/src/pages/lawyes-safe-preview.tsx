@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers, MessageSquare, Wrench, ChevronDown } from "lucide-react";
+import { Menu, X, Plus, Search, FileText, Briefcase, Gavel, ShieldCheck, Layers, MessageSquare, Wrench, ChevronDown, BookOpen, Grid, CreditCard, HeartHandshake, ShieldAlert, LogIn } from "lucide-react";
 import { useRouterState, type RouterState } from "./lawyes-safe-preview/use-router-state";
 import { HomeView } from "./lawyes-safe-preview/home";
 import { SearchView } from "./lawyes-safe-preview/search";
@@ -183,10 +183,50 @@ export default function LawYesSafePreview() {
                 </div>
               </div>
             </div>
+
+            {/* Platform discoverability */}
+            <div className="mt-6 border-t border-[hsl(var(--lawyes-sidebar-border))] pt-3">
+              <div className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))]">Platform</div>
+              <div className="space-y-0.5">
+                <a href="/mylitai/app/case-law" data-testid="link-sidebar-judgment-library" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <BookOpen size={16} />
+                  <span className="flex-1 text-left">Judgment Library</span>
+                </a>
+
+                <a href="/lawyes" data-testid="link-sidebar-my-matters" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <Briefcase size={16} />
+                  <span className="flex-1 text-left">My Matters</span>
+                </a>
+
+                <a href="/apps" data-testid="link-sidebar-specialist-portals" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <Grid size={16} />
+                  <span className="flex-1 text-left">Specialist Portals</span>
+                </a>
+
+                <a href="/apps#pricing" data-testid="link-sidebar-pricing" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <CreditCard size={16} />
+                  <span className="flex-1 text-left">Pricing & Access</span>
+                </a>
+
+                <a href="/contribute" data-testid="link-sidebar-contribute" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <HeartHandshake size={16} />
+                  <span className="flex-1 text-left">Contribute</span>
+                </a>
+
+                <a href="/apps#about" data-testid="link-sidebar-trust-security" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+                  <ShieldAlert size={16} />
+                  <span className="flex-1 text-left">Trust & Security</span>
+                </a>
+              </div>
+            </div>
          </nav>
 
          {/* Footer */}
-         <div className="p-3 border-t border-[hsl(var(--lawyes-sidebar-border))]">
+         <div className="p-3 border-t border-[hsl(var(--lawyes-sidebar-border))] space-y-1">
+            <a href="/sign-in" data-testid="link-sidebar-sign-in" className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200">
+              <LogIn size={16} />
+              Sign in to LAWYes
+            </a>
             <button
               onClick={() => handleNavigate("verification")}
               className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${state.view === 'verification' ? 'bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm scale-[1.01]' : 'text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white hover:scale-[1.01] active:scale-[0.99]'}`}
