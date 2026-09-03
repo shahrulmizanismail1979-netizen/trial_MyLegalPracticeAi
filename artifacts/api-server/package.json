@@ -14,6 +14,7 @@
     "test:e2e:corp-drafts": "playwright test e2e/corp-draft-completion.spec.ts",
     "test:e2e:corp-tool-links": "playwright test e2e/corp-tool-links.spec.ts",
     "test:e2e:fab": "playwright test e2e/fab-stacking.spec.ts",
+    "test:e2e:lawyes": "playwright test e2e/lawyes-session-save-retry.spec.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
