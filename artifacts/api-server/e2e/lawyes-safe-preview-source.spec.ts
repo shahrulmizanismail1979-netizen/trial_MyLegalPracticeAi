@@ -13,11 +13,11 @@ const publishedReport = Object.values(verifiedReports)[0];
 
 test("LAWYes is the primary root experience and the Safe Preview URL remains compatible", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /how can i assist your practice today/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Search Law & Cases" })).toBeVisible();
 
   await page.goto("/lawyes-safe-preview");
-  await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /how can i assist your practice today/i })).toBeVisible();
 });
 
 test("LAWYes defaults to one conversation workspace with progressively disclosed legal tools", async ({ page }) => {
@@ -53,6 +53,57 @@ test("LAWYes defaults to one conversation workspace with progressively disclosed
   await expect(toolsToggle).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByTestId("button-sidebar-search")).toBeVisible();
   await expect(page.getByTestId("button-sidebar-skills")).toBeVisible();
+});
+
+test("LAWYes keeps the official logo and approved navy and fresh-green workspace branding", async ({ page }) => {
+  await page.goto("/");
+
+  const workspace = page.locator(".safe-preview");
+  const desktopLogo = page.getByTestId("lawyes-sidebar-logo");
+  const logoButton = page.getByTestId("button-sidebar-home");
+  const rail = page.getByTestId("lawyes-conversation-rail");
+
+  await expect(desktopLogo).toBeVisible();
+  await expect(desktopLogo).toHaveAttribute("src", /\/lawyes-logo\.png$/);
+  await expect(desktopLogo).toHaveAttribute("alt", "LAWYes — Your Legal Work, Solved.");
+
+  const brand = await workspace.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      primary: styles.getPropertyValue("--primary").trim(),
+      ring: styles.getPropertyValue("--ring").trim(),
+      sidebar: styles.getPropertyValue("--lawyes-sidebar").trim(),
+      foreground: styles.getPropertyValue("--foreground").trim(),
+    };
+  });
+  expect(brand).toEqual({
+    primary: "163 100% 33%",
+    ring: "163 100% 33%",
+    sidebar: "222 80% 14%",
+    foreground: "222 80% 16%",
+  });
+
+  const logoImage = await desktopLogo.evaluate((image: HTMLImageElement) => ({
+    complete: image.complete,
+    naturalWidth: image.naturalWidth,
+    naturalHeight: image.naturalHeight,
+  }));
+  expect(logoImage).toEqual({ complete: true, naturalWidth: 1384, naturalHeight: 769 });
+
+  const [logoBox, buttonBox, railBox] = await Promise.all([
+    desktopLogo.boundingBox(),
+    logoButton.boundingBox(),
+    rail.boundingBox(),
+  ]);
+  expect(logoBox).not.toBeNull();
+  expect(buttonBox).not.toBeNull();
+  expect(railBox).not.toBeNull();
+  expect(logoBox!.x).toBeGreaterThanOrEqual(buttonBox!.x);
+  expect(logoBox!.x + logoBox!.width).toBeLessThanOrEqual(buttonBox!.x + buttonBox!.width);
+  expect(logoBox!.y).toBeGreaterThanOrEqual(buttonBox!.y);
+  expect(logoBox!.y + logoBox!.height).toBeLessThanOrEqual(buttonBox!.y + buttonBox!.height);
+  expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(railBox!.x + railBox!.width);
+  await expect(page.getByTestId("button-new-workspace")).toBeVisible();
 });
 
 test("selected LAWYes report links to its report-specific official judgment", async ({ page }) => {
@@ -148,7 +199,7 @@ test("restores valid URL state and safely falls back from an invalid view", asyn
   await expect(page.getByRole("heading", { name: /^\d+ Results?$/ })).toBeVisible();
 
   await page.goto("/lawyes-safe-preview?view=not-a-view&q=Maria&jurisdiction=nowhere");
-  await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /how can i assist your practice today/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Search Law & Cases" })).toBeVisible();
 
   await page.goto("/lawyes-safe-preview?view=draft&playbook=civil-application&draftStep=3");
@@ -314,7 +365,7 @@ test.describe("mobile Safe Preview", () => {
 
   test("has no horizontal overflow and keeps active content above the bottom navigation", async ({ page }) => {
     await page.goto("/lawyes-safe-preview");
-    await expect(page.getByRole("heading", { name: /find the law\. draft the document/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /how can i assist your practice today/i })).toBeVisible();
     expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBeTruthy();
 
     const notice = page.getByText("Safe Preview Demonstration");
@@ -341,6 +392,20 @@ test.describe("mobile Safe Preview", () => {
     await expect(page.getByTestId("button-mobile-search")).toBeVisible();
     await expect(page.getByTestId("button-mobile-draft")).toBeVisible();
     await expect(page.getByTestId("button-mobile-matter")).toBeVisible();
+
+    const mobileLogo = page.getByTestId("lawyes-mobile-logo");
+    await expect(mobileLogo).toBeVisible();
+    await expect(mobileLogo).toHaveAttribute("src", /\/lawyes-logo\.png$/);
+    const [logoBox, openButtonBox, newWorkspaceBox] = await Promise.all([
+      mobileLogo.boundingBox(),
+      page.getByTestId("button-open-sidebar").boundingBox(),
+      page.getByTestId("button-mobile-new-workspace").boundingBox(),
+    ]);
+    expect(logoBox).not.toBeNull();
+    expect(openButtonBox).not.toBeNull();
+    expect(newWorkspaceBox).not.toBeNull();
+    expect(logoBox!.x).toBeGreaterThanOrEqual(openButtonBox!.x + openButtonBox!.width);
+    expect(logoBox!.x + logoBox!.width).toBeLessThanOrEqual(newWorkspaceBox!.x);
 
     expect(await page.locator("html").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBeTruthy();
 
