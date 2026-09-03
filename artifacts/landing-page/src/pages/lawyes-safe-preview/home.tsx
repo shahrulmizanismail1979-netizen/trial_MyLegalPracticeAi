@@ -131,8 +131,8 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
              <h2 className="text-sm font-medium">Work on a Matter</h2>
           </button>
 
-          <button onClick={() => navigate("practice")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-secondary/40 rounded-full hover:border-secondary/60 hover:bg-secondary/10 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-secondary/50 shadow-sm hover:shadow" data-testid="button-action-practice">
-             <Gavel size={16} className="text-secondary" />
+          <button onClick={() => navigate("practice")} className="flex items-center gap-2 px-4 py-2.5 bg-card border border-primary/30 rounded-full hover:border-primary/60 hover:bg-primary/5 transition-all text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm hover:shadow" data-testid="button-action-practice">
+             <Gavel size={16} className="text-primary" />
              <h2 className="text-sm font-medium">Sarawak Practice Centre</h2>
           </button>
         </div>

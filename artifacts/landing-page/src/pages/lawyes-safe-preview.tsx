@@ -14,7 +14,7 @@ function LawYesBrand({ mobile = false }: { mobile?: boolean }) {
     <img
       src={`${import.meta.env.BASE_URL}lawyes-logo.png`}
       alt="LAWYes — Your Legal Work, Solved."
-      className={mobile ? "h-8 w-auto" : "h-9 w-auto"}
+      className={mobile ? "h-12 w-auto object-contain" : "h-12 w-auto object-contain"}
       data-testid={mobile ? "lawyes-mobile-logo" : "lawyes-sidebar-logo"}
     />
   );
@@ -35,10 +35,10 @@ export default function LawYesSafePreview() {
       onClick={() => handleNavigate(view)}
       aria-label={`${view} workspace navigation`}
       data-testid={`button-sidebar-${view}`}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
         active
-          ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm"
-          : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white"
+          ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm scale-[1.01]"
+          : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white hover:scale-[1.01] active:scale-[0.99]"
       }`}
     >
       {icon}
@@ -62,7 +62,7 @@ export default function LawYesSafePreview() {
          <div className="p-3 flex items-center justify-between">
            <button
              onClick={() => handleNavigate("home")}
-             className="flex items-center rounded-lg bg-white/95 px-2 py-1 shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-secondary/70"
+             className="flex items-center rounded-lg bg-white px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
              data-testid="button-sidebar-home"
              aria-label="LAWYes home — Your Legal Work, Solved."
            >
@@ -71,14 +71,14 @@ export default function LawYesSafePreview() {
            <div className="flex items-center gap-1">
              <button
                onClick={() => handleNavigate("home")}
-               className="p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-colors"
+               className="p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-all duration-200 hover:scale-[1.05] active:scale-[0.95]"
                aria-label="New Workspace"
                data-testid="button-new-workspace"
              >
                <Plus size={18} />
              </button>
              <button
-               className="md:hidden p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-colors"
+               className="md:hidden p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-white hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-all duration-200 active:scale-[0.95]"
                onClick={() => setSidebarOpen(false)}
                aria-label="Close workspace navigation"
                data-testid="button-close-sidebar"
@@ -93,10 +93,10 @@ export default function LawYesSafePreview() {
             <div className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--lawyes-sidebar-muted))]">Today</div>
             <button
               onClick={() => handleNavigate("home")}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 state.view === "home"
-                  ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white"
-                  : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white"
+                  ? "bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm scale-[1.01]"
+                  : "text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white hover:scale-[1.01] active:scale-[0.99]"
               }`}
               aria-label="Open current conversation"
             >
@@ -108,12 +108,12 @@ export default function LawYesSafePreview() {
            {(state.matterName || state.clientRef) && (
               <button
                 onClick={() => handleNavigate("matter")}
-                className="mt-1 w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white transition-colors"
+                className="mt-1 w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 aria-label="Open active matter conversation"
               >
-                <Briefcase size={16} className="mt-0.5 shrink-0" />
+                <Briefcase size={16} className="mt-0.5 shrink-0 text-primary" />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm">{state.matterName || "Active matter"}</span>
+                  <span className="block truncate text-sm font-medium">{state.matterName || "Active matter"}</span>
                   {state.clientRef && <span className="block truncate text-[11px] text-[hsl(var(--lawyes-sidebar-muted))]">{state.clientRef}</span>}
                 </span>
               </button>
@@ -123,7 +123,7 @@ export default function LawYesSafePreview() {
               <button
                 type="button"
                 onClick={() => setToolsOpen((open) => !open)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/75 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/75 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 aria-expanded={toolsOpen}
                 aria-controls="lawyes-tools-menu"
                  data-testid="button-toggle-tools"
@@ -155,7 +155,7 @@ export default function LawYesSafePreview() {
          <div className="p-3 border-t border-[hsl(var(--lawyes-sidebar-border))]">
             <button
               onClick={() => handleNavigate("verification")}
-              className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${state.view === 'verification' ? 'bg-[hsl(var(--lawyes-sidebar-hover))] text-white' : 'text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/50 hover:text-white'}`}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${state.view === 'verification' ? 'bg-[hsl(var(--lawyes-sidebar-hover))] text-white shadow-sm scale-[1.01]' : 'text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-white hover:scale-[1.01] active:scale-[0.99]'}`}
               data-testid="button-sidebar-verification"
             >
              <ShieldCheck size={16} />

@@ -339,31 +339,31 @@
 
 /* LAWYes Safe Preview: route-scoped theme and overflow protection. */
 .safe-preview {
-  --background: 160 15% 95%;     /* Soft sage/forest tint */
-  --foreground: 165 50% 12%;     /* Deepest forest green */
-  --card: 160 20% 98%;           /* Lightest sage card */
-  --card-foreground: 165 50% 12%;
-  --card-border: 160 15% 85%;
-  --popover: 160 20% 98%;
-  --popover-foreground: 165 50% 12%;
-  --popover-border: 160 15% 85%;
-  --primary: 165 65% 20%;        /* Primary forest green */
-  --primary-foreground: 160 20% 98%;
-  --secondary: 40 40% 45%;       /* Brass */
-  --secondary-foreground: 40 20% 98%;
-  --muted: 160 15% 88%;
-  --muted-foreground: 165 30% 35%;
-  --border: 160 15% 85%;
-  --input: 160 15% 85%;
-  --ring: 165 65% 20%;
-  --radius: 1rem;
+  --background: 214 33% 97%;     /* Airy, optimistic cool background */
+  --foreground: 222 80% 16%;     /* Navy */
+  --card: 0 0% 100%;             /* Crisp white */
+  --card-foreground: 222 80% 16%;
+  --card-border: 214 20% 90%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 80% 16%;
+  --popover-border: 214 20% 90%;
+  --primary: 163 100% 33%;       /* Fresh Green */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 30% 92%;      /* Very light navy wash */
+  --secondary-foreground: 222 80% 16%;
+  --muted: 214 20% 92%;
+  --muted-foreground: 222 25% 45%;
+  --border: 214 20% 88%;
+  --input: 214 20% 88%;
+  --ring: 163 100% 33%;
+  --radius: 0.75rem;
 
   /* Workspace Shell specific */
-  --lawyes-sidebar: 165 70% 10%;
-  --lawyes-sidebar-text: 160 20% 90%;
-  --lawyes-sidebar-muted: 165 20% 55%;
-  --lawyes-sidebar-border: 165 70% 14%;
-  --lawyes-sidebar-hover: 165 70% 16%;
+  --lawyes-sidebar: 222 80% 14%;
+  --lawyes-sidebar-text: 214 30% 92%;
+  --lawyes-sidebar-muted: 214 20% 65%;
+  --lawyes-sidebar-border: 222 50% 22%;
+  --lawyes-sidebar-hover: 222 60% 22%;
 
   min-height: 100dvh;
   max-width: 100%;
