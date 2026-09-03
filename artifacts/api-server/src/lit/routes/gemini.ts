@@ -1,10 +1,28 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { litConversations as conversationsTable, litMessages as messagesTable } from "@workspace/db";
+import {
+  litConversations as conversationsTable,
+  litMatters as mattersTable,
+  litMessages as messagesTable,
+} from "@workspace/db";
 import { and, eq, asc, desc } from "drizzle-orm";
 import { generateContentStreamCompat } from "../lib/aiProvider";
+import { z } from "zod";
+import { ensureConversationMatterSchema } from "../lib/ensureConversationMatterSchema";
 
 const router: IRouter = Router();
+const conversationMatterSchemaReady = ensureConversationMatterSchema();
+router.use(async (_req, _res, next) => {
+  await conversationMatterSchemaReady;
+  next();
+});
+const createConversationSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  matterId: z.coerce.number().int().positive().optional(),
+});
+const linkConversationSchema = z.object({
+  matterId: z.coerce.number().int().positive(),
+});
 
 const BANKING_SYSTEM_PROMPT = `You are MyLitAi — an expert AI Legal Tutor and Senior Counsel specializing in all areas of Malaysian Civil Litigation and Legal Practice. You have comprehensive knowledge of:
 
@@ -65,13 +83,62 @@ router.get("/litConversations", async (_req, res) => {
 });
 
 router.post("/litConversations", async (req, res) => {
-  const { title } = req.body;
+  const parsed = createConversationSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid conversation", issues: parsed.error.issues });
+    return;
+  }
   const accessId = callerAccessCodeId(res);
-  const [conversation] = await db
-    .insert(conversationsTable)
-    .values({ title, accessCodeId: accessId })
-    .returning();
+  const conversation = await db.transaction(async (tx) => {
+    if (parsed.data.matterId) {
+      const [matter] = await tx.select({ id: mattersTable.id }).from(mattersTable).where(and(
+        eq(mattersTable.id, parsed.data.matterId),
+        eq(mattersTable.accessCodeId, accessId),
+      )).limit(1);
+      if (!matter) return null;
+    }
+    const [created] = await tx.insert(conversationsTable).values({
+      title: parsed.data.title,
+      accessCodeId: accessId,
+      matterId: parsed.data.matterId ?? null,
+    }).returning();
+    return created;
+  });
+  if (!conversation) {
+    res.status(404).json({ error: "Matter not found" });
+    return;
+  }
   res.status(201).json(conversation);
+});
+
+router.patch("/litConversations/:id/matter", async (req, res) => {
+  const conversationId = Number(req.params.id);
+  const parsed = linkConversationSchema.safeParse(req.body);
+  if (!Number.isInteger(conversationId) || conversationId <= 0 || !parsed.success) {
+    res.status(400).json({ error: "Invalid conversation or matter id" });
+    return;
+  }
+  const accessId = callerAccessCodeId(res);
+  const linked = await db.transaction(async (tx) => {
+    const [matter] = await tx.select({ id: mattersTable.id }).from(mattersTable).where(and(
+      eq(mattersTable.id, parsed.data.matterId),
+      eq(mattersTable.accessCodeId, accessId),
+    )).limit(1);
+    if (!matter) return null;
+    const [conversation] = await tx.update(conversationsTable)
+      .set({ matterId: matter.id })
+      .where(and(
+        eq(conversationsTable.id, conversationId),
+        eq(conversationsTable.accessCodeId, accessId),
+      ))
+      .returning();
+    return conversation ?? null;
+  });
+  if (!linked) {
+    res.status(404).json({ error: "Conversation or matter not found" });
+    return;
+  }
+  res.json(linked);
 });
 
 router.get("/litConversations/:id", async (req, res) => {

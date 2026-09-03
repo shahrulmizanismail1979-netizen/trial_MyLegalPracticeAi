@@ -38,9 +38,18 @@ vi.mock("../lib/aiProvider", async (importOriginal) => {
   };
 });
 
-const { default: app } = await import("../../app");
-const { db, pool, litAccessCodes, litMatters, litMatterDeadlines, litSavedWork } =
+const { db, pool, litAccessCodes, litConversations, litMatters, litMatterDeadlines, litSavedWork } =
   await import("@workspace/db");
+// Simulate an existing deployed database from before migration 0039. Importing
+// the app must restore the additive column, FK, and index before routes use it.
+await pool.query(`
+  DROP INDEX IF EXISTS lit_conversations_owner_matter_idx;
+  ALTER TABLE lit_conversations DROP COLUMN IF EXISTS matter_id CASCADE;
+`);
+const { default: app } = await import("../../app");
+const { ensureConversationMatterSchema } =
+  await import("../lib/ensureConversationMatterSchema");
+await ensureConversationMatterSchema();
 const { inArray } = await import("drizzle-orm");
 const { ensureDocumentTables } = await import("../../lib/caseDocuments");
 const { ensureDraftTables } = await import("../../lib/caseDrafts");
@@ -52,6 +61,7 @@ const codeB = `LAWYES-B-${suffix}`;
 let ownerIds: number[] = [];
 let matterId = 0;
 let otherMatterId = 0;
+let linkedConversationId = 0;
 let agentA: request.Agent;
 let agentB: request.Agent;
 
@@ -63,6 +73,35 @@ async function login(code: string) {
 }
 
 beforeAll(async () => {
+  const compatibility = await pool.query<{
+    column_exists: boolean;
+    foreign_key_exists: boolean;
+    index_exists: boolean;
+  }>(`
+    SELECT
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'lit_conversations'
+           AND column_name = 'matter_id'
+      ) AS column_exists,
+      EXISTS (
+        SELECT 1
+          FROM pg_constraint constraint_row
+          JOIN pg_attribute column_row
+            ON column_row.attrelid = constraint_row.conrelid
+           AND column_row.attnum = ANY (constraint_row.conkey)
+         WHERE constraint_row.conrelid = 'lit_conversations'::regclass
+           AND constraint_row.contype = 'f'
+           AND column_row.attname = 'matter_id'
+      ) AS foreign_key_exists,
+      to_regclass('lit_conversations_owner_matter_idx') IS NOT NULL AS index_exists
+  `);
+  expect(compatibility.rows[0]).toEqual({
+    column_exists: true,
+    foreign_key_exists: true,
+    index_exists: true,
+  });
   const owners = await db.insert(litAccessCodes).values([
     {
       code: codeA,
@@ -89,6 +128,13 @@ beforeAll(async () => {
     title: `Other Lawyes matter ${suffix}`,
   }).returning({ id: litMatters.id });
   otherMatterId = otherMatter.id;
+  const conversations = await db.insert(litConversations).values([
+    { accessCodeId: ownerIds[0]!, matterId, title: "Owned linked discussion" },
+    { accessCodeId: ownerIds[0]!, matterId: otherMatterId, title: "Other matter discussion" },
+    { accessCodeId: ownerIds[0]!, matterId: null, title: "Unlinked legacy discussion" },
+    { accessCodeId: ownerIds[1]!, matterId, title: "Foreign tenant discussion" },
+  ]).returning({ id: litConversations.id, title: litConversations.title });
+  linkedConversationId = conversations.find((item) => item.title === "Owned linked discussion")!.id;
   await Promise.all([ensureDocumentTables(), ensureDraftTables(), ensureCaseIntelligenceTables()]);
   await db.insert(litMatterDeadlines).values({
     accessCodeId: ownerIds[0]!,
@@ -156,6 +202,7 @@ afterAll(async () => {
     ["lit", "Version one canonical draft", "Version two canonical draft", "Foreign canonical draft", "Other matter draft"],
   );
   await db.delete(litSavedWork).where(inArray(litSavedWork.accessCodeId, ownerIds));
+  await db.delete(litConversations).where(inArray(litConversations.accessCodeId, ownerIds));
   await db.delete(litMatters).where(inArray(litMatters.accessCodeId, ownerIds));
   await db.delete(litAccessCodes).where(inArray(litAccessCodes.id, ownerIds));
 });
@@ -182,7 +229,10 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(own.body.matter.id).toBe(matterId);
     expect(own.body.deadlines).toHaveLength(1);
     expect(own.body.research).toHaveLength(1);
-    expect(own.body.conversations).toEqual([]);
+    expect(own.body.conversations.map((conversation: { id: number }) => conversation.id))
+      .toEqual([linkedConversationId]);
+    expect(own.body.conversations.map((conversation: { title: string }) => conversation.title))
+      .not.toContain("Unlinked legacy discussion");
     const documentTitles = own.body.documents.map((document: { title: string }) => document.title);
     expect(documentTitles).toEqual(["Owned canonical document.pdf"]);
     expect(documentTitles).not.toContain("Foreign canonical document.pdf");
@@ -203,6 +253,50 @@ describe("MyLitAI Lawyes vertical slice", () => {
     const foreign = await agentB.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
     expect(foreign.status).toBe(404);
     expect(foreign.body).toEqual({ error: "Matter not found" });
+  });
+
+  it("creates and links conversations only when both conversation and matter are owned", async () => {
+    const created = await agentA.post("/api/lit/gemini/litConversations").send({
+      title: "Created for this matter",
+      matterId,
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.matterId).toBe(matterId);
+
+    const unlinked = await agentA.post("/api/lit/gemini/litConversations").send({
+      title: "Explicitly linked later",
+    });
+    expect(unlinked.status).toBe(201);
+    expect(unlinked.body.matterId).toBeNull();
+
+    const linked = await agentA
+      .patch(`/api/lit/gemini/litConversations/${unlinked.body.id}/matter`)
+      .send({ matterId: otherMatterId });
+    expect(linked.status).toBe(200);
+    expect(linked.body.matterId).toBe(otherMatterId);
+
+    const foreignConversation = await agentB
+      .patch(`/api/lit/gemini/litConversations/${created.body.id}/matter`)
+      .send({ matterId });
+    expect(foreignConversation.status).toBe(404);
+
+    const foreignMatter = await agentB.post("/api/lit/gemini/litConversations").send({
+      title: "Must not cross tenant",
+      matterId,
+    });
+    expect(foreignMatter.status).toBe(404);
+
+    const matterOne = await agentA.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+    expect(matterOne.body.conversations.map((item: { title: string }) => item.title))
+      .toContain("Created for this matter");
+    expect(matterOne.body.conversations.map((item: { title: string }) => item.title))
+      .not.toContain("Explicitly linked later");
+
+    const matterTwo = await agentA.get(`/api/lit/lawyes/matters/${otherMatterId}/workspace`);
+    expect(matterTwo.body.conversations.map((item: { title: string }) => item.title))
+      .toContain("Explicitly linked later");
+    expect(matterTwo.body.conversations.map((item: { title: string }) => item.title))
+      .not.toContain("Created for this matter");
   });
 
   it("runs research plus matter drafting, returns sources/verification, and reloads a retry-safe save", async () => {

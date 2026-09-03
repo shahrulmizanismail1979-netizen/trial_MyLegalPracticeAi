@@ -28,6 +28,7 @@ import { ensureSarawak20ReservationsTable } from "./lib/sarawak20";
 import { ensureLawyesReportTables } from "./research/editorial/ensureLawyesReportTables";
 import { seedLawyesEditorialIntake } from "./research/editorial/lawyesIntake";
 import { ensureMatterPreparationSchema } from "./lit/lib/ensureMatterPreparationSchema";
+import { ensureConversationMatterSchema } from "./lit/lib/ensureConversationMatterSchema";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -276,6 +277,9 @@ void seedLawyesEditorialIntake().catch((err) =>
 // automatically applied in deployed environments, so guarantee it before
 // opening the server to matter requests.
 await ensureMatterPreparationSchema();
+// MyLitAI discussions use an optional, explicit matter link. Guarantee the
+// additive column, FK, and owner+matter index before conversation routes open.
+await ensureConversationMatterSchema();
 
 // Prune expired corp risk-scanner uploads immediately at boot. The standalone
 // hourly worker below handles ongoing cleanup when no new uploads arrive.

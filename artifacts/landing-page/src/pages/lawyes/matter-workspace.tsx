@@ -61,7 +61,7 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
                   <FileText className="w-4 h-4 mr-2 shrink-0" /> Documents ({data.documents?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="conversations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 whitespace-nowrap">
-                  <MessageSquare className="w-4 h-4 mr-2 shrink-0" /> Discussions
+                  <MessageSquare className="w-4 h-4 mr-2 shrink-0" /> Discussions ({data.conversations?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger value="tasks" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 whitespace-nowrap">
                   <CheckSquare className="w-4 h-4 mr-2 shrink-0" /> Tasks
@@ -138,7 +138,11 @@ function ResourceList({ items, emptyText, icon: Icon }: { items: import("./api")
           <div>
             <h4 className="text-sm font-medium text-slate-900 dark:text-white">{item.title || item.name || item.item_text || "Untitled"}</h4>
             {item.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{item.description}</p>}
-            {item.date && <p className="text-xs text-slate-400 mt-2">{new Date(item.date).toLocaleDateString()}</p>}
+            {(item.date || item.createdAt) && (
+              <p className="text-xs text-slate-400 mt-2">
+                {new Date(item.date || item.createdAt!).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
       ))}

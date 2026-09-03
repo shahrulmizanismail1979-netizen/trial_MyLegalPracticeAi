@@ -14,6 +14,7 @@ export interface ResourceItem {
   item_text?: string;
   description?: string;
   date?: string;
+  createdAt?: string;
   uri?: string;
 }
 

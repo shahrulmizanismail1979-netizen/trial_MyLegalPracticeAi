@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:payment-access": "vitest run src/routes/payment-access-regression.test.ts",
     "test:e2e": "playwright test",
-    "test:e2e:case-home": "playwright test e2e/case-home-handoffs.spec.ts e2e/amani-practice-gate.spec.ts",
+    "test:e2e:case-home": "playwright test --workers=1 e2e/case-home-handoffs.spec.ts e2e/amani-practice-gate.spec.ts e2e/lawyes-discussions.spec.ts",
     "test:e2e:corp-drafts": "playwright test e2e/corp-draft-completion.spec.ts",
     "test:e2e:corp-tool-links": "playwright test e2e/corp-tool-links.spec.ts",
     "test:e2e:fab": "playwright test e2e/fab-stacking.spec.ts",

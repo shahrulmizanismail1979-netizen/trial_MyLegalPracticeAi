@@ -5,6 +5,7 @@ import {
   pool,
   litBundleDocuments,
   litBundles,
+  litConversations,
   litMatterDeadlines,
   litMatters,
   litSavedWork,
@@ -12,8 +13,14 @@ import {
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { generateChat, streamChat, type Citation } from "../lib/aiProvider";
 import { logger } from "../../lib/logger";
+import { ensureConversationMatterSchema } from "../lib/ensureConversationMatterSchema";
 
 const router: IRouter = Router();
+const conversationMatterSchemaReady = ensureConversationMatterSchema();
+router.use(async (_req, _res, next) => {
+  await conversationMatterSchemaReady;
+  next();
+});
 
 const matterIdSchema = z.coerce.number().int().positive();
 const saveSchema = z.object({
@@ -80,7 +87,7 @@ async function optionalRows<T>(
 async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
   const ownerId = matter.accessCodeId;
   const ownerKey = String(ownerId);
-  const [deadlines, savedWork, bundleDocuments, caseDocuments, tasks, checklists, events, sharedDrafts] = await Promise.all([
+  const [deadlines, savedWork, conversations, bundleDocuments, caseDocuments, tasks, checklists, events, sharedDrafts] = await Promise.all([
     db.select().from(litMatterDeadlines).where(and(
       eq(litMatterDeadlines.matterId, matter.id),
       eq(litMatterDeadlines.accessCodeId, ownerId),
@@ -89,6 +96,10 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
       eq(litSavedWork.matterId, matter.id),
       eq(litSavedWork.accessCodeId, ownerId),
     )).orderBy(desc(litSavedWork.updatedAt)),
+    db.select().from(litConversations).where(and(
+      eq(litConversations.matterId, matter.id),
+      eq(litConversations.accessCodeId, ownerId),
+    )).orderBy(desc(litConversations.createdAt)),
     db.select({ document: litBundleDocuments, bundle: litBundles })
       .from(litBundleDocuments)
       .innerJoin(litBundles, and(
@@ -196,9 +207,11 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
     matter,
     documents,
     uploads: documents.filter((document) => document.source === "upload"),
-    // Lit conversations currently have no matter foreign key. Do not leak all
-    // owner conversations into every matter or infer a link from a numeric ID.
-    conversations: [] as never[],
+    conversations: conversations.map((item) => ({
+      id: item.id,
+      title: item.title,
+      createdAt: item.createdAt,
+    })),
     tasks,
     checklists,
     deadlines,
@@ -290,9 +303,9 @@ function safeWorkspaceContext(workspace: Awaited<ReturnType<typeof assembleWorks
       id: item.id, title: item.title, fileName: item.fileName,
       contentType: item.contentType, pageCount: item.pageCount,
     })),
-    // Conversations have no existing matter association and are intentionally
-    // never inferred into this matter context.
-    conversations: workspace.conversations,
+    conversations: workspace.conversations.map((item) => ({
+      id: item.id, title: item.title, createdAt: item.createdAt,
+    })),
     tasks: withoutIdentityFields(workspace.tasks),
     checklists: withoutIdentityFields(workspace.checklists),
     deadlines: workspace.deadlines.map((item) => ({
