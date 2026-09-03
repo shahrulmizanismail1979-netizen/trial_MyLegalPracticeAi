@@ -92,6 +92,19 @@ const LIT_STAGES = ['Pre-Trial', 'Trial', 'Judgment', 'Appeal', 'Closed'] as con
 type LitStage = typeof LIT_STAGES[number];
 
 const STATUS_OPTIONS = ['active', 'on-hold', 'closed', ...LIT_STAGES];
+const ACTING_FOR_OPTIONS = ['Plaintiff', 'Defendant', 'Applicant', 'Respondent', 'Petitioner', 'Intervener'];
+const MATTER_TYPE_OPTIONS = [
+  'Banking Recovery',
+  'Order for Sale (O.83)',
+  'Summary Judgment (O.14)',
+  'Guarantor Suit',
+  'Winding Up',
+  'Bankruptcy',
+  'Foreclosure',
+  'General Civil Litigation',
+  'Appeal',
+  'Other',
+];
 const CATEGORY_OPTIONS = [
   'limitation', 'appearance', 'pleading', 'interlocutory',
   'hearing', 'enforcement', 'appeal', 'custom',
@@ -150,7 +163,8 @@ function StageTracker({
   onAdvance: (stage: string) => void;
 }) {
   const [confirming, setConfirming] = useState<string | null>(null);
-  const currentIdx = LIT_STAGES.indexOf(current as LitStage);
+  const displayedStage = current === 'closed' ? 'Closed' : current;
+  const currentIdx = LIT_STAGES.indexOf(displayedStage as LitStage);
   const isStaged = currentIdx >= 0;
 
   return (
@@ -1613,6 +1627,18 @@ export default function MatterDetail() {
             <div className="space-y-1.5"><Label>Status</Label>
               <Select value={editForm.status ?? 'active'} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Acting for</Label>
+              <Select value={editForm.actingFor ?? ''} onChange={e => setEditForm(f => ({ ...f, actingFor: e.target.value }))}>
+                {ACTING_FOR_OPTIONS.map(role => <option key={role} value={role}>{role}</option>)}
+              </Select>
+            </div>
+            <div className="space-y-1.5"><Label>Matter type</Label>
+              <Select value={editForm.matterType ?? ''} onChange={e => setEditForm(f => ({ ...f, matterType: e.target.value }))}>
+                {MATTER_TYPE_OPTIONS.map(type => <option key={type} value={type}>{type}</option>)}
               </Select>
             </div>
           </div>
