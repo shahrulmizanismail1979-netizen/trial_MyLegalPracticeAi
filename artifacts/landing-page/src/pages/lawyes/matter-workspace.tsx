@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput, uploadLawyesEvidence, useConfirmLawyesEvidence } from "./api";
-import { Loader2, FileText, MessageSquare, CheckSquare, Calendar, Save, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, PenLine, Download, Upload } from "lucide-react";
+import { Loader2, FileText, MessageSquare, CheckSquare, Calendar, Save, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, PenLine, Download, Upload, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -44,11 +44,19 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
             <Badge variant="secondary" className="font-sans text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-0 px-2 py-0.5">
               {data.matter.status || "Active"}
             </Badge>
+            <Badge variant="outline" className="font-sans text-[10px] uppercase tracking-wider" data-testid="status-matter-role">
+              {data.permissions.role}
+            </Badge>
           </h1>
           {data.matter.reference && (
             <div className="text-xs text-muted-foreground mt-0.5 font-medium">Ref: {data.matter.reference}</div>
           )}
         </div>
+        {!data.permissions.canWrite && (
+          <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800" role="status" data-testid="status-read-only">
+            <Eye className="h-4 w-4" /> Read-only access
+          </div>
+        )}
       </header>
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -114,7 +122,7 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
 
         {/* Right column: Composer & Output */}
         <div className="w-full md:w-7/12 lg:w-1/2 flex flex-col bg-white relative border-l border-border">
-          <InstructionComposer matterId={matterId} />
+          <InstructionComposer matterId={matterId} canWrite={data.permissions.canWrite} />
         </div>
       </div>
     </div>
@@ -248,7 +256,7 @@ function WorkbenchPreview({ content }: { content: string }) {
   );
 }
 
-function InstructionComposer({ matterId }: { matterId: string }) {
+function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrite: boolean }) {
   const [instruction, setInstruction] = useState("");
   const saveIdempotencyKey = useRef(crypto.randomUUID());
   const { mutate: instruct, isPending, data: mutationResult, error: instructError, reset: resetInstruction } = useLawyesInstruct(matterId);
@@ -395,6 +403,7 @@ function InstructionComposer({ matterId }: { matterId: string }) {
                     placeholder="Document Title"
                     className="w-full text-2xl font-serif font-medium text-foreground bg-transparent border-b border-transparent hover:border-slate-200 focus:border-primary outline-none focus:ring-0 px-1 py-1 transition-colors"
                     data-testid="workbench-title"
+                     readOnly={!canWrite}
                   />
                 </div>
                 <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-lg shrink-0">
@@ -405,13 +414,15 @@ function InstructionComposer({ matterId }: { matterId: string }) {
                   >
                     Preview
                   </button>
-                  <button
-                    onClick={() => setViewMode("edit")}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${viewMode === "edit" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
-                    data-testid="workbench-action-edit"
-                  >
-                    Edit
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => setViewMode("edit")}
+                      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${viewMode === "edit" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
+                      data-testid="workbench-action-edit"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -436,9 +447,11 @@ function InstructionComposer({ matterId }: { matterId: string }) {
                 {/* Toolbar */}
                 <div className="p-3 bg-slate-50 border-t border-border flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleReset} data-testid="workbench-action-reset" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
-                      Reset
-                    </Button>
+                    {canWrite && (
+                      <Button variant="outline" size="sm" onClick={handleReset} data-testid="workbench-action-reset" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
+                        Reset
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={handleCopy} data-testid="workbench-action-copy" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
                       <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
                     </Button>
@@ -446,10 +459,12 @@ function InstructionComposer({ matterId }: { matterId: string }) {
                       <Download className="w-3.5 h-3.5 mr-1.5" /> Download MD
                     </Button>
                   </div>
-                  <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-4">
-                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-                    Save to Matter
-                  </Button>
+                  {canWrite && (
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-4">
+                      {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                      Save to Matter
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -515,6 +530,7 @@ function InstructionComposer({ matterId }: { matterId: string }) {
       </ScrollArea>
 
       {/* Composer Input */}
+      {canWrite ? (
       <div className="p-4 lg:p-5 bg-white border-t border-border shrink-0 z-10 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
         <div className="relative rounded-xl border border-border bg-slate-50/50 focus-within:bg-white focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
           <Textarea 
@@ -549,6 +565,11 @@ function InstructionComposer({ matterId }: { matterId: string }) {
           </div>
         </div>
       </div>
+      ) : (
+        <div className="border-t bg-amber-50 px-5 py-4 text-center text-sm text-amber-800" data-testid="text-composer-read-only">
+          You can review this matter, but only editors and owners can instruct the assistant or save changes.
+        </div>
+      )}
     </div>
   );
 }

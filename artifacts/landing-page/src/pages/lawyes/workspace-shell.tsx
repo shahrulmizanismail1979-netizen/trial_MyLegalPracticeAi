@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Briefcase, LogOut, Loader2, LayoutPanelLeft, Mail, HardDrive, Link2, Unplug } from "lucide-react";
+import { Briefcase, LogOut, Loader2, LayoutPanelLeft, Mail, HardDrive, Link2, Unplug, Users, Eye } from "lucide-react";
 import { useAuth } from "./use-auth";
-import { useDisconnectLawyesGoogle, useLawyesGoogleConnection, useLawyesMatters } from "./api";
+import { useDisconnectLawyesGoogle, useLawyesGoogleConnection, useLawyesIdentity, useLawyesMatters } from "./api";
 import { MatterWorkspace } from "./matter-workspace";
+import { TeamPanel } from "./team-panel";
 
 export function WorkspaceShell() {
   const params = useParams();
@@ -12,18 +13,23 @@ export function WorkspaceShell() {
   const { logout } = useAuth();
   
   const { data: matters, isLoading, error } = useLawyesMatters();
+  const identity = useLawyesIdentity();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [teamOpen, setTeamOpen] = useState(false);
   const google = useLawyesGoogleConnection();
   const disconnectGoogle = useDisconnectLawyesGoogle();
+  const selectedMatter = matters?.find((matter) => String(matter.id) === matterId);
+  const isOwner = identity.data?.role === "owner";
+  const shellError = error || identity.error;
 
   // If there's an error and it's 401, logout is handled by queryFn throwing Error
   useEffect(() => {
-    if (error && error.message === "Unauthorized") {
+    if (shellError && shellError.message === "Unauthorized") {
       logout();
     }
-  }, [error, logout]);
+  }, [shellError, logout]);
 
-  if (isLoading) {
+  if (isLoading || identity.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -31,7 +37,7 @@ export function WorkspaceShell() {
     );
   }
 
-  if (error && error.message !== "Unauthorized") {
+  if (shellError && shellError.message !== "Unauthorized") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 font-sans">
         <div className="max-w-md text-center p-8 bg-white rounded-xl shadow-sm border border-red-200">
@@ -40,7 +46,7 @@ export function WorkspaceShell() {
           </div>
           <h2 className="text-xl font-medium text-slate-900 mb-2">Access Issue</h2>
           <p className="text-slate-600 text-sm mb-6">
-            {error.message}
+            {shellError.message}
           </p>
           <button 
             onClick={logout}
@@ -88,7 +94,7 @@ export function WorkspaceShell() {
           {sidebarOpen && <div className="px-2 text-xs font-bold uppercase tracking-wider mb-2 mt-2" style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}>Active Matters</div>}
           
           {matters?.map((matter) => {
-            const isActive = matterId === matter.id;
+            const isActive = matterId === String(matter.id);
             return (
               <button
                 key={matter.id}
@@ -120,6 +126,15 @@ export function WorkspaceShell() {
         </div>
 
         <div className="p-4 border-t shrink-0 space-y-2" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
+          {identity.data && sidebarOpen && (
+            <div className="border-b pb-3" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }} data-testid="text-current-member">
+              <p className="truncate text-sm font-medium">{identity.data.member?.name || "Workspace owner"}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] capitalize opacity-60">
+                {identity.data.role === "viewer" && <Eye className="h-3 w-3" />}
+                {identity.data.role}
+              </p>
+            </div>
+          )}
           {sidebarOpen && (
             <div className="rounded-lg border border-slate-200 bg-white/70 p-3 text-xs text-slate-600">
               <div className="mb-2 flex items-center gap-2 font-semibold text-slate-800">
@@ -159,6 +174,19 @@ export function WorkspaceShell() {
               )}
             </div>
           )}
+          {isOwner && (
+            <button
+              onClick={() => setTeamOpen(true)}
+              className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-black/5 font-medium ${!sidebarOpen && 'px-0'}`}
+              style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}
+              title="Manage Team"
+              aria-label="Manage team"
+              data-testid="button-manage-team"
+            >
+              <Users className="w-4 h-4" />
+              {sidebarOpen && <span>Team</span>}
+            </button>
+          )}
           <button
             onClick={logout}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-red-50 hover:text-red-600 font-medium ${!sidebarOpen && 'px-0'}`}
@@ -191,6 +219,14 @@ export function WorkspaceShell() {
           </div>
         )}
       </main>
+      {isOwner && (
+        <TeamPanel
+          open={teamOpen}
+          onOpenChange={setTeamOpen}
+          matterId={matterId}
+          matterTitle={selectedMatter?.title}
+        />
+      )}
     </div>
   );
 }

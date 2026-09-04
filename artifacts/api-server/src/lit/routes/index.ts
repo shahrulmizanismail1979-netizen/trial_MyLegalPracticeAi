@@ -40,6 +40,18 @@ router.use("/auth", authRouter);
 // authenticated code sessions (team-bundle seat limits must cover ALL
 // product paths, not just the Gemini routes).
 router.use((req, res, next) => void litSessionGate(req, res, next));
+// Named LAWYes members are intentionally narrower than the legacy shared-code
+// identity. Keep them on grant-aware routes so they cannot bypass matter
+// permissions through tenant-wide specialist APIs (saved work, bundles,
+// uploads, exports, etc.). Existing access-code sessions are unaffected.
+router.use((req, res, next) => {
+  const memberId = (req.session as unknown as { memberId?: number }).memberId;
+  if (memberId && !req.path.startsWith("/lawyes") && !req.path.startsWith("/gemini")) {
+    res.status(404).json({ error: "Resource not found" });
+    return;
+  }
+  next();
+});
 router.use("/admin", adminRouter);
 router.use("/theory", theoryRouter);
 router.use("/workflows", workflowsRouter);

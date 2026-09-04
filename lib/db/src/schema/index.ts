@@ -39,6 +39,7 @@ export * from "./lit-terminology";
 export * from "./lit-practice";
 export * from "./lit-settings";
 export * from "./lit-matters";
+export * from "./lit-lawyes-members";
 export * from "./lit-clients";
 export * from "./lit-bundles";
 export * from "./lit-saved-work";

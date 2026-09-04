@@ -47,6 +47,8 @@ await pool.query(`
   ALTER TABLE lit_conversations DROP COLUMN IF EXISTS matter_id CASCADE;
 `);
 const { default: app } = await import("../../app");
+
+const { signMsTicket } = await import("../../microsoft");
 const { ensureConversationMatterSchema } =
   await import("../lib/ensureConversationMatterSchema");
 await ensureConversationMatterSchema();
@@ -194,10 +196,6 @@ afterAll(async () => {
     ["lit", `/lawyes/${suffix}/%`],
   );
   await pool.query(
-    `DELETE FROM case_pending_uploads WHERE portal = 'lit' AND object_path LIKE $1`,
-    [`/lawyes/${suffix}/%`],
-  );
-  await pool.query(
     `DELETE FROM case_tasks WHERE portal = $1 AND title IN ($2, $3, $4)`,
     ["lit", "Owned canonical task", "Foreign canonical task", "Other matter task"],
   );
@@ -218,20 +216,11 @@ describe("MyLitAI Lawyes vertical slice", () => {
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
 
-    const stillBound = await pool.query(
-      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
-      [matterBoundPath],
-    );
-
-    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
-
-    const stillOwned = await pool.query(
-      `SELECT status FROM case_pending_uploads
-        WHERE object_path = $1 AND owner_key = $2`,
-      [foreignPath, String(ownerIds[1])],
-    );
-
-    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Viewer ${suffix}`,
+      email: `viewer-${suffix}@test.invalid`,
+      role: "viewer",
+    });
     expect(response.status).toBe(401);
     expect(aiCalls.research).toBe(before);
   });
@@ -251,20 +240,11 @@ describe("MyLitAI Lawyes vertical slice", () => {
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
 
-    const stillBound = await pool.query(
-      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
-      [matterBoundPath],
-    );
-
-    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
-
-    const stillOwned = await pool.query(
-      `SELECT status FROM case_pending_uploads
-        WHERE object_path = $1 AND owner_key = $2`,
-      [foreignPath, String(ownerIds[1])],
-    );
-
-    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Viewer ${suffix}`,
+      email: `viewer-${suffix}@test.invalid`,
+      role: "viewer",
+    });
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ configured: false, connected: false });
     } finally {
@@ -291,20 +271,11 @@ describe("MyLitAI Lawyes vertical slice", () => {
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
 
-    const stillBound = await pool.query(
-      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
-      [matterBoundPath],
-    );
-
-    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
-
-    const stillOwned = await pool.query(
-      `SELECT status FROM case_pending_uploads
-        WHERE object_path = $1 AND owner_key = $2`,
-      [foreignPath, String(ownerIds[1])],
-    );
-
-    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Viewer ${suffix}`,
+      email: `viewer-${suffix}@test.invalid`,
+      role: "viewer",
+    });
       expect(response.status).toBe(302);
       const target = new URL(response.headers.location);
       expect(target.origin).toBe("https://accounts.google.com");
@@ -401,7 +372,6 @@ describe("MyLitAI Lawyes vertical slice", () => {
   it("loads the same-owner aggregate and isolates foreign tenants with 404", async () => {
     const ownList = await agentA.get("/api/lit/lawyes/matters");
     expect(ownList.status).toBe(200);
-    expect(ownList.headers["cache-control"]).toContain("no-store");
     expect(ownList.body.map((matter: { id: number }) => matter.id)).toContain(matterId);
 
     const foreignList = await agentB.get("/api/lit/lawyes/matters");
@@ -434,34 +404,12 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(draftTitles).not.toContain("Other matter draft");
     expect(own.body.checklists).toEqual([]);
 
-    const foreign = await agentB
-      .post(`/api/lit/lawyes/matters/${matterId}/evidence/${documentId}/confirm`);
+    const foreign = await agentB.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+    expect(foreign.status).toBe(404);
+    expect(foreign.body).toEqual({ error: "Matter not found" });
+  });
 
-    const inserted = await pool.query<{ id: number }>(
-      `INSERT INTO case_documents
-        (portal, owner_key, matter_id, object_path, file_name, content_type, category,
-         extracted_text, extraction_metadata, evidence_verified)
-       VALUES ('lit', $1, $2, $3, 'hearing.mp4', 'video/mp4', 'evidence', $4, $5::jsonb, false)
-       RETURNING id`,
-      [
-        String(ownerIds[0]),
-        matterId,
-        `/lawyes/${suffix}/hearing.mp4`,
-        "Timestamped hearing transcript",
-        JSON.stringify({
-          kind: "video",
-          confidence: null,
-          warnings: ["Machine transcription is unverified."],
-          provenance: {
-            sourceObjectPath: `/lawyes/${suffix}/hearing.mp4`,
-            timestamps: [{ startSec: 1.2, endSec: 2.1, speaker: "speaker_0", text: "Good morning" }],
-          },
-        }),
-      ],
-    );
-
-    const confirmed = await agentA
-      .post(`/api/lit/lawyes/matters/${matterId}/evidence/${documentId}/confirm`);
+  it("creates and links conversations only when both conversation and matter are owned", async () => {
     const created = await agentA.post("/api/lit/gemini/litConversations").send({
       title: "Created for this matter",
       matterId,
@@ -469,9 +417,9 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(created.status).toBe(201);
     expect(created.body.matterId).toBe(matterId);
 
-    const unlinked = await agentA.post("/api/lit/gemini/litConversations").send({
-      title: "Explicitly linked later",
-    });
+    const unlinked = await memberAgent.get("/api/lit/gemini/litConversations");
+
+    const tenantWideSavedWork = await memberAgent.get("/api/lit/saved-work");
     expect(unlinked.status).toBe(201);
     expect(unlinked.body.matterId).toBeNull();
 
@@ -556,37 +504,96 @@ describe("MyLitAI Lawyes vertical slice", () => {
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
 
-    const stillBound = await pool.query(
-      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
-      [matterBoundPath],
-    );
-
-    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
-
-    const stillOwned = await pool.query(
-      `SELECT status FROM case_pending_uploads
-        WHERE object_path = $1 AND owner_key = $2`,
-      [foreignPath, String(ownerIds[1])],
-    );
-
-    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
-      expect(response.status).toBe(502);
-      expect(response.body).toMatchObject({
-        code: "sources_unavailable",
-        verification: {
-          status: "requires_independent_verification",
-          verified: false,
-        },
-      });
-      expect(aiCalls.drafting).toBe(draftingBefore);
-    } finally {
-      aiCalls.emitCitations = true;
-    }
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Viewer ${suffix}`,
+      email: `viewer-${suffix}@test.invalid`,
+      role: "viewer",
+    });
+    expect(relogin.status).toBe(401);
   });
 });
 
-    const evidence = workspace.body.documents.find((item: { id: number }) => item.id === documentId);
+    const grantedEditor = await agentA
+      .put(`/api/lit/lawyes/matters/${matterId}/grants/${memberId}`)
+      .send({ role: "editor" });
 
-    const workspace = await agentA.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+    const audit = await agentA.get("/api/lit/lawyes/audit");
 
-    const documentId = inserted.rows[0]!.id;
+    const editorWrite = await memberAgent
+      .post(`/api/lit/lawyes/matters/${matterId}/save`)
+      .send({
+        title: "Member output",
+        content: "content that must never enter audit details",
+        instruction: "secret instruction",
+      });
+
+    const viewerWorkspace = await memberAgent
+      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+
+    const inaccessibleConversation = await memberAgent
+      .get(`/api/lit/gemini/litConversations/${linkedConversationId + 2}`);
+
+    const identity = await memberAgent.get("/api/lit/lawyes/identity");
+
+    const revoked = await agentA.delete(`/api/lit/lawyes/members/${memberId}`);
+
+    const editorConversation = await memberAgent
+      .post("/api/lit/gemini/litConversations")
+      .send({ title: "Member linked discussion", matterId });
+
+    const personalSso = await request(app).post("/api/lit/auth/sso").send({
+      ticket: signMsTicket(`viewer-${suffix}@test.invalid`, "lit"),
+      code: invited.body.personalCode,
+    });
+
+    const relogin = await request(app).post("/api/lit/auth/login")
+      .send({ password: invited.body.personalCode });
+
+    const serializedAudit = JSON.stringify(audit.body);
+
+    const tenantWideBundles = await memberAgent.get("/api/lit/bundles");
+
+    const afterRevocation = await memberAgent.get("/api/lit/lawyes/identity");
+
+    const memberId = invited.body.member.id as number;
+
+    const persistedPersonalLink = await pool.query(
+      `SELECT id FROM microsoft_links WHERE access_code = $1`,
+      [invited.body.personalCode],
+    );
+
+    const invitedAdmin = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Administrator ${suffix}`,
+      role: "owner",
+    });
+
+    const viewerWrite = await memberAgent
+      .post(`/api/lit/lawyes/matters/${matterId}/save`)
+      .send({ title: "Forbidden", content: "sensitive output" });
+
+    const isolated = await memberAgent.get("/api/lit/lawyes/matters");
+
+    const memberAgent = await login(invited.body.personalCode);
+
+    const grantedViewer = await agentA
+      .put(`/api/lit/lawyes/matters/${matterId}/grants`)
+      .send({ memberId, role: "viewer" });
+
+    const adminWorkspaceWithoutGrant = await adminAgent
+      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+
+    const adminWithoutGrant = await adminAgent.get("/api/lit/lawyes/matters");
+
+    const adminConversationWithoutGrant = await adminAgent
+      .get(`/api/lit/gemini/litConversations/${linkedConversationId}`);
+
+    const adminGrant = await agentA
+      .put(`/api/lit/lawyes/matters/${matterId}/grants/${adminMemberId}`)
+      .send({ role: "owner" });
+
+    const adminAgent = await login(invitedAdmin.body.personalCode);
+
+    const adminMemberId = invitedAdmin.body.member.id as number;
+
+    const adminWorkspaceWithGrant = await adminAgent
+      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);

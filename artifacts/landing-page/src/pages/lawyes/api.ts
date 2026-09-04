@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface Matter {
-  id: string;
+  id: number;
   title: string;
   reference?: string;
   status: string;
@@ -39,8 +39,14 @@ export interface WorkspaceAggregate {
   research: ResourceItem[];
   drafts: ResourceItem[];
   outputs: ResourceItem[];
+  permissions: {
+    role: LawyesRole;
+    canWrite: boolean;
+    canUseConnectors: boolean;
+  };
 }
 
+export type LawyesRole = "owner" | "editor" | "viewer";
 export interface Citation {
   title: string;
   uri: string;
@@ -58,7 +64,7 @@ export interface InstructionResponse {
   citations: Citation[];
   verification: Verification;
   capabilities: string[];
-  savedWork?: boolean;
+  savedWork?: ResourceItem | null;
   saveCreated?: boolean;
 }
 
@@ -91,9 +97,11 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const body = await res.json().catch(() => null) as { error?: unknown } | null;
     throw new Error(typeof body?.error === "string" ? body.error : `API error: ${res.status}`);
   }
+  if (res.status === 204) return undefined;
   return res.json();
 }
 
+const base = "/api/lit/lawyes";
 export function useLawyesMatters() {
   return useQuery<Matter[]>({
     queryKey: ["lawyes", "matters"],
@@ -128,6 +136,7 @@ export function useLawyesMatter(id?: string) {
 }
 
 export function useLawyesInstruct(matterId: string) {
+  const invalidate = useInvalidateLawyes();
   return useMutation<InstructionResponse, Error, { instruction: string }>({
     mutationFn: (data) =>
       fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/instructions`, {
@@ -135,21 +144,29 @@ export function useLawyesInstruct(matterId: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }),
+    onSuccess: invalidate,
   });
 }
 
 export function useLawyesSaveOutput(matterId: string) {
-  const queryClient = useQueryClient();
-  return useMutation<any, Error, { title: string; kind: string; content: string; instruction?: string; citations?: Citation[]; verification?: Verification; idempotencyKey?: string }>({
+  const invalidate = useInvalidateLawyes();
+  return useMutation<{ work: ResourceItem; created: boolean }, Error, { title: string; kind: string; content: string; instruction?: string; citations?: Citation[]; verification?: Verification; idempotencyKey?: string }>({
     mutationFn: (data) =>
       fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lawyes", "matters", matterId, "workspace"] });
-    }
+    onSuccess: invalidate,
+  });
+}
+
+export function useLawyesMembers(enabled = true) {
+  return useQuery<LawyesMember[]>({
+    queryKey: ["lawyes", "members"],
+    queryFn: () => fetchWithAuth(`${base}/members`),
+    enabled,
+    retry: false,
   });
 }
 
@@ -187,4 +204,137 @@ export function useConfirmLawyesEvidence(matterId: string) {
       queryKey: ["lawyes", "matters", matterId, "workspace"],
     }),
   });
+}
+
+export interface LawyesGrant {
+  id: number;
+  accessCodeId: number;
+  matterId: number;
+  memberId: number;
+  role: LawyesRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function useInvalidateLawyes() {
+  const queryClient = useQueryClient();
+  return () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["lawyes", "identity"] }),
+    queryClient.invalidateQueries({ queryKey: ["lawyes", "members"] }),
+    queryClient.invalidateQueries({ queryKey: ["lawyes", "matters"] }),
+    queryClient.invalidateQueries({ queryKey: ["lawyes", "grants"] }),
+    queryClient.invalidateQueries({ queryKey: ["lawyes", "audit"] }),
+  ]);
+}
+
+export function useLawyesRemoveGrant(matterId?: string) {
+  const invalidate = useInvalidateLawyes();
+  return useMutation<void, Error, number>({
+    mutationFn: (memberId) => fetchWithAuth(`${base}/matters/${matterId}/grants/${memberId}`, {
+      method: "DELETE",
+    }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLawyesIdentity() {
+  return useQuery<LawyesIdentity>({
+    queryKey: ["lawyes", "identity"],
+    queryFn: () => fetchWithAuth(`${base}/identity`),
+    retry: false,
+  });
+}
+
+export function useLawyesSetGrant(matterId?: string) {
+  const invalidate = useInvalidateLawyes();
+  return useMutation<LawyesGrant, Error, { memberId: number; role: LawyesRole }>({
+    mutationFn: (data) => fetchWithAuth(`${base}/matters/${matterId}/grants`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+    }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLawyesInvite() {
+  const invalidate = useInvalidateLawyes();
+  return useMutation<InviteResponse, Error, { name: string; email?: string; role: LawyesRole }>({
+    mutationFn: (data) => fetchWithAuth(`${base}/invite`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+    }),
+    onSuccess: invalidate,
+  });
+}
+
+export interface LawyesIdentity {
+  accessCodeId: number;
+  memberId: number | null;
+  role: LawyesRole;
+  legacyOwner: boolean;
+  member: Pick<LawyesMember, "id" | "name" | "email" | "role"> | null;
+  capabilities: {
+    manageMembers: boolean;
+    manageMatterGrants: boolean;
+    useConnectors: boolean;
+  };
+}
+
+export interface LawyesAuditEvent {
+  id: number;
+  actorMemberId: number | null;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  details: { fromRole?: string | null; toRole?: string | null; role?: string | null };
+  createdAt: string;
+}
+
+export interface InviteResponse {
+  member: LawyesMember;
+  personalCode: string;
+}
+
+export function useLawyesRevokeMember() {
+  const invalidate = useInvalidateLawyes();
+  return useMutation<LawyesMember, Error, number>({
+    mutationFn: (memberId) => fetchWithAuth(`${base}/members/${memberId}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLawyesUpdateMember() {
+  const invalidate = useInvalidateLawyes();
+  return useMutation<LawyesMember, Error, { memberId: number; role: LawyesRole }>({
+    mutationFn: ({ memberId, ...data }) => fetchWithAuth(`${base}/members/${memberId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
+    }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLawyesGrants(matterId?: string) {
+  return useQuery<LawyesGrant[]>({
+    queryKey: ["lawyes", "grants", matterId],
+    queryFn: () => fetchWithAuth(`${base}/matters/${matterId}/grants`),
+    enabled: !!matterId,
+    retry: false,
+  });
+}
+
+export function useLawyesAudit(enabled = true) {
+  return useQuery<LawyesAuditEvent[]>({
+    queryKey: ["lawyes", "audit"],
+    queryFn: () => fetchWithAuth(`${base}/audit`),
+    enabled,
+    retry: false,
+  });
+}
+
+export interface LawyesMember {
+  id: number;
+  name: string;
+  email: string | null;
+  role: LawyesRole;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt?: string;
 }

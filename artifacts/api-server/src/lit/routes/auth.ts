@@ -8,7 +8,15 @@ import {
 } from "express";
 import { db } from "@workspace/db";
 import { litAccessCodes } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import bcrypt from "bcryptjs";
+import {
+  litLawyesCredentials,
+  litLawyesInvitations,
+  litLawyesMembers,
+} from "@workspace/db";
+import { ensureLawyesMemberSchema } from "../lib/ensureLawyesMemberSchema";
 import { claimSeat, releaseSeat, seatLimitMessage } from "../../lib/seatLimits";
 import {
   verifyMsTicket,
@@ -26,10 +34,52 @@ const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
 
 type LoginResult = { ok: boolean; status: number; body: Record<string, unknown> };
 
-// Core access-code validation + session creation, shared by the normal login
-// route and the Microsoft SSO exchange route.
+const LAWYES_PERSONAL_CODE = /^LY-[A-Z0-9_-]{20}$/;
 async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult> {
   const code = rawCode.trim().toUpperCase();
+  await ensureLawyesMemberSchema();
+
+  const lookupHash = createHash("sha256").update(code).digest("hex");
+  const [personal] = await db.select({
+    credential: litLawyesCredentials,
+    member: litLawyesMembers,
+  }).from(litLawyesCredentials).innerJoin(
+    litLawyesMembers,
+    eq(litLawyesCredentials.memberId, litLawyesMembers.id),
+  ).where(eq(litLawyesCredentials.codeLookupHash, lookupHash)).limit(1);
+  if (personal && await bcrypt.compare(code, personal.credential.codeHash)) {
+    if (personal.member.revokedAt) {
+      return { ok: false, status: 401, body: { error: "Member access revoked" } };
+    }
+    const [tenant] = await db.select().from(litAccessCodes).where(and(
+      eq(litAccessCodes.id, personal.member.accessCodeId),
+      eq(litAccessCodes.status, "active"),
+    )).limit(1);
+    if (!tenant || (tenant.expiresAt && tenant.expiresAt < new Date())) {
+      return { ok: false, status: 401, body: { error: "Invalid or expired access code" } };
+    }
+    if (tenant.maxSeats != null) {
+      const claim = await claimSeat({
+        portal: "lit", code: tenant.code, maxSeats: tenant.maxSeats, seatKey: req.sessionID,
+      });
+      if (!claim.ok) {
+        return { ok: false, status: 409, body: { error: seatLimitMessage(claim.maxSeats) } };
+      }
+    }
+    await db.update(litLawyesCredentials).set({ lastUsedAt: new Date() })
+      .where(eq(litLawyesCredentials.id, personal.credential.id));
+    await db.update(litLawyesInvitations).set({ acceptedAt: new Date() })
+      .where(and(
+        eq(litLawyesInvitations.memberId, personal.member.id),
+        eq(litLawyesInvitations.accessCodeId, tenant.id),
+      ));
+    const sess = req.session as unknown as Record<string, unknown>;
+    delete sess.lawyesGoogleSubject;
+    sess.authenticated = true;
+    sess.accessCodeId = tenant.id;
+    sess.memberId = personal.member.id;
+    return { ok: true, status: 200, body: { success: true, message: "Login successful" } };
+  }
 
   if (MASTER_ACCESS_CODE && code === MASTER_ACCESS_CODE) {
     let [master] = await db
@@ -70,6 +120,7 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
     delete sess.lawyesGoogleSubject;
     sess.authenticated = true;
     sess.accessCodeId = master.id;
+    delete sess.memberId;
 
     return { ok: true, status: 200, body: { success: true, message: "Login successful" } };
   }
@@ -117,18 +168,25 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
   delete sess.lawyesGoogleSubject;
   sess.authenticated = true;
   sess.accessCodeId = record.id;
+  delete sess.memberId;
 
   return { ok: true, status: 200, body: { success: true, message: "Login successful" } };
 }
 
 router.post("/login", loginRateLimit, async (req, res) => {
   const { password } = req.body;
+
   if (!password || typeof password !== "string") {
     return res.status(400).json({ error: "Access code is required" });
   }
 
   try {
-    const bindErr = await codeLoginBindingError(password);
+    // Personal member credentials never enter the legacy Microsoft binding
+    // table, which stores access codes as text.
+    const normalized = password.trim().toUpperCase();
+    const bindErr = LAWYES_PERSONAL_CODE.test(normalized)
+      ? null
+      : await codeLoginBindingError(password);
     if (bindErr) {
       return res.status(403).json({ error: bindErr });
     }
@@ -163,10 +221,16 @@ router.post("/sso", loginRateLimit, async (req, res) => {
   }
 
   try {
+    await ensureLawyesMemberSchema();
     const providedCode = typeof code === "string" ? code.trim() : "";
     const codeToUse = providedCode || (await getLinkedCode(email, app));
     if (!codeToUse) {
       return res.status(404).json({ needsLink: true });
+    }
+    if (LAWYES_PERSONAL_CODE.test(codeToUse.toUpperCase())) {
+      return res.status(400).json({
+        error: "Personal LAWYes codes cannot be linked to Microsoft. Sign in with the personal code instead.",
+      });
     }
 
     const bindErr = await ssoBindingError(email, codeToUse);
@@ -220,9 +284,23 @@ router.get("/verify", async (req, res) => {
       return res.status(401).json({ error: "Access code expired" });
     }
 
-    // Refresh (or fail-closed re-check) this session's seat on every
-    // authenticated request so active devices never age out of the 24h
-    // inactivity TTL, and a session whose seat was lost stops working.
+    const memberId = sess?.memberId as number | undefined;
+    if (memberId) {
+      await ensureLawyesMemberSchema();
+      const [member] = await db.select({ id: litLawyesMembers.id })
+        .from(litLawyesMembers).where(and(
+          eq(litLawyesMembers.id, memberId),
+          eq(litLawyesMembers.accessCodeId, accessCodeId),
+          sql`${litLawyesMembers.revokedAt} IS NULL`,
+        )).limit(1);
+      if (!member) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "Member access revoked" });
+      }
+    }
+
+    // Refresh this session's seat so an active session cannot age out of the
+    // inactivity TTL, and fail closed if its seat has been lost.
     if (record.maxSeats != null) {
       const claim = await claimSeat({
         portal: "lit",
@@ -330,6 +408,22 @@ async function validateLitSession(
       req.session.destroy(() => {});
       res.status(401).json({ error: "Access code expired" });
       return false;
+    }
+
+    const memberId = (req.session as unknown as { memberId?: number }).memberId;
+    if (memberId) {
+      await ensureLawyesMemberSchema();
+      const [member] = await db.select().from(litLawyesMembers).where(and(
+        eq(litLawyesMembers.id, memberId),
+        eq(litLawyesMembers.accessCodeId, accessCodeId),
+      )).limit(1);
+      if (!member || member.revokedAt) {
+        req.session.destroy(() => {});
+        res.status(401).json({ error: "Member access revoked" });
+        return false;
+      }
+      res.locals["litMemberId"] = member.id;
+      res.locals["litMemberRole"] = member.role;
     }
 
     // Refresh (or fail-closed re-check) this session's seat on every

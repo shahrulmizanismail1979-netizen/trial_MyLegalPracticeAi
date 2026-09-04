@@ -9,6 +9,8 @@ import { and, eq, asc, desc } from "drizzle-orm";
 import { generateContentStreamCompat } from "../lib/aiProvider";
 import { z } from "zod";
 import { ensureConversationMatterSchema } from "../lib/ensureConversationMatterSchema";
+import { lawyesIdentity, matterRole, roleAllows } from "../lib/lawyesPermissions";
+import type { Request, Response } from "express";
 
 const router: IRouter = Router();
 const conversationMatterSchemaReady = ensureConversationMatterSchema();
@@ -72,14 +74,48 @@ function callerAccessCodeId(res: import("express").Response): number {
   return res.locals["litAccessCodeId"] as number;
 }
 
-router.get("/litConversations", async (_req, res) => {
+function isMember(req: Request): boolean {
+  return Boolean((req.session as unknown as { memberId?: number }).memberId);
+}
+
+async function accessibleConversation(
+  req: Request,
+  res: Response,
+  id: number,
+  needed: "viewer" | "editor" = "viewer",
+) {
+  const accessId = callerAccessCodeId(res);
+  const [conversation] = await db.select().from(conversationsTable).where(and(
+    eq(conversationsTable.id, id),
+    eq(conversationsTable.accessCodeId, accessId),
+  ));
+  if (!conversation) return null;
+  if (!isMember(req)) return conversation;
+  // Members operate only inside explicitly linked LAWYes matters.
+  if (!conversation.matterId) return null;
+  const role = await matterRole(lawyesIdentity(req, res), conversation.matterId);
+  return role && roleAllows(role, needed) ? conversation : null;
+}
+
+router.get("/litConversations", async (req, res) => {
   const accessId = callerAccessCodeId(res);
   const litConversations = await db
     .select()
     .from(conversationsTable)
     .where(eq(conversationsTable.accessCodeId, accessId))
     .orderBy(desc(conversationsTable.createdAt));
-  res.json(litConversations);
+  if (!isMember(req)) {
+    res.json(litConversations);
+    return;
+  }
+  const identity = lawyesIdentity(req, res);
+  const visible = [];
+  for (const conversation of litConversations) {
+    if (conversation.matterId && await matterRole(identity, conversation.matterId)) {
+      visible.push(conversation);
+    }
+  }
+  res.json(visible);
 });
 
 router.post("/litConversations", async (req, res) => {
@@ -89,6 +125,10 @@ router.post("/litConversations", async (req, res) => {
     return;
   }
   const accessId = callerAccessCodeId(res);
+  if (isMember(req) && !parsed.data.matterId) {
+    res.status(400).json({ error: "Members must link conversations to an accessible matter" });
+    return;
+  }
   const conversation = await db.transaction(async (tx) => {
     if (parsed.data.matterId) {
       const [matter] = await tx.select({ id: mattersTable.id }).from(mattersTable).where(and(
@@ -96,6 +136,10 @@ router.post("/litConversations", async (req, res) => {
         eq(mattersTable.accessCodeId, accessId),
       )).limit(1);
       if (!matter) return null;
+      if (isMember(req)) {
+        const role = await matterRole(lawyesIdentity(req, res), matter.id);
+        if (!role || !roleAllows(role, "editor")) return null;
+      }
     }
     const [created] = await tx.insert(conversationsTable).values({
       title: parsed.data.title,
@@ -119,6 +163,14 @@ router.patch("/litConversations/:id/matter", async (req, res) => {
     return;
   }
   const accessId = callerAccessCodeId(res);
+  if (isMember(req)) {
+    const existing = await accessibleConversation(req, res, conversationId, "editor");
+    const targetRole = await matterRole(lawyesIdentity(req, res), parsed.data.matterId);
+    if (!existing || !targetRole || !roleAllows(targetRole, "editor")) {
+      res.status(404).json({ error: "Conversation or matter not found" });
+      return;
+    }
+  }
   const linked = await db.transaction(async (tx) => {
     const [matter] = await tx.select({ id: mattersTable.id }).from(mattersTable).where(and(
       eq(mattersTable.id, parsed.data.matterId),
@@ -143,11 +195,7 @@ router.patch("/litConversations/:id/matter", async (req, res) => {
 
 router.get("/litConversations/:id", async (req, res) => {
   const id = parseInt(req.params.id as string);
-  const accessId = callerAccessCodeId(res);
-  const [conversation] = await db
-    .select()
-    .from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
+  const conversation = await accessibleConversation(req, res, id);
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
@@ -162,11 +210,7 @@ router.get("/litConversations/:id", async (req, res) => {
 
 router.delete("/litConversations/:id", async (req, res) => {
   const id = parseInt(req.params.id as string);
-  const accessId = callerAccessCodeId(res);
-  const [conversation] = await db
-    .select()
-    .from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
+  const conversation = await accessibleConversation(req, res, id, "editor");
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
@@ -178,12 +222,8 @@ router.delete("/litConversations/:id", async (req, res) => {
 
 router.get("/litConversations/:id/litMessages", async (req, res) => {
   const id = parseInt(req.params.id as string);
-  const accessId = callerAccessCodeId(res);
-  // Ownership check before returning messages.
-  const [conversation] = await db
-    .select()
-    .from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
+  // Ownership/grant check before returning messages.
+  const conversation = await accessibleConversation(req, res, id);
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;
@@ -200,11 +240,7 @@ router.post("/litConversations/:id/litMessages", async (req, res) => {
   const id = parseInt(req.params.id as string);
   const { content } = req.body;
 
-  const accessId = callerAccessCodeId(res);
-  const [conversation] = await db
-    .select()
-    .from(conversationsTable)
-    .where(and(eq(conversationsTable.id, id), eq(conversationsTable.accessCodeId, accessId)));
+  const conversation = await accessibleConversation(req, res, id, "editor");
   if (!conversation) {
     res.status(404).json({ error: "LitConversation not found" });
     return;

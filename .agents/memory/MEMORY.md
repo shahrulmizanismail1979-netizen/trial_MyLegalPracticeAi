@@ -66,3 +66,4 @@
 - [Decision preservation](decision-preservation.md) — explicit user decisions are hard constraints; re-check them before proposing, editing, or “improving” settled behavior.
 - [LAWYes primary workspace](lawyes-primary-workspace.md) — LAWYes is the main mylegalpracticeai.life experience; specialist portals remain capabilities behind it, not the front door.
 - [LAWYes first matter slice](lawyes-matter-slice.md) — LAWYes reuses MyLitAI’s access-code tenant and canonical matter stores; never infer matter conversations without an explicit link.
+- [LAWYes member authorization](lawyes-member-authorization.md) — named members stay on grant-aware LAWYes routes; personal credentials must never enter plaintext SSO-link storage.

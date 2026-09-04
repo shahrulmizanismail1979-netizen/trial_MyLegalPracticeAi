@@ -1,5 +1,4 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import {
   db,
@@ -10,19 +9,47 @@ import {
   litMatterDeadlines,
   litMatters,
   litSavedWork,
+  litLawyesAuditEvents,
+  litLawyesCredentials,
+  litLawyesInvitations,
+  litLawyesMatterGrants,
+  litLawyesMembers,
 } from "@workspace/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { createHash, randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { generateChat, streamChat, type Citation } from "../lib/aiProvider";
 import { logger } from "../../lib/logger";
 import { ensureConversationMatterSchema } from "../lib/ensureConversationMatterSchema";
 import { ensureLawyesGoogleSchema } from "../lib/ensureLawyesGoogleSchema";
+import { ensureLawyesMemberSchema } from "../lib/ensureLawyesMemberSchema";
 import { decryptGoogleTokens, encryptGoogleTokens } from "../lib/lawyesGoogleCrypto";
+import {
+  claimLawyesEvidenceUpload,
+  cleanupClaimedLawyesEvidence,
+  issueLawyesEvidenceUpload,
+  lawyesEvidenceObjectStorage,
+} from "../../lib/lawyesEvidenceUploads";
+import {
+  evidenceKind,
+  extractMediaEvidence,
+  IMAGE_EVIDENCE_MAX_BYTES,
+  RECORDING_EVIDENCE_MAX_BYTES,
+} from "../../lib/mediaEvidence";
+import {
+  lawyesIdentity,
+  matterRole,
+  roleAllows,
+  writeAudit,
+  type LawyesIdentity,
+} from "../lib/lawyesPermissions";
 
 const router: IRouter = Router();
 const conversationMatterSchemaReady = ensureConversationMatterSchema();
+const memberSchemaReady = ensureLawyesMemberSchema();
 const googleSchemaReady = ensureLawyesGoogleSchema();
 router.use(async (_req, _res, next) => {
-  await Promise.all([conversationMatterSchemaReady, googleSchemaReady]);
+  await Promise.all([conversationMatterSchemaReady, memberSchemaReady, googleSchemaReady]);
   next();
 });
 
@@ -88,18 +115,14 @@ const instructionSchema = z.object({
     idempotencyKey: z.string().trim().min(8).max(200).optional(),
   }).optional(),
 });
-
 const evidenceSchema = z.object({
   objectPath: z.string().startsWith("/objects/").max(2_000),
   fileName: z.string().trim().min(1).max(300),
   contentType: z.string().trim().min(1).max(200),
 });
-function accessCodeId(req: Request): number {
-  return Number(resolvedAccessCodeId(req));
-}
 
-function resolvedAccessCodeId(req: Request): number | undefined {
-  return (req.session as { accessCodeId?: number } | undefined)?.accessCodeId;
+function accessCodeId(req: Request): number {
+  return Number((req as Request & { accessCodeId?: number }).accessCodeId);
 }
 
 router.get("/google/status", async (req, res) => {
@@ -119,8 +142,6 @@ router.get("/google/status", async (req, res) => {
       verification,
       capabilities: ["grounded_legal_research", "matter_aware_review_or_drafting"],
     };
-
-    const message = err instanceof Error ? err.message : "";
   const connection = await pool.query<{ encrypted_tokens: string }>(
     `SELECT encrypted_tokens FROM lawyes_google_connections
       WHERE tenant_id = $1 AND google_subject = $2`,
@@ -288,7 +309,7 @@ router.delete("/google/connection", async (req, res) => {
   res.json({ disconnected: deleted.rowCount === 1 });
 });
 
-async function ownedMatter(req: Request, res: Response) {
+async function ownedMatter(req: Request, res: Response, needed: "viewer" | "editor" = "viewer") {
   const parsed = matterIdSchema.safeParse(req.params.id);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid matter id" });
@@ -304,8 +325,38 @@ async function ownedMatter(req: Request, res: Response) {
     res.status(404).json({ error: "Matter not found" });
     return null;
   }
+  const grantedRole = await matterRole(lawyesIdentity(req, res), matter.id);
+  if (!grantedRole || !roleAllows(grantedRole, needed)) {
+    res.status(404).json({ error: "Matter not found" });
+    return null;
+  }
   return matter;
 }
+
+function requireOwner(req: Request, res: Response): LawyesIdentity | null {
+  const identity = lawyesIdentity(req, res);
+  if (identity.role !== "owner") {
+    res.status(403).json({ error: "Owner access required" });
+    return null;
+  }
+  return identity;
+}
+
+const roleSchema = z.enum(["owner", "editor", "viewer"]);
+const inviteSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(320).optional(),
+  role: roleSchema.default("viewer"),
+});
+const memberUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  email: z.string().trim().email().max(320).nullable().optional(),
+  role: roleSchema.optional(),
+}).refine((value) => Object.keys(value).length > 0);
+const grantSchema = z.object({
+  memberId: z.coerce.number().int().positive(),
+  role: roleSchema,
+});
 
 async function optionalRows<T>(
   query: () => Promise<{ rows: T[] }>,
@@ -513,16 +564,37 @@ function safeEvidenceMetadata(value: unknown): unknown {
   const metadata = value as Record<string, unknown>;
   const provenance = metadata.provenance && typeof metadata.provenance === "object"
     ? metadata.provenance as Record<string, unknown>
-    : {};
+    : null;
+  const timestamps = Array.isArray(provenance?.timestamps)
+    ? provenance.timestamps.slice(0, 20_000).flatMap((raw) => {
+      if (!raw || typeof raw !== "object") return [];
+      const item = raw as Record<string, unknown>;
+      if (typeof item.startSec !== "number" || typeof item.text !== "string") return [];
+      return [{
+        startSec: item.startSec,
+        endSec: typeof item.endSec === "number" ? item.endSec : null,
+        speaker: typeof item.speaker === "string" ? item.speaker.slice(0, 200) : null,
+        text: item.text.slice(0, 10_000),
+      }];
+    })
+    : [];
   return {
-    kind: metadata.kind,
-    confidence: metadata.confidence,
-    warnings: metadata.warnings,
-    timestamps: Array.isArray(provenance.timestamps)
-      ? provenance.timestamps.slice(0, 5_000)
+    kind: metadata.kind === "image" || metadata.kind === "audio" || metadata.kind === "video"
+      ? metadata.kind
+      : null,
+    confidence: typeof metadata.confidence === "number" ? metadata.confidence : null,
+    warnings: Array.isArray(metadata.warnings)
+      ? metadata.warnings.filter((item): item is string => typeof item === "string").slice(0, 50)
       : [],
+    provenance: provenance ? {
+      provider: typeof provenance.provider === "string" ? provenance.provider.slice(0, 200) : null,
+      model: typeof provenance.model === "string" ? provenance.model.slice(0, 200) : null,
+      extractedAt: typeof provenance.extractedAt === "string" ? provenance.extractedAt : null,
+      timestamps,
+    } : null,
   };
 }
+
 /** Explicit, practitioner-relevant context for AI; never serialize DB rows. */
 function safeWorkspaceContext(workspace: Awaited<ReturnType<typeof assembleWorkspace>>) {
   const matter = workspace.matter;
@@ -552,17 +624,15 @@ function safeWorkspaceContext(workspace: Awaited<ReturnType<typeof assembleWorks
       contentType: item.contentType,
       pageCount: item.pageCount,
       bundle: item.bundle,
-    })),
-    uploads: workspace.uploads.map((item) => ({
-      id: item.id, title: item.title, fileName: item.fileName,
-      contentType: item.contentType, pageCount: item.pageCount,
-      extractedText: "extractedText" in item
-        ? item.extractedText?.slice(0, 100_000) ?? null
-        : null,
+      extractedText: "extractedText" in item ? item.extractedText : null,
       extractionMetadata: "extractionMetadata" in item
         ? safeEvidenceMetadata(item.extractionMetadata)
         : null,
       evidenceVerified: "evidenceVerified" in item ? item.evidenceVerified : false,
+    })),
+    uploads: workspace.uploads.map((item) => ({
+      id: item.id, title: item.title, fileName: item.fileName,
+      contentType: item.contentType, pageCount: item.pageCount,
     })),
     conversations: workspace.conversations.map((item) => ({
       id: item.id, title: item.title, createdAt: item.createdAt,
@@ -618,21 +688,41 @@ async function saveBack(
 
 router.get("/matters", async (req, res) => {
   const ownerId = accessCodeId(req);
-  const matters = await db.select().from(litMatters)
+  const identity = requireOwner(req, res);
+  let matters = await db.select().from(litMatters)
     .where(eq(litMatters.accessCodeId, ownerId))
     .orderBy(desc(litMatters.updatedAt));
+  if (identity.memberId) {
+  const grants = await db.select().from(litLawyesMatterGrants).where(and(
+    eq(litLawyesMatterGrants.accessCodeId, identity.accessCodeId),
+    eq(litLawyesMatterGrants.matterId, matter.id),
+  ));
+    const ids = new Set(grants.map((grant) => grant.matterId));
+    matters = matters.filter((matter) => ids.has(matter.id));
+  }
   res.json(matters);
 });
 
 router.get("/matters/:id/workspace", async (req, res) => {
   const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const identity = requireOwner(req, res);
+  const role = (await matterRole(identity, matter.id))!;
+  res.json({
+    ...await assembleWorkspace(matter),
+    permissions: {
+      role,
+      canWrite: roleAllows(role, "editor"),
+      canUseConnectors: roleAllows(role, "editor"),
+    },
+  });
+});
 
-  const { objectPath, fileName, contentType } = parsed.data;
-
-  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
+router.post("/matters/:id/evidence/upload-url", async (req, res) => {
+  const matter = await ownedMatter(req, res);
   if (!matter) return;
   try {
-    res.json(await issueLawyesEvidenceUpload(String(matter.accessCodeId)));
+    res.json(await issueLawyesEvidenceUpload(String(matter.accessCodeId), matter.id));
   } catch (err) {
     logger.error({ err, matterId: matter.id }, "Lawyes evidence upload URL failed");
     res.status(500).json({ error: "Could not start the evidence upload." });
@@ -640,18 +730,119 @@ router.get("/matters/:id/workspace", async (req, res) => {
 });
 
 router.post("/matters/:id/evidence/analyse", async (req, res) => {
-  const parsed = saveSchema.safeParse(req.body);
+  const parsed = memberUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid saved work", issues: parsed.error.issues });
     return;
   }
   const matter = await ownedMatter(req, res);
-
-  const { objectPath, fileName, contentType } = parsed.data;
-
-  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
   if (!matter) return;
-  res.setHeader("Cache-Control", "private, no-store");
+
+  const ownerKey = String(matter.accessCodeId);
+  const { objectPath, fileName, contentType } = parsed.data;
+  const claim = await claimLawyesEvidenceUpload(ownerKey, matter.id, objectPath);
+  if (!claim) {
+    res.status(404).json({ error: "Evidence upload not found or expired." });
+    return;
+  }
+
+  try {
+    const file = await lawyesEvidenceObjectStorage.getObjectEntityFile(objectPath);
+    const [metadata] = await file.getMetadata();
+    const canonicalType = String(metadata.contentType || contentType);
+    const kind = evidenceKind(canonicalType);
+    if (!kind) throw new Error("Only image, audio, and video evidence is supported.");
+
+    const size = Number(metadata.size ?? 0);
+    const maxBytes = kind === "image"
+      ? IMAGE_EVIDENCE_MAX_BYTES
+      : RECORDING_EVIDENCE_MAX_BYTES;
+    if (!Number.isFinite(size) || size < 0 || size > maxBytes) {
+      throw new Error(kind === "image"
+        ? "Image is too large for secure OCR. Maximum size is 14MB."
+        : "Recording is too large for transcription. Maximum size is 200MB.");
+    }
+
+    const [buffer] = await file.download();
+    const extraction = await extractMediaEvidence({
+      buffer,
+      fileName,
+      contentType: canonicalType,
+      sourceObjectPath: objectPath,
+    });
+
+    const inserted = await pool.query(
+      `WITH consumed AS (
+         DELETE FROM case_pending_uploads
+          WHERE id = $1 AND portal = 'lit' AND owner_key = $2
+            AND matter_id = $3 AND object_path = $4
+            AND purpose = 'lawyes-evidence' AND status = 'processing'
+          RETURNING id
+       )
+       INSERT INTO case_documents
+         (portal, owner_key, matter_id, object_path, file_name, content_type,
+          size_bytes, category, extracted_text, extraction_metadata, evidence_verified)
+       SELECT 'lit', $2, $3, $4, $5, $6, $7, 'evidence', $8, $9::jsonb, false
+        WHERE EXISTS (SELECT 1 FROM consumed)
+       RETURNING *`,
+      [
+        claim.id,
+        ownerKey,
+        matter.id,
+        objectPath,
+        fileName,
+        canonicalType,
+        size,
+        extraction.text,
+        JSON.stringify(extraction),
+      ],
+    );
+    const document = inserted.rows[0];
+    if (!document) throw new Error("Upload reference is no longer valid.");
+    await writeAudit(lawyesIdentity(req, res), "file.create", "document", document.id);
+    res.status(201).json(document);
+  } catch (err) {
+    await cleanupClaimedLawyesEvidence(claim);
+    const message = err instanceof Error ? err.message : "";
+    const safeMessage = /^(Upload reference|Only image|Image is|Recording is|Stored file type|The recording contained no transcribable speech|The transcription returned no reliable timestamps)/.test(message)
+      ? message
+      : "Evidence analysis failed. Please try again.";
+    res.status(422).json({ error: safeMessage });
+  }
+});
+
+router.post("/matters/:id/evidence/:documentId/confirm", async (req, res) => {
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
+  if (!documentId.success) {
+    res.status(400).json({ error: "Invalid document id" });
+    return;
+  }
+  const updated = await pool.query(
+    `UPDATE case_documents
+        SET evidence_verified = true, evidence_verified_at = now(), updated_at = now()
+      WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        AND extraction_metadata IS NOT NULL
+      RETURNING *`,
+    [documentId.data, String(matter.accessCodeId), matter.id],
+  );
+  if (!updated.rows[0]) {
+    res.status(404).json({ error: "Evidence not found" });
+    return;
+  }
+  await writeAudit(lawyesIdentity(req, res), "file.verify", "document", documentId.data);
+  res.json(updated.rows[0]);
+});
+
+router.post("/matters/:id/instructions", async (req, res) => {
+  const parsed = memberUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid saved work", issues: parsed.error.issues });
+    return;
+  }
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
   const workspace = await assembleWorkspace(matter);
 
   try {
@@ -706,10 +897,9 @@ Produce the requested practical review or draft in Markdown.`,
       verification,
       capabilities: ["grounded_legal_research", "matter_aware_review_or_drafting"],
     };
-
-    const message = err instanceof Error ? err.message : "";
   const saved = await saveBack(matter, parsed.data);
     res.json({ ...result, savedWork: saved?.work ?? null, saveCreated: saved?.created ?? false });
+    await writeAudit(lawyesIdentity(req, res), "instruction.create", "matter", matter.id);
   } catch (err) {
     logger.error({ err, matterId: matter.id }, "Lawyes instruction failed");
     res.status(502).json({ error: "Failed to complete Lawyes instruction" });
@@ -717,59 +907,204 @@ Produce the requested practical review or draft in Markdown.`,
 });
 
 router.post("/matters/:id/save", async (req, res) => {
-  const parsed = saveSchema.safeParse(req.body);
+  const parsed = memberUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid saved work", issues: parsed.error.issues });
     return;
   }
   const matter = await ownedMatter(req, res);
-
-  const { objectPath, fileName, contentType } = parsed.data;
-
-  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
   if (!matter) return;
   const saved = await saveBack(matter, parsed.data);
   res.status(saved.created ? 201 : 200).json(saved);
+  if (saved.created) await writeAudit(lawyesIdentity(req, res), "output.create", "matter", matter.id);
+});
+
+router.get("/identity", async (req, res) => {
+  const identity = requireOwner(req, res);
+  const member = identity.memberId
+    ? (await db.select({
+      id: litLawyesMembers.id,
+      name: litLawyesMembers.name,
+      email: litLawyesMembers.email,
+      role: litLawyesMembers.role,
+    }).from(litLawyesMembers).where(eq(litLawyesMembers.id, identity.memberId)).limit(1))[0]
+    : null;
+  res.json({
+    ...identity,
+    member,
+    capabilities: {
+      manageMembers: identity.role === "owner",
+      manageMatterGrants: identity.role === "owner",
+      useConnectors: identity.role !== "viewer",
+    },
+  });
+});
+
+router.get("/members", async (req, res) => {
+  const identity = requireOwner(req, res);
+  if (!identity) return;
+  const members = await db.select({
+    id: litLawyesMembers.id, name: litLawyesMembers.name, email: litLawyesMembers.email,
+    role: litLawyesMembers.role, revokedAt: litLawyesMembers.revokedAt,
+    createdAt: litLawyesMembers.createdAt, updatedAt: litLawyesMembers.updatedAt,
+  }).from(litLawyesMembers).where(eq(litLawyesMembers.accessCodeId, identity.accessCodeId))
+    .orderBy(asc(litLawyesMembers.id));
+  res.json(members);
+});
+
+async function inviteMember(req: Request, res: Response) {
+  const identity = requireOwner(req, res);
+  if (!identity) return;
+  const parsed = inviteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid invitation", issues: parsed.error.issues });
+    return;
+  }
+  // The raw code exists only in this stack frame and this one response.
+  const personalCode = `LY-${randomBytes(15).toString("base64url").toUpperCase()}`;
+  const lookup = createHash("sha256").update(personalCode).digest("hex");
+  const secureHash = await bcrypt.hash(personalCode, 12);
+  const member = await db.transaction(async (tx) => {
+    const [created] = await tx.insert(litLawyesMembers).values({
+      accessCodeId: identity.accessCodeId, ...parsed.data,
+    }).returning();
+    await tx.insert(litLawyesCredentials).values({
+      memberId: created.id, codeLookupHash: lookup, codeHash: secureHash,
+    });
+    await tx.insert(litLawyesInvitations).values({
+      accessCodeId: identity.accessCodeId,
+      memberId: created.id,
+      invitedByMemberId: identity.memberId,
+    });
+    return created;
+  });
+  await writeAudit(identity, "member.invite", "member", member.id, { role: member.role });
+  res.status(201).json({
+    member: {
+      id: member.id, name: member.name, email: member.email, role: member.role,
+      revokedAt: member.revokedAt, createdAt: member.createdAt,
+    },
+    personalCode,
+  });
+}
+router.post("/invite", inviteMember);
+router.post("/invitations", inviteMember);
+router.post("/members/invite", inviteMember);
+
+router.patch("/members/:id", async (req, res) => {
+  const identity = requireOwner(req, res);
+  const memberId = Number(req.params.memberId);
+  const parsed = memberUpdateSchema.safeParse(req.body);
+  if (!identity || !Number.isInteger(memberId) || !parsed.success) {
+    if (identity) res.status(400).json({ error: "Invalid member update" });
+    return;
+  }
+  const [before] = await db.select().from(litLawyesMembers).where(and(
+    eq(litLawyesMembers.id, memberId),
+    eq(litLawyesMembers.accessCodeId, identity.accessCodeId),
+  )).limit(1);
+  if (!before) return void res.status(404).json({ error: "Member not found" });
+  const [member] = await db.update(litLawyesMembers).set({
+    ...parsed.data, updatedAt: new Date(),
+  }).where(eq(litLawyesMembers.id, before.id)).returning();
+  await writeAudit(identity, "member.update", "member", member.id, {
+    fromRole: before.role === member.role ? null : before.role,
+    toRole: before.role === member.role ? null : member.role,
+  });
+  res.json(member);
+});
+
+async function revokeMember(req: Request, res: Response) {
+  const identity = requireOwner(req, res);
+  const memberId = Number(req.params.id);
+  if (!identity || !Number.isInteger(memberId)) return;
+  const [member] = await db.update(litLawyesMembers).set({
+    revokedAt: new Date(), updatedAt: new Date(),
+  }).where(and(
+    eq(litLawyesMembers.id, memberId),
+    eq(litLawyesMembers.accessCodeId, identity.accessCodeId),
+  )).returning();
+  if (!member) return void res.status(404).json({ error: "Member not found" });
+  await writeAudit(identity, "member.revoke", "member", member.id, { fromRole: member.role });
+  res.json(member);
+}
+router.delete("/members/:id", revokeMember);
+router.post("/members/:id/revoke", revokeMember);
+
+router.get("/matters/:id/grants", async (req, res) => {
+  const identity = requireOwner(req, res);
+  if (!identity) return;
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const grants = await db.select().from(litLawyesMatterGrants).where(and(
+    eq(litLawyesMatterGrants.accessCodeId, identity.accessCodeId),
+    eq(litLawyesMatterGrants.matterId, matter.id),
+  ));
+  res.json(grants);
+});
+
+async function setGrant(req: Request, res: Response) {
+  const identity = requireOwner(req, res);
+  const parsed = grantSchema.safeParse(req.body);
+  if (!identity || !parsed.success) {
+    if (identity) res.status(400).json({ error: "Invalid matter grant" });
+    return;
+  }
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const [member] = await db.select().from(litLawyesMembers).where(and(
+    eq(litLawyesMembers.id, parsed.data.memberId),
+    eq(litLawyesMembers.accessCodeId, identity.accessCodeId),
+  )).limit(1);
+  if (!member || member.revokedAt) return void res.status(404).json({ error: "Member not found" });
+  const [before] = await db.select().from(litLawyesMatterGrants).where(and(
+    eq(litLawyesMatterGrants.matterId, matter.id),
+    eq(litLawyesMatterGrants.memberId, member.id),
+  )).limit(1);
+  const [grant] = await db.insert(litLawyesMatterGrants).values({
+    accessCodeId: identity.accessCodeId, matterId: matter.id,
+    memberId: member.id, role: parsed.data.role,
+  }).onConflictDoUpdate({
+    target: [litLawyesMatterGrants.matterId, litLawyesMatterGrants.memberId],
+    set: { role: parsed.data.role, updatedAt: new Date() },
+  }).returning();
+  await writeAudit(identity, "matter.grant", "matter", matter.id, {
+    fromRole: before?.role ?? null, toRole: grant.role,
+  });
+  res.json(grant);
+}
+router.put("/matters/:id/grants", setGrant);
+router.post("/matters/:id/grants", setGrant);
+router.put("/matters/:id/grants/:memberId", (req, res, next) => {
+  req.body = { ...(req.body ?? {}), memberId: req.params.memberId };
+  void setGrant(req, res).catch(next);
+});
+
+router.delete("/matters/:id/grants/:memberId", async (req, res) => {
+  const identity = requireOwner(req, res);
+  const memberId = Number(req.params.memberId);
+  if (!identity || !Number.isInteger(memberId)) return;
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const [removed] = await db.delete(litLawyesMatterGrants).where(and(
+    eq(litLawyesMatterGrants.accessCodeId, identity.accessCodeId),
+    eq(litLawyesMatterGrants.matterId, matter.id),
+    eq(litLawyesMatterGrants.memberId, memberId),
+  )).returning();
+  if (!removed) return void res.status(404).json({ error: "Matter grant not found" });
+  await writeAudit(identity, "matter.grant.remove", "matter", matter.id, {
+    fromRole: removed.role, toRole: null,
+  });
+  res.status(204).send();
+});
+
+router.get("/audit", async (req, res) => {
+  const identity = requireOwner(req, res);
+  if (!identity) return;
+  const events = await db.select().from(litLawyesAuditEvents)
+    .where(eq(litLawyesAuditEvents.accessCodeId, identity.accessCodeId))
+    .orderBy(desc(litLawyesAuditEvents.createdAt)).limit(500);
+  res.json(events);
 });
 
 export default router;
-
-      const [metadata] = await file.getMetadata();
-
-  const ownerKey = String(matter.accessCodeId);
-
-      const canonicalType = String(metadata.contentType || contentType);
-
-      const [buffer] = await file.download();
-
-    const safeMessage = /^(Upload reference|Stored file type|Image is empty|Recording is empty|The recording contained no transcribable speech)/.test(message)
-      ? message
-      : "Evidence analysis failed. Please try again.";
-
-      const kind = evidenceKind(canonicalType);
-
-      const file = await lawyesEvidenceObjectStorage.getObjectEntityFile(objectPath);
-
-  const updated = await pool.query(
-    `UPDATE case_documents
-        SET evidence_verified = true, evidence_verified_at = now(), updated_at = now()
-      WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
-        AND extraction_metadata IS NOT NULL
-      RETURNING *`,
-    [documentId.data, String(matter.accessCodeId), matter.id],
-  );
-
-      const maxBytes = kind === "image"
-        ? IMAGE_EVIDENCE_MAX_BYTES
-        : RECORDING_EVIDENCE_MAX_BYTES;
-
-      const extraction = await extractMediaEvidence({
-        buffer,
-        fileName,
-        contentType: canonicalType,
-        sourceObjectPath: objectPath,
-      });
-
-  const claim = await claimLawyesEvidenceUpload(ownerKey, matter.id, objectPath);
-
-      const size = Number(metadata.size ?? 0);
