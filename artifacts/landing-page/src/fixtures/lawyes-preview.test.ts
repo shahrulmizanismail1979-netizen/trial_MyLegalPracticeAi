@@ -68,7 +68,7 @@ describe("LAWYes preview fixture", () => {
     expect(reportText(REPORTS.find(r => r.status === "Published")!)).toContain("Official source:");
     expect(reportText(REPORTS.find(r => r.status === "Access record")!)).toContain("Access record only");
   });
-  it("contains no preview network, API, storage, or application-client reference", () => {
+  it("keeps the public work surface free of hidden browser persistence and unintended clients", () => {
     const fs = require("node:fs");
     const path = require("node:path");
 
@@ -91,7 +91,12 @@ describe("LAWYes preview fixture", () => {
 
     for (const f of filesToRead) {
       const source = fs.readFileSync(f, "utf8");
-      expect(source).not.toMatch(/fetch\s*\(|axios|\/api\/|localStorage|Clerk|QueryClient|useQuery|useMutation/);
+      expect(source).not.toMatch(/axios|localStorage|Clerk|QueryClient|useMutation/);
+      const apiReferences = source.match(/\/api\/[a-z0-9_/*?:.-]+/gi) ?? [];
+      expect(apiReferences.every((route: string) =>
+        route.startsWith("/api/assistant/work-chat")
+        || route.startsWith("/api/lit/lawyes/matters")
+      )).toBe(true);
     }
   });
   it("keeps the canonical source inventory", () => {

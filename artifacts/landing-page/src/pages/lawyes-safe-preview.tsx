@@ -94,7 +94,7 @@ export default function LawYesSafePreview() {
       )}
 
       {/* Sidebar */}
-       <aside ref={sidebarRef} data-testid="lawyes-conversation-rail" className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0`}>
+       <aside ref={sidebarRef} data-testid="lawyes-conversation-rail" className={`fixed inset-y-0 left-0 z-50 w-[260px] bg-[hsl(var(--lawyes-sidebar))] text-[hsl(var(--lawyes-sidebar-text))] flex flex-col transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:shrink-0 border-r border-[hsl(var(--lawyes-sidebar-border))]`}>
          {/* Top Logo & New Task */}
          <div className="p-3 flex items-center justify-between">
            <button

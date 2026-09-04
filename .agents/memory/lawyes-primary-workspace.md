@@ -15,6 +15,12 @@ The default LAWYes experience must be conversation-first and visibly simple: one
 
 **How to apply:** Keep LAWYes at the main entry route and nationwide by default. Keep the composer primary, but preserve visible entrances to the broader platform and its safeguards. Task tools may remain collapsed or contextual; platform depth must not be hidden. Do not present a regional source set as nationwide or revert to a dashboard, directory, or catalogue without explicit approval.
 
+LAWYes should translate the ChatGPT Work interaction model into legal work: projects become My Matters, files become visible document attachments, plugins become legal tools, the model selector becomes legal working mode, and the microphone becomes browser dictation. Recent work must be real or an honest signed-out state, never invented examples.
+
+**Why:** The user explicitly rejected a prompt-box imitation and required the work features themselves—conversation, legal modes, files, voice, tools, and real recent work—adapted to practice workflows.
+
+**How to apply:** Keep the composer directly under the primary question, compact work actions beneath it, and active conversations as a real streamed thread. Public unsaved work must say so; confidential persistence and binary document analysis belong to authenticated My Matters until a secure owner- and matter-bound bridge is implemented.
+
 The primary workspace should use the official LAWYes logo prominently and derive its colours from the logo’s navy and fresh green. Avoid dark forest-green treatments, which the user finds somber and depressing; keep the main canvas airy and optimistic.
 
 **Why:** The user explicitly asked for brighter branding aligned with the LAWYes logo and a larger, more visible logo.

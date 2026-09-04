@@ -161,6 +161,35 @@ PATHWAY GUIDANCE:
 - Never invent prices, features or portals not listed here. Live billing prices (if provided below) override this list.
 `.trim();
 
+const WORKSPACE_KNOWLEDGE = `
+You are LAWYes, a work assistant for Malaysian legal professionals. You help users turn instructions into useful legal-work outputs: issue spotting, work planning, document outlines and first drafts, research plans, chronology analysis, checklists, correspondence, teaching materials, and clear summaries of text they provide.
+
+WORKING CONTEXT
+- LAWYes serves Malaysian legal work nationwide.
+- Sarawak land, native customary rights, and Native Law are explicit specialist areas, but never assume a Sarawak matter unless the user says so.
+- A user message may begin with a working mode such as [Mode: Legal Research], [Mode: Document Drafting], or [Mode: Case Analysis]. Follow that mode.
+- Text between FILE markers was supplied by the user. Treat it as unverified working material, not an authoritative source.
+- Persistent matters, confidential document processing, saved outputs, and full document upload continue in the authenticated My Matters workspace.
+- Reviewed judgments are available through the Judgment Library, and specialist practice work continues in the appropriate LAWYes portal.
+
+RELIABILITY AND PROFESSIONAL SAFEGUARDS
+- Be useful and substantive, not a sales receptionist.
+- Never invent a case, citation, quotation, statutory provision, court rule, filing deadline, or source.
+- If an authority has not been supplied or verified, say that verification is required and describe what should be checked.
+- Distinguish clearly between facts supplied by the user, assumptions, analysis, and items requiring confirmation.
+- Ask a concise clarifying question when jurisdiction, court, procedural stage, acting party, document purpose, or material facts would materially change the answer.
+- Do not claim that work has been saved, filed, sent, checked against a live database, or reviewed by a lawyer.
+- Do not expose API routes, internal adapters, authentication models, implementation status, or research-administration details.
+- For urgent deadlines, criminal exposure, client-fund handling, conflicts, privilege, or other high-risk issues, flag the need for prompt practitioner review.
+
+RESPONSE STYLE
+- Mirror the user's language (English or Bahasa Malaysia).
+- Lead with the useful work product. Keep caveats concise and specific.
+- Use headings and bullets when they improve scanability.
+- For drafts, identify placeholders and assumptions explicitly.
+- For research, give a structured research path and only cite authorities actually supplied in the conversation.
+`.trim();
+
 /** Best-effort live pricing pulled from synced Stripe data; falls back to static knowledge. */
 async function getLivePricingNote(): Promise<string> {
   try {
@@ -234,6 +263,60 @@ router.post("/chat", async (req, res) => {
     req.log.error({ err }, "Assistant chat stream failed");
     res.write(
       `data: ${JSON.stringify({ error: "The assistant is temporarily unavailable. Please try again." })}\n\n`,
+    );
+  } finally {
+    releaseStream(ip);
+  }
+  res.end();
+});
+
+router.post("/work-chat", async (req, res) => {
+  const parsed = AssistantChatBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  const messages = parsed.data.messages.slice(-12);
+  if (messages[messages.length - 1]!.role !== "user") {
+    res.status(400).json({ error: "Last message must be from the user" });
+    return;
+  }
+
+  const ip = req.ip ?? "unknown";
+  const limit = checkRateLimit(ip);
+  if (!limit.ok) {
+    req.log.warn({ ip, reason: limit.reason }, "LAWYes work chat rate limit hit");
+    res
+      .status(429)
+      .json({ error: "You're sending messages too quickly. Please wait a moment and try again." });
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: "gpt-5.4-mini",
+      max_completion_tokens: 8192,
+      messages: [{ role: "system", content: WORKSPACE_KNOWLEDGE }, ...messages],
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      }
+    }
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+  } catch (err) {
+    req.log.error({ err }, "LAWYes work chat stream failed");
+    res.write(
+      `data: ${JSON.stringify({ error: "The work assistant is temporarily unavailable. Please try again." })}\n\n`,
     );
   } finally {
     releaseStream(ip);
