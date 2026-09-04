@@ -67,6 +67,7 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
       .where(eq(litAccessCodes.id, master.id));
 
     const sess = req.session as unknown as Record<string, unknown>;
+    delete sess.lawyesGoogleSubject;
     sess.authenticated = true;
     sess.accessCodeId = master.id;
 
@@ -113,6 +114,7 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
     .where(eq(litAccessCodes.id, record.id));
 
   const sess = req.session as unknown as Record<string, unknown>;
+  delete sess.lawyesGoogleSubject;
   sess.authenticated = true;
   sess.accessCodeId = record.id;
 

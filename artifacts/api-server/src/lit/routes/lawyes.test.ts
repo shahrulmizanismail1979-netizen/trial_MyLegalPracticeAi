@@ -215,6 +215,130 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(aiCalls.research).toBe(before);
   });
 
+  it("keeps subscriber Google connections unavailable until OAuth encryption is configured", async () => {
+    const names = [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+    ] as const;
+    const previous = names.map((name) => process.env[name]);
+    try {
+      for (const name of names) delete process.env[name];
+      const response = await agentA.get("/api/lit/lawyes/google/status");
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ configured: false, connected: false });
+    } finally {
+      names.forEach((name, index) => {
+        const value = previous[index];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      });
+    }
+  });
+
+  it("starts per-lawyer Google OAuth with least-privilege Gmail and Drive scopes", async () => {
+    const names = [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+    ] as const;
+    const previous = names.map((name) => process.env[name]);
+    try {
+      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
+      const response = await agentA.get("/api/lit/lawyes/google/connect");
+      expect(response.status).toBe(302);
+      const target = new URL(response.headers.location);
+      expect(target.origin).toBe("https://accounts.google.com");
+      expect(target.searchParams.get("scope")?.split(" ")).toEqual(expect.arrayContaining([
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+      ]));
+      expect(target.searchParams.get("scope")).not.toContain("gmail.send");
+      expect(target.searchParams.has("include_granted_scopes")).toBe(false);
+      expect(target.searchParams.get("access_type")).toBe("offline");
+    } finally {
+      names.forEach((name, index) => {
+        const value = previous[index];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      });
+    }
+  });
+
+  it("rejects an OAuth callback after the LAWYes tenant changes", async () => {
+    const names = [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+    ] as const;
+    const previous = names.map((name) => process.env[name]);
+    try {
+      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
+      const switchingAgent = await login(codeA);
+      const started = await switchingAgent.get("/api/lit/lawyes/google/connect");
+      const state = new URL(started.headers.location).searchParams.get("state");
+      expect((await switchingAgent.post("/api/lit/auth/login").send({ password: codeB })).status).toBe(200);
+      const callback = await switchingAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
+      expect(callback.status).toBe(302);
+      expect(callback.headers.location).toContain("google=invalid_state");
+    } finally {
+      names.forEach((name, index) => {
+        const value = previous[index];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      });
+    }
+  });
+
+  it("rejects broader Google permissions instead of retaining incremental grants", async () => {
+    const names = [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+    ] as const;
+    const previous = names.map((name) => process.env[name]);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({
+      access_token: "not-logged",
+      refresh_token: "not-logged",
+      expires_in: 3600,
+      token_type: "Bearer",
+      scope: [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/drive.file",
+      ].join(" "),
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    try {
+      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
+      const scopedAgent = await login(codeA);
+      const started = await scopedAgent.get("/api/lit/lawyes/google/connect");
+      const state = new URL(started.headers.location).searchParams.get("state");
+      const callback = await scopedAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
+      expect(callback.status).toBe(302);
+      expect(callback.headers.location).toContain("google=invalid_scopes");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      fetchMock.mockRestore();
+      names.forEach((name, index) => {
+        const value = previous[index];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      });
+    }
+  });
+
   it("loads the same-owner aggregate and isolates foreign tenants with 404", async () => {
     const ownList = await agentA.get("/api/lit/lawyes/matters");
     expect(ownList.status).toBe(200);

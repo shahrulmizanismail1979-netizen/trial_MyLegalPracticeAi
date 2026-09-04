@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import {
   db,
@@ -14,13 +15,53 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { generateChat, streamChat, type Citation } from "../lib/aiProvider";
 import { logger } from "../../lib/logger";
 import { ensureConversationMatterSchema } from "../lib/ensureConversationMatterSchema";
+import { ensureLawyesGoogleSchema } from "../lib/ensureLawyesGoogleSchema";
+import { decryptGoogleTokens, encryptGoogleTokens } from "../lib/lawyesGoogleCrypto";
 
 const router: IRouter = Router();
 const conversationMatterSchemaReady = ensureConversationMatterSchema();
+const googleSchemaReady = ensureLawyesGoogleSchema();
 router.use(async (_req, _res, next) => {
-  await conversationMatterSchemaReady;
+  await Promise.all([conversationMatterSchemaReady, googleSchemaReady]);
   next();
 });
+
+declare module "express-session" {
+  interface SessionData {
+    lawyesGoogleState?: string;
+    lawyesGoogleTenantId?: number;
+    lawyesGoogleSubject?: string;
+  }
+}
+
+const GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/drive.file",
+] as const;
+const GOOGLE_SCOPE_ALLOWLIST = new Set<string>([
+  ...GOOGLE_SCOPES,
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile",
+]);
+
+function googleConfigured() {
+  return Boolean(
+    process.env.GOOGLE_OAUTH_CLIENT_ID
+    && process.env.GOOGLE_OAUTH_CLIENT_SECRET
+    && process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY,
+  );
+}
+
+function googleRedirectUri(req: Request): string {
+  return `${req.protocol}://${req.get("host")}/api/lit/lawyes/google/callback`;
+}
+
+function workspaceReturn(error?: string): string {
+  return `/lawyes${error ? `?google=${encodeURIComponent(error)}` : "?google=connected"}`;
+}
 
 const matterIdSchema = z.coerce.number().int().positive();
 const saveSchema = z.object({
@@ -49,8 +90,199 @@ const instructionSchema = z.object({
 });
 
 function accessCodeId(req: Request): number {
-  return Number((req as Request & { accessCodeId?: number }).accessCodeId);
+  return Number(resolvedAccessCodeId(req));
 }
+
+function resolvedAccessCodeId(req: Request): number | undefined {
+  return (req.session as { accessCodeId?: number } | undefined)?.accessCodeId;
+}
+
+router.get("/google/status", async (req, res) => {
+  const principal = req.session.lawyesGoogleSubject;
+  if (!principal) {
+    res.json({ configured: googleConfigured(), connected: false });
+    return;
+  }
+  if (!googleConfigured()) {
+    res.json({ configured: false, connected: false });
+    return;
+  }
+  const result = await pool.query<{
+    email: string;
+    display_name: string | null;
+    granted_scopes: string[];
+    connected_at: Date;
+  }>(
+    `SELECT email, display_name, granted_scopes, connected_at
+       FROM lawyes_google_connections
+      WHERE tenant_id = $1 AND google_subject = $2`,
+    [accessCodeId(req), principal],
+  );
+  const connection = result.rows[0];
+  res.json({
+    configured: true,
+    connected: Boolean(connection),
+    account: connection ? {
+      email: connection.email,
+      displayName: connection.display_name,
+      connectedAt: connection.connected_at,
+      gmail: connection.granted_scopes.includes("https://www.googleapis.com/auth/gmail.readonly"),
+      drive: connection.granted_scopes.includes("https://www.googleapis.com/auth/drive.file"),
+    } : null,
+  });
+});
+
+router.get("/google/connect", (req, res) => {
+  if (!googleConfigured()) {
+    res.status(503).send("Google connection is not configured");
+    return;
+  }
+  const state = randomBytes(32).toString("base64url");
+  req.session.lawyesGoogleState = state;
+  req.session.lawyesGoogleTenantId = accessCodeId(req);
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", process.env.GOOGLE_OAUTH_CLIENT_ID!);
+  url.searchParams.set("redirect_uri", googleRedirectUri(req));
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
+  url.searchParams.set("state", state);
+  url.searchParams.set("access_type", "offline");
+  url.searchParams.set("prompt", "consent select_account");
+  res.redirect(url.toString());
+});
+
+router.get("/google/callback", async (req, res) => {
+  const state = String(req.query.state ?? "");
+  const code = String(req.query.code ?? "");
+  const expectedState = req.session.lawyesGoogleState;
+  const expectedTenant = req.session.lawyesGoogleTenantId;
+  delete req.session.lawyesGoogleState;
+  delete req.session.lawyesGoogleTenantId;
+  if (!code || !state || state !== expectedState || !expectedTenant || accessCodeId(req) !== expectedTenant) {
+    res.redirect(workspaceReturn("invalid_state"));
+    return;
+  }
+  if (!googleConfigured()) {
+    res.redirect(workspaceReturn("not_configured"));
+    return;
+  }
+  try {
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: googleRedirectUri(req),
+      }),
+    });
+    if (!tokenResponse.ok) {
+      logger.warn({ status: tokenResponse.status }, "LAWYes Google token exchange failed");
+      res.redirect(workspaceReturn("token_exchange"));
+      return;
+    }
+    const tokens = await tokenResponse.json() as {
+      access_token?: string; refresh_token?: string; expires_in?: number;
+      token_type?: string; scope?: string;
+    };
+    if (!tokens.access_token || !tokens.refresh_token) {
+      res.redirect(workspaceReturn("offline_access_required"));
+      return;
+    }
+    const grantedScopes = (tokens.scope ?? "").split(" ").filter(Boolean);
+    const hasRequiredScopes = [
+      "openid",
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/drive.file",
+    ].every((scope) => grantedScopes.includes(scope));
+    if (!hasRequiredScopes || grantedScopes.some((scope) => !GOOGLE_SCOPE_ALLOWLIST.has(scope))) {
+      logger.warn({ scopeCount: grantedScopes.length }, "LAWYes Google returned an unexpected scope set");
+      res.redirect(workspaceReturn("invalid_scopes"));
+      return;
+    }
+    const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    const profile = await profileResponse.json() as {
+      sub?: string; email?: string; email_verified?: boolean; name?: string;
+    };
+    if (!profileResponse.ok || !profile.sub || !profile.email || profile.email_verified === false) {
+      res.redirect(workspaceReturn("profile_unavailable"));
+      return;
+    }
+    const tenant = expectedTenant;
+    const binding = `lawyes:${tenant}:${profile.sub}`;
+    const encrypted = encryptGoogleTokens({
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000,
+      tokenType: tokens.token_type ?? "Bearer",
+    }, binding);
+    await pool.query(
+      `INSERT INTO lawyes_google_connections
+        (tenant_id, lawyer_id, google_subject, email, display_name, encrypted_tokens, granted_scopes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (tenant_id, google_subject) DO UPDATE SET
+         lawyer_id = EXCLUDED.lawyer_id,
+         google_subject = EXCLUDED.google_subject,
+         email = EXCLUDED.email,
+         display_name = EXCLUDED.display_name,
+         encrypted_tokens = EXCLUDED.encrypted_tokens,
+         granted_scopes = EXCLUDED.granted_scopes,
+         updated_at = now()`,
+      [tenant, profile.sub, profile.sub, profile.email.toLowerCase(), profile.name ?? null,
+        encrypted, grantedScopes],
+    );
+    req.session.lawyesGoogleSubject = profile.sub;
+    res.redirect(workspaceReturn());
+  } catch (err) {
+    if (typeof err === "object" && err && "code" in err && err.code === "23505") {
+      res.redirect(workspaceReturn("account_already_connected"));
+      return;
+    }
+    logger.error({ err: err instanceof Error ? err.message : "unknown" }, "LAWYes Google callback failed");
+    res.redirect(workspaceReturn("connection_failed"));
+  }
+});
+
+router.delete("/google/connection", async (req, res) => {
+  const principal = req.session.lawyesGoogleSubject;
+  if (!principal) {
+    res.json({ disconnected: false });
+    return;
+  }
+  const tenant = accessCodeId(req);
+  const connection = await pool.query<{ encrypted_tokens: string }>(
+    `SELECT encrypted_tokens FROM lawyes_google_connections
+      WHERE tenant_id = $1 AND google_subject = $2`,
+    [tenant, principal],
+  );
+  if (!connection.rows[0]) {
+    delete req.session.lawyesGoogleSubject;
+    res.json({ disconnected: false });
+    return;
+  }
+  const tokens = decryptGoogleTokens(connection.rows[0].encrypted_tokens, `lawyes:${tenant}:${principal}`);
+  const revoked = await fetch("https://oauth2.googleapis.com/revoke", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ token: tokens.refreshToken }),
+  });
+  if (!revoked.ok) {
+    logger.warn({ status: revoked.status }, "LAWYes Google token revocation failed");
+    res.status(502).json({ error: "Google did not confirm disconnection" });
+    return;
+  }
+  const deleted = await pool.query(
+    `DELETE FROM lawyes_google_connections
+      WHERE tenant_id = $1 AND google_subject = $2 RETURNING id`,
+    [tenant, principal],
+  );
+  delete req.session.lawyesGoogleSubject;
+  res.json({ disconnected: deleted.rowCount === 1 });
+});
 
 async function ownedMatter(req: Request, res: Response) {
   const parsed = matterIdSchema.safeParse(req.params.id);

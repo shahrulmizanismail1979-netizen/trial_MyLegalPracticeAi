@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Briefcase, LogOut, Loader2, LayoutPanelLeft } from "lucide-react";
+import { Briefcase, LogOut, Loader2, LayoutPanelLeft, Mail, HardDrive, Link2, Unplug } from "lucide-react";
 import { useAuth } from "./use-auth";
-import { useLawyesMatters } from "./api";
+import { useDisconnectLawyesGoogle, useLawyesGoogleConnection, useLawyesMatters } from "./api";
 import { MatterWorkspace } from "./matter-workspace";
 
 export function WorkspaceShell() {
@@ -13,6 +13,8 @@ export function WorkspaceShell() {
   
   const { data: matters, isLoading, error } = useLawyesMatters();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const google = useLawyesGoogleConnection();
+  const disconnectGoogle = useDisconnectLawyesGoogle();
 
   // If there's an error and it's 401, logout is handled by queryFn throwing Error
   useEffect(() => {
@@ -117,7 +119,46 @@ export function WorkspaceShell() {
           )}
         </div>
 
-        <div className="p-4 border-t shrink-0" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
+        <div className="p-4 border-t shrink-0 space-y-2" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
+          {sidebarOpen && (
+            <div className="rounded-lg border border-slate-200 bg-white/70 p-3 text-xs text-slate-600">
+              <div className="mb-2 flex items-center gap-2 font-semibold text-slate-800">
+                <Link2 className="h-4 w-4 text-primary" /> Your Google account
+              </div>
+              {!google.data?.configured ? (
+                <p>Google connection is not available yet.</p>
+              ) : google.data.connected ? (
+                <>
+                  <p className="truncate font-medium">{google.data.account?.email}</p>
+                  <div className="mt-2 flex gap-3 text-[11px]">
+                    <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> Gmail read-only</span>
+                    <span className="flex items-center gap-1"><HardDrive className="h-3 w-3" /> Drive app files</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Disconnect this Google account from LAWYes?")) {
+                        disconnectGoogle.mutate();
+                      }
+                    }}
+                    disabled={disconnectGoogle.isPending}
+                    className="mt-3 flex items-center gap-1 text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    <Unplug className="h-3 w-3" /> Disconnect
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2 leading-relaxed">Connect only your own account. LAWYes cannot access another lawyer’s connection.</p>
+                  <a
+                    href="/api/lit/lawyes/google/connect"
+                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 font-semibold text-white"
+                  >
+                    Connect Google
+                  </a>
+                </>
+              )}
+            </div>
+          )}
           <button
             onClick={logout}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-red-50 hover:text-red-600 font-medium ${!sidebarOpen && 'px-0'}`}

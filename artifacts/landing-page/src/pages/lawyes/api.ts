@@ -53,6 +53,18 @@ export interface InstructionResponse {
   saveCreated?: boolean;
 }
 
+export interface GoogleConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  account?: {
+    email: string;
+    displayName?: string | null;
+    connectedAt: string;
+    gmail: boolean;
+    drive: boolean;
+  } | null;
+}
+
 // Ensure 401 triggers auth reset if needed
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const res = await fetch(url, { ...options, credentials: "include" });
@@ -77,6 +89,22 @@ export function useLawyesMatters() {
     queryKey: ["lawyes", "matters"],
     queryFn: () => fetchWithAuth("/api/lit/lawyes/matters"),
     retry: false
+  });
+}
+
+export function useLawyesGoogleConnection() {
+  return useQuery<GoogleConnectionStatus>({
+    queryKey: ["lawyes", "google-connection"],
+    queryFn: () => fetchWithAuth("/api/lit/lawyes/google/status"),
+    retry: false,
+  });
+}
+
+export function useDisconnectLawyesGoogle() {
+  const queryClient = useQueryClient();
+  return useMutation<{ disconnected: boolean }, Error>({
+    mutationFn: () => fetchWithAuth("/api/lit/lawyes/google/connection", { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lawyes", "google-connection"] }),
   });
 }
 
