@@ -19,7 +19,7 @@ The primary workspace should use the official LAWYes logo prominently and derive
 
 **Why:** The user explicitly asked for brighter branding aligned with the LAWYes logo and a larger, more visible logo.
 
-**How to apply:** Preserve comfortable legal-work contrast, but favour a light cool canvas, branded navy structure, and fresh-green actions. Do not shrink or replace the official logo with an improvised text mark.
+**How to apply:** Preserve comfortable legal-work contrast, but favour a light cool canvas, fresh-green actions, and a light cool-grey navigation rail with readable navy text. Do not restore the dark-navy sidebar, or shrink or replace the official logo with an improvised text mark.
 
 Public LAWYes pages must describe tools in user language only. Internal capability-audit metadata—including API routes, adapter boundaries, auth/ownership models, integration readiness, and verification-pending states—must never appear in the customer-facing interface.
 

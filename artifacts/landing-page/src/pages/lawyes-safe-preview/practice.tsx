@@ -54,7 +54,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
           </div>
 
           <div className="mt-16 bg-white border border-border rounded-xl p-6 md:p-8 flex flex-col items-center text-center">
-            <h3 className="font-serif text-xl mb-2">Practice Centre Audit Status</h3>
+            <h3 className="font-serif text-xl mb-2">Practice Centre source review</h3>
             <p className="text-sm text-muted-foreground max-w-2xl mb-6">Every path remains verification-required and is not a completeness claim. No access record is upgraded without source, paragraph and human checks.</p>
             <div className="flex flex-wrap justify-center gap-6">
               <div className="text-center">

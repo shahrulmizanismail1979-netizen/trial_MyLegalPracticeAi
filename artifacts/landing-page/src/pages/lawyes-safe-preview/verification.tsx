@@ -17,10 +17,10 @@ export function VerificationView({ navigate }: { navigate: (view: "home") => voi
             <button onClick={() => navigate("home")} className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mb-4">
               <ArrowLeft size={16} /> Back to Home
             </button>
-            <h1 className="text-3xl md:text-4xl font-serif text-foreground leading-tight">Sources &amp; Verification</h1>
+            <h1 className="text-3xl md:text-4xl font-serif text-foreground leading-tight">Sources &amp; safeguards</h1>
           </div>
           <div className="hidden sm:block text-right">
-            <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">Audit Status</div>
+            <div className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">Source review summary</div>
             <div className="text-sm font-medium">{AUDIT.reviewedOn} &middot; {AUDIT.sourcesReviewed} sources reviewed</div>
           </div>
         </div>
@@ -119,7 +119,7 @@ export function VerificationView({ navigate }: { navigate: (view: "home") => voi
 
                   <div className="space-y-4 pt-4 border-t border-border">
                     <h3 className="font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2 mb-3">
-                      <History size={16} className="text-primary" /> Change History
+                      <History size={16} className="text-primary" /> Review notes
                     </h3>
                     <div className="relative border-l border-border ml-3 pl-4 space-y-4">
                       {activeSource.changeHistory.map((item, i) => (

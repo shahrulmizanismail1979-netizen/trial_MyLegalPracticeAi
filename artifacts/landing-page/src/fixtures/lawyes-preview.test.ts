@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { AUDIT, CHECKLISTS, COVERAGE, DECISION_TREES, GUIDED_SEARCH_TAXONOMY, MATTER_WORKFLOW, NOT_STATED, PLAYBOOKS, PRACTICE_CENTRES, REPORTS, RESOURCES, SOURCES, buildLocalExportManifest, canPublish, exportRecords, filterReports, reportText, validatePublication } from "./lawyes-preview";
+import { PUBLIC_CAPABILITY_REGISTRY } from "./lawyes-skills";
 
 import { parseUrlState, serializeUrlState, sanitizeUrlState, defaultState } from "../pages/lawyes-safe-preview/use-router-state";
 
@@ -186,6 +187,33 @@ describe("LAWYes preview fixture", () => {
     expect(MATTER_WORKFLOW.stages).toHaveLength(4);
     expect(MATTER_WORKFLOW.requiredBeforeHandoff).toContain("At least one selected material");
     expect(MATTER_WORKFLOW.localOnlyNotice).toMatch(/does not save/i);
+  });
+  it("keeps internal audit language and staff workflows out of the public LAWYes experience", () => {
+    const publicCapabilityIds = PUBLIC_CAPABILITY_REGISTRY.map((capability) => capability.id);
+    expect(publicCapabilityIds).not.toContain("secure-research-repository");
+    expect(publicCapabilityIds).not.toContain("research-publication-pipeline");
+
+    const publicFiles = [
+      "../pages/lawyes-safe-preview.tsx",
+      "../pages/lawyes-safe-preview/home.tsx",
+      "../pages/lawyes-safe-preview/skills.tsx",
+      "../pages/lawyes-safe-preview/search.tsx",
+      "../pages/lawyes-safe-preview/practice.tsx",
+      "../pages/lawyes-safe-preview/verification.tsx",
+      "../pages/lawyes-safe-preview/shared.tsx",
+    ];
+    const forbiddenUserFacingTerms = /Suggested Capabilities|All capabilities|Audit Status|Practice Centre Audit|Published Preview|Editorial status|Editorial history|Adapter boundary|Current service routes|verification pending|Implemented;/i;
+
+    for (const relativePath of publicFiles) {
+      const source = readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
+      expect(source).not.toMatch(forbiddenUserFacingTerms);
+    }
+  });
+  it("keeps the LAWYes navigation rail light and readable", () => {
+    const css = readFileSync(fileURLToPath(new URL("../index.css", import.meta.url)), "utf8");
+    expect(css).toContain("--lawyes-sidebar: 214 24% 95%");
+    expect(css).toContain("--lawyes-sidebar-text: 222 55% 18%");
+    expect(css).not.toContain("--lawyes-sidebar: 222 80% 14%");
   });
 });
 describe("URL state synchronization", () => {

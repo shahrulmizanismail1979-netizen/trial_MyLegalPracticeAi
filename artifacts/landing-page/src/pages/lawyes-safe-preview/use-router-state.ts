@@ -6,7 +6,7 @@ import {
   PRACTICE_CENTRES,
   PLAYBOOKS
 } from "@/fixtures/lawyes-preview";
-import { CAPABILITY_REGISTRY } from "@/fixtures/lawyes-skills";
+import { PUBLIC_CAPABILITY_REGISTRY } from "@/fixtures/lawyes-skills";
 
 export type ViewState = "home" | "search" | "draft" | "matter" | "practice" | "verification" | "skills";
 
@@ -93,7 +93,7 @@ export function sanitizeUrlState(state: Partial<RouterState>, fromUrl: boolean =
     result.practiceCentre = state.practiceCentre;
   }
 
-  if (state.capabilityId && CAPABILITY_REGISTRY.some((capability) => capability.id === state.capabilityId)) {
+  if (state.capabilityId && PUBLIC_CAPABILITY_REGISTRY.some((capability) => capability.id === state.capabilityId)) {
     result.capabilityId = state.capabilityId;
   }
 

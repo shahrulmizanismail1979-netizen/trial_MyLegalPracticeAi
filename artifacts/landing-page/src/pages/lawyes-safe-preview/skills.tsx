@@ -11,22 +11,46 @@ import {
   PUBLIC_CAPABILITY_REGISTRY,
   type CapabilityCategory,
 } from "../../fixtures/lawyes-skills";
+import { LIVE_PORTALS } from "../../lib/product-catalog";
 import type { RouterState } from "./use-router-state";
 
 const ALL = "All";
+const PORTAL_ID_BY_SERVICE: Record<string, string> = {
+  MyLitAI: "lit",
+  MyConveyLitAI: "convey",
+  MyCorpLegalAI: "corporate",
+  MyCrimAI: "criminal",
+  MySyalitAI: "syariah",
+  MyCorpCommBankLitAI: "ccb",
+  MyAccidentAI: "accident",
+  MyLawAcad: "acad",
+  MyLawFirmAi: "firm",
+};
+
+function specialistDestination(currentService: string) {
+  const litigationPortal = LIVE_PORTALS.find((portal) => portal.id === "lit");
+  if (currentService === "MyLitAI IRAC") {
+    const iracVersion = litigationPortal?.versions?.find((version) => version.badge === "Version 2");
+    return iracVersion ? { label: "MyLitAI IRAC", url: iracVersion.url } : null;
+  }
+
+  const portalId = PORTAL_ID_BY_SERVICE[currentService];
+  const portal = LIVE_PORTALS.find((entry) => entry.id === portalId);
+  return portal ? { label: portal.title, url: portal.url } : null;
+}
 
 function AvailabilityBadge({ availableHere }: { availableHere: boolean }) {
   if (availableHere) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2b7169] bg-[#e5f1ed] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#19514b]">
-        <CheckCircle2 size={10} /> Available here
+        <CheckCircle2 size={10} /> Available in preview
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center rounded-full border border-[#cbd5e1] bg-[#f8fafc] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#475569]">
-      Specialist service
+      Live specialist service
     </span>
   );
 }
@@ -73,16 +97,16 @@ export function SkillsView({
           </div>
           <p className="mb-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             Find the right LAWYes tool for your legal task. Search by what you need to do, or browse by practice area.
-            Some tools can be used here immediately; others are provided through a dedicated specialist service.
+              Demonstration tools can be tried here. Live tools open their dedicated LAWYes specialist service.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-[1fr_240px]">
             <label className="relative">
-              <span className="sr-only">Search skills</span>
+              <span className="sr-only">Search tools</span>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
               <input
                 type="search"
-                placeholder="Describe a task or search a skill..."
+                placeholder="Describe a task or search a tool..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="w-full rounded-xl border border-input bg-muted/30 py-3 pl-10 pr-4 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -114,6 +138,7 @@ export function SkillsView({
 
           {filteredCapabilities.map((capability) => {
             const expanded = expandedId === capability.id;
+            const specialist = specialistDestination(capability.currentService);
             return (
               <article
                 key={capability.id}
@@ -132,7 +157,7 @@ export function SkillsView({
                   <div className="min-w-0 flex-1">
                     <div className="mb-1.5 flex flex-wrap items-center gap-3">
                       <h2 className="font-serif text-lg font-semibold text-foreground">{capability.name}</h2>
-                      <span className="rounded border border-secondary/20 bg-secondary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
+                      <span className="rounded border border-border bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
                         {capability.category}
                       </span>
                     </div>
@@ -140,9 +165,7 @@ export function SkillsView({
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <AvailabilityBadge availableHere={Boolean(capability.workspaceDestination)} />
                       <span className="text-[11px] text-muted-foreground">
-                        Provided by <strong className="text-foreground">
-                          {capability.currentService === "LAWYes Safe Preview" ? "LAWYes" : capability.currentService}
-                        </strong>
+                        {capability.workspaceDestination ? "LAWYes demonstration" : `Available in ${specialist?.label ?? "the specialist services catalogue"}`}
                       </span>
                     </div>
                   </div>
@@ -183,14 +206,21 @@ export function SkillsView({
                             <ArrowUpRight size={16} />
                           </button>
                         ) : (
-                          <a
-                            href="/apps"
-                            className="flex w-full items-center justify-between rounded-lg border border-primary/20 bg-white p-3 text-primary transition-colors hover:bg-primary/5"
-                            data-testid={`link-specialist-capability-${capability.id}`}
-                          >
-                            <span className="text-sm font-medium">View specialist services</span>
-                            <ArrowUpRight size={16} />
-                          </a>
+                          <div>
+                            <a
+                              href={specialist?.url ?? "/apps"}
+                              className="flex w-full items-center justify-between rounded-lg border border-primary/20 bg-white p-3 text-primary transition-colors hover:bg-primary/5"
+                              data-testid={`link-specialist-capability-${capability.id}`}
+                            >
+                              <span className="text-sm font-medium">
+                                {specialist ? `Open ${specialist.label}` : "View specialist services"}
+                              </span>
+                              <ArrowUpRight size={16} />
+                            </a>
+                            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                              Opens the live specialist service. Sign-in or an active plan may be required.
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>

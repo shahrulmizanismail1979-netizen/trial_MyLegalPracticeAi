@@ -359,11 +359,11 @@
   --radius: 0.75rem;
 
   /* Workspace Shell specific */
-  --lawyes-sidebar: 222 80% 14%;
-  --lawyes-sidebar-text: 214 30% 92%;
-  --lawyes-sidebar-muted: 214 20% 65%;
-  --lawyes-sidebar-border: 222 50% 22%;
-  --lawyes-sidebar-hover: 222 60% 22%;
+  --lawyes-sidebar: 214 24% 95%;       /* Light cool grey */
+  --lawyes-sidebar-text: 222 55% 18%;  /* Readable navy text */
+  --lawyes-sidebar-muted: 218 18% 42%;
+  --lawyes-sidebar-border: 214 20% 84%;
+  --lawyes-sidebar-hover: 163 32% 88%; /* Soft LAWYes green wash */
 
   min-height: 100dvh;
   max-width: 100%;

@@ -157,7 +157,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="lawyes-editorial-status-filter" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Editorial Status</label>
+                  <label htmlFor="lawyes-editorial-status-filter" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Review status</label>
                   <select
                     id="lawyes-editorial-status-filter"
                     value={state.status}
@@ -280,7 +280,7 @@ export function SearchView({ state, updateState }: { state: RouterState; updateS
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
                 <FileText size={48} className="opacity-20 mb-4" />
                 <p className="font-medium text-foreground/60">Select a report or record to read</p>
-                <p className="text-sm text-center max-w-xs mt-2 opacity-70">The reader pane provides verified paragraph anchors, editorial history, and source provenance.</p>
+                <p className="text-sm text-center max-w-xs mt-2 opacity-70">Open a result to read the report, review its sources, and follow references to the relevant judgment paragraphs.</p>
               </div>
             )}
           </div>

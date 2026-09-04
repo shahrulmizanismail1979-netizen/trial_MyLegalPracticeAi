@@ -59,7 +59,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
             {q.trim() && matchedSkills.length > 0 ? (
               <div className="animate-in fade-in slide-in-from-top-1 space-y-1.5 mb-2" data-testid="container-skill-suggestions">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5 px-1">
-                  <Sparkles size={12} /> Suggested Capabilities
+                  <Sparkles size={12} /> Suggested tools
                 </div>
                 {matchedSkills.map(skill => (
                   <button
@@ -141,7 +141,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
         </div>
         <div className="mt-5 flex items-center gap-1.5 text-[10px] text-muted-foreground" data-testid="status-safe-preview-demonstration">
           <ShieldAlert size={12} />
-          <span>Safe Preview Demonstration</span>
+          <span>Demonstration workspace — work here is not saved to your account</span>
         </div>
         </div>
 
@@ -171,14 +171,14 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><BookOpen size={16} /></div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold group-hover:text-primary transition-colors">Judgment Library</div>
-                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Reviewed Malaysian case-law research</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Live research service · sign-in may be required</div>
                   </div>
                 </a>
                 <a href="/lawyes" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-my-matters">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0"><Briefcase size={16} /></div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold group-hover:text-primary transition-colors">My Matters</div>
-                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Documents, discussions, tasks and deadlines</div>
+                    <div className="mt-0.5 text-[11px] leading-4 text-muted-foreground">Live account workspace · sign-in required</div>
                   </div>
                 </a>
                 <a href="/apps#pricing" className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-sm group shadow-sm" data-testid="link-home-pricing">

@@ -182,26 +182,26 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
               <p>{report.lawAsAt}</p>
             </div>
             <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Editorial status</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Review status</span>
               <p>{report.editorialStatus} &middot; reviewed {report.verificationDate}</p>
             </div>
             <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Reviewer</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Reviewed by</span>
               <p>{report.reviewer}</p>
             </div>
             <div>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Treatment</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Authority status</span>
               <p>{report.treatment}</p>
             </div>
           </div>
 
           <div className="border border-dashed border-secondary/50 bg-secondary/5 p-5 mb-8 text-sm">
-            <strong className="text-secondary block mb-2">Verification gap</strong>
+            <strong className="text-secondary block mb-2">What still needs checking</strong>
             <p>{report.verificationGap}</p>
           </div>
 
           <div className="mb-8 text-xs text-muted-foreground">
-            <strong className="mb-2 block uppercase tracking-wider">Editorial history</strong>
+            <strong className="mb-2 block uppercase tracking-wider">Review history</strong>
             {report.revisionHistory.map((item, i) => <p key={i}>{item}</p>)}
           </div>
 
@@ -214,9 +214,6 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
   }
 
   const content = report.report;
-  const pointIds = [...content.facts, ...content.proceduralHistory, ...content.ratio, ...content.obiter, content.disposition, ...content.issues, ...content.authorities]
-    .flatMap((value) => value.pinpoints).filter((point, index, all) => all.indexOf(point) === index);
-
   const section = (title: string, items: readonly { text: string; pinpoints: readonly string[] }[]) => (
     <section className="mt-8 pt-8 border-t border-border">
       <h3 className="text-lg font-serif mb-4 text-foreground">{title}</h3>
@@ -228,7 +225,7 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
     <article ref={containerRef} className="bg-white border-l border-border focus:outline-none h-full flex flex-col" tabIndex={-1}>
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-border p-3 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold text-secondary uppercase tracking-widest hidden sm:inline">Published Preview</span>
+          <span className="text-[10px] font-bold text-secondary uppercase tracking-widest hidden sm:inline">Demonstration report</span>
           <SourceBadge status={report.status} />
           <span aria-live="polite" className="sr-only">{exportFeedback}</span>
         </div>
@@ -285,15 +282,15 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
             <p>{report.lawAsAt}</p>
           </div>
           <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Editorial status</span>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Review status</span>
             <p>{report.editorialStatus} &middot; reviewed {report.verificationDate}</p>
           </div>
           <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Reviewer</span>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Reviewed by</span>
             <p>{report.reviewer}</p>
           </div>
           <div>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Treatment</span>
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Authority status</span>
             <p>{report.treatment}</p>
           </div>
           <div className="sm:col-span-2 pt-3 mt-1 border-t border-border/50">
@@ -306,7 +303,7 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
         </div>
 
         <nav className="flex flex-wrap gap-2 mb-8 bg-background p-2 border border-border" aria-label="Report table of contents">
-          {["headnote", "facts", "procedure", "issues", "ratio", "obiter", "orders", "authorities", "paragraphs", "related"].map((id) => (
+           {["headnote", "facts", "procedure", "issues", "ratio", "obiter", "orders", "authorities", "paragraphs"].map((id) => (
             <a href={`#${id}`} key={id} className="px-2 py-1 text-[11px] font-bold text-foreground hover:bg-border/50 capitalize transition-colors">
               {id.replace("-", " ")}
             </a>
@@ -352,10 +349,9 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
 
         <section id="paragraphs" className="mt-8 pt-8 border-t border-border">
           <h3 className="text-lg font-serif mb-6 text-foreground flex items-center gap-2">
-            Verified paragraph pane
-            <span className="text-[10px] font-sans font-bold bg-primary/10 text-primary px-2 py-0.5 uppercase tracking-wider">Anchored</span>
+            Judgment paragraphs
+            <span className="text-[10px] font-sans font-bold bg-primary/10 text-primary px-2 py-0.5 uppercase tracking-wider">Preview</span>
           </h3>
-          <div className="hidden">{pointIds.map((point) => <span id={`p-${point.replace(/[^\w]/g, "")}`} key={point} />)}</div>
           {content.paragraphs.map((paragraph) => (
             <div
               id={`judgment-p-${paragraph.number.replace(/[^\w]/g, "")}`}
@@ -372,7 +368,7 @@ export function ReportReader({ report, onClose }: { report: Report; onClose?: ()
         {/* Since REPORTS is imported, but we don't want cyclic dependency, we can just hide related if not supplied, or supply it. */}
 
         <section className="mt-8 pt-8 border-t border-border">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Editorial history</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Review history</h3>
           <ul className="text-xs text-muted-foreground space-y-2">
             {report.revisionHistory.map((item, i) => <li key={i}>{item}</li>)}
           </ul>
