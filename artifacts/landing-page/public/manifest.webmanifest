@@ -1,0 +1,24 @@
+{
+  "name": "LAWYes — Your Legal Work, Solved.",
+  "short_name": "LAWYes",
+  "description": "LAWYes is an AI-powered legal workspace for Malaysian legal professionals.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#1b3a6b",
+  "icons": [
+    {
+      "src": "/lawyes-logo.png",
+      "sizes": "1384x769",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

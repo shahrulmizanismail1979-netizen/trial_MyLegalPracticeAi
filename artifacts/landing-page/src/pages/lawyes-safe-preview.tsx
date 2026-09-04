@@ -8,6 +8,7 @@ import { MatterView } from "./lawyes-safe-preview/matter";
 import { PracticeView } from "./lawyes-safe-preview/practice";
 import { VerificationView } from "./lawyes-safe-preview/verification";
 import { SkillsView } from "./lawyes-safe-preview/skills";
+import { LawYesInstallAction } from "@/components/lawyes-install-action";
 
 function LawYesBrand({ mobile = false }: { mobile?: boolean }) {
   return (
@@ -228,6 +229,7 @@ export default function LawYesSafePreview() {
 
          {/* Footer */}
          <div className="p-3 border-t border-[hsl(var(--lawyes-sidebar-border))] space-y-1">
+             <LawYesInstallAction />
             <a href="/sign-in" data-testid="link-sidebar-sign-in" className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-[hsl(var(--lawyes-sidebar-text))] transition-all duration-200">
               <LogIn size={16} />
               Sign in to LAWYes
