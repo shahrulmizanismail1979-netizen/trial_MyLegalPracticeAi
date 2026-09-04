@@ -32,3 +32,9 @@ Public LAWYes pages must describe tools in user language only. Internal capabili
 **Why:** The technical capability registry was accidentally exposed as the Tools experience and was immediately rejected as confusing and inappropriate for users.
 
 **How to apply:** Keep audit metadata in code/tests or staff-only administration. Public tool discovery should show the task, practice area, required user inputs, expected outputs, examples, and a clear destination using plain language.
+
+Gmail and Google Drive must use an individual Google connection for each lawyer. The Replit workspace owner's Google connectors are not subscriber integrations and must never be exposed through LAWYes.
+
+**Why:** The user selected one Google account per lawyer, and Replit's managed connectors are workspace-level rather than end-user OAuth. Treating them as subscriber accounts would create a severe cross-user confidentiality breach.
+
+**How to apply:** Keep Google tools disabled until a standard Google OAuth web client is configured. Bind each resulting connection to durable lawyer identity plus the LAWYes tenant, encrypt tokens server-side, use least-privilege scopes, and require explicit confirmation for external side effects.
