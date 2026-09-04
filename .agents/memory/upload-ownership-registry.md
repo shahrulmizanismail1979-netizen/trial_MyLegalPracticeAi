@@ -3,8 +3,8 @@ name: Upload ownership registry must be DB-backed
 description: Presigned-upload ownership binding must persist in the DB, not process memory
 ---
 
-Binding an issued upload objectPath to the requesting subscriber (one-time, owner-checked extraction) must be stored in a DB table (e.g. `lit_pending_uploads`) and consumed atomically via owner-checked `DELETE ... RETURNING`.
+Binding an issued upload object path to its owner and intended parent record (such as a matter) must live in the DB. Long external processing must claim it durably, then atomically attach the result and remove the claim.
 
-**Why:** completion code review rejects in-process `Map` registries: ownership breaks across instances/restarts (owner gets "invalid or expired"). Corp's legal uploads still use the in-memory Map — port the DB pattern when touched. For anonymous/public flows with no authenticated owner, the grant row itself is the proof of server issuance — same consume-atomically pattern, just without an owner column. After adding a schema export, rebuild the committed `lib/db` declaration output (`tsc -b lib/db`) or dependent packages fail typecheck against stale dist.
+**Why:** process-local grants break across restarts. Owner-only grants can be replayed into another record owned by the same user. Deleting after failed ownership creates a cross-tenant IDOR. External work must not hold open or roll back the one-time DB claim.
 
-**How to apply:** register on `/upload-url`, consume atomically in `/extract-stored` before download/delete; failed ownership must NOT delete the object. Also ship a numbered SQL migration in `lib/db/sql/migrations/` AND an idempotent boot-time `CREATE TABLE IF NOT EXISTS` (no automatic migration runner exists). Tests: owner extract, cross-subscriber block (object survives), one-time replay, DB-forced expiry. Lit login uppercases codes — test access codes must be uppercase.
+**How to apply:** never download or delete until an owner-and-parent-bound claim succeeds. Claim before external work; atomically attach and remove on success. On failure/expiry, first mark that exact claim for cleanup; retry storage deletion with a scheduled sweeper.

@@ -16,6 +16,15 @@ export interface ResourceItem {
   date?: string;
   createdAt?: string;
   uri?: string;
+  contentType?: string;
+  extractionMetadata?: {
+    kind: "image" | "audio" | "video";
+    confidence: number | null;
+    warnings: string[];
+    provenance: { timestamps: Array<{ startSec: number; text: string }> };
+  };
+  evidenceVerified?: boolean;
+  extractedText?: string;
 }
 
 export interface WorkspaceAggregate {
@@ -67,7 +76,7 @@ export interface GoogleConnectionStatus {
 
 // Ensure 401 triggers auth reset if needed
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const res = await fetch(url, { ...options, credentials: "include" });
+  const res = await fetch(url, { ...options, credentials: "include", cache: "no-store" });
   if (res.status === 401) {
     window.dispatchEvent(new Event("lawyes:unauthorized"));
     throw new Error("Unauthorized");
@@ -79,7 +88,8 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     throw new Error("Quota Exceeded: You have reached your usage limit.");
   }
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    const body = await res.json().catch(() => null) as { error?: unknown } | null;
+    throw new Error(typeof body?.error === "string" ? body.error : `API error: ${res.status}`);
   }
   return res.json();
 }
@@ -140,5 +150,41 @@ export function useLawyesSaveOutput(matterId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lawyes", "matters", matterId, "workspace"] });
     }
+  });
+}
+
+export async function uploadLawyesEvidence(matterId: string, file: File) {
+  const issued = await fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/evidence/upload-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  const uploaded = await fetch(issued.uploadURL, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!uploaded.ok) throw new Error("The evidence file could not be uploaded.");
+  return fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/evidence/analyse`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      objectPath: issued.objectPath,
+      fileName: file.name,
+      contentType: file.type,
+    }),
+  });
+}
+
+export function useConfirmLawyesEvidence(matterId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) => fetchWithAuth(
+      `/api/lit/lawyes/matters/${matterId}/evidence/${documentId}/confirm`,
+      { method: "POST" },
+    ),
+    onSuccess: () => queryClient.invalidateQueries({
+      queryKey: ["lawyes", "matters", matterId, "workspace"],
+    }),
   });
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput } from "./api";
-import { Loader2, FileText, MessageSquare, CheckSquare, Calendar, Save, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, PenLine, Download } from "lucide-react";
+import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput, uploadLawyesEvidence, useConfirmLawyesEvidence } from "./api";
+import { Loader2, FileText, MessageSquare, CheckSquare, Calendar, Save, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, PenLine, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -86,7 +86,8 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
             <ScrollArea className="flex-1">
               <div className="p-6">
                 <TabsContent value="documents" className="mt-0">
-                  <ResourceList items={data.documents} emptyText="No documents in this matter." icon={FileText} />
+                  <EvidenceUploader matterId={matterId} />
+                  <ResourceList items={data.documents} emptyText="No documents in this matter." icon={FileText} matterId={matterId} />
                 </TabsContent>
                 <TabsContent value="conversations" className="mt-0">
                   <ResourceList items={data.conversations} emptyText="No logged discussions." icon={MessageSquare} />
@@ -120,7 +121,7 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
   );
 }
 
-function ResourceList({ items, emptyText, icon: Icon }: { items: import("./api").ResourceItem[], emptyText: string, icon: any }) {
+function ResourceList({ items, emptyText, icon: Icon, matterId }: { items: import("./api").ResourceItem[], emptyText: string, icon: any, matterId?: string }) {
   if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
@@ -147,9 +148,65 @@ function ResourceList({ items, emptyText, icon: Icon }: { items: import("./api")
                 {new Date(item.date || item.createdAt!).toLocaleDateString()}
               </p>
             )}
+            {item.extractionMetadata && matterId && (
+              <EvidenceStatus item={item} matterId={matterId} />
+            )}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function EvidenceUploader({ matterId }: { matterId: string }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { refetch } = useLawyesMatter(matterId);
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      await uploadLawyesEvidence(matterId, file);
+      await refetch();
+      toast({ title: "Evidence analysed", description: "The original and unverified derived text are attached to this matter." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Evidence analysis failed", description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+  return (
+    <div className="mb-5 rounded-lg border border-dashed border-slate-300 bg-white p-4">
+      <input ref={inputRef} className="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/tiff,audio/*,video/*" onChange={(event) => void onFile(event.target.files?.[0])} />
+      <Button variant="outline" size="sm" disabled={isUploading} onClick={() => inputRef.current?.click()}>
+        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+        Analyse image, audio, or video
+      </Button>
+      <p className="mt-2 text-xs text-slate-500">Derived OCR and transcripts remain unverified until a lawyer confirms them against the original.</p>
+    </div>
+  );
+}
+
+function EvidenceStatus({ item, matterId }: { item: import("./api").ResourceItem; matterId: string }) {
+  const confirm = useConfirmLawyesEvidence(matterId);
+  const meta = item.extractionMetadata!;
+  return (
+    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+      <div className="font-semibold">
+        {item.evidenceVerified ? "Lawyer-confirmed derived text" : "Unverified derived evidence"}
+        {meta.confidence != null ? ` · OCR confidence ${Math.round(meta.confidence)}%` : ""}
+      </div>
+      {meta.warnings?.map((warning, index) => <p key={index} className="mt-1">{warning}</p>)}
+      {meta.provenance?.timestamps?.length > 0 && (
+        <p className="mt-1">{meta.provenance.timestamps.length} timestamped transcript tokens retained with source provenance.</p>
+      )}
+      {!item.evidenceVerified && (
+        <Button className="mt-2 h-7" size="sm" variant="outline" disabled={confirm.isPending} onClick={() => confirm.mutate(item.id)}>
+          Confirm against original
+        </Button>
+      )}
     </div>
   );
 }

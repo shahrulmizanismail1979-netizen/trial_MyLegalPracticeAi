@@ -89,6 +89,11 @@ const instructionSchema = z.object({
   }).optional(),
 });
 
+const evidenceSchema = z.object({
+  objectPath: z.string().startsWith("/objects/").max(2_000),
+  fileName: z.string().trim().min(1).max(300),
+  contentType: z.string().trim().min(1).max(200),
+});
 function accessCodeId(req: Request): number {
   return Number(resolvedAccessCodeId(req));
 }
@@ -107,18 +112,20 @@ router.get("/google/status", async (req, res) => {
     res.json({ configured: false, connected: false });
     return;
   }
-  const result = await pool.query<{
-    email: string;
-    display_name: string | null;
-    granted_scopes: string[];
-    connected_at: Date;
-  }>(
-    `SELECT email, display_name, granted_scopes, connected_at
-       FROM lawyes_google_connections
+    const result = {
+      content: drafted.text.trim(),
+      research: research.trim(),
+      citations,
+      verification,
+      capabilities: ["grounded_legal_research", "matter_aware_review_or_drafting"],
+    };
+
+    const message = err instanceof Error ? err.message : "";
+  const connection = await pool.query<{ encrypted_tokens: string }>(
+    `SELECT encrypted_tokens FROM lawyes_google_connections
       WHERE tenant_id = $1 AND google_subject = $2`,
-    [accessCodeId(req), principal],
+    [tenant, principal],
   );
-  const connection = result.rows[0];
   res.json({
     configured: true,
     connected: Boolean(connection),
@@ -137,7 +144,7 @@ router.get("/google/connect", (req, res) => {
     res.status(503).send("Google connection is not configured");
     return;
   }
-  const state = randomBytes(32).toString("base64url");
+  const state = String(req.query.state ?? "");
   req.session.lawyesGoogleState = state;
   req.session.lawyesGoogleTenantId = accessCodeId(req);
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -183,10 +190,7 @@ router.get("/google/callback", async (req, res) => {
       res.redirect(workspaceReturn("token_exchange"));
       return;
     }
-    const tokens = await tokenResponse.json() as {
-      access_token?: string; refresh_token?: string; expires_in?: number;
-      token_type?: string; scope?: string;
-    };
+  const tokens = decryptGoogleTokens(connection.rows[0].encrypted_tokens, `lawyes:${tenant}:${principal}`);
     if (!tokens.access_token || !tokens.refresh_token) {
       res.redirect(workspaceReturn("offline_access_required"));
       return;
@@ -212,7 +216,7 @@ router.get("/google/callback", async (req, res) => {
       res.redirect(workspaceReturn("profile_unavailable"));
       return;
     }
-    const tenant = expectedTenant;
+  const tenant = accessCodeId(req);
     const binding = `lawyes:${tenant}:${profile.sub}`;
     const encrypted = encryptGoogleTokens({
       accessToken: tokens.access_token,
@@ -424,6 +428,9 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
     objectPath: document.object_path as string,
     fileName: document.file_name as string,
     contentType: document.content_type as string | null,
+    extractionMetadata: document.extraction_metadata as Record<string, unknown> | null,
+    evidenceVerified: document.evidence_verified as boolean,
+    extractedText: document.extracted_text as string | null,
     sizeBytes: document.size_bytes as number,
     pageCount: null,
     notes: document.notes as string | null,
@@ -501,6 +508,21 @@ function safeSavedWork(work: Record<string, unknown>) {
   };
 }
 
+function safeEvidenceMetadata(value: unknown): unknown {
+  if (!value || typeof value !== "object") return null;
+  const metadata = value as Record<string, unknown>;
+  const provenance = metadata.provenance && typeof metadata.provenance === "object"
+    ? metadata.provenance as Record<string, unknown>
+    : {};
+  return {
+    kind: metadata.kind,
+    confidence: metadata.confidence,
+    warnings: metadata.warnings,
+    timestamps: Array.isArray(provenance.timestamps)
+      ? provenance.timestamps.slice(0, 5_000)
+      : [],
+  };
+}
 /** Explicit, practitioner-relevant context for AI; never serialize DB rows. */
 function safeWorkspaceContext(workspace: Awaited<ReturnType<typeof assembleWorkspace>>) {
   const matter = workspace.matter;
@@ -534,6 +556,13 @@ function safeWorkspaceContext(workspace: Awaited<ReturnType<typeof assembleWorks
     uploads: workspace.uploads.map((item) => ({
       id: item.id, title: item.title, fileName: item.fileName,
       contentType: item.contentType, pageCount: item.pageCount,
+      extractedText: "extractedText" in item
+        ? item.extractedText?.slice(0, 100_000) ?? null
+        : null,
+      extractionMetadata: "extractionMetadata" in item
+        ? safeEvidenceMetadata(item.extractionMetadata)
+        : null,
+      evidenceVerified: "evidenceVerified" in item ? item.evidenceVerified : false,
     })),
     conversations: workspace.conversations.map((item) => ({
       id: item.id, title: item.title, createdAt: item.createdAt,
@@ -597,18 +626,32 @@ router.get("/matters", async (req, res) => {
 
 router.get("/matters/:id/workspace", async (req, res) => {
   const matter = await ownedMatter(req, res);
+
+  const { objectPath, fileName, contentType } = parsed.data;
+
+  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
   if (!matter) return;
-  res.json(await assembleWorkspace(matter));
+  try {
+    res.json(await issueLawyesEvidenceUpload(String(matter.accessCodeId)));
+  } catch (err) {
+    logger.error({ err, matterId: matter.id }, "Lawyes evidence upload URL failed");
+    res.status(500).json({ error: "Could not start the evidence upload." });
+  }
 });
 
-router.post("/matters/:id/instructions", async (req, res) => {
-  const parsed = instructionSchema.safeParse(req.body);
+router.post("/matters/:id/evidence/analyse", async (req, res) => {
+  const parsed = saveSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid instruction", issues: parsed.error.issues });
+    res.status(400).json({ error: "Invalid saved work", issues: parsed.error.issues });
     return;
   }
   const matter = await ownedMatter(req, res);
+
+  const { objectPath, fileName, contentType } = parsed.data;
+
+  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
   if (!matter) return;
+  res.setHeader("Cache-Control", "private, no-store");
   const workspace = await assembleWorkspace(matter);
 
   try {
@@ -640,6 +683,8 @@ Instruction: ${parsed.data.instruction}`,
       text: `You are assisting a Malaysian litigation practitioner on ONE owned matter.
 Follow the instruction using the matter workspace and research below. Do not invent facts or
 authorities. Mark anything not established by the file or sources as [VERIFY].
+Derived OCR or transcript text is evidence only when evidenceVerified is true. If false,
+describe it as unverified machine-derived text and mark every factual reliance on it [VERIFY].
 
 INSTRUCTION:
 ${parsed.data.instruction}
@@ -661,15 +706,9 @@ Produce the requested practical review or draft in Markdown.`,
       verification,
       capabilities: ["grounded_legal_research", "matter_aware_review_or_drafting"],
     };
-    const saved = parsed.data.save
-      ? await saveBack(matter, {
-        ...parsed.data.save,
-        content: result.content,
-        instruction: parsed.data.instruction,
-        citations,
-        verification,
-      })
-      : null;
+
+    const message = err instanceof Error ? err.message : "";
+  const saved = await saveBack(matter, parsed.data);
     res.json({ ...result, savedWork: saved?.work ?? null, saveCreated: saved?.created ?? false });
   } catch (err) {
     logger.error({ err, matterId: matter.id }, "Lawyes instruction failed");
@@ -684,9 +723,53 @@ router.post("/matters/:id/save", async (req, res) => {
     return;
   }
   const matter = await ownedMatter(req, res);
+
+  const { objectPath, fileName, contentType } = parsed.data;
+
+  const documentId = z.coerce.number().int().positive().safeParse(req.params.documentId);
   if (!matter) return;
   const saved = await saveBack(matter, parsed.data);
   res.status(saved.created ? 201 : 200).json(saved);
 });
 
 export default router;
+
+      const [metadata] = await file.getMetadata();
+
+  const ownerKey = String(matter.accessCodeId);
+
+      const canonicalType = String(metadata.contentType || contentType);
+
+      const [buffer] = await file.download();
+
+    const safeMessage = /^(Upload reference|Stored file type|Image is empty|Recording is empty|The recording contained no transcribable speech)/.test(message)
+      ? message
+      : "Evidence analysis failed. Please try again.";
+
+      const kind = evidenceKind(canonicalType);
+
+      const file = await lawyesEvidenceObjectStorage.getObjectEntityFile(objectPath);
+
+  const updated = await pool.query(
+    `UPDATE case_documents
+        SET evidence_verified = true, evidence_verified_at = now(), updated_at = now()
+      WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        AND extraction_metadata IS NOT NULL
+      RETURNING *`,
+    [documentId.data, String(matter.accessCodeId), matter.id],
+  );
+
+      const maxBytes = kind === "image"
+        ? IMAGE_EVIDENCE_MAX_BYTES
+        : RECORDING_EVIDENCE_MAX_BYTES;
+
+      const extraction = await extractMediaEvidence({
+        buffer,
+        fileName,
+        contentType: canonicalType,
+        sourceObjectPath: objectPath,
+      });
+
+  const claim = await claimLawyesEvidenceUpload(ownerKey, matter.id, objectPath);
+
+      const size = Number(metadata.size ?? 0);

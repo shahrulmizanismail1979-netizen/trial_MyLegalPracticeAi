@@ -80,6 +80,10 @@ export async function ensureDocumentTables(): Promise<void> {
       category TEXT NOT NULL DEFAULT 'other',
       doc_date DATE,
       notes TEXT,
+      extracted_text TEXT,
+      extraction_metadata JSONB,
+      evidence_verified BOOLEAN NOT NULL DEFAULT false,
+      evidence_verified_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
@@ -87,17 +91,30 @@ export async function ensureDocumentTables(): Promise<void> {
       ON case_documents (portal, owner_key);
     CREATE INDEX IF NOT EXISTS case_documents_matter_idx
       ON case_documents (portal, owner_key, matter_id);
+    ALTER TABLE case_documents ADD COLUMN IF NOT EXISTS extracted_text TEXT;
+    ALTER TABLE case_documents ADD COLUMN IF NOT EXISTS extraction_metadata JSONB;
+    ALTER TABLE case_documents ADD COLUMN IF NOT EXISTS evidence_verified BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE case_documents ADD COLUMN IF NOT EXISTS evidence_verified_at TIMESTAMPTZ;
     CREATE TABLE IF NOT EXISTS case_pending_uploads (
       id SERIAL PRIMARY KEY,
       portal TEXT NOT NULL,
       owner_key TEXT NOT NULL,
+      matter_id INTEGER,
       object_path TEXT NOT NULL UNIQUE,
        purpose TEXT NOT NULL DEFAULT 'document',
+      status TEXT NOT NULL DEFAULT 'pending',
+      claimed_at TIMESTAMPTZ,
       expires_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
      ALTER TABLE case_pending_uploads
        ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'document';
+     ALTER TABLE case_pending_uploads
+       ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
+     ALTER TABLE case_pending_uploads
+       ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+     ALTER TABLE case_pending_uploads
+       ADD COLUMN IF NOT EXISTS matter_id INTEGER;
   `);
 }
 

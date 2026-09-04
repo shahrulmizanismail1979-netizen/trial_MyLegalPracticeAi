@@ -194,6 +194,10 @@ afterAll(async () => {
     ["lit", `/lawyes/${suffix}/%`],
   );
   await pool.query(
+    `DELETE FROM case_pending_uploads WHERE portal = 'lit' AND object_path LIKE $1`,
+    [`/lawyes/${suffix}/%`],
+  );
+  await pool.query(
     `DELETE FROM case_tasks WHERE portal = $1 AND title IN ($2, $3, $4)`,
     ["lit", "Owned canonical task", "Foreign canonical task", "Other matter task"],
   );
@@ -210,7 +214,24 @@ afterAll(async () => {
 describe("MyLitAI Lawyes vertical slice", () => {
   it("requires authentication before the shared AI limiter/capabilities", async () => {
     const before = aiCalls.research;
-    const response = await request(app).get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+      const response = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
+        .send({ instruction: "Research this issue and draft an advice note." });
+
+    const stillBound = await pool.query(
+      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
+      [matterBoundPath],
+    );
+
+    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
+
+    const stillOwned = await pool.query(
+      `SELECT status FROM case_pending_uploads
+        WHERE object_path = $1 AND owner_key = $2`,
+      [foreignPath, String(ownerIds[1])],
+    );
+
+    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
     expect(response.status).toBe(401);
     expect(aiCalls.research).toBe(before);
   });
@@ -223,8 +244,27 @@ describe("MyLitAI Lawyes vertical slice", () => {
     ] as const;
     const previous = names.map((name) => process.env[name]);
     try {
-      for (const name of names) delete process.env[name];
-      const response = await agentA.get("/api/lit/lawyes/google/status");
+      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
+      const response = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
+        .send({ instruction: "Research this issue and draft an advice note." });
+
+    const stillBound = await pool.query(
+      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
+      [matterBoundPath],
+    );
+
+    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
+
+    const stillOwned = await pool.query(
+      `SELECT status FROM case_pending_uploads
+        WHERE object_path = $1 AND owner_key = $2`,
+      [foreignPath, String(ownerIds[1])],
+    );
+
+    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ configured: false, connected: false });
     } finally {
@@ -236,7 +276,7 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 
-  it("starts per-lawyer Google OAuth with least-privilege Gmail and Drive scopes", async () => {
+  it("rejects broader Google permissions instead of retaining incremental grants", async () => {
     const names = [
       "GOOGLE_OAUTH_CLIENT_ID",
       "GOOGLE_OAUTH_CLIENT_SECRET",
@@ -247,7 +287,24 @@ describe("MyLitAI Lawyes vertical slice", () => {
       process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
       process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
       process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
-      const response = await agentA.get("/api/lit/lawyes/google/connect");
+      const response = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
+        .send({ instruction: "Research this issue and draft an advice note." });
+
+    const stillBound = await pool.query(
+      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
+      [matterBoundPath],
+    );
+
+    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
+
+    const stillOwned = await pool.query(
+      `SELECT status FROM case_pending_uploads
+        WHERE object_path = $1 AND owner_key = $2`,
+      [foreignPath, String(ownerIds[1])],
+    );
+
+    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
       expect(response.status).toBe(302);
       const target = new URL(response.headers.location);
       expect(target.origin).toBe("https://accounts.google.com");
@@ -270,7 +327,7 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 
-  it("rejects an OAuth callback after the LAWYes tenant changes", async () => {
+  it("rejects broader Google permissions instead of retaining incremental grants", async () => {
     const names = [
       "GOOGLE_OAUTH_CLIENT_ID",
       "GOOGLE_OAUTH_CLIENT_SECRET",
@@ -282,13 +339,15 @@ describe("MyLitAI Lawyes vertical slice", () => {
       process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
       process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
       const switchingAgent = await login(codeA);
-      const started = await switchingAgent.get("/api/lit/lawyes/google/connect");
+      const started = await scopedAgent.get("/api/lit/lawyes/google/connect");
       const state = new URL(started.headers.location).searchParams.get("state");
       expect((await switchingAgent.post("/api/lit/auth/login").send({ password: codeB })).status).toBe(200);
-      const callback = await switchingAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
+      const callback = await scopedAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
       expect(callback.status).toBe(302);
-      expect(callback.headers.location).toContain("google=invalid_state");
+      expect(callback.headers.location).toContain("google=invalid_scopes");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
+      fetchMock.mockRestore();
       names.forEach((name, index) => {
         const value = previous[index];
         if (value === undefined) delete process.env[name];
@@ -342,6 +401,7 @@ describe("MyLitAI Lawyes vertical slice", () => {
   it("loads the same-owner aggregate and isolates foreign tenants with 404", async () => {
     const ownList = await agentA.get("/api/lit/lawyes/matters");
     expect(ownList.status).toBe(200);
+    expect(ownList.headers["cache-control"]).toContain("no-store");
     expect(ownList.body.map((matter: { id: number }) => matter.id)).toContain(matterId);
 
     const foreignList = await agentB.get("/api/lit/lawyes/matters");
@@ -374,12 +434,34 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(draftTitles).not.toContain("Other matter draft");
     expect(own.body.checklists).toEqual([]);
 
-    const foreign = await agentB.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
-    expect(foreign.status).toBe(404);
-    expect(foreign.body).toEqual({ error: "Matter not found" });
-  });
+    const foreign = await agentB
+      .post(`/api/lit/lawyes/matters/${matterId}/evidence/${documentId}/confirm`);
 
-  it("creates and links conversations only when both conversation and matter are owned", async () => {
+    const inserted = await pool.query<{ id: number }>(
+      `INSERT INTO case_documents
+        (portal, owner_key, matter_id, object_path, file_name, content_type, category,
+         extracted_text, extraction_metadata, evidence_verified)
+       VALUES ('lit', $1, $2, $3, 'hearing.mp4', 'video/mp4', 'evidence', $4, $5::jsonb, false)
+       RETURNING id`,
+      [
+        String(ownerIds[0]),
+        matterId,
+        `/lawyes/${suffix}/hearing.mp4`,
+        "Timestamped hearing transcript",
+        JSON.stringify({
+          kind: "video",
+          confidence: null,
+          warnings: ["Machine transcription is unverified."],
+          provenance: {
+            sourceObjectPath: `/lawyes/${suffix}/hearing.mp4`,
+            timestamps: [{ startSec: 1.2, endSec: 2.1, speaker: "speaker_0", text: "Good morning" }],
+          },
+        }),
+      ],
+    );
+
+    const confirmed = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/evidence/${documentId}/confirm`);
     const created = await agentA.post("/api/lit/gemini/litConversations").send({
       title: "Created for this matter",
       matterId,
@@ -473,6 +555,21 @@ describe("MyLitAI Lawyes vertical slice", () => {
       const response = await agentA
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
+
+    const stillBound = await pool.query(
+      `SELECT status, matter_id FROM case_pending_uploads WHERE object_path = $1`,
+      [matterBoundPath],
+    );
+
+    const foreignPath = `/objects/lawyes/${suffix}/foreign-pending.png`;
+
+    const stillOwned = await pool.query(
+      `SELECT status FROM case_pending_uploads
+        WHERE object_path = $1 AND owner_key = $2`,
+      [foreignPath, String(ownerIds[1])],
+    );
+
+    const matterBoundPath = `/objects/lawyes/${suffix}/matter-bound.png`;
       expect(response.status).toBe(502);
       expect(response.body).toMatchObject({
         code: "sources_unavailable",
@@ -487,3 +584,9 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 });
+
+    const evidence = workspace.body.documents.find((item: { id: number }) => item.id === documentId);
+
+    const workspace = await agentA.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+
+    const documentId = inserted.rows[0]!.id;

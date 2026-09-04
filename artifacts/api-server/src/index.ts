@@ -29,6 +29,7 @@ import { ensureLawyesReportTables } from "./research/editorial/ensureLawyesRepor
 import { seedLawyesEditorialIntake } from "./research/editorial/lawyesIntake";
 import { ensureMatterPreparationSchema } from "./lit/lib/ensureMatterPreparationSchema";
 import { ensureConversationMatterSchema } from "./lit/lib/ensureConversationMatterSchema";
+import { startLawyesEvidenceUploadSweepWorker } from "./lib/lawyesEvidenceUploads";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -343,4 +344,7 @@ void startResearchJobWorker().catch((err) =>
 // indefinitely. An hourly cadence bounds growth to at most TTL + 1 h.
 void startCorpUploadSweepWorker().catch((err) =>
   logger.error({ err }, "Corp upload sweep worker crashed"),
+);
+void startLawyesEvidenceUploadSweepWorker().catch(() =>
+  logger.error("Lawyes evidence upload sweep worker crashed"),
 );
