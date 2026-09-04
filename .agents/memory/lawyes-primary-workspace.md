@@ -20,3 +20,9 @@ The primary workspace should use the official LAWYes logo prominently and derive
 **Why:** The user explicitly asked for brighter branding aligned with the LAWYes logo and a larger, more visible logo.
 
 **How to apply:** Preserve comfortable legal-work contrast, but favour a light cool canvas, branded navy structure, and fresh-green actions. Do not shrink or replace the official logo with an improvised text mark.
+
+Public LAWYes pages must describe tools in user language only. Internal capability-audit metadata—including API routes, adapter boundaries, auth/ownership models, integration readiness, and verification-pending states—must never appear in the customer-facing interface.
+
+**Why:** The technical capability registry was accidentally exposed as the Tools experience and was immediately rejected as confusing and inappropriate for users.
+
+**How to apply:** Keep audit metadata in code/tests or staff-only administration. Public tool discovery should show the task, practice area, required user inputs, expected outputs, examples, and a clear destination using plain language.

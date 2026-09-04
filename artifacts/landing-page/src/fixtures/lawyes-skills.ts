@@ -148,7 +148,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "litigation-ai-toolkit",
     name: "Litigation analysis and drafting toolkit",
-    description: "Implemented specialist tools cover briefs, pleadings review, opinions, affidavits, cross-examination, quantum, hearing preparation, costs, settlement, limitation, and cause-of-action analysis.",
+    description: "Prepare briefs, review pleadings, draft opinions and affidavits, plan cross-examination, assess quantum, prepare for hearings, and analyse costs, settlement, limitation, and causes of action.",
     category: "Litigation",
     currentService: "MyLitAI",
     serviceRoutes: ["/api/lit/ai/*", "/api/lit/matters", "/api/lit/saved-work", "/api/lit/uploads"],
@@ -166,7 +166,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "irac-case-workspace",
     name: "IRAC case workspace",
-    description: "Implemented extraction, issue spotting, research, application, opinion, analysis, drafting, chat, and transcription tools use the IRAC service.",
+    description: "Organise case material using IRAC, identify issues, research legal rules, apply them to the facts, draft opinions, and discuss or transcribe case work.",
     category: "IRAC",
     currentService: "MyLitAI IRAC",
     serviceRoutes: ["/api/lit/irac/extract", "/api/lit/irac/issues", "/api/lit/irac/research", "/api/lit/irac/application", "/api/lit/irac/opinion", "/api/lit/irac/analyze", "/api/lit/irac/draft", "/api/lit/irac/chat"],
@@ -184,7 +184,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "conveyancing-workspace",
     name: "Conveyancing forms, drafting, and matters",
-    description: "Implemented conveyancing workflows include forms, AI drafting, case-law search, document extraction, DOCX export, text-to-speech, and matter work.",
+    description: "Work with conveyancing forms, prepare drafts, search case law, extract documents, export to DOCX, listen to text, and organise matter work.",
     category: "Conveyancing",
     currentService: "MyConveyLitAI",
     serviceRoutes: ["/api/convey/*", "/api/convey/export-docx"],
@@ -202,7 +202,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "corporate-legal-workspace",
     name: "Corporate legal analysis and drafting",
-    description: "An implemented corporate chat/tool service accepts prompts and matter context, with stored-document extraction, matters, clients, billing, and saved work.",
+    description: "Analyse corporate legal questions, prepare drafts, extract documents, and organise related matters, clients, billing, and saved work.",
     category: "Corporate",
     currentService: "MyCorpLegalAI",
     serviceRoutes: ["/api/corp/legal/ai-tools/chat", "/api/corp/legal/uploads/*", "/api/corp/matters", "/api/corp/clients"],
@@ -220,7 +220,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "criminal-ai-toolkit",
     name: "Criminal practice AI toolkit",
-    description: "Implemented tools cover research, case and charge analysis, drafting, cross-examination, witness and judge practice, sentencing, opinions, strategy, and appeal grounds.",
+    description: "Research criminal law, analyse cases and charges, prepare drafts and cross-examination, practise witness or judicial questions, and assess sentencing, strategy, and appeal grounds.",
     category: "Criminal",
     currentService: "MyCrimAI",
     serviceRoutes: ["/api/crim/ai/*"],
@@ -238,7 +238,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "syariah-ai-workspace",
     name: "Syariah research, analysis, and drafting",
-    description: "Implemented tools include smart search, kitab and tafsir analysis, legal opinions, document and cause-paper drafting, intake briefs, compliance analysis, voice, and conversations.",
+    description: "Search Syariah materials, analyse kitab and tafsir, prepare legal opinions, draft documents and cause papers, create intake briefs, check compliance, and work by voice or chat.",
     category: "Syariah",
     currentService: "MySyalitAI",
     serviceRoutes: ["/api/sya/smart-search", "/api/sya/kitab-analysis", "/api/sya/legal-opinion", "/api/sya/document-generator", "/api/sya/client-intake", "/api/sya/compliance-check", "/api/sya/cause-papers", "/api/sya/tafsir", "/api/sya/voice", "/api/sya/gemini"],
@@ -256,7 +256,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "banking-litigation-workspace",
     name: "Corporate and banking litigation workspace",
-    description: "The implemented workspace exposes strategy, chat, calculators, references, case-law, matters, and specialist tools.",
+    description: "Develop corporate and banking litigation strategy using guided chat, calculators, references, case law, matter records, and specialist legal tools.",
     category: "Banking litigation",
     currentService: "MyCorpCommBankLitAI",
     serviceRoutes: ["/api/ccb/*", "Shared corporate/litigation services behind the workspace"],
@@ -274,7 +274,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "accident-claims-workspace",
     name: "Accident analysis, damages, and drafting",
-    description: "Implemented accident tools provide assistant chat, case analysis, damages support, drafting, matters, deadlines, and work files.",
+    description: "Analyse accident claims, assess damages, prepare drafts, discuss case questions, and organise matters, deadlines, and work files.",
     category: "Accident",
     currentService: "MyAccidentAI",
     serviceRoutes: ["/api/accident/ai/chat", "/api/accident/ai/analyze-case", "/api/accident/matters"],
@@ -292,7 +292,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "secure-research-repository",
     name: "Secure legal research repository",
-    description: "Implemented staff tools cover search, judgment reading, quotations, citations, annotations, comparisons, authority tables, case analysis, and headnotes.",
+    description: "Search permitted judgments, read and compare authorities, collect quotations and citations, add annotations, and prepare case analysis and headnotes.",
     category: "Research",
     currentService: "Case Law Research",
     serviceRoutes: ["/api/research/search", "/api/research/judgments/*", "/api/research/workspace/*", "/api/research/analysis/*", "/api/research/authorities/*"],
@@ -310,7 +310,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "research-publication-pipeline",
     name: "Research ingestion and legal-review pipeline",
-    description: "Implemented operational tools register sources, extract and segment documents, validate rights, classify sections, review AI analysis, and publish approved material.",
+    description: "Manage authorised legal sources, prepare documents for review, confirm usage rights, classify sections, review analysis, and publish approved material.",
     category: "Research",
     currentService: "Case Law Research and Research Admin",
     serviceRoutes: ["/api/research/*", "/api/research-admin/*"],
@@ -328,7 +328,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "legal-education-generation",
     name: "Study guides and flashcards",
-    description: "Public rate-limited endpoints generate study guides and flashcards for implemented academic app topics.",
+    description: "Create study guides and flashcards for available Malaysian legal education topics.",
     category: "Education",
     currentService: "MyLawAcad",
     serviceRoutes: ["/api/acad/apps/:slug/study-guide", "/api/acad/apps/:slug/flashcards"],
@@ -346,7 +346,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "legal-exam-workspace",
     name: "Legal assessment and exam workspace",
-    description: "Implemented candidate and teacher flows cover exam creation, materials, questions, rubrics, attempts, AI grading, marking, sign-off, analytics, and proctoring.",
+    description: "Create legal assessments, manage materials, questions and rubrics, complete exam attempts, review assisted grading, sign off marks, and monitor assessment integrity.",
     category: "Education",
     currentService: "MyLawAcad",
     serviceRoutes: ["/api/acad/exams/*", "/api/acad/studio/*", "/api/acad/templates/*"],
@@ -364,7 +364,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "firm-work-management",
     name: "Firm tasks, goals, meetings, and team insights",
-    description: "Implemented firm tools manage tasks, evidence, collaborators, goals/KPIs, meetings, action extraction, dashboards, activity, recognition, and AI briefings.",
+    description: "Manage firm tasks, evidence, collaborators, goals, KPIs, meetings, action items, dashboards, team activity, recognition, and assisted briefings.",
     category: "Firm management",
     currentService: "MyLawFirmAi",
     serviceRoutes: ["/api/firm/tasks/*", "/api/firm/goals/*", "/api/firm/meetings/*", "/api/firm/dashboard", "/api/firm/ai-briefing", "/api/firm/recognition/*"],
@@ -382,7 +382,7 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   {
     id: "firm-operations",
     name: "Firm HR, accounts, voice, and document ingest",
-    description: "Implemented firm operations cover employee self-service, leave, attendance, payroll, budgets, ledgers, financial reports, voice transcription, and task ingest.",
+    description: "Handle employee self-service, leave, attendance, payroll, budgets, ledgers, financial reports, voice transcription, and incoming task material.",
     category: "Firm management",
     currentService: "MyLawFirmAi",
     serviceRoutes: ["/api/firm/hr/*", "/api/firm/accounts/*", "/api/firm/voice/parse", "/api/firm/ingest/*"],
@@ -399,6 +399,15 @@ export const CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze([
   },
 ]);
 
+const INTERNAL_CAPABILITY_IDS = new Set([
+  "secure-research-repository",
+  "research-publication-pipeline",
+]);
+
+export const PUBLIC_CAPABILITY_REGISTRY: readonly Capability[] = Object.freeze(
+  CAPABILITY_REGISTRY.filter((capability) => !INTERNAL_CAPABILITY_IDS.has(capability.id)),
+);
+
 export function findCapabilities(instruction: string, limit = 3): readonly Capability[] {
   const terms = instruction
     .toLowerCase()
@@ -407,7 +416,7 @@ export function findCapabilities(instruction: string, limit = 3): readonly Capab
 
   if (terms.length === 0) return [];
 
-  return CAPABILITY_REGISTRY
+  return PUBLIC_CAPABILITY_REGISTRY
     .map((capability) => {
       const haystack = [
         capability.name,
