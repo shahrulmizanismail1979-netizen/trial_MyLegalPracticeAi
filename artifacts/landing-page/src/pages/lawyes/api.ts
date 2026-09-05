@@ -38,8 +38,43 @@ export interface ResourceItem {
   extractedText?: string;
 
   content?: string;
+
+  resourceType?: "saved-work" | "draft" | "case-document" | "bundle-document";
 }
 
+export interface ResourceDetail {
+  type: "saved-work" | "draft" | "case-document" | "bundle-document";
+  id: number;
+  title: string;
+  kind?: string;
+  content?: string | null;
+  notes?: string | null;
+  instruction?: string | null;
+  citations?: Citation[];
+  verification?: Verification | null;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  originalFile?: boolean;
+  fileUrl?: string | null;
+  derivedText?: string | null;
+  extractionMetadata?: {
+    kind?: string;
+    confidence?: number | null;
+    warnings?: string[];
+    timestamps?: Array<{ startSec: number; text: string }>;
+  } | null;
+  evidenceVerified?: boolean | null;
+  evidenceVerifiedAt?: string | null;
+  versionNumber?: number;
+  language?: string;
+  section?: string | null;
+  documentDate?: string | null;
+  pageCount?: number;
+  bundle?: { id: number; title: string } | null;
+  createdAt?: string;
+  updatedAt?: string;
+  readOnly: true;
+}
 export interface WorkspaceAggregate {
   matter: Matter;
   documents: ResourceItem[];
@@ -173,6 +208,16 @@ export function useLawyesMatter(id?: string) {
   });
 }
 
+export function useLawyesResource(matterId: string, item?: ResourceItem | null) {
+  return useQuery<ResourceDetail>({
+    queryKey: ["lawyes", "matters", matterId, "resource", item?.resourceType, item?.id],
+    queryFn: () => fetchWithAuth(
+      `/api/lit/lawyes/matters/${matterId}/resources/${item!.resourceType}/${item!.id}`,
+    ),
+    enabled: Boolean(item?.resourceType && item?.id),
+    retry: false,
+  });
+}
 export function useLawyesInstruct(matterId: string) {
   const invalidate = useInvalidateLawyes();
   return useMutation<InstructionResponse, Error, { instruction: string; researchMode: "verified_library" | "web" }>({

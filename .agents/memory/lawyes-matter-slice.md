@@ -8,3 +8,9 @@ The first real LAWYes vertical slice is a MyLitAI matter workspace. Treat the nu
 **Why:** A matter ID alone does not establish tenant ownership, and parallel or approximate stores can omit records the lawyer already sees in MyLitAI. Conversation links are optional and explicit; placing unlinked firm conversations into a matter—or guessing from numeric IDs—would disclose unrelated work.
 
 **How to apply:** Extend LAWYes by reusing the selected portal’s auth and canonical matter records. Show a conversation only when its owner and explicit matter link both match the open matter; never infer links for legacy NULL records.
+
+Resource references exposed by an aggregate must include their source namespace, not just a numeric ID. Independent canonical tables can legitimately issue the same serial ID.
+
+**Why:** Resolving an unqualified document ID by checking tables in order can open the wrong authorised record when two source tables contain the same ID, even though all tenant and matter predicates are correct.
+
+**How to apply:** Carry a table-qualified resource type from aggregate row through detail and file routes. Each route branch must query only that source table and re-check tenant, matter, member, grant, and source ownership.

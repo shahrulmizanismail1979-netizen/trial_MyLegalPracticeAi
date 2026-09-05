@@ -62,7 +62,17 @@ vi.mock("../lib/aiProvider", async (importOriginal) => {
   };
 });
 
-const { db, pool, litAccessCodes, litConversations, litMatters, litMatterDeadlines, litSavedWork } =
+const {
+  db,
+  pool,
+  litAccessCodes,
+  litBundleDocuments,
+  litBundles,
+  litConversations,
+  litMatters,
+  litMatterDeadlines,
+  litSavedWork,
+} =
   await import("@workspace/db");
 // Simulate an existing deployed database from before migration 0039. Importing
 // the app must restore the additive column, FK, and index before routes use it.
@@ -242,6 +252,33 @@ beforeAll(async () => {
       "evidence", String(ownerIds[1]), `/lawyes/${suffix}/foreign.pdf`, "Foreign canonical document.pdf",
       otherMatterId, `/lawyes/${suffix}/other.pdf`, "Other matter document.pdf"],
   );
+  const collisionResult = await pool.query<{ id: number }>(
+    `SELECT GREATEST(
+       COALESCE((SELECT MAX(id) FROM case_documents), 0),
+       COALESCE((SELECT MAX(id) FROM lit_bundle_documents), 0)
+     ) + 10000 AS id`,
+  );
+  const collisionId = collisionResult.rows[0]!.id;
+  await pool.query(
+    `INSERT INTO case_documents
+       (id, portal, owner_key, matter_id, object_path, file_name, content_type, category)
+     VALUES ($1, 'lit', $2, $3, $4, 'Collision canonical.pdf', 'application/pdf', 'evidence')`,
+    [collisionId, String(ownerIds[0]), matterId, `/lawyes/${suffix}/collision-canonical.pdf`],
+  );
+  const [collisionBundle] = await db.insert(litBundles).values({
+    accessCodeId: ownerIds[0]!,
+    matterId,
+    title: "Collision bundle",
+  }).returning({ id: litBundles.id });
+  await db.insert(litBundleDocuments).values({
+    id: collisionId,
+    bundleId: collisionBundle.id,
+    accessCodeId: ownerIds[0]!,
+    title: "Collision bundle document.pdf",
+    objectPath: `/lawyes/${suffix}/collision-bundle.pdf`,
+    fileName: "Collision bundle document.pdf",
+    contentType: "application/pdf",
+  });
   await pool.query(
     `INSERT INTO case_tasks (portal, owner_key, matter_id, title)
      VALUES ($1, $2, $3, $4), ($1, $5, $3, $6), ($1, $2, $7, $8)`,
@@ -588,6 +625,14 @@ describe("MyLitAI Lawyes vertical slice", () => {
       canWrite: false,
       canUseConnectors: false,
     });
+    const viewerResearch = viewerWorkspace.body.research[0] as { id: number; resourceType: string };
+    expect((await memberAgent.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${viewerResearch.resourceType}/${viewerResearch.id}`,
+    )).status).toBe(200);
+    const viewerDocument = viewerWorkspace.body.documents[0] as { id: number };
+    expect((await memberAgent.post(
+      `/api/lit/lawyes/matters/${matterId}/evidence/${viewerDocument.id}/confirm`,
+    )).status).toBe(404);
     expect((await memberAgent.post(`/api/lit/lawyes/matters/${matterId}/save`).send({
       title: "Viewer cannot save",
       content: "Still read-only",
@@ -625,11 +670,13 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(own.body.conversations.map((conversation: { title: string }) => conversation.title))
       .not.toContain("Unlinked legacy discussion");
     const documentTitles = own.body.documents.map((document: { title: string }) => document.title);
-    expect(documentTitles).toEqual(["Owned canonical document.pdf"]);
+    expect(documentTitles).toContain("Owned canonical document.pdf");
+    expect(documentTitles).toContain("Collision canonical.pdf");
+    expect(documentTitles).toContain("Collision bundle document.pdf");
     expect(documentTitles).not.toContain("Foreign canonical document.pdf");
     expect(documentTitles).not.toContain("Other matter document.pdf");
     expect(own.body.uploads.map((document: { title: string }) => document.title))
-      .toEqual(["Owned canonical document.pdf"]);
+      .toEqual(expect.arrayContaining(["Owned canonical document.pdf", "Collision canonical.pdf"]));
     const taskTitles = own.body.tasks.map((task: { title: string }) => task.title);
     expect(taskTitles).toEqual(["Owned canonical task"]);
     expect(taskTitles).not.toContain("Foreign canonical task");
@@ -640,6 +687,73 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(draftTitles).not.toContain("Foreign canonical draft");
     expect(draftTitles).not.toContain("Other matter draft");
     expect(own.body.checklists).toEqual([]);
+
+    const research = own.body.research[0] as { id: number; resourceType: string };
+    expect(research.resourceType).toBe("saved-work");
+    const researchDetail = await agentA.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${research.resourceType}/${research.id}`,
+    );
+    expect(researchDetail.status).toBe(200);
+    expect(researchDetail.body).toMatchObject({
+      title: "Existing research",
+      content: "Existing source-bearing work",
+      readOnly: true,
+      citations: [{ title: "Existing source", uri: "https://example.test/existing" }],
+    });
+
+    const draft = own.body.drafts.find(
+      (item: { title: string }) => item.title === "Version two canonical draft",
+    ) as { id: number; resourceType: string };
+    expect(draft.resourceType).toBe("draft");
+    const draftDetail = await agentA.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${draft.resourceType}/${draft.id}`,
+    );
+    expect(draftDetail.status).toBe(200);
+    expect(draftDetail.body).toMatchObject({
+      title: "Version two canonical draft",
+      content: "v2",
+      versionNumber: 2,
+      readOnly: true,
+    });
+
+    const document = own.body.documents.find(
+      (item: { title: string }) => item.title === "Owned canonical document.pdf",
+    ) as { id: number; resourceType: string };
+    expect(document.resourceType).toBe("case-document");
+    const documentDetail = await agentA.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${document.resourceType}/${document.id}`,
+    );
+    expect(documentDetail.status).toBe(200);
+    expect(documentDetail.body).toMatchObject({
+      title: "Owned canonical document.pdf",
+      originalFile: true,
+      readOnly: true,
+    });
+    expect(documentDetail.body.fileUrl).toBe(
+      `/api/lit/lawyes/matters/${matterId}/resources/case-document/${document.id}/file`,
+    );
+    expect((await agentA.get(
+      `/api/lit/lawyes/matters/${otherMatterId}/resources/case-document/${document.id}`,
+    )).status).toBe(404);
+    expect((await agentB.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/case-document/${document.id}`,
+    )).status).toBe(404);
+
+    const collisionCanonical = own.body.documents.find(
+      (item: { title: string }) => item.title === "Collision canonical.pdf",
+    ) as { id: number; resourceType: string };
+    const collisionBundle = own.body.documents.find(
+      (item: { title: string }) => item.title === "Collision bundle document.pdf",
+    ) as { id: number; resourceType: string };
+    expect(collisionCanonical.id).toBe(collisionBundle.id);
+    expect(collisionCanonical.resourceType).toBe("case-document");
+    expect(collisionBundle.resourceType).toBe("bundle-document");
+    expect((await agentA.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${collisionCanonical.resourceType}/${collisionCanonical.id}`,
+    )).body.title).toBe("Collision canonical.pdf");
+    expect((await agentA.get(
+      `/api/lit/lawyes/matters/${matterId}/resources/${collisionBundle.resourceType}/${collisionBundle.id}`,
+    )).body.title).toBe("Collision bundle document.pdf");
 
     const foreign = await agentB.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
     expect(foreign.status).toBe(404);

@@ -65,7 +65,7 @@
 - [Artifact-aware publish preflight](artifact-aware-publish-preflight.md) — recursive builds omit manifest env; validate each web build with its own PORT and BASE_PATH.
 - [Decision preservation](decision-preservation.md) — explicit user decisions are hard constraints; re-check them before proposing, editing, or “improving” settled behavior.
 - [LAWYes primary workspace](lawyes-primary-workspace.md) — LAWYes is the main mylegalpracticeai.life experience; specialist portals remain capabilities behind it, not the front door.
-- [LAWYes first matter slice](lawyes-matter-slice.md) — LAWYes reuses MyLitAI’s access-code tenant and canonical matter stores; never infer matter conversations without an explicit link.
+- [LAWYes first matter slice](lawyes-matter-slice.md) — reuse MyLitAI tenant/stores; source-qualify aggregate resource IDs and never infer matter conversation links.
 - [LAWYes member authorization](lawyes-member-authorization.md) — named members stay on grant-aware LAWYes routes; personal credentials must never enter plaintext SSO-link storage.
 - [LAWYes research source policy](lawyes-research-source-policy.md) — verified-library research fails closed; public-web research is separate, explicit, and visibly unverified.
 - [Reviewed external exports](reviewed-external-exports.md) — snapshot approved content before export and persist per-file remote identity so retries never change or duplicate reviewed work.

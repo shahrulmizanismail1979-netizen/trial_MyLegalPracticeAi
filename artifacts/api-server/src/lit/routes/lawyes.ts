@@ -162,6 +162,21 @@ const drivePreviewSchema = z.object({
     .refine((ids) => new Set(ids).size === ids.length, "Duplicate output ids are not allowed"),
 });
 const driveConfirmSchema = z.object({ confirmationToken: z.string().min(32).max(200), confirmed: z.literal(true) });
+const resourceTypeSchema = z.enum(["saved-work", "draft", "case-document", "bundle-document"]);
+const resourceIdSchema = z.coerce.number().int().positive();
+const INLINE_CONTENT_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/wav",
+  "audio/webm",
+  "video/mp4",
+  "video/webm",
+]);
 
 function accessCodeId(req: Request): number {
   return Number((req as Request & { accessCodeId?: number }).accessCodeId);
@@ -680,6 +695,7 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
   const bundleDocs = bundleDocuments.map(({ document, bundle }) => ({
     ...document,
     bundle: { id: bundle.id, title: bundle.title },
+    resourceType: "bundle-document" as const,
   }));
   // Both document seams can reference the same stored object. Canonical
   // case_documents wins so an uploaded file appears once in the workspace.
@@ -700,6 +716,7 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
     pageCount: null,
     notes: document.notes as string | null,
     bundle: null,
+    resourceType: "case-document" as const,
   })), ...bundleDocs].filter((document, index, all) => {
     const key = document.objectPath ?? `bundle:${document.id}`;
     return all.findIndex((candidate) =>
@@ -724,14 +741,150 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
     outputs: savedWork.filter((item) => {
       const input = item.inputJson as Record<string, unknown> | null;
       return input?.lawyes === true || /^lawyes(?:-|$)/i.test(item.kind);
-    }),
-    research: sourceBearing,
+    }).map((item) => ({ ...item, resourceType: "saved-work" as const })),
+    research: sourceBearing.map((item) => ({ ...item, resourceType: "saved-work" as const })),
     // A researched draft legitimately appears in both views: "research" is
     // source-bearing work, while "drafts" is based on the saved-work kind.
     drafts: [
-      ...savedWork.filter((item) => /draft|pleading|submission|opinion|advice/i.test(item.kind)),
-      ...sharedDrafts,
+      ...savedWork
+        .filter((item) => /draft|pleading|submission|opinion|advice/i.test(item.kind))
+        .map((item) => ({ ...item, resourceType: "saved-work" as const })),
+      ...sharedDrafts.map((item) => ({ ...item, resourceType: "draft" as const })),
     ],
+  };
+}
+
+async function authorisedResource(
+  matter: typeof litMatters.$inferSelect,
+  type: z.infer<typeof resourceTypeSchema>,
+  resourceId: number,
+) {
+  const ownerKey = String(matter.accessCodeId);
+  if (type === "saved-work") {
+    const [work] = await db.select().from(litSavedWork).where(and(
+      eq(litSavedWork.id, resourceId),
+      eq(litSavedWork.accessCodeId, matter.accessCodeId),
+      eq(litSavedWork.matterId, matter.id),
+    )).limit(1);
+    if (!work) return null;
+    const input = withoutIdentityFields(work.inputJson) as Record<string, unknown> | null;
+    return {
+      type,
+      id: work.id,
+      title: work.title,
+      kind: work.kind,
+      content: work.content,
+      createdAt: work.createdAt,
+      updatedAt: work.updatedAt,
+      citations: Array.isArray(input?.citations) ? input.citations : [],
+      verification: input?.verification ?? null,
+      instruction: typeof input?.instruction === "string" ? input.instruction : null,
+      readOnly: true,
+    };
+  }
+  if (type === "draft") {
+    const result = await pool.query(
+      `SELECT id, root_id, version_number, kind, letter_type, language, title, content,
+              notes, created_at, updated_at
+         FROM case_drafts
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        LIMIT 1`,
+      [resourceId, ownerKey, matter.id],
+    );
+    const draft = result.rows[0];
+    return draft ? {
+      type,
+      id: draft.id,
+      title: draft.title,
+      kind: draft.kind,
+      content: draft.content,
+      notes: draft.notes,
+      language: draft.language,
+      versionNumber: draft.version_number,
+      createdAt: draft.created_at,
+      updatedAt: draft.updated_at,
+      citations: [],
+      verification: null,
+      readOnly: true,
+    } : null;
+  }
+
+  if (type === "case-document") {
+    const caseDocument = await pool.query(
+      `SELECT id, file_name, content_type, size_bytes, category, notes, object_path,
+              extracted_text, extraction_metadata, evidence_verified,
+              evidence_verified_at, created_at, updated_at
+         FROM case_documents
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        LIMIT 1`,
+      [resourceId, ownerKey, matter.id],
+    );
+    const document = caseDocument.rows[0];
+    if (!document) return null;
+    return {
+      type,
+      id: document.id,
+      title: document.file_name,
+      kind: document.category,
+      contentType: document.content_type,
+      sizeBytes: document.size_bytes,
+      notes: document.notes,
+      originalFile: Boolean(document.object_path),
+      fileUrl: document.object_path
+        ? `/api/lit/lawyes/matters/${matter.id}/resources/case-document/${document.id}/file`
+        : null,
+      derivedText: document.extracted_text,
+      extractionMetadata: safeEvidenceMetadata(document.extraction_metadata),
+      evidenceVerified: document.evidence_verified,
+      evidenceVerifiedAt: document.evidence_verified_at,
+      createdAt: document.created_at,
+      updatedAt: document.updated_at,
+      readOnly: true,
+    };
+  }
+
+  const bundleDocument = await db.select({ document: litBundleDocuments, bundle: litBundles })
+    .from(litBundleDocuments)
+    .innerJoin(litBundles, and(
+      eq(litBundleDocuments.bundleId, litBundles.id),
+      eq(litBundles.accessCodeId, matter.accessCodeId),
+      eq(litBundles.matterId, matter.id),
+    ))
+    .where(and(
+      eq(litBundleDocuments.id, resourceId),
+      eq(litBundleDocuments.accessCodeId, matter.accessCodeId),
+    )).limit(1);
+  const row = bundleDocument[0];
+  if (!row) return null;
+  let linkedContent: string | null = null;
+  if (row.document.savedWorkId) {
+    const [linked] = await db.select({ content: litSavedWork.content }).from(litSavedWork).where(and(
+      eq(litSavedWork.id, row.document.savedWorkId),
+      eq(litSavedWork.accessCodeId, matter.accessCodeId),
+      eq(litSavedWork.matterId, matter.id),
+    )).limit(1);
+    linkedContent = linked?.content ?? null;
+  }
+  return {
+    type,
+    id: row.document.id,
+    title: row.document.title,
+    kind: row.document.docType,
+    section: row.document.section,
+    documentDate: row.document.docDate,
+    pageCount: row.document.pageCount,
+    bundle: { id: row.bundle.id, title: row.bundle.title },
+    contentType: row.document.contentType,
+    sizeBytes: row.document.sizeBytes,
+    content: linkedContent,
+    originalFile: Boolean(row.document.objectPath),
+    fileUrl: row.document.objectPath
+      ? `/api/lit/lawyes/matters/${matter.id}/resources/bundle-document/${row.document.id}/file`
+      : null,
+    derivedText: null,
+    extractionMetadata: null,
+    evidenceVerified: null,
+    readOnly: true,
   };
 }
 
@@ -1051,6 +1204,83 @@ router.post("/matters/:id/google/drive/export-confirm", async (req, res) => {
     logger.warn({matterId:matter.id,error:error instanceof Error ? error.message : "unknown"},"LAWYes Drive export failed");
     const files = await pool.query<{output_id:string;filename:string;drive_file_id:string|null;drive_web_view_link:string|null;status:string}>(`SELECT output_id,filename,drive_file_id,drive_web_view_link,status FROM lawyes_drive_export_items WHERE review_id=$1 ORDER BY output_id`,[review.id]);
     res.status(502).json({error:"Google Drive export failed; review remains available for an explicit retry",retryable:true,files:files.rows.map((x) => ({outputId:Number(x.output_id),id:x.drive_file_id,name:x.filename,webViewLink:x.drive_web_view_link ?? undefined,status:x.status}))});
+  }
+});
+
+router.get("/matters/:id/resources/:type/:resourceId", async (req, res) => {
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const type = resourceTypeSchema.safeParse(req.params.type);
+  const resourceId = resourceIdSchema.safeParse(req.params.resourceId);
+  if (!type.success || !resourceId.success) {
+    res.status(400).json({ error: "Invalid resource reference" });
+    return;
+  }
+  const resource = await authorisedResource(matter, type.data, resourceId.data);
+  if (!resource) return void res.status(404).json({ error: "Resource not found" });
+  res.json(resource);
+});
+
+router.get("/matters/:id/resources/:type/:resourceId/file", async (req, res) => {
+  const matter = await ownedMatter(req, res);
+  if (!matter) return;
+  const type = z.enum(["case-document", "bundle-document"]).safeParse(req.params.type);
+  const resourceId = resourceIdSchema.safeParse(req.params.resourceId);
+  if (!type.success || !resourceId.success) {
+    return void res.status(400).json({ error: "Invalid resource reference" });
+  }
+  const resource = await authorisedResource(matter, type.data, resourceId.data);
+  if (!resource || !("fileUrl" in resource) || !resource.fileUrl) {
+    return void res.status(404).json({ error: "File not found" });
+  }
+  const ownerKey = String(matter.accessCodeId);
+  let fileRecord: { object_path: string; file_name: string; content_type: string | null } | undefined;
+  if (type.data === "case-document") {
+    const caseFile = await pool.query<{ object_path: string; file_name: string; content_type: string | null }>(
+      `SELECT object_path, file_name, content_type FROM case_documents
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3`,
+      [resourceId.data, ownerKey, matter.id],
+    );
+    fileRecord = caseFile.rows[0];
+  } else {
+    const [bundleFile] = await db.select({
+      objectPath: litBundleDocuments.objectPath,
+      fileName: litBundleDocuments.fileName,
+      contentType: litBundleDocuments.contentType,
+    }).from(litBundleDocuments).innerJoin(litBundles, and(
+      eq(litBundleDocuments.bundleId, litBundles.id),
+      eq(litBundles.accessCodeId, matter.accessCodeId),
+      eq(litBundles.matterId, matter.id),
+    )).where(and(
+      eq(litBundleDocuments.id, resourceId.data),
+      eq(litBundleDocuments.accessCodeId, matter.accessCodeId),
+    )).limit(1);
+    if (bundleFile?.objectPath) {
+      fileRecord = {
+        object_path: bundleFile.objectPath,
+        file_name: bundleFile.fileName ?? "document",
+        content_type: bundleFile.contentType,
+      };
+    }
+  }
+  if (!fileRecord?.object_path) return void res.status(404).json({ error: "File not found" });
+  try {
+    const file = await lawyesEvidenceObjectStorage.getObjectEntityFile(fileRecord.object_path);
+    const response = await lawyesEvidenceObjectStorage.downloadObject(file, 0);
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() !== "cache-control") res.setHeader(key, value);
+    });
+    const contentType = fileRecord.content_type ?? "application/octet-stream";
+    if (!INLINE_CONTENT_TYPES.has(contentType)) res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(fileRecord.file_name)}`);
+    if (!response.body) return void res.status(404).end();
+    const { Readable } = await import("node:stream");
+    Readable.fromWeb(response.body as import("node:stream/web").ReadableStream).pipe(res);
+  } catch (err) {
+    logger.warn({ err, matterId: matter.id, resourceId: resourceId.data }, "LAWYes resource file unavailable");
+    res.status(404).json({ error: "File not found" });
   }
 });
 

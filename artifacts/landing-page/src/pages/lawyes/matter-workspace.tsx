@@ -9,20 +9,22 @@ import {
   useLawyesGoogleConnection,
   useLawyesInstruct,
   useLawyesMatter,
+  useLawyesResource,
   useLawyesSaveOutput,
   uploadLawyesEvidence,
 } from "./api";
-import type { ResourceItem, WorkspaceAggregate } from "./api";
 import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, Download, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import type { ResourceDetail, ResourceItem, WorkspaceAggregate } from "./api";
 
 export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, onShareClick: () => void }) {
   const { data, isLoading, error } = useLawyesMatter(matterId);
   const [railOpen, setRailOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
   
   if (isLoading) {
     return (
@@ -110,14 +112,20 @@ export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, 
           lg:relative lg:w-80 lg:transform-none lg:flex
           ${railOpen ? 'translate-x-0 shadow-[-10px_0_20px_rgba(0,0,0,0.1)] lg:shadow-none' : 'translate-x-full lg:translate-x-0'}
         `}>
-          <ContextualRail data={data} matterId={matterId} onClose={() => setRailOpen(false)} />
+          <ContextualRail data={data} matterId={matterId} onClose={() => setRailOpen(false)} onOpen={(item) => {
+            setSelectedResource(item);
+            setRailOpen(false);
+          }} />
         </div>
+        {selectedResource && (
+          <ResourceViewer matterId={matterId} item={selectedResource} onClose={() => setSelectedResource(null)} />
+        )}
       </div>
     </div>
   );
 }
 
-function ContextualRail({ data, matterId, onClose }: { data: WorkspaceAggregate; matterId: string; onClose: () => void }) {
+function ContextualRail({ data, matterId, onClose, onOpen }: { data: WorkspaceAggregate; matterId: string; onClose: () => void; onOpen: (item: ResourceItem) => void }) {
   return (
     <div className="flex flex-col h-full">
        <div className="h-10 flex items-center justify-between px-4 md:px-5 border-b border-slate-200 shrink-0 bg-white">
@@ -137,21 +145,16 @@ function ContextualRail({ data, matterId, onClose }: { data: WorkspaceAggregate;
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
           <RailSection title="Progress">
-            <ResourceRailList items={[...(data.tasks || []), ...(data.checklists || [])]} empty="No active progress items." matterId={matterId} />
+            <ResourceRailList items={[...(data.tasks || []), ...(data.checklists || [])]} empty="No active progress items." matterId={matterId} onOpen={onOpen} />
           </RailSection>
 
           <RailSection title="Outputs">
-            <ResourceRailList items={[...(data.outputs || []), ...(data.drafts || [])]} empty="No saved outputs." matterId={matterId} />
+             <ResourceRailList items={[...(data.outputs || []), ...(data.drafts || [])]} empty="No saved outputs." matterId={matterId} onOpen={onOpen} />
           </RailSection>
 
            <RailSection title="Sources" action={data.permissions.canWrite ? <SourceUploadAction matterId={matterId} /> : undefined}>
              <GoogleConnectionStatus canUseConnectors={data.permissions.canUseConnectors} />
-            <ResourceRailList
-              items={[...(data.documents || []), ...(data.uploads || []), ...(data.research || [])]}
-              empty="No sources added."
-              matterId={matterId}
-              canConfirmEvidence={data.permissions.canWrite}
-            />
+             <ResourceRailList items={[...(data.documents || []), ...(data.uploads || []), ...(data.research || [])]} empty="No sources added." matterId={matterId} onOpen={onOpen} canConfirmEvidence={data.permissions.canWrite} />
           </RailSection>
 
           {data.permissions.canUseConnectors && (
@@ -161,7 +164,7 @@ function ContextualRail({ data, matterId, onClose }: { data: WorkspaceAggregate;
           )}
 
           <RailSection title="Scheduled">
-            <ResourceRailList items={[...(data.deadlines || []), ...(data.events || [])]} empty="No upcoming dates." matterId={matterId} />
+            <ResourceRailList items={[...(data.deadlines || []), ...(data.events || [])]} empty="No upcoming dates." matterId={matterId} onOpen={onOpen} />
           </RailSection>
         </div>
       </ScrollArea>
@@ -189,32 +192,43 @@ function ResourceRailList({
   items,
   empty,
   matterId,
+  onOpen,
   canConfirmEvidence = false,
 }: {
   items: ResourceItem[];
   empty: string;
   matterId?: string;
+  onOpen: (item: ResourceItem) => void;
   canConfirmEvidence?: boolean;
 }) {
   if (!items || items.length === 0) {
      return <div className="px-2 py-1 text-[11px] text-slate-400">{empty}</div>
   }
+  const uniqueItems = items.filter((item, index, all) => all.findIndex((candidate) =>
+    candidate.resourceType === item.resourceType && candidate.id === item.id,
+  ) === index);
   return (
     <div className="space-y-0.5">
-       {items.map((item, i) => (
-          <div key={item.id || i} className="flex flex-col px-2 py-1.5 rounded-lg transition-colors" data-testid={`context-item-${item.id || i}`}>
+       {uniqueItems.map((item, i) => (
+          <div
+            key={`${item.resourceType || "summary"}-${item.id || i}`}
+            className={`flex flex-col px-2 py-1.5 rounded-lg transition-colors ${item.resourceType ? "cursor-pointer hover:bg-slate-200/70 focus-within:bg-slate-200/70" : ""}`}
+            data-testid={`context-item-${item.id || i}`}
+          >
+            <button type="button" disabled={!item.resourceType} onClick={() => item.resourceType && onOpen(item)} className="text-left disabled:cursor-default" data-testid={item.resourceType ? `button-open-resource-${item.resourceType}-${item.id}` : undefined}>
              <div className="flex items-start gap-2">
                <FileText className="w-3.5 h-3.5 text-primary/60 shrink-0 mt-0.5" />
                <div className="flex-1 min-w-0">
                   <p className="text-[13px] text-slate-700 line-clamp-2 break-words leading-relaxed font-medium">{item.title || item.name || item.item_text || "Untitled"}</p>
                </div>
              </div>
+            </button>
              {item.extractionMetadata && matterId && (
                <div className="pl-5 mt-1.5">
                  {item.evidenceVerified ? (
                     <span className="inline-block px-1.5 py-0.5 rounded-[4px] bg-primary/10 text-[9px] text-primary font-bold uppercase tracking-wider">Verified</span>
-                 ) : (
-                    <RailEvidenceStatus item={item} matterId={matterId} canConfirm={canConfirmEvidence} />
+                   ) : (
+                     <RailEvidenceStatus item={item} matterId={matterId} canConfirm={canConfirmEvidence} />
                  )}
                </div>
              )}
@@ -733,12 +747,16 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                         Reset
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={handleCopy} data-testid="workbench-action-copy" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
-                      <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleDownload} data-testid="workbench-action-download" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
-                      <Download className="w-3.5 h-3.5 mr-1.5" /> Download MD
-                    </Button>
+                    {canWrite && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={handleCopy} data-testid="workbench-action-copy" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
+                          <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleDownload} data-testid="workbench-action-download" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
+                          <Download className="w-3.5 h-3.5 mr-1.5" /> Download MD
+                        </Button>
+                      </>
+                    )}
                   </div>
                   {canWrite && (
                     <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-5 rounded-lg">
@@ -902,4 +920,94 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
       )}
     </div>
   );
+}
+
+function ResourceViewer({ matterId, item, onClose }: { matterId: string; item: ResourceItem; onClose: () => void }) {
+  const { data, isLoading, error } = useLawyesResource(matterId, item);
+  return (
+    <div className="absolute inset-0 z-40 flex justify-end bg-slate-950/20 backdrop-blur-[1px]" role="dialog" aria-modal="true" aria-label="Resource details">
+      <button type="button" className="absolute inset-0" onClick={onClose} aria-label="Close resource details" />
+      <section className="relative flex h-full w-full flex-col bg-white shadow-2xl md:w-[min(46rem,calc(100%-2rem))] md:border-l md:border-slate-200" data-testid="lawyes-resource-viewer">
+        <header className="flex min-h-16 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 md:px-6">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2">
+              <Badge variant="secondary" className="text-[9px] uppercase tracking-wider">Read-only</Badge>
+              {data?.kind && <span className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">{data.kind}</span>}
+            </div>
+            <h2 className="truncate font-serif text-lg font-medium text-slate-900">{data?.title || item.title || item.name || "Resource"}</h2>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close resource details" data-testid="button-close-resource-viewer"><X className="h-5 w-5" /></Button>
+        </header>
+        <ScrollArea className="flex-1">
+          <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-8">
+            {isLoading && <div className="flex justify-center py-24"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>}
+            {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error.message}</div>}
+            {data && <ResourceDetailContent detail={data} />}
+          </div>
+        </ScrollArea>
+      </section>
+    </div>
+  );
+}
+
+function ResourceDetailContent({ detail }: { detail: ResourceDetail }) {
+  const mediaType = detail.contentType?.split(";")[0];
+  return (
+    <>
+      {detail.originalFile && detail.fileUrl && (
+        <section>
+          <DetailHeading>Original file</DetailHeading>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+            {mediaType?.startsWith("image/") && <img src={detail.fileUrl} alt={detail.title} className="max-h-[65vh] w-full object-contain" />}
+            {mediaType?.startsWith("audio/") && <audio src={detail.fileUrl} controls controlsList="nodownload" className="w-full p-4" />}
+            {mediaType?.startsWith("video/") && <video src={detail.fileUrl} controls controlsList="nodownload" className="max-h-[65vh] w-full" />}
+            {mediaType === "application/pdf" && <iframe src={detail.fileUrl} title={detail.title} className="h-[65vh] w-full" />}
+            {!mediaType?.startsWith("image/") && !mediaType?.startsWith("audio/") && !mediaType?.startsWith("video/") && mediaType !== "application/pdf" && (
+              <div className="p-5 text-sm text-slate-600">This original file type cannot be safely previewed in the workspace.</div>
+            )}
+          </div>
+        </section>
+      )}
+      {detail.content && <section><DetailHeading>Record content</DetailHeading><div className="prose prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-5 text-sm leading-relaxed md:p-7"><WorkbenchPreview content={detail.content} /></div></section>}
+      {detail.derivedText && (
+        <section>
+          <div className="flex items-center justify-between gap-3"><DetailHeading>Machine-derived OCR / transcript</DetailHeading><Badge className={detail.evidenceVerified ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-800"}>{detail.evidenceVerified ? "Verified" : "Unverified"}</Badge></div>
+          <div className="whitespace-pre-wrap rounded-xl border border-amber-200 bg-amber-50/50 p-5 text-sm leading-relaxed text-slate-800">{detail.derivedText}</div>
+          {detail.extractionMetadata && <p className="mt-2 text-xs text-slate-500">Extraction: {detail.extractionMetadata.kind}{detail.extractionMetadata.confidence != null ? ` · ${Math.round(detail.extractionMetadata.confidence * 100)}% confidence` : ""}</p>}
+          {detail.extractionMetadata?.warnings && detail.extractionMetadata.warnings.length > 0 && (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-800">
+              {detail.extractionMetadata.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
+            </ul>
+          )}
+          {detail.extractionMetadata?.timestamps && detail.extractionMetadata.timestamps.length > 0 && (
+            <div className="mt-4">
+              <DetailHeading>Transcript provenance</DetailHeading>
+              <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+                {detail.extractionMetadata.timestamps.map((timestamp, index) => (
+                  <div key={`${timestamp.startSec}-${index}`} className="grid grid-cols-[3.5rem_1fr] gap-2 text-xs">
+                    <span className="font-mono text-slate-400">{formatEvidenceTime(timestamp.startSec)}</span>
+                    <span className="text-slate-700">{timestamp.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+      {detail.citations && detail.citations.length > 0 && <section><DetailHeading>Citations</DetailHeading><div className="space-y-2">{detail.citations.map((citation, index) => <a key={`${citation.uri}-${index}`} href={citation.uri} target="_blank" rel="noreferrer noopener" className="block rounded-lg border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-primary/40 hover:text-primary">{citation.title}</a>)}</div></section>}
+      {detail.verification && <section><DetailHeading>Verification state</DetailHeading><div className={`rounded-xl border p-4 text-sm ${detail.verification.verified ? "border-primary/20 bg-primary/5" : "border-amber-200 bg-amber-50"}`}><strong className="block">{detail.verification.status}</strong>{detail.verification.guidance && <p className="mt-2 leading-relaxed">{detail.verification.guidance}</p>}</div></section>}
+      {detail.notes && <section><DetailHeading>Notes</DetailHeading><p className="whitespace-pre-wrap rounded-xl border border-slate-200 p-4 text-sm text-slate-700">{detail.notes}</p></section>}
+      {!detail.originalFile && !detail.content && !detail.derivedText && <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">This record contains metadata only; no original file or text content is stored.</div>}
+    </>
+  );
+}
+
+function DetailHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{children}</h3>;
+}
+
+function formatEvidenceTime(seconds: number) {
+  const wholeSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(wholeSeconds / 60);
+  return `${minutes}:${String(wholeSeconds % 60).padStart(2, "0")}`;
 }
