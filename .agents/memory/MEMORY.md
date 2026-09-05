@@ -67,3 +67,4 @@
 - [LAWYes primary workspace](lawyes-primary-workspace.md) — LAWYes is the main mylegalpracticeai.life experience; specialist portals remain capabilities behind it, not the front door.
 - [LAWYes first matter slice](lawyes-matter-slice.md) — LAWYes reuses MyLitAI’s access-code tenant and canonical matter stores; never infer matter conversations without an explicit link.
 - [LAWYes member authorization](lawyes-member-authorization.md) — named members stay on grant-aware LAWYes routes; personal credentials must never enter plaintext SSO-link storage.
+- [LAWYes research source policy](lawyes-research-source-policy.md) — verified-library research fails closed; public-web research is separate, explicit, and visibly unverified.

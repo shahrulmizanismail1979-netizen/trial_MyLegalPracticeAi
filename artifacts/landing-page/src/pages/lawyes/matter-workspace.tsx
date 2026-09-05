@@ -328,6 +328,12 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
   const [workbenchContent, setWorkbenchContent] = useState("");
   const [workbenchTitle, setWorkbenchTitle] = useState("");
   const [viewMode, setViewMode] = useState<"edit" | "preview">("preview");
+  const [researchMode, setResearchMode] = useState<"verified_library" | "web">("verified_library");
+  const capabilityLabel: Record<string, string> = {
+    verified_internal_legal_research: "Verified Malaysian legal research",
+    explicit_web_legal_research: "Public web research — verification required",
+    matter_aware_review_or_drafting: "Matter-aware review and drafting",
+  };
 
   const lastResultRef = useRef(mutationResult);
   useEffect(() => {
@@ -345,7 +351,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
   const handleSubmit = () => {
     if (!instruction.trim()) return;
     saveIdempotencyKey.current = crypto.randomUUID();
-    instruct({ instruction: instruction.trim() });
+    instruct({ instruction: instruction.trim(), researchMode });
   };
 
   const handleSave = () => {
@@ -524,20 +530,49 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <BookOpen className="w-4 h-4 text-primary" />
-                      <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Grounded Citations</h4>
+                       <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                         {result.researchMode === "verified_library" ? "Verified Malaysian Authorities" : "Web Sources — Verify Before Use"}
+                       </h4>
                     </div>
                     <div className="flex flex-col gap-2">
                       {result.citations.map((citation: import("./api").Citation, i: number) => (
-                        <a
+                         <div
                           key={i}
-                          href={citation.uri}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 hover:text-primary hover:border-primary/40 transition-all shadow-sm flex items-start gap-2.5 group"
+                           className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 shadow-sm"
+                           data-testid={`verified-authority-${citation.judgmentId ?? i}`}
                         >
-                          <FileText className="w-4 h-4 text-primary/40 group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
-                          <span className="leading-relaxed font-medium">{citation.title}</span>
-                        </a>
+                           <div className="flex items-start gap-2.5">
+                             <FileText className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                             <div className="min-w-0 flex-1">
+                               <a href={citation.uri} target="_blank" rel="noreferrer noopener" className="leading-relaxed font-semibold hover:text-primary hover:underline">
+                                 {citation.title}
+                               </a>
+                               <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+                                 <span className={`rounded px-1.5 py-0.5 font-bold uppercase tracking-wide ${citation.origin === "internal_verified" ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700"}`}>
+                                   {citation.origin === "internal_verified" ? "Internal verified" : "Public web · unverified"}
+                                 </span>
+                                 {citation.citation && <span>{citation.citation}</span>}
+                                 {citation.court && <span>· {citation.court}</span>}
+                                 {citation.decisionDate && <span>· {citation.decisionDate}</span>}
+                               </div>
+                             </div>
+                           </div>
+                           {citation.origin === "internal_verified" && citation.pinpoints && citation.pinpoints.length > 0 && (
+                             <details className="mt-3 border-t border-slate-100 pt-2">
+                               <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-primary">
+                                 View cited passages
+                               </summary>
+                               <div className="mt-2 space-y-2">
+                                 {citation.pinpoints.map((pinpoint) => (
+                                   <blockquote key={`${pinpoint.paragraphRef}-${pinpoint.pageNumber}`} className="border-l-2 border-primary/30 pl-3 text-[11px] leading-relaxed text-slate-600">
+                                     <span className="mb-1 block font-bold text-slate-700">{pinpoint.paragraphRef} · source page {pinpoint.pageNumber}</span>
+                                     {pinpoint.text}
+                                   </blockquote>
+                                 ))}
+                               </div>
+                             </details>
+                           )}
+                         </div>
                       ))}
                     </div>
                   </div>
@@ -566,7 +601,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                       <div className="flex flex-wrap gap-2">
                         {result.capabilities.map((cap: string, i: number) => (
                           <Badge key={i} variant="secondary" className="bg-white border border-slate-200 text-slate-600 font-medium text-[11px] px-3 py-1 shadow-sm rounded-lg">
-                            {cap}
+                             {capabilityLabel[cap] ?? cap.replace(/_/g, " ")}
                           </Badge>
                         ))}
                       </div>
@@ -613,7 +648,31 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
               <Sparkles className="w-3 h-3 text-primary/60" />
               Confidential Matter-Bound Session
             </p>
+             <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5" aria-label="Research source">
+               <button
+                 type="button"
+                 onClick={() => setResearchMode("verified_library")}
+                 className={`rounded-md px-2 py-1 text-[10px] font-bold ${researchMode === "verified_library" ? "bg-white text-primary shadow-sm" : "text-slate-500"}`}
+                 data-testid="research-mode-verified"
+               >
+                 Verified library
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setResearchMode("web")}
+                 className={`rounded-md px-2 py-1 text-[10px] font-bold ${researchMode === "web" ? "bg-amber-50 text-amber-700 shadow-sm" : "text-slate-500"}`}
+                 data-testid="research-mode-web"
+                 title="Public web sources are not verified by the LAWYes editorial library"
+               >
+                 Web research
+               </button>
+             </div>
           </div>
+           {researchMode === "web" && (
+             <p className="mt-2 px-2 text-[10px] leading-relaxed text-amber-700">
+               Web research may be current but is not editorially verified. Check every authority and pinpoint before professional use.
+             </p>
+           )}
         </div>
       )}
     </div>

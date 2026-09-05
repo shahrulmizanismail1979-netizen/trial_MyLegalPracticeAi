@@ -50,6 +50,19 @@ export type LawyesRole = "owner" | "editor" | "viewer";
 export interface Citation {
   title: string;
   uri: string;
+  origin?: "internal_verified" | "web";
+  verified?: boolean;
+  judgmentId?: number;
+  citation?: string | null;
+  court?: string | null;
+  decisionDate?: string | null;
+  verifiedAt?: string;
+  rightsStatus?: string;
+  pinpoints?: Array<{
+    paragraphRef: string;
+    pageNumber: number;
+    text: string;
+  }>;
 }
 
 export interface Verification {
@@ -64,6 +77,7 @@ export interface InstructionResponse {
   citations: Citation[];
   verification: Verification;
   capabilities: string[];
+  researchMode: "verified_library" | "web";
   savedWork?: ResourceItem | null;
   saveCreated?: boolean;
 }
@@ -137,7 +151,7 @@ export function useLawyesMatter(id?: string) {
 
 export function useLawyesInstruct(matterId: string) {
   const invalidate = useInvalidateLawyes();
-  return useMutation<InstructionResponse, Error, { instruction: string }>({
+  return useMutation<InstructionResponse, Error, { instruction: string; researchMode: "verified_library" | "web" }>({
     mutationFn: (data) =>
       fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/instructions`, {
         method: "POST",

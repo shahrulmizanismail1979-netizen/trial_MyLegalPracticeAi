@@ -9,25 +9,44 @@ vi.mock("@clerk/express", () => ({
 }));
 
 const aiCalls = vi.hoisted(() => ({
-  research: 0,
+  webResearch: 0,
   drafting: 0,
-  emitCitations: true,
+  emitWebCitations: true,
   draftingPrompts: [] as string[],
+}));
+const researchCalls = vi.hoisted(() => ({
+  count: 0,
+  available: true,
+}));
+vi.mock("../lib/lawyesVerifiedResearch", () => ({
+  retrieveVerifiedMalaysianAuthorities: vi.fn(async () => {
+    researchCalls.count += 1;
+    return researchCalls.available ? [{
+      judgmentId: 91,
+      title: "Verified Federal Court authority",
+      citation: "[2026] LAWYES 91",
+      court: "Federal Court",
+      decisionDate: "2026-01-15",
+      sourceUrl: "https://example.test/federal-court",
+      verifiedAt: "2026-01-16T00:00:00.000Z",
+      rightsStatus: "OFFICIAL_COURT_SOURCE",
+      passages: [{
+        paragraphRef: "[12]",
+        pageNumber: 4,
+        text: "Verified proposition from the judicial text.",
+      }],
+    }] : [];
+  }),
 }));
 vi.mock("../lib/aiProvider", async (importOriginal) => {
   const original = await importOriginal<typeof import("../lib/aiProvider")>();
   return {
     ...original,
     streamChat: vi.fn(async function* () {
-      aiCalls.research += 1;
-      yield { text: "Grounded proposition from the source." };
-      if (aiCalls.emitCitations) {
-        yield {
-          citations: [{
-            title: "Federal Court source",
-            uri: "https://example.test/federal-court",
-          }],
-        };
+      aiCalls.webResearch += 1;
+      yield { text: "Public web proposition requiring verification." };
+      if (aiCalls.emitWebCitations) {
+        yield { citations: [{ title: "Public source", uri: "https://example.test/public" }] };
       }
     }),
     generateChat: vi.fn(async (messages: Array<{ text: string }>) => {
@@ -588,10 +607,21 @@ describe("MyLitAI Lawyes vertical slice", () => {
       .send(body);
     expect(first.status).toBe(200);
     expect(first.body.capabilities).toEqual([
-      "grounded_legal_research",
+      "verified_internal_legal_research",
       "matter_aware_review_or_drafting",
     ]);
     expect(first.body.citations[0].uri).toBe("https://example.test/federal-court");
+    expect(first.body.citations[0]).toMatchObject({
+      origin: "internal_verified",
+      verified: true,
+      judgmentId: 91,
+      citation: "[2026] LAWYES 91",
+      court: "Federal Court",
+    });
+    expect(first.body.citations[0].pinpoints[0]).toMatchObject({
+      paragraphRef: "[12]",
+      pageNumber: 4,
+    });
     expect(first.body.verification).toMatchObject({
       status: "requires_independent_verification",
       verified: false,
@@ -610,23 +640,23 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(reload.status).toBe(200);
     expect(reload.body.drafts.some((draft: { id: number }) => draft.id === savedId)).toBe(true);
     expect(reload.body.outputs.some((output: { id: number }) => output.id === savedId)).toBe(true);
-    expect(aiCalls.research).toBeGreaterThanOrEqual(2);
+    expect(researchCalls.count).toBeGreaterThanOrEqual(2);
     expect(aiCalls.drafting).toBeGreaterThanOrEqual(2);
     const prompt = aiCalls.draftingPrompts.at(-1) ?? "";
     expect(prompt).not.toContain("accessCodeId");
     expect(prompt).not.toContain(String(ownerIds[0]));
   });
 
-  it("fails closed when grounded research returns no verifiable sources", async () => {
-    aiCalls.emitCitations = false;
+  it("fails closed when the verified library returns no relevant authority", async () => {
+    researchCalls.available = false;
     const draftingBefore = aiCalls.drafting;
     try {
       const response = await agentA
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
-      expect(response.status).toBe(502);
+      expect(response.status).toBe(422);
       expect(response.body).toMatchObject({
-        code: "sources_unavailable",
+        code: "verified_sources_unavailable",
         verification: {
           status: "requires_independent_verification",
           verified: false,
@@ -634,7 +664,29 @@ describe("MyLitAI Lawyes vertical slice", () => {
       });
       expect(aiCalls.drafting).toBe(draftingBefore);
     } finally {
-      aiCalls.emitCitations = true;
+      researchCalls.available = true;
     }
+  });
+
+  it("uses web research only when the lawyer explicitly selects it", async () => {
+    const verifiedCallsBefore = researchCalls.count;
+    const webCallsBefore = aiCalls.webResearch;
+    const response = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
+      .send({
+        instruction: "Check current public sources and draft a short note.",
+        researchMode: "web",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.researchMode).toBe("web");
+    expect(response.body.capabilities).toContain("explicit_web_legal_research");
+    expect(response.body.citations[0]).toMatchObject({
+      origin: "web",
+      verified: false,
+      uri: "https://example.test/public",
+    });
+    expect(researchCalls.count).toBe(verifiedCallsBefore);
+    expect(aiCalls.webResearch).toBe(webCallsBefore + 1);
   });
 });
