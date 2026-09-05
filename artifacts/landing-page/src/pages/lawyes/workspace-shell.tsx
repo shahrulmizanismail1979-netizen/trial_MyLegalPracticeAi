@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { Briefcase, LogOut, Loader2, LayoutPanelLeft, Mail, HardDrive, Link2, Unplug, Users, Eye } from "lucide-react";
+import { Briefcase, LogOut, Loader2, LayoutPanelLeft, Users, Eye, MessageSquare } from "lucide-react";
 import { useAuth } from "./use-auth";
-import { useDisconnectLawyesGoogle, useLawyesGoogleConnection, useLawyesIdentity, useLawyesMatters } from "./api";
+import { useLawyesIdentity, useLawyesMatter, useLawyesMatters } from "./api";
 import { MatterWorkspace } from "./matter-workspace";
 import { TeamPanel } from "./team-panel";
 
@@ -14,10 +14,9 @@ export function WorkspaceShell() {
   
   const { data: matters, isLoading, error } = useLawyesMatters();
   const identity = useLawyesIdentity();
+  const recentWorkspace = useLawyesMatter(matterId);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [teamOpen, setTeamOpen] = useState(false);
-  const google = useLawyesGoogleConnection();
-  const disconnectGoogle = useDisconnectLawyesGoogle();
   const selectedMatter = matters?.find((matter) => String(matter.id) === matterId);
   const isOwner = identity.data?.role === "owner";
   const shellError = error || identity.error;
@@ -60,38 +59,40 @@ export function WorkspaceShell() {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-white overflow-hidden font-sans safe-preview">
+    <div className="flex h-[100dvh] bg-background overflow-hidden font-sans safe-preview">
       {/* Sidebar */}
       <aside 
-        className={`flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 absolute md:relative md:w-72' : 'w-0 md:w-16'} border-r z-20 shrink-0 h-full overflow-hidden`}
+        className={`flex flex-col transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64 absolute md:relative md:w-72' : 'w-0 md:w-[68px]'} border-r z-20 shrink-0 h-full overflow-hidden`}
         style={{
           backgroundColor: 'hsl(var(--lawyes-sidebar))',
           borderColor: 'hsl(var(--lawyes-sidebar-border))',
           color: 'hsl(var(--lawyes-sidebar-text))'
         }}
       >
-        <div className="h-16 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
+        <div className="h-14 md:h-16 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
           {sidebarOpen && (
             <div className="font-serif text-xl tracking-tight font-medium truncate flex items-center gap-2">
               <img
                 src="/lawyes-logo.png"
                 alt="LAWYes"
-                className="h-8 w-auto max-w-[132px] object-contain object-left"
+                className="h-7 md:h-8 w-auto max-w-[132px] object-contain object-left"
               />
             </div>
           )}
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md transition-colors hover:bg-black/5"
+            className={`p-1.5 rounded-md transition-colors hover:bg-black/5 ${!sidebarOpen && 'mx-auto'}`}
             style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}
             title="Toggle Sidebar"
+            aria-label={sidebarOpen ? "Collapse matter navigation" : "Expand matter navigation"}
+            data-testid="button-toggle-matter-navigation"
           >
             <LayoutPanelLeft className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-3 no-scrollbar">
-          {sidebarOpen && <div className="px-2 text-xs font-bold uppercase tracking-wider mb-2 mt-2" style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}>Active Matters</div>}
+        <div className="flex-1 overflow-y-auto py-3 md:py-4 flex flex-col gap-1 px-2 md:px-3 no-scrollbar">
+          {sidebarOpen && <div className="px-2 text-[10px] font-bold uppercase tracking-wider mb-2 mt-1" style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}>Active Matters</div>}
           
           {matters?.map((matter) => {
             const isActive = matterId === String(matter.id);
@@ -104,6 +105,8 @@ export function WorkspaceShell() {
                   backgroundColor: isActive ? 'hsl(var(--lawyes-sidebar-hover))' : 'transparent',
                   color: isActive ? 'hsl(var(--lawyes-sidebar-text))' : 'hsl(var(--lawyes-sidebar-text))',
                 }}
+                title={!sidebarOpen ? matter.title : undefined}
+                data-testid={`button-matter-${matter.id}`}
               >
                 <Briefcase className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary' : 'opacity-60'}`} />
                 {sidebarOpen && (
@@ -123,62 +126,54 @@ export function WorkspaceShell() {
               No matters assigned.
             </div>
           )}
+
+          {sidebarOpen && matterId && (
+            <div className="mt-5 border-t pt-4" style={{ borderColor: "hsl(var(--lawyes-sidebar-border))" }}>
+              <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--lawyes-sidebar-muted))" }}>
+                Recent work
+              </div>
+              {recentWorkspace.isLoading ? (
+                <div className="flex items-center gap-2 px-2 py-2 text-xs opacity-60">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading discussions
+                </div>
+              ) : recentWorkspace.data?.conversations.length ? (
+                <div className="space-y-1">
+                  {recentWorkspace.data.conversations.slice(0, 5).map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      className="flex items-start gap-2 rounded-lg px-2 py-2 text-xs"
+                      data-testid={`text-recent-conversation-${conversation.id}`}
+                    >
+                      <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" />
+                      <span className="line-clamp-2 leading-relaxed">
+                        {conversation.title || conversation.name || "Matter discussion"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="px-2 py-2 text-xs leading-relaxed opacity-60">No recent discussions in this matter.</p>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="p-4 border-t shrink-0 space-y-2" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
+        <div className="p-3 md:p-4 border-t shrink-0 space-y-2" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }}>
           {identity.data && sidebarOpen && (
-            <div className="border-b pb-3" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }} data-testid="text-current-member">
+            <div className="border-b pb-3 mb-3 px-1" style={{ borderColor: 'hsl(var(--lawyes-sidebar-border))' }} data-testid="text-current-member">
               <p className="truncate text-sm font-medium">{identity.data.member?.name || "Workspace owner"}</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[11px] capitalize opacity-60">
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] capitalize opacity-60 font-medium">
                 {identity.data.role === "viewer" && <Eye className="h-3 w-3" />}
                 {identity.data.role}
               </p>
-            </div>
-          )}
-          {sidebarOpen && (
-            <div className="rounded-lg border border-slate-200 bg-white/70 p-3 text-xs text-slate-600">
-              <div className="mb-2 flex items-center gap-2 font-semibold text-slate-800">
-                <Link2 className="h-4 w-4 text-primary" /> Your Google account
-              </div>
-              {!google.data?.configured ? (
-                <p>Google connection is not available yet.</p>
-              ) : google.data.connected ? (
-                <>
-                  <p className="truncate font-medium">{google.data.account?.email}</p>
-                  <div className="mt-2 flex gap-3 text-[11px]">
-                    <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> Gmail read-only</span>
-                    <span className="flex items-center gap-1"><HardDrive className="h-3 w-3" /> Drive app files</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Disconnect this Google account from LAWYes?")) {
-                        disconnectGoogle.mutate();
-                      }
-                    }}
-                    disabled={disconnectGoogle.isPending}
-                    className="mt-3 flex items-center gap-1 text-red-600 hover:underline disabled:opacity-50"
-                  >
-                    <Unplug className="h-3 w-3" /> Disconnect
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="mb-2 leading-relaxed">Connect only your own account. LAWYes cannot access another lawyer’s connection.</p>
-                  <a
-                    href="/api/lit/lawyes/google/connect"
-                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 font-semibold text-white"
-                  >
-                    Connect Google
-                  </a>
-                </>
-              )}
             </div>
           )}
           {isOwner && (
             <button
               onClick={() => setTeamOpen(true)}
               className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-black/5 font-medium ${!sidebarOpen && 'px-0'}`}
-              style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}
+              style={{ color: 'hsl(var(--lawyes-sidebar-text))' }}
               title="Manage Team"
               aria-label="Manage team"
               data-testid="button-manage-team"
@@ -190,8 +185,9 @@ export function WorkspaceShell() {
           <button
             onClick={logout}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-red-50 hover:text-red-600 font-medium ${!sidebarOpen && 'px-0'}`}
-            style={{ color: 'hsl(var(--lawyes-sidebar-muted))' }}
+            style={{ color: 'hsl(var(--lawyes-sidebar-text))' }}
             title="End Session"
+            data-testid="button-end-lawyes-session"
           >
             <LogOut className="w-4 h-4" />
             {sidebarOpen && <span>End Session</span>}
@@ -202,11 +198,11 @@ export function WorkspaceShell() {
       {/* Main Workspace */}
       <main className="flex-1 min-w-0 flex flex-col bg-background z-10 relative">
         {matterId ? (
-          <MatterWorkspace matterId={matterId} />
+          <MatterWorkspace matterId={matterId} onShareClick={() => setTeamOpen(true)} />
         ) : (
           <div className="flex-1 flex items-center justify-center p-8 text-center bg-background">
             <div className="max-w-md">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-border">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-border">
                 <Briefcase className="w-8 h-8 text-primary/60" />
               </div>
               <h2 className="text-2xl font-serif font-medium text-foreground mb-3">

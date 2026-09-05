@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput, uploadLawyesEvidence, useConfirmLawyesEvidence } from "./api";
-import { Loader2, FileText, MessageSquare, CheckSquare, Calendar, Save, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, PenLine, Download, Upload, Eye } from "lucide-react";
+import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput, uploadLawyesEvidence, useConfirmLawyesEvidence, useLawyesGoogleConnection, useDisconnectLawyesGoogle } from "./api";
+import type { ResourceItem, WorkspaceAggregate } from "./api";
+import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, Download, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-export function MatterWorkspace({ matterId }: { matterId: string }) {
+export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, onShareClick: () => void }) {
   const { data, isLoading, error } = useLawyesMatter(matterId);
+  const [railOpen, setRailOpen] = useState(false);
   
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-white">
         <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
       </div>
     );
@@ -21,11 +22,13 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
 
   if (error || !data) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 text-center">
+      <div className="flex-1 flex items-center justify-center p-8 text-center bg-white">
         <div className="max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-medium text-slate-900 mb-2">Failed to load matter</h2>
-          <p className="text-slate-500 text-sm">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-red-100">
+             <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-serif font-medium text-slate-900 mb-2">Failed to load matter</h2>
+          <p className="text-slate-500 text-[15px] leading-relaxed">
             {error?.message === "Unauthorized" 
               ? "Your session has expired. Please sign in again."
               : error?.message || "The matter could not be loaded. It may have been removed or you may lack permission."}
@@ -36,140 +39,223 @@ export function MatterWorkspace({ matterId }: { matterId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
-      <header className="h-16 flex items-center justify-between px-6 border-b shrink-0 bg-white z-10">
-        <div>
-          <h1 className="text-xl font-serif font-medium text-foreground flex items-center gap-3">
-            {data.matter.title}
-            <Badge variant="secondary" className="font-sans text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-0 px-2 py-0.5">
+    <div className="flex flex-col h-full overflow-hidden bg-white relative">
+      <header className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-slate-200 shrink-0 bg-white z-20 shadow-sm">
+        <div className="flex-1 min-w-0 mr-4">
+          <h1 className="text-lg md:text-xl font-serif font-medium text-slate-900 flex items-center gap-3 truncate">
+            <span className="truncate">{data.matter.title}</span>
+            <Badge variant="secondary" className="font-sans text-[10px] uppercase tracking-wider bg-primary/10 text-primary border-0 px-2 py-0.5 shrink-0">
               {data.matter.status || "Active"}
-            </Badge>
-            <Badge variant="outline" className="font-sans text-[10px] uppercase tracking-wider" data-testid="status-matter-role">
-              {data.permissions.role}
             </Badge>
           </h1>
           {data.matter.reference && (
-            <div className="text-xs text-muted-foreground mt-0.5 font-medium">Ref: {data.matter.reference}</div>
+            <div className="text-[11px] text-slate-500 mt-0.5 font-medium truncate">Ref: {data.matter.reference}</div>
           )}
         </div>
-        {!data.permissions.canWrite && (
-          <div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800" role="status" data-testid="status-read-only">
-            <Eye className="h-4 w-4" /> Read-only access
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {!data.permissions.canWrite && (
+            <div className="hidden md:flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 border border-amber-200" role="status" data-testid="status-read-only">
+              <Eye className="h-3.5 w-3.5" /> Read-only
+            </div>
+          )}
+          {data.permissions.role === "owner" && (
+            <Button variant="outline" size="sm" onClick={onShareClick} className="h-8 text-xs font-medium border-slate-200 text-slate-700 hover:text-primary hover:border-primary/30" data-testid="button-matter-share">
+              <Users className="w-3.5 h-3.5 mr-1.5 text-primary" /> Share
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden w-8 h-8 text-slate-500"
+            onClick={() => setRailOpen(!railOpen)}
+            aria-label={railOpen ? "Close matter context" : "Open matter context"}
+            data-testid="button-toggle-matter-context"
+          >
+             <PanelRight className="w-4 h-4" />
+          </Button>
+        </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Left column: Matter Details */}
-        <div className="w-full md:w-5/12 lg:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-border bg-slate-50/50 min-h-[40vh] md:min-h-0">
-          <Tabs defaultValue="documents" className="flex flex-col h-full w-full">
-            <div className="px-0 pt-0 shrink-0 border-b bg-white">
-              <TabsList className="w-full justify-start h-12 bg-transparent rounded-none p-0 gap-6 overflow-x-auto flex-nowrap no-scrollbar px-6">
-                <TabsTrigger value="documents" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <FileText className="w-4 h-4 mr-2 shrink-0" /> Documents
-                  <span className="ml-1.5 bg-slate-100 text-slate-600 py-0.5 px-1.5 rounded-full text-[10px] font-bold">{data.documents?.length || 0}</span>
-                </TabsTrigger>
-                <TabsTrigger value="conversations" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <MessageSquare className="w-4 h-4 mr-2 shrink-0" /> Discussions
-                  <span className="ml-1.5 bg-slate-100 text-slate-600 py-0.5 px-1.5 rounded-full text-[10px] font-bold">{data.conversations?.length || 0}</span>
-                </TabsTrigger>
-                <TabsTrigger value="tasks" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <CheckSquare className="w-4 h-4 mr-2 shrink-0" /> Tasks
-                </TabsTrigger>
-                <TabsTrigger value="deadlines" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <Calendar className="w-4 h-4 mr-2 shrink-0" /> Deadlines
-                </TabsTrigger>
-                <TabsTrigger value="research" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <BookOpen className="w-4 h-4 mr-2 shrink-0" /> Research
-                </TabsTrigger>
-                <TabsTrigger value="drafts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <PenLine className="w-4 h-4 mr-2 shrink-0" /> Drafts
-                </TabsTrigger>
-                <TabsTrigger value="outputs" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 pb-3 pt-3 whitespace-nowrap text-slate-500 font-medium">
-                  <Save className="w-4 h-4 mr-2 shrink-0" /> LAWYes
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <ScrollArea className="flex-1">
-              <div className="p-6">
-                <TabsContent value="documents" className="mt-0">
-                  <EvidenceUploader matterId={matterId} />
-                  <ResourceList items={data.documents} emptyText="No documents in this matter." icon={FileText} matterId={matterId} />
-                </TabsContent>
-                <TabsContent value="conversations" className="mt-0">
-                  <ResourceList items={data.conversations} emptyText="No logged discussions." icon={MessageSquare} />
-                </TabsContent>
-                <TabsContent value="tasks" className="mt-0">
-                  <ResourceList items={data.tasks} emptyText="No pending tasks." icon={CheckSquare} />
-                </TabsContent>
-                <TabsContent value="deadlines" className="mt-0">
-                  <ResourceList items={data.deadlines} emptyText="No upcoming deadlines." icon={Calendar} />
-                </TabsContent>
-                <TabsContent value="research" className="mt-0">
-                  <ResourceList items={data.research} emptyText="No source-bearing research saved to this matter." icon={BookOpen} />
-                </TabsContent>
-                <TabsContent value="drafts" className="mt-0">
-                  <ResourceList items={data.drafts} emptyText="No saved drafts in this matter." icon={PenLine} />
-                </TabsContent>
-                <TabsContent value="outputs" className="mt-0">
-                  <ResourceList items={data.outputs} emptyText="No saved LAWYes outputs." icon={Save} />
-                </TabsContent>
-              </div>
-            </ScrollArea>
-          </Tabs>
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Center: Composer & Output */}
+        <div className="flex-1 flex flex-col bg-slate-50/30 relative min-w-0">
+          <InstructionComposer matterId={matterId} canWrite={data.permissions.canWrite} />
         </div>
 
-        {/* Right column: Composer & Output */}
-        <div className="w-full md:w-7/12 lg:w-1/2 flex flex-col bg-white relative border-l border-border">
-          <InstructionComposer matterId={matterId} canWrite={data.permissions.canWrite} />
+        {railOpen && (
+          <button
+            type="button"
+            className="absolute inset-0 z-20 bg-slate-950/10 backdrop-blur-[1px] lg:hidden"
+            onClick={() => setRailOpen(false)}
+            aria-label="Close matter context"
+            data-testid="button-close-matter-context-backdrop"
+          />
+        )}
+
+        {/* Right Rail */}
+        <div className={`
+          absolute inset-y-0 right-0 z-30 w-[min(22rem,calc(100vw-1rem))] bg-slate-50/50 border-l border-slate-200 flex flex-col transition-transform duration-300 transform
+          lg:relative lg:w-80 lg:transform-none lg:flex
+          ${railOpen ? 'translate-x-0 shadow-[-10px_0_20px_rgba(0,0,0,0.1)] lg:shadow-none' : 'translate-x-full lg:translate-x-0'}
+        `}>
+          <ContextualRail data={data} matterId={matterId} onClose={() => setRailOpen(false)} />
         </div>
       </div>
     </div>
   );
 }
 
-function ResourceList({ items, emptyText, icon: Icon, matterId }: { items: import("./api").ResourceItem[], emptyText: string, icon: any, matterId?: string }) {
-  if (!items || items.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400">
-        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-          <Icon className="w-5 h-5 text-slate-400" />
+function ContextualRail({ data, matterId, onClose }: { data: WorkspaceAggregate; matterId: string; onClose: () => void }) {
+  return (
+    <div className="flex flex-col h-full">
+       <div className="h-10 flex items-center justify-between px-4 md:px-5 border-b border-slate-200 shrink-0 bg-white">
+         <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+            <BookOpen className="w-3.5 h-3.5 text-primary" /> Matter Context
+         </h2>
+          <button
+            type="button"
+            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 lg:hidden"
+            onClick={onClose}
+            aria-label="Close matter context"
+            data-testid="button-close-matter-context"
+          >
+            <X className="h-4 w-4" />
+          </button>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          <RailSection title="Progress">
+            <ResourceRailList items={[...(data.tasks || []), ...(data.checklists || [])]} empty="No active progress items." matterId={matterId} />
+          </RailSection>
+
+          <RailSection title="Outputs">
+            <ResourceRailList items={[...(data.outputs || []), ...(data.drafts || [])]} empty="No saved outputs." matterId={matterId} />
+          </RailSection>
+
+           <RailSection title="Sources" action={data.permissions.canWrite ? <SourceUploadAction matterId={matterId} /> : undefined}>
+             <GoogleConnectionStatus canUseConnectors={data.permissions.canUseConnectors} />
+            <ResourceRailList items={[...(data.documents || []), ...(data.uploads || []), ...(data.research || [])]} empty="No sources added." matterId={matterId} />
+          </RailSection>
+
+          <RailSection title="Scheduled">
+            <ResourceRailList items={[...(data.deadlines || []), ...(data.events || [])]} empty="No upcoming dates." matterId={matterId} />
+          </RailSection>
         </div>
-        <p className="text-sm">{emptyText}</p>
+      </ScrollArea>
+    </div>
+  );
+}
+
+function RailSection({ title, action, children }: { title: string, action?: React.ReactNode, children: React.ReactNode }) {
+  return (
+    <div className="mb-2">
+      <div className="flex items-center justify-between px-2 py-1.5 mb-1 group">
+         <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {title}
+         </div>
+         {action && <div>{action}</div>}
+      </div>
+      <div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function ResourceRailList({ items, empty, matterId }: { items: ResourceItem[]; empty: string; matterId?: string }) {
+  if (!items || items.length === 0) {
+     return <div className="px-2 py-1 text-[11px] text-slate-400">{empty}</div>
+  }
+  return (
+    <div className="space-y-0.5">
+       {items.map((item, i) => (
+          <div key={item.id || i} className="flex flex-col px-2 py-1.5 rounded-lg transition-colors" data-testid={`context-item-${item.id || i}`}>
+             <div className="flex items-start gap-2">
+               <FileText className="w-3.5 h-3.5 text-primary/60 shrink-0 mt-0.5" />
+               <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-slate-700 line-clamp-2 break-words leading-relaxed font-medium">{item.title || item.name || item.item_text || "Untitled"}</p>
+               </div>
+             </div>
+             {item.extractionMetadata && matterId && (
+               <div className="pl-5 mt-1.5">
+                 {item.evidenceVerified ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded-[4px] bg-primary/10 text-[9px] text-primary font-bold uppercase tracking-wider">Verified</span>
+                 ) : (
+                    <RailEvidenceStatus item={item} matterId={matterId} />
+                 )}
+               </div>
+             )}
+          </div>
+       ))}
+    </div>
+  )
+}
+
+function RailEvidenceStatus({ item, matterId }: { item: ResourceItem; matterId: string }) {
+  const confirm = useConfirmLawyesEvidence(matterId);
+  return (
+    <div className="flex items-center gap-2">
+       <span className="inline-block px-1.5 py-0.5 rounded-[4px] bg-amber-100/50 text-[9px] text-amber-700 font-bold uppercase tracking-wider border border-amber-200/50">Unverified</span>
+       <button
+         type="button"
+         onClick={() => confirm.mutate(item.id)}
+         disabled={confirm.isPending}
+         className="text-[9px] text-slate-500 hover:text-primary font-semibold underline underline-offset-2 disabled:opacity-50"
+         data-testid={`button-confirm-evidence-${item.id}`}
+       >
+         Verify
+       </button>
+    </div>
+  )
+}
+
+function GoogleConnectionStatus({ canUseConnectors }: { canUseConnectors: boolean }) {
+  const google = useLawyesGoogleConnection();
+  const disconnect = useDisconnectLawyesGoogle();
+
+  if (!canUseConnectors || google.isLoading || !google.data?.configured) return null;
+
+  if (!google.data.connected) {
+    return (
+      <div className="mb-2">
+         <a href="/api/lit/lawyes/google/connect" className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-200/50 text-[13px] text-slate-600 hover:text-primary font-medium transition-colors" data-testid="link-connect-lawyes-google">
+           <Globe className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+           <span>Connect Google</span>
+         </a>
       </div>
     );
   }
   
   return (
-    <div className="space-y-3">
-      {items.map((item, i) => (
-        <div key={item.id || i} className="p-4 bg-white border border-border hover:border-slate-300 transition-colors rounded-lg flex items-start gap-4 group shadow-sm">
-          <div className="p-2 bg-slate-50 group-hover:bg-primary/5 rounded-md shrink-0 transition-colors">
-            <Icon className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-foreground truncate">{item.title || item.name || item.item_text || "Untitled"}</h4>
-            {item.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{item.description}</p>}
-            {(item.date || item.createdAt) && (
-              <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">
-                {new Date(item.date || item.createdAt!).toLocaleDateString()}
-              </p>
-            )}
-            {item.extractionMetadata && matterId && (
-              <EvidenceStatus item={item} matterId={matterId} />
-            )}
-          </div>
-        </div>
-      ))}
+    <div className="mb-2 space-y-0.5">
+      <div className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-200/50 group transition-colors">
+         <div className="flex items-center gap-2 text-[13px] font-medium text-slate-700 truncate">
+            <Mail className="w-3.5 h-3.5 shrink-0 text-red-500" />
+            <span className="truncate">Gmail ({google.data.account?.email})</span>
+         </div>
+         <button
+           type="button"
+           onClick={() => { if (window.confirm("Disconnect this Google account?")) disconnect.mutate(); }}
+           className="text-[9px] text-slate-400 opacity-0 transition-opacity hover:text-red-500 focus:opacity-100 group-hover:opacity-100 uppercase tracking-wider font-bold"
+           data-testid="button-disconnect-lawyes-google"
+         >
+           Unlink
+         </button>
+      </div>
+      <div className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-200/50 group transition-colors">
+         <div className="flex items-center gap-2 text-[13px] font-medium text-slate-700 truncate">
+            <HardDrive className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+            <span className="truncate">Drive files</span>
+         </div>
+      </div>
     </div>
-  );
+  )
 }
 
-function EvidenceUploader({ matterId }: { matterId: string }) {
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
+function SourceUploadAction({ matterId }: { matterId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
   const { refetch } = useLawyesMatter(matterId);
   const onFile = async (file?: File) => {
     if (!file) return;
@@ -177,46 +263,22 @@ function EvidenceUploader({ matterId }: { matterId: string }) {
     try {
       await uploadLawyesEvidence(matterId, file);
       await refetch();
-      toast({ title: "Evidence analysed", description: "The original and unverified derived text are attached to this matter." });
+      toast({ title: "Evidence analysed", description: "Source uploaded and text extracted." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Evidence analysis failed", description: error instanceof Error ? error.message : "Please try again." });
+      toast({ variant: "destructive", title: "Upload failed", description: error instanceof Error ? error.message : "Please try again." });
     } finally {
       setIsUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
   return (
-    <div className="mb-5 rounded-lg border border-dashed border-slate-300 bg-white p-4">
-      <input ref={inputRef} className="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/tiff,audio/*,video/*" onChange={(event) => void onFile(event.target.files?.[0])} />
-      <Button variant="outline" size="sm" disabled={isUploading} onClick={() => inputRef.current?.click()}>
-        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-        Analyse image, audio, or video
-      </Button>
-      <p className="mt-2 text-xs text-slate-500">Derived OCR and transcripts remain unverified until a lawyer confirms them against the original.</p>
-    </div>
-  );
-}
-
-function EvidenceStatus({ item, matterId }: { item: import("./api").ResourceItem; matterId: string }) {
-  const confirm = useConfirmLawyesEvidence(matterId);
-  const meta = item.extractionMetadata!;
-  return (
-    <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-      <div className="font-semibold">
-        {item.evidenceVerified ? "Lawyer-confirmed derived text" : "Unverified derived evidence"}
-        {meta.confidence != null ? ` · OCR confidence ${Math.round(meta.confidence)}%` : ""}
-      </div>
-      {meta.warnings?.map((warning, index) => <p key={index} className="mt-1">{warning}</p>)}
-      {meta.provenance?.timestamps?.length > 0 && (
-        <p className="mt-1">{meta.provenance.timestamps.length} timestamped transcript tokens retained with source provenance.</p>
-      )}
-      {!item.evidenceVerified && (
-        <Button className="mt-2 h-7" size="sm" variant="outline" disabled={confirm.isPending} onClick={() => confirm.mutate(item.id)}>
-          Confirm against original
-        </Button>
-      )}
-    </div>
-  );
+    <>
+       <input ref={inputRef} className="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/tiff,audio/*,video/*" onChange={(event) => void onFile(event.target.files?.[0])} data-testid="input-matter-evidence-source" />
+       <button type="button" onClick={() => inputRef.current?.click()} disabled={isUploading} className="p-1 hover:bg-slate-200/80 rounded-md text-slate-500 hover:text-slate-800 transition-colors disabled:opacity-50" aria-label="Add evidence source" title="Add evidence source" data-testid="button-add-evidence-source">
+          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+       </button>
+    </>
+  )
 }
 
 function WorkbenchPreview({ content }: { content: string }) {
@@ -231,10 +293,10 @@ function WorkbenchPreview({ content }: { content: string }) {
         if (heading) {
           const level = heading[1].length;
           const className = level === 1
-            ? "text-2xl font-serif font-semibold text-foreground pt-2"
+            ? "text-2xl font-serif font-semibold text-slate-900 pt-2"
             : level === 2
-              ? "text-xl font-serif font-semibold text-foreground pt-2"
-              : "text-base font-semibold text-foreground pt-1";
+              ? "text-xl font-serif font-semibold text-slate-900 pt-2"
+              : "text-base font-semibold text-slate-900 pt-1";
           return <div key={index} className={className}>{heading[2]}</div>;
         }
 
@@ -242,7 +304,7 @@ function WorkbenchPreview({ content }: { content: string }) {
         if (bullet) {
           return (
             <div key={index} className="flex gap-3 pl-2">
-              <span className="text-primary" aria-hidden="true">•</span>
+              <span className="text-primary mt-1" aria-hidden="true">•</span>
               <span>{bullet[1]}</span>
             </div>
           );
@@ -266,17 +328,6 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
   const [workbenchContent, setWorkbenchContent] = useState("");
   const [workbenchTitle, setWorkbenchTitle] = useState("");
   const [viewMode, setViewMode] = useState<"edit" | "preview">("preview");
-
-  useEffect(() => {
-    const savedInstruction = localStorage.getItem(`lawyes_draft_text_${matterId}`);
-    if (savedInstruction) {
-      setInstruction(savedInstruction);
-    }
-  }, [matterId]);
-
-  useEffect(() => {
-    localStorage.setItem(`lawyes_draft_text_${matterId}`, instruction);
-  }, [instruction, matterId]);
 
   const lastResultRef = useRef(mutationResult);
   useEffect(() => {
@@ -315,7 +366,6 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
           setInstruction("");
           setWorkbenchContent("");
           setWorkbenchTitle("");
-          localStorage.removeItem(`lawyes_draft_text_${matterId}`);
           toast({
             title: "Saved to Matter",
             description: "The output has been successfully saved to the matter's records.",
@@ -357,34 +407,34 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
   };
 
   return (
-    <div className="flex flex-col h-full relative bg-slate-50/30">
+    <div className="flex flex-col h-full relative">
       {/* Output Area */}
       <ScrollArea className="flex-1">
-        <div className="p-6 lg:p-8">
+        <div className="p-6 lg:p-10 max-w-4xl mx-auto w-full">
           {!result && !isPending && (
-            <div className="flex flex-col items-center justify-center py-20 text-center text-slate-400 h-[50vh]">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-border">
-                <Settings className="w-7 h-7 text-primary/40" />
+            <div className="flex flex-col items-center justify-center py-20 text-center text-slate-400 min-h-[50vh]">
+              <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-primary/10">
+                <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-xl font-serif font-medium text-foreground mb-3">Matter Assistant</h3>
-              <p className="text-[15px] max-w-sm leading-relaxed">
+              <h3 className="text-xl font-serif font-medium text-slate-800 mb-3">Matter Assistant</h3>
+              <p className="text-[15px] max-w-sm leading-relaxed text-slate-500">
                 Instruct the assistant to draft documents, summarize evidence, or answer questions based on this matter's context.
               </p>
             </div>
           )}
 
           {isPending && (
-            <div className="flex flex-col items-center justify-center py-24 text-center h-[50vh]">
+            <div className="flex flex-col items-center justify-center py-24 text-center min-h-[50vh]">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
                 <Loader2 className="w-10 h-10 animate-spin text-primary relative z-10" />
               </div>
-              <p className="text-sm text-primary mt-6 font-bold tracking-wide uppercase">Analyzing context & drafting...</p>
+              <p className="text-xs text-primary mt-6 font-bold tracking-widest uppercase">Analyzing context & drafting...</p>
             </div>
           )}
 
           {instructError && !isPending && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 shadow-sm">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 shadow-sm">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
               <div>
                 <h4 className="text-sm font-bold text-red-800">Instruction Failed</h4>
@@ -395,21 +445,21 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
 
           {result && !isPending && (
             <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex-1 mr-4">
                   <input
                     value={workbenchTitle}
                     onChange={(e) => setWorkbenchTitle(e.target.value)}
                     placeholder="Document Title"
-                    className="w-full text-2xl font-serif font-medium text-foreground bg-transparent border-b border-transparent hover:border-slate-200 focus:border-primary outline-none focus:ring-0 px-1 py-1 transition-colors"
+                    className="w-full text-2xl md:text-3xl font-serif font-medium text-slate-900 bg-transparent border-b-2 border-transparent hover:border-slate-200 focus:border-primary outline-none focus:ring-0 px-1 py-1 transition-colors"
                     data-testid="workbench-title"
                      readOnly={!canWrite}
                   />
                 </div>
-                <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-lg shrink-0">
+                <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl shrink-0">
                   <button
                     onClick={() => setViewMode("preview")}
-                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${viewMode === "preview" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
+                    className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${viewMode === "preview" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
                     data-testid="workbench-action-preview"
                   >
                     Preview
@@ -417,7 +467,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                   {canWrite && (
                     <button
                       onClick={() => setViewMode("edit")}
-                      className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${viewMode === "edit" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
+                      className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${viewMode === "edit" ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"}`}
                       data-testid="workbench-action-edit"
                     >
                       Edit
@@ -426,26 +476,26 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                 </div>
               </div>
 
-              <div className="bg-white border border-border rounded-xl shadow-sm overflow-hidden flex flex-col mb-8">
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col mb-8">
                 {/* Editor or Preview */}
-                <div className="p-0 flex-1 relative min-h-[350px]">
+                <div className="p-0 flex-1 relative min-h-[400px]">
                   {viewMode === "edit" ? (
                     <Textarea
                       value={workbenchContent}
                       onChange={(e) => setWorkbenchContent(e.target.value)}
-                      className="w-full h-full min-h-[350px] resize-y p-6 lg:p-8 border-0 focus-visible:ring-0 rounded-none text-[15px] font-sans leading-relaxed text-foreground bg-slate-50/30"
+                      className="w-full h-full min-h-[400px] resize-y p-6 lg:p-8 border-0 focus-visible:ring-0 rounded-none text-[15px] font-sans leading-relaxed text-slate-800 bg-slate-50/30"
                       data-testid="workbench-content-editor"
                       placeholder="Enter content..."
                     />
                   ) : (
-                    <div className="p-6 lg:p-8 prose prose-slate max-w-none text-[15px] leading-relaxed">
+                    <div className="p-6 lg:p-10 prose prose-slate max-w-none text-[15px] leading-relaxed">
                       <WorkbenchPreview content={workbenchContent} />
                     </div>
                   )}
                 </div>
 
                 {/* Toolbar */}
-                <div className="p-3 bg-slate-50 border-t border-border flex flex-wrap items-center justify-between gap-3">
+                <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     {canWrite && (
                       <Button variant="outline" size="sm" onClick={handleReset} data-testid="workbench-action-reset" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
@@ -460,7 +510,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                     </Button>
                   </div>
                   {canWrite && (
-                    <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-4">
+                    <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-5 rounded-lg">
                       {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
                       Save to Matter
                     </Button>
@@ -469,7 +519,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
               </div>
 
               {/* Citations and Capabilities */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-6">
                 {result.citations && result.citations.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-3">
@@ -483,7 +533,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                           href={citation.uri}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="px-3.5 py-3 bg-white border border-border rounded-lg text-xs text-slate-700 hover:text-primary hover:border-primary/40 transition-all shadow-sm flex items-start gap-2.5 group"
+                          className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 hover:text-primary hover:border-primary/40 transition-all shadow-sm flex items-start gap-2.5 group"
                         >
                           <FileText className="w-4 h-4 text-primary/40 group-hover:text-primary shrink-0 mt-0.5 transition-colors" />
                           <span className="leading-relaxed font-medium">{citation.title}</span>
@@ -499,7 +549,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                         <CheckCircle2 className={`w-4 h-4 ${result.verification.verified ? "text-primary" : "text-amber-500"}`} />
                         <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verification</h4>
                       </div>
-                      <div className={`p-4 rounded-lg text-xs border shadow-sm ${result.verification.verified ? "bg-primary/5 border-primary/20 text-slate-800" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
+                      <div className={`p-4 rounded-xl text-xs border shadow-sm ${result.verification.verified ? "bg-primary/5 border-primary/20 text-slate-800" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
                         <span className={`font-bold block mb-1.5 text-sm ${result.verification.verified ? "text-primary" : "text-amber-700"}`}>{result.verification.status}</span>
                         {result.verification.guidance && <span className="opacity-90 block mt-1 leading-relaxed text-[13px]">{result.verification.guidance}</span>}
                         <span className="block mt-3 text-[10px] opacity-60 font-medium uppercase tracking-wider">Verification applies only to original AI text. Edited text is unverified.</span>
@@ -515,7 +565,7 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {result.capabilities.map((cap: string, i: number) => (
-                          <Badge key={i} variant="secondary" className="bg-white border border-border text-slate-600 font-medium text-[11px] px-2.5 py-1 shadow-sm">
+                          <Badge key={i} variant="secondary" className="bg-white border border-slate-200 text-slate-600 font-medium text-[11px] px-3 py-1 shadow-sm rounded-lg">
                             {cap}
                           </Badge>
                         ))}
@@ -530,44 +580,40 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
       </ScrollArea>
 
       {/* Composer Input */}
-      {canWrite ? (
-      <div className="p-4 lg:p-5 bg-white border-t border-border shrink-0 z-10 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)]">
-        <div className="relative rounded-xl border border-border bg-slate-50/50 focus-within:bg-white focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
-          <Textarea 
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            placeholder="Instruct the assistant..."
-            className="min-h-[100px] resize-none pr-14 text-[15px] bg-transparent border-0 focus-visible:ring-0 py-4 px-5 leading-relaxed shadow-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            disabled={isPending}
-          />
-          <Button 
-            size="icon" 
-            className="absolute bottom-3 right-3 rounded-lg w-9 h-9 bg-primary hover:bg-primary/90 text-white shadow-sm transition-all"
-            disabled={!instruction.trim() || isPending}
-            onClick={handleSubmit}
-          >
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-        <div className="flex items-center justify-between mt-3 px-1">
-          <p className="text-[10px] text-primary/60 font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
-            Confidential Matter-Bound Session
-          </p>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            <kbd className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded font-sans text-slate-500">Enter</kbd> to send
+      {canWrite && (
+        <div className="p-4 md:p-6 bg-white shrink-0 border-t border-slate-200 relative z-10 max-w-4xl mx-auto w-full">
+          <div className="relative rounded-2xl border border-slate-200 bg-slate-50/80 focus-within:bg-white focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10 transition-all shadow-sm">
+            <Textarea
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              placeholder="Instruct the matter assistant..."
+              className="min-h-[60px] md:min-h-[80px] max-h-[300px] resize-y pr-14 text-[15px] bg-transparent border-0 focus-visible:ring-0 py-4 px-5 leading-relaxed shadow-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+              disabled={isPending}
+              data-testid="input-matter-instruction"
+            />
+            <Button
+              size="icon"
+              className="absolute bottom-3 right-3 rounded-xl w-9 h-9 bg-primary hover:bg-primary/90 text-white shadow-sm transition-all"
+              disabled={!instruction.trim() || isPending}
+              onClick={handleSubmit}
+              aria-label="Send matter instruction"
+              data-testid="button-send-matter-instruction"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
-        </div>
-      </div>
-      ) : (
-        <div className="border-t bg-amber-50 px-5 py-4 text-center text-sm text-amber-800" data-testid="text-composer-read-only">
-          You can review this matter, but only editors and owners can instruct the assistant or save changes.
+          <div className="flex items-center justify-between mt-3 px-2">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-primary/60" />
+              Confidential Matter-Bound Session
+            </p>
+          </div>
         </div>
       )}
     </div>

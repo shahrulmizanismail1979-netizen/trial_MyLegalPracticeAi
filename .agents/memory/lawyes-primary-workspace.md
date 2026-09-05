@@ -27,6 +27,12 @@ The primary workspace should use the official LAWYes logo prominently and derive
 
 **How to apply:** Preserve comfortable legal-work contrast, but favour a light cool canvas, fresh-green actions, and a light cool-grey navigation rail with readable navy text. Do not restore the dark-navy sidebar, or shrink or replace the official logo with an improvised text mark.
 
+The authenticated matter interior should use a ChatGPT Work-style three-part workspace while remaining light: matter navigation and real recent work at left, the active legal work canvas in the centre, and contextual Progress, Outputs, Sources, and Scheduled work at right.
+
+**Why:** The user supplied the ChatGPT Work interior as the preferred organization, then explicitly chose to copy its layout and interactions without adopting its dark appearance.
+
+**How to apply:** Keep the centre dominant, make every side-rail item derive from real authorised matter data, and turn secondary rails into accessible panels on narrower screens. Never invent recents, files, progress, or schedules to fill empty sections.
+
 Public LAWYes pages must describe tools in user language only. Internal capability-audit metadata—including API routes, adapter boundaries, auth/ownership models, integration readiness, and verification-pending states—must never appear in the customer-facing interface.
 
 **Why:** The technical capability registry was accidentally exposed as the Tools experience and was immediately rejected as confusing and inappropriate for users.
