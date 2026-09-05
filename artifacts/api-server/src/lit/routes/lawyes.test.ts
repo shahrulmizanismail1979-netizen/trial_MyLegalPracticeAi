@@ -46,7 +46,12 @@ vi.mock("../lib/aiProvider", async (importOriginal) => {
       aiCalls.webResearch += 1;
       yield { text: "Public web proposition requiring verification." };
       if (aiCalls.emitWebCitations) {
-        yield { citations: [{ title: "Public source", uri: "https://example.test/public" }] };
+        yield {
+          citations: [{
+            title: "Public source",
+            uri: "https://example.test/public",
+          }],
+        };
       }
     }),
     generateChat: vi.fn(async (messages: Array<{ text: string }>) => {
@@ -66,6 +71,7 @@ await pool.query(`
   ALTER TABLE lit_conversations DROP COLUMN IF EXISTS matter_id CASCADE;
 `);
 const { default: app } = await import("../../app");
+const { encryptGoogleTokens } = await import("../lib/lawyesGoogleCrypto");
 const { ensureConversationMatterSchema } =
   await import("../lib/ensureConversationMatterSchema");
 await ensureConversationMatterSchema();
@@ -81,8 +87,15 @@ let ownerIds: number[] = [];
 let matterId = 0;
 let otherMatterId = 0;
 let linkedConversationId = 0;
+let exportOutputId = 0;
 let agentA: request.Agent;
 let agentB: request.Agent;
+const googleEnvironment = [
+  "GOOGLE_OAUTH_CLIENT_ID",
+  "GOOGLE_OAUTH_CLIENT_SECRET",
+  "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+] as const;
+const previousGoogleEnvironment = googleEnvironment.map((name) => process.env[name]);
 
 async function login(code: string) {
   const agent = request.agent(app);
@@ -91,7 +104,47 @@ async function login(code: string) {
   return agent;
 }
 
+async function connectGoogle(
+  agent: request.Agent,
+  subject: string,
+  email: string,
+  accessToken: string,
+) {
+  const started = await agent.get("/api/lit/lawyes/google/connect");
+  const state = new URL(started.headers.location).searchParams.get("state");
+  const fetchMock = vi.spyOn(globalThis, "fetch")
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      access_token: accessToken,
+      refresh_token: `refresh-${subject}`,
+      expires_in: 3600,
+      token_type: "Bearer",
+      scope: [
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+      ].join(" "),
+    }), { status: 200, headers: { "Content-Type": "application/json" } }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      sub: subject,
+      email,
+      email_verified: true,
+      name: subject,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+  try {
+    const callback = await agent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
+    expect(callback.status).toBe(302);
+    expect(callback.headers.location).toContain("google=connected");
+  } finally {
+    fetchMock.mockRestore();
+  }
+}
+
 beforeAll(async () => {
+  process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+  process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
   const compatibility = await pool.query<{
     column_exists: boolean;
     foreign_key_exists: boolean;
@@ -171,6 +224,15 @@ beforeAll(async () => {
       citations: [{ title: "Existing source", uri: "https://example.test/existing" }],
     },
   });
+  const [exportOutput] = await db.insert(litSavedWork).values({
+    accessCodeId: ownerIds[0]!,
+    matterId,
+    title: "Reviewed Drive output",
+    kind: "lawyes-draft",
+    content: "# Reviewed output\n\nConfidential content.",
+    inputJson: { lawyes: true },
+  }).returning({ id: litSavedWork.id });
+  exportOutputId = exportOutput.id;
   // Canonical shared seams: one owned row plus rows which must not appear in
   // this workspace because they are owned by another access code or another matter.
   await pool.query(
@@ -204,9 +266,16 @@ beforeAll(async () => {
   );
   agentA = await login(codeA);
   agentB = await login(codeB);
+  await connectGoogle(agentA, `google-a-${suffix}`, `google-a-${suffix}@test.invalid`, "access-a");
+  await connectGoogle(agentB, `google-b-${suffix}`, `google-b-${suffix}@test.invalid`, "access-b");
 });
 
 afterAll(async () => {
+  googleEnvironment.forEach((name, index) => {
+    const value = previousGoogleEnvironment[index];
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  });
   if (!ownerIds.length) return;
   await pool.query(
     `DELETE FROM case_documents WHERE portal = $1 AND object_path LIKE $2`,
@@ -228,10 +297,15 @@ afterAll(async () => {
 
 describe("MyLitAI Lawyes vertical slice", () => {
   it("requires authentication before the shared AI limiter/capabilities", async () => {
-    const before = aiCalls.research;
-    const response = await request(app).get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+    const before = aiCalls.webResearch;
+    const response = await request(app)
+      .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
+      .send({
+        instruction: "Check current public sources and draft a short note.",
+        researchMode: "web",
+      });
     expect(response.status).toBe(401);
-    expect(aiCalls.research).toBe(before);
+    expect(aiCalls.webResearch).toBe(before);
   });
 
   it("keeps subscriber Google connections unavailable until OAuth encryption is configured", async () => {
@@ -410,8 +484,18 @@ describe("MyLitAI Lawyes vertical slice", () => {
       process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
       process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
 
-      const lawyerOne = await login(codeA);
-      const lawyerTwo = await login(codeA);
+      const invitedOne = await agentA.post("/api/lit/lawyes/invite").send({
+        name: `Google lawyer one ${suffix}`,
+        role: "editor",
+      });
+      const invitedTwo = await agentA.post("/api/lit/lawyes/invite").send({
+        name: `Google lawyer two ${suffix}`,
+        role: "editor",
+      });
+      expect(invitedOne.status).toBe(201);
+      expect(invitedTwo.status).toBe(201);
+      const lawyerOne = await login(invitedOne.body.personalCode);
+      const lawyerTwo = await login(invitedTwo.body.personalCode);
       for (const [agent, code] of [[lawyerOne, "code-one"], [lawyerTwo, "code-two"]] as const) {
         const started = await agent.get("/api/lit/lawyes/google/connect");
         const state = new URL(started.headers.location).searchParams.get("state");
@@ -426,7 +510,8 @@ describe("MyLitAI Lawyes vertical slice", () => {
         .toBe("lawyer.two@example.test");
 
       expect((await lawyerOne.post("/api/lit/auth/logout")).status).toBe(200);
-      expect((await lawyerOne.post("/api/lit/auth/login").send({ password: codeA })).status).toBe(200);
+      expect((await lawyerOne.post("/api/lit/auth/login")
+        .send({ password: invitedOne.body.personalCode })).status).toBe(200);
       expect((await lawyerOne.get("/api/lit/lawyes/google/status")).body).toMatchObject({
         configured: true,
         connected: false,
@@ -439,8 +524,14 @@ describe("MyLitAI Lawyes vertical slice", () => {
       expect(revokedTokens).toEqual(["refresh-code-two"]);
 
       const remaining = await pool.query<{ google_subject: string; email: string }>(
-        `SELECT google_subject, email FROM lawyes_google_connections WHERE tenant_id = $1`,
-        [ownerIds[0]],
+        `SELECT google_subject, email
+           FROM lawyes_google_connections
+          WHERE tenant_id = $1 AND lawyer_id IN ($2, $3)`,
+        [
+          ownerIds[0],
+          `member:${invitedOne.body.member.id}`,
+          `member:${invitedTwo.body.member.id}`,
+        ],
       );
       expect(remaining.rows).toEqual([{
         google_subject: "google-subject-one",
@@ -454,6 +545,12 @@ describe("MyLitAI Lawyes vertical slice", () => {
         if (value === undefined) delete process.env[name];
         else process.env[name] = value;
       });
+      await connectGoogle(
+        agentA,
+        `google-a-${suffix}`,
+        `google-a-${suffix}@test.invalid`,
+        "access-a",
+      );
     }
   });
 
@@ -549,6 +646,217 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(foreign.body).toEqual({ error: "Matter not found" });
   });
 
+  it("keeps Gmail listing bound to the owned matter and connected account", async () => {
+    const noGoogleCall = vi.spyOn(globalThis, "fetch");
+    const foreign = await agentB.get(
+      `/api/lit/lawyes/matters/${matterId}/google/gmail/messages?q=client`,
+    );
+    expect(foreign.status).toBe(404);
+    expect(noGoogleCall).not.toHaveBeenCalled();
+    noGoogleCall.mockRestore();
+
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        messages: [{ id: "gmail-owned-1" }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "gmail-owned-1",
+        snippet: "Matter correspondence",
+        payload: {
+          headers: [
+            { name: "Subject", value: "Owned correspondence" },
+            { name: "From", value: "client@test.invalid" },
+          ],
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    try {
+      const own = await agentA.get(
+        `/api/lit/lawyes/matters/${matterId}/google/gmail/messages?q=client`,
+      );
+      expect(own.status).toBe(200);
+      expect(own.body.account).toBe(`google-a-${suffix.toLowerCase()}@test.invalid`);
+      expect(own.body.messages[0]).toMatchObject({
+        id: "gmail-owned-1",
+        subject: "Owned correspondence",
+        imported: false,
+      });
+      expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/gmail/v1/users/me/messages?");
+      expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain(`google-b-${suffix}`);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("imports only selected Gmail IDs and deduplicates retries", async () => {
+    const message = {
+      id: "gmail-selected-1",
+      threadId: "thread-1",
+      snippet: "Selected snippet",
+      payload: {
+        mimeType: "multipart/alternative",
+        headers: [
+          { name: "Subject", value: "Selected evidence" },
+          { name: "From", value: "client@test.invalid" },
+          { name: "To", value: `google-a-${suffix}@test.invalid` },
+          { name: "Date", value: "Tue, 2 Jan 2024 10:00:00 +0000" },
+        ],
+        parts: [{
+          mimeType: "text/plain",
+          body: { data: Buffer.from("Selected message body").toString("base64url") },
+        }],
+      },
+    };
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockImplementation(async () => new Response(JSON.stringify(message), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    try {
+      const first = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/gmail/import`)
+        .send({ messageIds: ["gmail-selected-1"] });
+      expect(first.status).toBe(201);
+      expect(first.body.createdCount).toBe(1);
+      const retry = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/gmail/import`)
+        .send({ messageIds: ["gmail-selected-1"] });
+      expect(retry.status).toBe(200);
+      expect(retry.body.createdCount).toBe(0);
+      expect(fetchMock.mock.calls.every((call) =>
+        String(call[0]).includes("/users/me/messages/gmail-selected-1"))).toBe(true);
+      expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("unselected"))).toBe(false);
+      const workspace = await agentA.get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+      expect(workspace.body.emails.filter(
+        (email: { gmail_message_id: string }) => email.gmail_message_id === "gmail-selected-1",
+      )).toHaveLength(1);
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("rejects Drive writes without explicit reviewed confirmation and exports after confirmation", async () => {
+    const preview = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-preview`)
+      .send({ outputIds: [exportOutputId] });
+    expect(preview.status).toBe(200);
+    expect(preview.body).toMatchObject({
+      confirmationRequired: true,
+      destination: {
+        account: `google-a-${suffix.toLowerCase()}@test.invalid`,
+        folderId: "root",
+        folderName: "My Drive",
+      },
+      files: [{ outputId: exportOutputId, name: "Reviewed Drive output.md" }],
+    });
+
+    const noWrite = vi.spyOn(globalThis, "fetch");
+    const rejected = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+      .send({ confirmationToken: preview.body.confirmationToken, confirmed: false });
+    expect(rejected.status).toBe(400);
+    expect(noWrite).not.toHaveBeenCalled();
+    noWrite.mockRestore();
+
+    const driveMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ files: [] }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "drive-file-1",
+        name: "Reviewed Drive output.md",
+        webViewLink: "https://drive.google.test/file/drive-file-1",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    try {
+      const exported = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+        .send({ confirmationToken: preview.body.confirmationToken, confirmed: true });
+      expect(exported.status).toBe(201);
+      expect(exported.body.files).toEqual([expect.objectContaining({ id: "drive-file-1" })]);
+      expect(String(driveMock.mock.calls[1]?.[0])).toContain("/upload/drive/v3/files");
+
+      const replay = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+        .send({ confirmationToken: preview.body.confirmationToken, confirmed: true });
+      expect(replay.status).toBe(409);
+      expect(driveMock).toHaveBeenCalledTimes(2);
+    } finally {
+      driveMock.mockRestore();
+    }
+  });
+
+  it("rejects a changed output after review before making any Drive write", async () => {
+    const preview = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-preview`)
+      .send({ outputIds: [exportOutputId] });
+    expect(preview.status).toBe(200);
+    await pool.query(`UPDATE lit_saved_work SET content = $1 WHERE id = $2`, [
+      "This content changed after the practitioner reviewed the export.",
+      exportOutputId,
+    ]);
+    const noWrite = vi.spyOn(globalThis, "fetch");
+    try {
+      const stale = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+        .send({ confirmationToken: preview.body.confirmationToken, confirmed: true });
+      expect(stale.status).toBe(409);
+      expect(stale.body.error).toContain("selection has changed");
+      expect(noWrite).not.toHaveBeenCalled();
+    } finally {
+      noWrite.mockRestore();
+    }
+  });
+
+  it("resumes a failed two-file export without recreating completed files", async () => {
+    const extra = await db.insert(litSavedWork).values({
+      accessCodeId: ownerIds[0]!,
+      matterId,
+      title: "Second reviewed Drive output",
+      kind: "lawyes-draft",
+      content: "Second confidential output.",
+      inputJson: { lawyes: true },
+    }).returning({ id: litSavedWork.id });
+    const preview = await agentA
+      .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-preview`)
+      .send({ outputIds: [exportOutputId, extra[0]!.id] });
+    expect(preview.status).toBe(200);
+    const driveMock = vi.spyOn(globalThis, "fetch")
+      // first item: no ambiguous prior file, then successful create
+      .mockResolvedValueOnce(new Response(JSON.stringify({ files: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "drive-first", name: "Reviewed Drive output.md",
+      }), { status: 200 }))
+      // second item: lookup passes, create fails
+      .mockResolvedValueOnce(new Response(JSON.stringify({ files: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response("temporary failure", { status: 503 }))
+      // retry skips first completed ledger item; only second is looked up/created
+      .mockResolvedValueOnce(new Response(JSON.stringify({ files: [] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "drive-second", name: "Second reviewed Drive output.md",
+      }), { status: 200 }));
+    try {
+      const firstAttempt = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+        .send({ confirmationToken: preview.body.confirmationToken, confirmed: true });
+      expect(firstAttempt.status).toBe(502);
+      expect(firstAttempt.body).toMatchObject({ retryable: true });
+      expect(firstAttempt.body.files).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "drive-first", status: "completed" }),
+      ]));
+
+      const retry = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`)
+        .send({ confirmationToken: preview.body.confirmationToken, confirmed: true });
+      expect(retry.status).toBe(201);
+      expect(retry.body.files).toHaveLength(2);
+      const uploadCalls = driveMock.mock.calls.filter((call) =>
+        String(call[0]).includes("/upload/drive/v3/files"));
+      expect(uploadCalls).toHaveLength(3);
+      expect(String(uploadCalls[0]![0])).toContain("/upload/drive/v3/files");
+    } finally {
+      driveMock.mockRestore();
+    }
+  });
+
   it("creates and links conversations only when both conversation and matter are owned", async () => {
     const created = await agentA.post("/api/lit/gemini/litConversations").send({
       title: "Created for this matter",
@@ -593,9 +901,42 @@ describe("MyLitAI Lawyes vertical slice", () => {
       .not.toContain("Created for this matter");
   });
 
+  it("denies evidence mutations to a viewer member before storage or verification work", async () => {
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Evidence viewer ${suffix}`,
+      role: "viewer",
+    });
+    expect(invited.status).toBe(201);
+    const memberAgent = await login(invited.body.personalCode);
+    const granted = await agentA.put(`/api/lit/lawyes/matters/${matterId}/grants`).send({
+      memberId: invited.body.member.id,
+      role: "viewer",
+    });
+    expect(granted.status).toBe(200);
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    try {
+      const upload = await memberAgent
+        .post(`/api/lit/lawyes/matters/${matterId}/evidence/upload-url`).send({});
+      const analyse = await memberAgent
+        .post(`/api/lit/lawyes/matters/${matterId}/evidence/analyse`)
+        .send({ objectPath: "/objects/never-claimed", fileName: "evidence.png", contentType: "image/png" });
+      const confirm = await memberAgent
+        .post(`/api/lit/lawyes/matters/${matterId}/evidence/1/confirm`).send({});
+
+      expect(upload.status).toBe(404);
+      expect(analyse.status).toBe(404);
+      expect(confirm.status).toBe(404);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
   it("runs research plus matter drafting, returns sources/verification, and reloads a retry-safe save", async () => {
     const body = {
       instruction: "Research the issue and draft a concise advice note.",
+      researchMode: "verified_library",
       save: {
         title: "Lawyes advice note",
         kind: "lawyes-draft",
@@ -653,7 +994,10 @@ describe("MyLitAI Lawyes vertical slice", () => {
     try {
       const response = await agentA
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
-        .send({ instruction: "Research this issue and draft an advice note." });
+        .send({
+          instruction: "Research this issue and draft an advice note.",
+          researchMode: "verified_library",
+        });
       expect(response.status).toBe(422);
       expect(response.body).toMatchObject({
         code: "verified_sources_unavailable",
@@ -688,5 +1032,127 @@ describe("MyLitAI Lawyes vertical slice", () => {
     });
     expect(researchCalls.count).toBe(verifiedCallsBefore);
     expect(aiCalls.webResearch).toBe(webCallsBefore + 1);
+  });
+
+  it("migrates only shared-code legacy Google rows and permits a same-subject reconnect", async () => {
+    const subject = `legacy-google-${suffix}`;
+    const email = `${subject}@test.invalid`;
+    await pool.query(`DELETE FROM lawyes_google_connections WHERE tenant_id=$1`, [ownerIds[0]]);
+    await connectGoogle(agentA, subject, email, "temporary-current-access");
+    await pool.query(`DELETE FROM lawyes_google_connections WHERE tenant_id=$1`, [ownerIds[0]]);
+    const legacyEncrypted = encryptGoogleTokens({
+      accessToken: "legacy-access",
+      refreshToken: "legacy-refresh",
+      expiresAt: Date.now() + 3_600_000,
+      tokenType: "Bearer",
+    }, `lawyes:${ownerIds[0]}:${subject}`);
+    await pool.query(
+      `INSERT INTO lawyes_google_connections
+        (tenant_id, lawyer_id, google_subject, email, encrypted_tokens, granted_scopes)
+       VALUES ($1,$2,$2,$3,$4,$5)`,
+      [ownerIds[0], subject, email, legacyEncrypted, [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+      ]],
+    );
+    await connectGoogle(agentA, subject, email, "direct-reconnect-access");
+    const directlyReconnected = await pool.query<{ lawyer_id: string; encrypted_tokens: string }>(
+      `SELECT lawyer_id, encrypted_tokens FROM lawyes_google_connections
+        WHERE tenant_id=$1 AND google_subject=$2`,
+      [ownerIds[0], subject],
+    );
+    expect(directlyReconnected.rows).toHaveLength(1);
+    expect(directlyReconnected.rows[0]!.lawyer_id).toBe("legacy-owner");
+    expect(directlyReconnected.rows[0]!.encrypted_tokens).not.toBe(legacyEncrypted);
+
+    const migrationSubject = `status-legacy-google-${suffix}`;
+    const migrationEmail = `${migrationSubject}@test.invalid`;
+    await pool.query(`DELETE FROM lawyes_google_connections WHERE tenant_id=$1`, [ownerIds[0]]);
+    await connectGoogle(agentA, migrationSubject, migrationEmail, "temporary-migration-access");
+    await pool.query(`DELETE FROM lawyes_google_connections WHERE tenant_id=$1`, [ownerIds[0]]);
+    const migrationEncrypted = encryptGoogleTokens({
+      accessToken: "status-legacy-access",
+      refreshToken: "status-legacy-refresh",
+      expiresAt: Date.now() + 3_600_000,
+      tokenType: "Bearer",
+    }, `lawyes:${ownerIds[0]}:${migrationSubject}`);
+    await pool.query(
+      `INSERT INTO lawyes_google_connections
+        (tenant_id, lawyer_id, google_subject, email, encrypted_tokens, granted_scopes)
+       VALUES ($1,$2,$2,$3,$4,$5)`,
+      [ownerIds[0], migrationSubject, migrationEmail, migrationEncrypted, [
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+      ]],
+    );
+    const status = await agentA.get("/api/lit/lawyes/google/status");
+    expect(status.status).toBe(200);
+    expect(status.body).toMatchObject({ connected: true, account: { email: migrationEmail } });
+    const migrated = await pool.query<{ lawyer_id: string; encrypted_tokens: string }>(
+      `SELECT lawyer_id, encrypted_tokens FROM lawyes_google_connections
+        WHERE tenant_id=$1 AND google_subject=$2`,
+      [ownerIds[0], migrationSubject],
+    );
+    expect(migrated.rows).toHaveLength(1);
+    expect(migrated.rows[0]!.lawyer_id).toBe("legacy-owner");
+    expect(migrated.rows[0]!.encrypted_tokens).not.toBe(migrationEncrypted);
+
+    const googleMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({ messages: [] }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }));
+    try {
+      const gmail = await agentA.get(
+        `/api/lit/lawyes/matters/${matterId}/google/gmail/messages?q=legacy`,
+      );
+      expect(gmail.status).toBe(200);
+      expect(gmail.body.account).toBe(migrationEmail);
+      const drive = await agentA
+        .post(`/api/lit/lawyes/matters/${matterId}/google/drive/export-preview`)
+        .send({ outputIds: [exportOutputId] });
+      expect(drive.status).toBe(200);
+      expect(drive.body.destination.account).toBe(migrationEmail);
+    } finally {
+      googleMock.mockRestore();
+    }
+
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Legacy isolation member ${suffix}`,
+      role: "editor",
+    });
+    const memberAgent = await login(invited.body.personalCode);
+    await agentA.put(`/api/lit/lawyes/matters/${matterId}/grants`).send({
+      memberId: invited.body.member.id,
+      role: "editor",
+    });
+    const memberSubject = `member-legacy-${suffix}`;
+    await connectGoogle(memberAgent, memberSubject, `${memberSubject}@test.invalid`, "member-access");
+    await pool.query(
+      `DELETE FROM lawyes_google_connections WHERE tenant_id=$1 AND lawyer_id=$2`,
+      [ownerIds[0], `member:${invited.body.member.id}`],
+    );
+    const memberLegacy = encryptGoogleTokens({
+      accessToken: "member-legacy-access",
+      refreshToken: "member-legacy-refresh",
+      expiresAt: Date.now() + 3_600_000,
+      tokenType: "Bearer",
+    }, `lawyes:${ownerIds[0]}:${memberSubject}`);
+    await pool.query(
+      `INSERT INTO lawyes_google_connections
+        (tenant_id, lawyer_id, google_subject, email, encrypted_tokens, granted_scopes)
+       VALUES ($1,$2,$2,$3,$4,'{}')`,
+      [ownerIds[0], memberSubject, `${memberSubject}@test.invalid`, memberLegacy],
+    );
+    const memberStatus = await memberAgent.get("/api/lit/lawyes/google/status");
+    expect(memberStatus.body).toMatchObject({ connected: false });
+    const untouched = await pool.query<{ lawyer_id: string; encrypted_tokens: string }>(
+      `SELECT lawyer_id, encrypted_tokens FROM lawyes_google_connections
+        WHERE tenant_id=$1 AND google_subject=$2`,
+      [ownerIds[0], memberSubject],
+    );
+    expect(untouched.rows[0]).toEqual({
+      lawyer_id: memberSubject,
+      encrypted_tokens: memberLegacy,
+    });
   });
 });

@@ -68,3 +68,5 @@
 - [LAWYes first matter slice](lawyes-matter-slice.md) — LAWYes reuses MyLitAI’s access-code tenant and canonical matter stores; never infer matter conversations without an explicit link.
 - [LAWYes member authorization](lawyes-member-authorization.md) — named members stay on grant-aware LAWYes routes; personal credentials must never enter plaintext SSO-link storage.
 - [LAWYes research source policy](lawyes-research-source-policy.md) — verified-library research fails closed; public-web research is separate, explicit, and visibly unverified.
+- [Reviewed external exports](reviewed-external-exports.md) — snapshot approved content before export and persist per-file remote identity so retries never change or duplicate reviewed work.
+- [LAWYes Google legacy rebinding](lawyes-google-legacy-rebinding.md) — old subject-bound encrypted rows migrate only for shared-code owners; named members must never claim them.

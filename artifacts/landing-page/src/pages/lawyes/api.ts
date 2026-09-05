@@ -9,22 +9,35 @@ export interface Matter {
 
 export interface ResourceItem {
   id: string;
+
   title?: string;
+
   name?: string;
+
   item_text?: string;
+
   description?: string;
+
   date?: string;
+
   createdAt?: string;
+
   uri?: string;
+
   contentType?: string;
+
   extractionMetadata?: {
     kind: "image" | "audio" | "video";
     confidence: number | null;
     warnings: string[];
     provenance: { timestamps: Array<{ startSec: number; text: string }> };
   };
+
   evidenceVerified?: boolean;
+
   extractedText?: string;
+
+  content?: string;
 }
 
 export interface WorkspaceAggregate {
@@ -36,6 +49,7 @@ export interface WorkspaceAggregate {
   checklists: ResourceItem[];
   deadlines: ResourceItem[];
   events: ResourceItem[];
+  emails: ResourceItem[];
   research: ResourceItem[];
   drafts: ResourceItem[];
   outputs: ResourceItem[];
@@ -46,6 +60,16 @@ export interface WorkspaceAggregate {
   };
 }
 
+export interface GmailMessage {
+  id: string;
+  threadId?: string;
+  subject: string;
+  from: string;
+  to: string;
+  date?: string | null;
+  snippet: string;
+  imported: boolean;
+}
 export type LawyesRole = "owner" | "editor" | "viewer";
 export interface Citation {
   title: string;
@@ -175,6 +199,15 @@ export function useLawyesSaveOutput(matterId: string) {
   });
 }
 
+export function useLawyesGmailSearch(matterId: string) {
+  return useMutation<GmailSearchResponse, Error, { q: string; pageToken?: string }>({
+    mutationFn: ({ q, pageToken }) => {
+      const params = new URLSearchParams({ q });
+      if (pageToken) params.set("pageToken", pageToken);
+      return fetchWithAuth(`/api/lit/lawyes/matters/${matterId}/google/gmail/messages?${params}`);
+    },
+  });
+}
 export function useLawyesMembers(enabled = true) {
   return useQuery<LawyesMember[]>({
     queryKey: ["lawyes", "members"],
@@ -351,4 +384,65 @@ export interface LawyesMember {
   revokedAt: string | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface GmailSearchResponse {
+  account: string;
+  messages: GmailMessage[];
+  nextPageToken?: string | null;
+}
+
+export function useLawyesGmailImport(matterId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<{ createdCount: number }, Error, { messageIds: string[] }>({
+    mutationFn: (data) => fetchWithAuth(
+      `/api/lit/lawyes/matters/${matterId}/google/gmail/import`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    ),
+    onSuccess: () => queryClient.invalidateQueries({
+      queryKey: ["lawyes", "matters", matterId, "workspace"],
+    }),
+  });
+}
+
+export interface DriveExportPreview {
+  confirmationToken: string;
+  expiresAt: string;
+  destination: { account: string; folderId: string; folderName: string };
+  files: Array<{ outputId: number; name: string }>;
+  confirmationRequired: true;
+}
+
+export function useLawyesDriveConfirm(matterId: string) {
+  return useMutation<
+    { destination: string; account: string; retryable: boolean; files: Array<{ outputId: number; id: string; name: string; status: string; webViewLink?: string }> },
+    Error,
+    { confirmationToken: string; confirmed: true }
+  >({
+    mutationFn: (data) => fetchWithAuth(
+      `/api/lit/lawyes/matters/${matterId}/google/drive/export-confirm`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    ),
+  });
+}
+
+export function useLawyesDrivePreview(matterId: string) {
+  return useMutation<DriveExportPreview, Error, { outputIds: number[] }>({
+    mutationFn: (data) => fetchWithAuth(
+      `/api/lit/lawyes/matters/${matterId}/google/drive/export-preview`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    ),
+  });
 }

@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import { useLawyesMatter, useLawyesInstruct, useLawyesSaveOutput, uploadLawyesEvidence, useConfirmLawyesEvidence, useLawyesGoogleConnection, useDisconnectLawyesGoogle } from "./api";
+import {
+  useConfirmLawyesEvidence,
+  useDisconnectLawyesGoogle,
+  useLawyesDriveConfirm,
+  useLawyesDrivePreview,
+  useLawyesGmailImport,
+  useLawyesGmailSearch,
+  useLawyesGoogleConnection,
+  useLawyesInstruct,
+  useLawyesMatter,
+  useLawyesSaveOutput,
+  uploadLawyesEvidence,
+} from "./api";
 import type { ResourceItem, WorkspaceAggregate } from "./api";
-import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, Download, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, X } from "lucide-react";
+import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, Download, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -134,8 +146,19 @@ function ContextualRail({ data, matterId, onClose }: { data: WorkspaceAggregate;
 
            <RailSection title="Sources" action={data.permissions.canWrite ? <SourceUploadAction matterId={matterId} /> : undefined}>
              <GoogleConnectionStatus canUseConnectors={data.permissions.canUseConnectors} />
-            <ResourceRailList items={[...(data.documents || []), ...(data.uploads || []), ...(data.research || [])]} empty="No sources added." matterId={matterId} />
+            <ResourceRailList
+              items={[...(data.documents || []), ...(data.uploads || []), ...(data.research || [])]}
+              empty="No sources added."
+              matterId={matterId}
+              canConfirmEvidence={data.permissions.canWrite}
+            />
           </RailSection>
+
+          {data.permissions.canUseConnectors && (
+            <RailSection title="Email & Drive">
+              <GoogleMatterTools matterId={matterId} outputs={data.outputs || []} />
+            </RailSection>
+          )}
 
           <RailSection title="Scheduled">
             <ResourceRailList items={[...(data.deadlines || []), ...(data.events || [])]} empty="No upcoming dates." matterId={matterId} />
@@ -162,7 +185,17 @@ function RailSection({ title, action, children }: { title: string, action?: Reac
   )
 }
 
-function ResourceRailList({ items, empty, matterId }: { items: ResourceItem[]; empty: string; matterId?: string }) {
+function ResourceRailList({
+  items,
+  empty,
+  matterId,
+  canConfirmEvidence = false,
+}: {
+  items: ResourceItem[];
+  empty: string;
+  matterId?: string;
+  canConfirmEvidence?: boolean;
+}) {
   if (!items || items.length === 0) {
      return <div className="px-2 py-1 text-[11px] text-slate-400">{empty}</div>
   }
@@ -181,7 +214,7 @@ function ResourceRailList({ items, empty, matterId }: { items: ResourceItem[]; e
                  {item.evidenceVerified ? (
                     <span className="inline-block px-1.5 py-0.5 rounded-[4px] bg-primary/10 text-[9px] text-primary font-bold uppercase tracking-wider">Verified</span>
                  ) : (
-                    <RailEvidenceStatus item={item} matterId={matterId} />
+                    <RailEvidenceStatus item={item} matterId={matterId} canConfirm={canConfirmEvidence} />
                  )}
                </div>
              )}
@@ -191,20 +224,30 @@ function ResourceRailList({ items, empty, matterId }: { items: ResourceItem[]; e
   )
 }
 
-function RailEvidenceStatus({ item, matterId }: { item: ResourceItem; matterId: string }) {
+function RailEvidenceStatus({
+  item,
+  matterId,
+  canConfirm,
+}: {
+  item: ResourceItem;
+  matterId: string;
+  canConfirm: boolean;
+}) {
   const confirm = useConfirmLawyesEvidence(matterId);
   return (
     <div className="flex items-center gap-2">
        <span className="inline-block px-1.5 py-0.5 rounded-[4px] bg-amber-100/50 text-[9px] text-amber-700 font-bold uppercase tracking-wider border border-amber-200/50">Unverified</span>
-       <button
-         type="button"
-         onClick={() => confirm.mutate(item.id)}
-         disabled={confirm.isPending}
-         className="text-[9px] text-slate-500 hover:text-primary font-semibold underline underline-offset-2 disabled:opacity-50"
-         data-testid={`button-confirm-evidence-${item.id}`}
-       >
-         Verify
-       </button>
+       {canConfirm && (
+         <button
+           type="button"
+           onClick={() => confirm.mutate(item.id)}
+           disabled={confirm.isPending}
+           className="text-[9px] text-slate-500 hover:text-primary font-semibold underline underline-offset-2 disabled:opacity-50"
+           data-testid={`button-confirm-evidence-${item.id}`}
+         >
+           Verify
+         </button>
+       )}
     </div>
   )
 }
@@ -252,6 +295,188 @@ function GoogleConnectionStatus({ canUseConnectors }: { canUseConnectors: boolea
   )
 }
 
+function GoogleMatterTools({
+  matterId,
+  outputs,
+}: {
+  matterId: string;
+  outputs: ResourceItem[];
+}) {
+  const google = useLawyesGoogleConnection();
+  const gmailSearch = useLawyesGmailSearch(matterId);
+  const gmailImport = useLawyesGmailImport(matterId);
+  const drivePreview = useLawyesDrivePreview(matterId);
+  const driveConfirm = useLawyesDriveConfirm(matterId);
+  const { toast } = useToast();
+  const [query, setQuery] = useState("");
+  const [messageIds, setMessageIds] = useState<string[]>([]);
+  const [outputIds, setOutputIds] = useState<number[]>([]);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+
+  if (!google.data?.connected) {
+    return <p className="px-2 py-1 text-[11px] text-slate-400">Connect Google above to import Gmail messages or export approved work.</p>;
+  }
+
+  const toggle = <T extends string | number>(items: T[], item: T, checked: boolean) =>
+    checked ? [...items, item] : items.filter((value) => value !== item);
+
+  return (
+    <div className="space-y-3 px-2">
+      <section className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-800">
+          <Mail className="h-3.5 w-3.5 text-primary" /> Import from Gmail
+        </div>
+        <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+          Search only {google.data.account?.email}. Nothing is added until you select and import it.
+        </p>
+        <form
+          className="flex gap-1.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setMessageIds([]);
+            gmailSearch.mutate({ q: query });
+          }}
+        >
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search Gmail"
+            className="min-w-0 flex-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs"
+            maxLength={500}
+          />
+          <Button type="submit" size="sm" className="h-8 w-8 p-0" disabled={gmailSearch.isPending} aria-label="Search Gmail">
+            {gmailSearch.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+          </Button>
+        </form>
+        {gmailSearch.error && <p className="mt-2 text-[11px] text-red-600">{gmailSearch.error.message}</p>}
+        {gmailSearch.data && (
+          <div className="mt-3 space-y-1.5">
+            {gmailSearch.data.messages.length === 0 && <p className="text-[11px] text-slate-500">No messages found.</p>}
+            {gmailSearch.data.messages.map((message) => (
+              <label key={message.id} className="flex cursor-pointer gap-2 rounded-md border border-slate-200 p-2 text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={messageIds.includes(message.id)}
+                  disabled={message.imported}
+                  onChange={(event) => setMessageIds(toggle(messageIds, message.id, event.target.checked))}
+                  className="mt-0.5"
+                />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-slate-800">{message.subject}</span>
+                  <span className="block truncate text-slate-500">{message.from}</span>
+                  <span className="mt-0.5 block line-clamp-2 text-slate-600">{message.snippet}</span>
+                  {message.imported && <span className="mt-1 block font-semibold text-primary">Already imported</span>}
+                </span>
+              </label>
+            ))}
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              disabled={!messageIds.length || gmailImport.isPending}
+              onClick={() => gmailImport.mutate(
+                { messageIds },
+                {
+                  onSuccess: (result) => {
+                    setMessageIds([]);
+                    gmailSearch.mutate({ q: query });
+                    toast({ title: `${result.createdCount} message${result.createdCount === 1 ? "" : "s"} imported` });
+                  },
+                },
+              )}
+            >
+              {gmailImport.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Import selected ({messageIds.length})
+            </Button>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-800">
+          <HardDrive className="h-3.5 w-3.5 text-primary" /> Export approved work
+        </div>
+        <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+          Select outputs, then review the account, destination, and filenames before confirming.
+        </p>
+        <div className="space-y-1.5">
+          {outputs.length === 0 && <p className="text-[11px] text-slate-500">Save a LAWYes output before exporting.</p>}
+          {outputs.map((output) => {
+            const id = Number(output.id);
+            return (
+              <label key={output.id} className="flex gap-2 rounded-md border border-slate-200 p-2 text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={outputIds.includes(id)}
+                  onChange={(event) => {
+                    setOutputIds(toggle(outputIds, id, event.target.checked));
+                    drivePreview.reset();
+                    setReviewConfirmed(false);
+                  }}
+                />
+                <span className="line-clamp-2">{output.title || "Untitled output"}</span>
+              </label>
+            );
+          })}
+        </div>
+        {!drivePreview.data ? (
+          <Button
+            className="mt-2 h-8 text-xs"
+            size="sm"
+            disabled={!outputIds.length || drivePreview.isPending}
+            onClick={() => drivePreview.mutate({ outputIds })}
+          >
+            {drivePreview.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            Review destination
+          </Button>
+        ) : (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-950">
+            <p className="font-semibold">Review required</p>
+            <p className="mt-1.5 break-all">Account: {drivePreview.data.destination.account}</p>
+            <p>Destination: {drivePreview.data.destination.folderName}</p>
+            <ul className="my-1.5 list-disc pl-4">
+              {drivePreview.data.files.map((file) => <li key={file.outputId}>{file.name}</li>)}
+            </ul>
+            <label className="flex items-start gap-2 font-medium">
+              <input
+                type="checkbox"
+                checked={reviewConfirmed}
+                onChange={(event) => setReviewConfirmed(event.target.checked)}
+              />
+              I reviewed this exact account, destination, and file list.
+            </label>
+            <Button
+              className="mt-2 h-8 text-xs"
+              size="sm"
+              disabled={!reviewConfirmed || driveConfirm.isPending}
+              onClick={() => driveConfirm.mutate(
+                { confirmationToken: drivePreview.data!.confirmationToken, confirmed: true },
+                {
+                  onSuccess: (result) => {
+                    toast({ title: `${result.files.length} file${result.files.length === 1 ? "" : "s"} exported to Drive` });
+                    setOutputIds([]);
+                    setReviewConfirmed(false);
+                    drivePreview.reset();
+                  },
+                },
+              )}
+            >
+              {driveConfirm.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {driveConfirm.isPending ? "Exporting…" : driveConfirm.error ? "Retry confirmed export" : "Confirm export"}
+            </Button>
+            {driveConfirm.error && (
+              <p className="mt-2 font-medium">
+                Retry this reviewed export by confirming again. Completed files will not be recreated.
+              </p>
+            )}
+          </div>
+        )}
+        {(drivePreview.error || driveConfirm.error) && (
+          <p className="mt-2 text-[11px] text-red-600">{drivePreview.error?.message || driveConfirm.error?.message}</p>
+        )}
+      </section>
+    </div>
+  );
+}
 function SourceUploadAction({ matterId }: { matterId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
