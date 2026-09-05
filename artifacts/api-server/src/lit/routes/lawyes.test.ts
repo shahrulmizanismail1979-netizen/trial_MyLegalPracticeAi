@@ -47,8 +47,6 @@ await pool.query(`
   ALTER TABLE lit_conversations DROP COLUMN IF EXISTS matter_id CASCADE;
 `);
 const { default: app } = await import("../../app");
-
-const { signMsTicket } = await import("../../microsoft");
 const { ensureConversationMatterSchema } =
   await import("../lib/ensureConversationMatterSchema");
 await ensureConversationMatterSchema();
@@ -212,15 +210,7 @@ afterAll(async () => {
 describe("MyLitAI Lawyes vertical slice", () => {
   it("requires authentication before the shared AI limiter/capabilities", async () => {
     const before = aiCalls.research;
-      const response = await agentA
-        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
-        .send({ instruction: "Research this issue and draft an advice note." });
-
-    const invited = await agentA.post("/api/lit/lawyes/invite").send({
-      name: `Viewer ${suffix}`,
-      email: `viewer-${suffix}@test.invalid`,
-      role: "viewer",
-    });
+    const response = await request(app).get(`/api/lit/lawyes/matters/${matterId}/workspace`);
     expect(response.status).toBe(401);
     expect(aiCalls.research).toBe(before);
   });
@@ -233,18 +223,8 @@ describe("MyLitAI Lawyes vertical slice", () => {
     ] as const;
     const previous = names.map((name) => process.env[name]);
     try {
-      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
-      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
-      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
-      const response = await agentA
-        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
-        .send({ instruction: "Research this issue and draft an advice note." });
-
-    const invited = await agentA.post("/api/lit/lawyes/invite").send({
-      name: `Viewer ${suffix}`,
-      email: `viewer-${suffix}@test.invalid`,
-      role: "viewer",
-    });
+      for (const name of names) delete process.env[name];
+      const response = await agentA.get("/api/lit/lawyes/google/status");
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ configured: false, connected: false });
     } finally {
@@ -256,26 +236,19 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 
-  it("rejects broader Google permissions instead of retaining incremental grants", async () => {
+  it("starts per-lawyer Google OAuth with least-privilege Gmail and Drive scopes", async () => {
     const names = [
       "GOOGLE_OAUTH_CLIENT_ID",
       "GOOGLE_OAUTH_CLIENT_SECRET",
       "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
     ] as const;
     const previous = names.map((name) => process.env[name]);
+
     try {
       process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
       process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
       process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
-      const response = await agentA
-        .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
-        .send({ instruction: "Research this issue and draft an advice note." });
-
-    const invited = await agentA.post("/api/lit/lawyes/invite").send({
-      name: `Viewer ${suffix}`,
-      email: `viewer-${suffix}@test.invalid`,
-      role: "viewer",
-    });
+      const response = await agentA.get("/api/lit/lawyes/google/connect");
       expect(response.status).toBe(302);
       const target = new URL(response.headers.location);
       expect(target.origin).toBe("https://accounts.google.com");
@@ -298,27 +271,26 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 
-  it("rejects broader Google permissions instead of retaining incremental grants", async () => {
+  it("rejects an OAuth callback after the LAWYes tenant changes", async () => {
     const names = [
       "GOOGLE_OAUTH_CLIENT_ID",
       "GOOGLE_OAUTH_CLIENT_SECRET",
       "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
     ] as const;
     const previous = names.map((name) => process.env[name]);
+
     try {
       process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
       process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
       process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
       const switchingAgent = await login(codeA);
-      const started = await scopedAgent.get("/api/lit/lawyes/google/connect");
+      const started = await switchingAgent.get("/api/lit/lawyes/google/connect");
       const state = new URL(started.headers.location).searchParams.get("state");
       expect((await switchingAgent.post("/api/lit/auth/login").send({ password: codeB })).status).toBe(200);
-      const callback = await scopedAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
+      const callback = await switchingAgent.get(`/api/lit/lawyes/google/callback?code=fake&state=${state}`);
       expect(callback.status).toBe(302);
-      expect(callback.headers.location).toContain("google=invalid_scopes");
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(callback.headers.location).toContain("google=invalid_state");
     } finally {
-      fetchMock.mockRestore();
       names.forEach((name, index) => {
         const value = previous[index];
         if (value === undefined) delete process.env[name];
@@ -369,6 +341,155 @@ describe("MyLitAI Lawyes vertical slice", () => {
     }
   });
 
+  it("isolates and disconnects two lawyers' Google accounts inside one LAWYes tenant", async () => {
+    const names = [
+      "GOOGLE_OAUTH_CLIENT_ID",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY",
+    ] as const;
+    const previous = names.map((name) => process.env[name]);
+    const requiredScopes = [
+      "openid",
+      "email",
+      "profile",
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/drive.file",
+    ].join(" ");
+    const revokedTokens: string[] = [];
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url === "https://oauth2.googleapis.com/token") {
+        const body = new URLSearchParams(String(init?.body));
+        const code = body.get("code");
+        return new Response(JSON.stringify({
+          access_token: `access-${code}`,
+          refresh_token: `refresh-${code}`,
+          expires_in: 3600,
+          token_type: "Bearer",
+          scope: requiredScopes,
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (url === "https://openidconnect.googleapis.com/v1/userinfo") {
+        const token = String((init?.headers as Record<string, string>)?.Authorization ?? "");
+        const lawyer = token.includes("code-one")
+          ? { sub: "google-subject-one", email: "lawyer.one@example.test", name: "Lawyer One" }
+          : { sub: "google-subject-two", email: "lawyer.two@example.test", name: "Lawyer Two" };
+        return new Response(JSON.stringify({ ...lawyer, email_verified: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (url === "https://oauth2.googleapis.com/revoke") {
+        const body = new URLSearchParams(String(init?.body));
+        revokedTokens.push(body.get("token") ?? "");
+        return new Response("", { status: 200 });
+      }
+      throw new Error(`Unexpected Google request: ${url}`);
+    });
+    try {
+      process.env.GOOGLE_OAUTH_CLIENT_ID = "test-client-id";
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret";
+      process.env.GOOGLE_OAUTH_TOKEN_ENCRYPTION_KEY = "test-encryption-key-at-least-thirty-two-characters";
+
+      const lawyerOne = await login(codeA);
+      const lawyerTwo = await login(codeA);
+      for (const [agent, code] of [[lawyerOne, "code-one"], [lawyerTwo, "code-two"]] as const) {
+        const started = await agent.get("/api/lit/lawyes/google/connect");
+        const state = new URL(started.headers.location).searchParams.get("state");
+        const callback = await agent.get(`/api/lit/lawyes/google/callback?code=${code}&state=${state}`);
+        expect(callback.status).toBe(302);
+        expect(callback.headers.location).toContain("google=connected");
+      }
+
+      expect((await lawyerOne.get("/api/lit/lawyes/google/status")).body.account.email)
+        .toBe("lawyer.one@example.test");
+      expect((await lawyerTwo.get("/api/lit/lawyes/google/status")).body.account.email)
+        .toBe("lawyer.two@example.test");
+
+      expect((await lawyerOne.post("/api/lit/auth/logout")).status).toBe(200);
+      expect((await lawyerOne.post("/api/lit/auth/login").send({ password: codeA })).status).toBe(200);
+      expect((await lawyerOne.get("/api/lit/lawyes/google/status")).body).toMatchObject({
+        configured: true,
+        connected: false,
+      });
+      expect((await lawyerTwo.get("/api/lit/lawyes/google/status")).body.account.email)
+        .toBe("lawyer.two@example.test");
+
+      expect((await lawyerTwo.delete("/api/lit/lawyes/google/connection")).body)
+        .toEqual({ disconnected: true });
+      expect(revokedTokens).toEqual(["refresh-code-two"]);
+
+      const remaining = await pool.query<{ google_subject: string; email: string }>(
+        `SELECT google_subject, email FROM lawyes_google_connections WHERE tenant_id = $1`,
+        [ownerIds[0]],
+      );
+      expect(remaining.rows).toEqual([{
+        google_subject: "google-subject-one",
+        email: "lawyer.one@example.test",
+      }]);
+    } finally {
+      fetchMock.mockRestore();
+      await pool.query(`DELETE FROM lawyes_google_connections WHERE tenant_id = $1`, [ownerIds[0]]);
+      names.forEach((name, index) => {
+        const value = previous[index];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      });
+    }
+  });
+
+  it("keeps named lawyers out of ungranted matters and enforces their granted role", async () => {
+    const invited = await agentA.post("/api/lit/lawyes/invite").send({
+      name: `Viewer ${suffix}`,
+      email: `viewer-${suffix}@test.invalid`,
+      role: "viewer",
+    });
+    expect(invited.status).toBe(201);
+    expect(invited.body.personalCode).toMatch(/^LY-/);
+    const memberId = invited.body.member.id as number;
+    const memberAgent = await login(invited.body.personalCode);
+
+    const beforeGrant = await memberAgent.get("/api/lit/lawyes/matters");
+    expect(beforeGrant.status).toBe(200);
+    expect(beforeGrant.body).toEqual([]);
+    expect((await memberAgent.get(`/api/lit/lawyes/matters/${matterId}/workspace`)).status)
+      .toBe(404);
+    expect((await memberAgent.post(`/api/lit/lawyes/matters/${matterId}/save`).send({
+      title: "Must not save",
+      content: "No grant exists",
+    })).status).toBe(404);
+
+    expect((await agentA.put(`/api/lit/lawyes/matters/${matterId}/grants/${memberId}`)
+      .send({ role: "viewer" })).status).toBe(200);
+    expect((await memberAgent.get("/api/lit/lawyes/matters")).body.map(
+      (matter: { id: number }) => matter.id,
+    )).toEqual([matterId]);
+    const viewerWorkspace = await memberAgent
+      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
+    expect(viewerWorkspace.status).toBe(200);
+    expect(viewerWorkspace.body.permissions).toMatchObject({
+      role: "viewer",
+      canWrite: false,
+      canUseConnectors: false,
+    });
+    expect((await memberAgent.post(`/api/lit/lawyes/matters/${matterId}/save`).send({
+      title: "Viewer cannot save",
+      content: "Still read-only",
+    })).status).toBe(404);
+
+    expect((await agentA.put(`/api/lit/lawyes/matters/${matterId}/grants/${memberId}`)
+      .send({ role: "editor" })).status).toBe(200);
+    expect((await memberAgent.post(`/api/lit/lawyes/matters/${matterId}/save`).send({
+      title: "Editor output",
+      content: "Granted editor work",
+    })).status).toBe(201);
+
+    expect((await agentA.delete(`/api/lit/lawyes/members/${memberId}`)).status).toBe(200);
+    expect((await memberAgent.get("/api/lit/lawyes/identity")).status).toBe(401);
+    expect((await request(app).post("/api/lit/auth/login")
+      .send({ password: invited.body.personalCode })).status).toBe(401);
+  });
+
   it("loads the same-owner aggregate and isolates foreign tenants with 404", async () => {
     const ownList = await agentA.get("/api/lit/lawyes/matters");
     expect(ownList.status).toBe(200);
@@ -417,9 +538,9 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(created.status).toBe(201);
     expect(created.body.matterId).toBe(matterId);
 
-    const unlinked = await memberAgent.get("/api/lit/gemini/litConversations");
-
-    const tenantWideSavedWork = await memberAgent.get("/api/lit/saved-work");
+    const unlinked = await agentA.post("/api/lit/gemini/litConversations").send({
+      title: "Explicitly linked later",
+    });
     expect(unlinked.status).toBe(201);
     expect(unlinked.body.matterId).toBeNull();
 
@@ -503,97 +624,17 @@ describe("MyLitAI Lawyes vertical slice", () => {
       const response = await agentA
         .post(`/api/lit/lawyes/matters/${matterId}/instructions`)
         .send({ instruction: "Research this issue and draft an advice note." });
-
-    const invited = await agentA.post("/api/lit/lawyes/invite").send({
-      name: `Viewer ${suffix}`,
-      email: `viewer-${suffix}@test.invalid`,
-      role: "viewer",
-    });
-    expect(relogin.status).toBe(401);
+      expect(response.status).toBe(502);
+      expect(response.body).toMatchObject({
+        code: "sources_unavailable",
+        verification: {
+          status: "requires_independent_verification",
+          verified: false,
+        },
+      });
+      expect(aiCalls.drafting).toBe(draftingBefore);
+    } finally {
+      aiCalls.emitCitations = true;
+    }
   });
 });
-
-    const grantedEditor = await agentA
-      .put(`/api/lit/lawyes/matters/${matterId}/grants/${memberId}`)
-      .send({ role: "editor" });
-
-    const audit = await agentA.get("/api/lit/lawyes/audit");
-
-    const editorWrite = await memberAgent
-      .post(`/api/lit/lawyes/matters/${matterId}/save`)
-      .send({
-        title: "Member output",
-        content: "content that must never enter audit details",
-        instruction: "secret instruction",
-      });
-
-    const viewerWorkspace = await memberAgent
-      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
-
-    const inaccessibleConversation = await memberAgent
-      .get(`/api/lit/gemini/litConversations/${linkedConversationId + 2}`);
-
-    const identity = await memberAgent.get("/api/lit/lawyes/identity");
-
-    const revoked = await agentA.delete(`/api/lit/lawyes/members/${memberId}`);
-
-    const editorConversation = await memberAgent
-      .post("/api/lit/gemini/litConversations")
-      .send({ title: "Member linked discussion", matterId });
-
-    const personalSso = await request(app).post("/api/lit/auth/sso").send({
-      ticket: signMsTicket(`viewer-${suffix}@test.invalid`, "lit"),
-      code: invited.body.personalCode,
-    });
-
-    const relogin = await request(app).post("/api/lit/auth/login")
-      .send({ password: invited.body.personalCode });
-
-    const serializedAudit = JSON.stringify(audit.body);
-
-    const tenantWideBundles = await memberAgent.get("/api/lit/bundles");
-
-    const afterRevocation = await memberAgent.get("/api/lit/lawyes/identity");
-
-    const memberId = invited.body.member.id as number;
-
-    const persistedPersonalLink = await pool.query(
-      `SELECT id FROM microsoft_links WHERE access_code = $1`,
-      [invited.body.personalCode],
-    );
-
-    const invitedAdmin = await agentA.post("/api/lit/lawyes/invite").send({
-      name: `Administrator ${suffix}`,
-      role: "owner",
-    });
-
-    const viewerWrite = await memberAgent
-      .post(`/api/lit/lawyes/matters/${matterId}/save`)
-      .send({ title: "Forbidden", content: "sensitive output" });
-
-    const isolated = await memberAgent.get("/api/lit/lawyes/matters");
-
-    const memberAgent = await login(invited.body.personalCode);
-
-    const grantedViewer = await agentA
-      .put(`/api/lit/lawyes/matters/${matterId}/grants`)
-      .send({ memberId, role: "viewer" });
-
-    const adminWorkspaceWithoutGrant = await adminAgent
-      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
-
-    const adminWithoutGrant = await adminAgent.get("/api/lit/lawyes/matters");
-
-    const adminConversationWithoutGrant = await adminAgent
-      .get(`/api/lit/gemini/litConversations/${linkedConversationId}`);
-
-    const adminGrant = await agentA
-      .put(`/api/lit/lawyes/matters/${matterId}/grants/${adminMemberId}`)
-      .send({ role: "owner" });
-
-    const adminAgent = await login(invitedAdmin.body.personalCode);
-
-    const adminMemberId = invitedAdmin.body.member.id as number;
-
-    const adminWorkspaceWithGrant = await adminAgent
-      .get(`/api/lit/lawyes/matters/${matterId}/workspace`);
