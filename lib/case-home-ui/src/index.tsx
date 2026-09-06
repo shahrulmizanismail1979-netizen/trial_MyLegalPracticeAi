@@ -460,16 +460,91 @@ const CSS = `
   container-type: inline-size;
 }
 .ch-root *{box-sizing:border-box;}
-.ch-grid{display:grid;grid-template-columns:1fr;gap:14px;}
-@media(min-width:640px){.ch-grid{grid-template-columns:1fr 1fr;}}
-@media(min-width:1024px){.ch-grid{grid-template-columns:1fr 1fr 1fr;}}
+
+/* New Layout */
+.ch-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (min-width: 1024px) {
+  .ch-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+.ch-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ch-rail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  order: -1;
+}
+@media (min-width: 1024px) {
+  .ch-rail {
+    flex: 0 0 320px;
+    order: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ch-border) transparent;
+  }
+  .ch-rail::-webkit-scrollbar { width: 6px; }
+  .ch-rail::-webkit-scrollbar-thumb { background-color: var(--ch-border); border-radius: 3px; }
+}
+
+.ch-rail-box {
+  background: var(--ch-surface);
+  border: 1px solid var(--ch-border);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ch-rail-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--ch-border);
+}
+.ch-rail-section:last-child {
+  border-bottom: none;
+}
+.ch-rail-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ch-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.ch-rail-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ch-muted);
+}
+.ch-rail-title svg {
+  color: var(--ch-accent);
+}
+
 .ch-card{
   background: var(--ch-surface);
   border: 1px solid var(--ch-border);
   border-radius: 10px;
   padding: 16px;
 }
-.ch-card-full{grid-column:1/-1;}
 .ch-section-title{
   font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
   color:var(--ch-muted);margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -699,6 +774,28 @@ function DeadlineText({ value, label }: { value: unknown; label?: boolean }) {
         </span>
       )}
     </span>
+  );
+}
+
+const IconProgress = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+);
+const IconOutputs = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+);
+const IconSources = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+);
+
+function RailHeader({ title, action, count }: { title: React.ReactNode, action?: React.ReactNode, count?: number }) {
+  return (
+    <div className="ch-rail-header">
+      <div className="ch-rail-title">
+        {title}
+        {count !== undefined && count > 0 && <span className="ch-count-badge">{count}</span>}
+      </div>
+      {action}
+    </div>
   );
 }
 
@@ -1206,7 +1303,7 @@ function OverviewCard({
   const nextDeadline = data.nextDeadline ?? null;
 
   return (
-    <div className="ch-card ch-card-full">
+    <div className="ch-card">
       <div
         style={{
           display: "flex",
@@ -1348,66 +1445,75 @@ export function CaseHomePanel({ matterId, request, accent, className = "", actio
 
   return (
     <div className={`ch-root ${className}`} style={rootStyle} aria-label={`Case home for matter ${matterId}`}>
-      <div className="ch-grid">
-        {/* Overview: stage, next action, next deadline */}
-        <OverviewCard data={data} action={action} />
+      <div className="ch-layout">
+        {/* Core Work Area */}
+        <div className="ch-main">
+          <OverviewCard data={data} action={action} />
 
-        {/* Outstanding tasks + create/edit */}
-        <div className="ch-card ch-card-full">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-            <SectionTitle>
-              Outstanding Tasks
-              {outstanding.length > 0 && <span className="ch-count-badge">{outstanding.length}</span>}
-            </SectionTitle>
-            <CreateTaskForm matterId={matterId} request={request} onCreated={reload} />
+          <div className="ch-card">
+            <SectionTitle>People</SectionTitle>
+            <PeoplePanel people={people} />
           </div>
 
-          {tasks.length === 0 ? (
-            <p className="ch-empty">No tasks yet. Create the first one above.</p>
-          ) : (
-            <ul className="ch-task-list" aria-label="Tasks">
-              {orderedTasks.map((task) => (
-                <TaskRow key={task.id} task={task} matterId={matterId} request={request} onChanged={reload} />
-              ))}
-            </ul>
-          )}
+          <div className="ch-card">
+            <SectionTitle>
+              Latest Activity
+              {aiInTimeline && (
+                <span
+                  title="Some entries were created or filed by AI tools. Purple dot = AI provenance; hover the ✦ AI label for the source tool and time."
+                  style={{ fontSize: 10, color: "var(--ch-ai)", cursor: "help" }}
+                >
+                  ✦ includes AI-filed items
+                </span>
+              )}
+            </SectionTitle>
+            <Timeline events={timeline} />
+          </div>
         </div>
 
-        {/* People */}
-        <div className="ch-card">
-          <SectionTitle>People</SectionTitle>
-          <PeoplePanel people={people} />
-        </div>
+        {/* Right Rail Context */}
+        <div className="ch-rail">
+          <div className="ch-rail-box">
+            <div className="ch-rail-section">
+              <RailHeader
+                title={<><IconProgress /> Progress</>}
+                count={outstanding.length}
+                action={<CreateTaskForm matterId={matterId} request={request} onCreated={reload} />}
+              />
+              {data.currentStage && (
+                <div className="ch-kv-row" style={{ marginBottom: tasks.length > 0 ? 12 : 0 }}>
+                  <span className="ch-kv-label">Current stage</span>
+                  <span className="ch-kv-val">{data.currentStage}</span>
+                </div>
+              )}
+              {tasks.length === 0 ? (
+                <p className="ch-empty">No active progress items.</p>
+              ) : (
+                <ul className="ch-task-list" aria-label="Tasks">
+                  {orderedTasks.map((task) => (
+                    <TaskRow key={task.id} task={task} matterId={matterId} request={request} onChanged={reload} />
+                  ))}
+                </ul>
+              )}
+            </div>
 
-        {/* Documents */}
-        <div className="ch-card">
-          <SectionTitle>Documents</SectionTitle>
-          <DocumentsPanel documents={documents} />
-        </div>
+            <div className="ch-rail-section">
+              <RailHeader
+                title={<><IconOutputs /> Outputs</>}
+                count={savedWork.length}
+              />
+              <SavedWorkPanel items={savedWork} />
+            </div>
 
-        {/* Filed / AI work */}
-        <div className="ch-card">
-          <SectionTitle>
-            Filed Work
-            {savedWork.length > 0 && <AiLabel />}
-          </SectionTitle>
-          <SavedWorkPanel items={savedWork} />
-        </div>
+            <div className="ch-rail-section">
+              <RailHeader
+                title={<><IconSources /> Sources</>}
+                count={documents.length}
+              />
+              <DocumentsPanel documents={documents} />
+            </div>
 
-        {/* Unified newest-first timeline */}
-        <div className="ch-card ch-card-full">
-          <SectionTitle>
-            Latest Activity
-            {aiInTimeline && (
-              <span
-                title="Some entries were created or filed by AI tools. Purple dot = AI provenance; hover the ✦ AI label for the source tool and time."
-                style={{ fontSize: 10, color: "var(--ch-ai)", cursor: "help" }}
-              >
-                ✦ includes AI-filed items
-              </span>
-            )}
-          </SectionTitle>
-          <Timeline events={timeline} />
+          </div>
         </div>
       </div>
     </div>

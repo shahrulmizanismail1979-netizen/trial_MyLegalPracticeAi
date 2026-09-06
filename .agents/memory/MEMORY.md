@@ -71,3 +71,4 @@
 - [Reviewed external exports](reviewed-external-exports.md) — snapshot approved content before export and persist per-file remote identity so retries never change or duplicate reviewed work.
 - [LAWYes Google legacy rebinding](lawyes-google-legacy-rebinding.md) — old subject-bound encrypted rows migrate only for shared-code owners; named members must never claim them.
 - [Fail-closed legal workflow analytics](legal-workflow-analytics.md) — custom events use a central allowlist for names, keys, enums, and bounded counts; never forward arbitrary caller values.
+- [Matter workspace context rail](matter-workspace-context-rail.md) — keep legal workspaces focused, with a compact Progress/Outputs/Sources rail using real matter data.
