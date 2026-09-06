@@ -20,11 +20,23 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import type { ResourceDetail, ResourceItem, WorkspaceAggregate } from "./api";
+import { trackEvent } from "@/lib/analytics";
 
 export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, onShareClick: () => void }) {
   const { data, isLoading, error } = useLawyesMatter(matterId);
   const [railOpen, setRailOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
+  const trackedMatter = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data || trackedMatter.current === matterId) return;
+    trackedMatter.current = matterId;
+    trackEvent("lawyes_matter_opened", {
+      role: data.permissions.role,
+      can_write: data.permissions.canWrite,
+      can_use_connectors: data.permissions.canUseConnectors,
+      matter_status: data.matter.status || "active",
+    });
+  }, [data, matterId]);
   
   if (isLoading) {
     return (
@@ -502,8 +514,18 @@ function SourceUploadAction({ matterId }: { matterId: string }) {
     try {
       await uploadLawyesEvidence(matterId, file);
       await refetch();
+      trackEvent("lawyes_evidence_uploaded", {
+        status: "success",
+        media_type: file.type.split("/")[0] || "unknown",
+        size_bucket: file.size < 1_000_000 ? "under_1mb" : file.size < 10_000_000 ? "1mb_to_10mb" : "over_10mb",
+      });
       toast({ title: "Evidence analysed", description: "Source uploaded and text extracted." });
     } catch (error) {
+      trackEvent("lawyes_evidence_uploaded", {
+        status: "failure",
+        media_type: file.type.split("/")[0] || "unknown",
+        size_bucket: file.size < 1_000_000 ? "under_1mb" : file.size < 10_000_000 ? "1mb_to_10mb" : "over_10mb",
+      });
       toast({ variant: "destructive", title: "Upload failed", description: error instanceof Error ? error.message : "Please try again." });
     } finally {
       setIsUploading(false);
@@ -590,7 +612,28 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
   const handleSubmit = () => {
     if (!instruction.trim()) return;
     saveIdempotencyKey.current = crypto.randomUUID();
-    instruct({ instruction: instruction.trim(), researchMode });
+    const instructionLength = instruction.trim().length;
+    trackEvent("lawyes_instruction_submitted", {
+      research_mode: researchMode,
+      instruction_length: instructionLength,
+    });
+    instruct(
+      { instruction: instruction.trim(), researchMode },
+      {
+        onSuccess: (response) => {
+          trackEvent("lawyes_instruction_completed", {
+            research_mode: response.researchMode,
+            citation_count: response.citations.length,
+            content_length: response.content.length,
+          });
+        },
+        onError: () => {
+          trackEvent("lawyes_instruction_failed", {
+            research_mode: researchMode,
+          });
+        },
+      },
+    );
   };
 
   const handleSave = () => {
@@ -607,6 +650,11 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
       },
       {
         onSuccess: () => {
+          trackEvent("lawyes_output_saved", {
+            output_kind: "lawyes_draft",
+            citation_count: result.citations.length,
+            content_length: workbenchContent.length,
+          });
           resetInstruction();
           setInstruction("");
           setWorkbenchContent("");

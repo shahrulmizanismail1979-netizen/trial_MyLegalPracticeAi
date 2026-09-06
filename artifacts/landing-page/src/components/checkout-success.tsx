@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Copy, Check, ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { trackEvent } from "@/lib/analytics";
 
 const ALLOWED_REDIRECTS = new Set([
   "https://mylitai.life",
@@ -36,6 +37,7 @@ export function CheckoutSuccess() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const completionTracked = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -69,6 +71,15 @@ export function CheckoutSuccess() {
           if (!cancelled) {
             setInfo(data);
             setLoading(false);
+            if (!completionTracked.current) {
+              completionTracked.current = true;
+              trackEvent("checkout_completed", {
+                tier: data.tier ?? "unknown",
+                is_trial: data.trial,
+                app_count: data.apps.length,
+                access_ready: Boolean(data.accessCode),
+              });
+            }
           }
           return;
         }

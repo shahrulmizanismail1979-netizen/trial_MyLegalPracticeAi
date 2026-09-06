@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/analytics";
 
 const AUTH_KEY = "lawyes_auth_verified";
 let authState: boolean | null = null;
@@ -76,10 +77,19 @@ export function useAuth() {
       if (res.ok && data.success) {
         qc.clear();
         commitAuth(true);
+        trackEvent("lawyes_login_succeeded", { auth_method: "access_code" });
         return { success: true };
       }
+      trackEvent("lawyes_login_failed", {
+        auth_method: "access_code",
+        error_category: "invalid_or_expired",
+      });
       return { success: false, error: data.error || "Invalid or expired access code" };
     } catch {
+      trackEvent("lawyes_login_failed", {
+        auth_method: "access_code",
+        error_category: "network",
+      });
       return { success: false, error: "Network error. Please try again." };
     }
   };
@@ -90,6 +100,7 @@ export function useAuth() {
     } catch {}
     qc.clear();
     commitAuth(false);
+    trackEvent("lawyes_logout");
   };
 
   return { isAuthenticated, login, logout, isLoading: isAuthenticated === null };

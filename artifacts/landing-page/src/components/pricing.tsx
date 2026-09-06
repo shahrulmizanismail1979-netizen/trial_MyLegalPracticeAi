@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { trackEvent } from "@/lib/analytics";
 
 type CheckoutTier = "bundle" | "single" | "standard";
 type LoadingKey = CheckoutTier | "trial";
@@ -69,6 +70,7 @@ export function Pricing() {
   const startCheckout = async (tier: CheckoutTier, trial = false, appUrl?: string) => {
     setCheckoutError(null);
     setLoadingTier(trial ? "trial" : tier);
+    let httpStatus = 0;
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -79,12 +81,27 @@ export function Pricing() {
           ...(appUrl ? { appUrl } : {}),
         }),
       });
+      httpStatus = res.status;
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) {
         throw new Error(data.error || "Could not start checkout. Please try again.");
       }
+      trackEvent("checkout_started", {
+        tier,
+        is_trial: trial,
+        portal_selected: Boolean(appUrl),
+        surface: "pricing",
+      });
       window.location.href = data.url;
     } catch (err) {
+      trackEvent("checkout_start_failed", {
+        tier,
+        is_trial: trial,
+        portal_selected: Boolean(appUrl),
+        surface: "pricing",
+        error_category: httpStatus > 0 ? "api" : "network",
+        http_status: httpStatus,
+      });
       setCheckoutError(
         err instanceof Error ? err.message : "Could not start checkout. Please try again.",
       );
