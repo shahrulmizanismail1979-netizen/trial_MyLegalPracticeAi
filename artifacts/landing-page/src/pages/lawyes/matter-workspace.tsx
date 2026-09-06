@@ -34,7 +34,9 @@ export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, 
       role: data.permissions.role,
       can_write: data.permissions.canWrite,
       can_use_connectors: data.permissions.canUseConnectors,
-      matter_status: data.matter.status || "active",
+      matter_status: ["active", "closed", "archived"].includes(data.matter.status)
+        ? data.matter.status
+        : "unknown",
     });
   }, [data, matterId]);
   
@@ -516,14 +518,18 @@ function SourceUploadAction({ matterId }: { matterId: string }) {
       await refetch();
       trackEvent("lawyes_evidence_uploaded", {
         status: "success",
-        media_type: file.type.split("/")[0] || "unknown",
+        media_type: ["image", "audio", "video"].includes(file.type.split("/")[0])
+          ? file.type.split("/")[0]
+          : "unknown",
         size_bucket: file.size < 1_000_000 ? "under_1mb" : file.size < 10_000_000 ? "1mb_to_10mb" : "over_10mb",
       });
       toast({ title: "Evidence analysed", description: "Source uploaded and text extracted." });
     } catch (error) {
       trackEvent("lawyes_evidence_uploaded", {
         status: "failure",
-        media_type: file.type.split("/")[0] || "unknown",
+        media_type: ["image", "audio", "video"].includes(file.type.split("/")[0])
+          ? file.type.split("/")[0]
+          : "unknown",
         size_bucket: file.size < 1_000_000 ? "under_1mb" : file.size < 10_000_000 ? "1mb_to_10mb" : "over_10mb",
       });
       toast({ variant: "destructive", title: "Upload failed", description: error instanceof Error ? error.message : "Please try again." });

@@ -70,3 +70,4 @@
 - [LAWYes research source policy](lawyes-research-source-policy.md) — verified-library research fails closed; public-web research is separate, explicit, and visibly unverified.
 - [Reviewed external exports](reviewed-external-exports.md) — snapshot approved content before export and persist per-file remote identity so retries never change or duplicate reviewed work.
 - [LAWYes Google legacy rebinding](lawyes-google-legacy-rebinding.md) — old subject-bound encrypted rows migrate only for shared-code owners; named members must never claim them.
+- [Fail-closed legal workflow analytics](legal-workflow-analytics.md) — custom events use a central allowlist for names, keys, enums, and bounded counts; never forward arbitrary caller values.

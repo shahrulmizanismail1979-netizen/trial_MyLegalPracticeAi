@@ -74,7 +74,12 @@ export function CheckoutSuccess() {
             if (!completionTracked.current) {
               completionTracked.current = true;
               trackEvent("checkout_completed", {
-                tier: data.tier ?? "unknown",
+                tier: data.tier && [
+                  "single", "bundle", "standard",
+                  "firm_starter", "firm_growth", "firm_scale",
+                  "corporate_starter", "corporate_growth", "corporate_scale",
+                  "education_starter", "education_growth", "education_scale",
+                ].includes(data.tier) ? data.tier : "unknown",
                 is_trial: data.trial,
                 app_count: data.apps.length,
                 access_ready: Boolean(data.accessCode),
