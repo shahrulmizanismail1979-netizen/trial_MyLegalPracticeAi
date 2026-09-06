@@ -50,11 +50,23 @@ export interface CaseCorpusStatus {
  */
 export function CaseCorpusStatus({
   variant = "floating",
+  floatingDesktopLeft,
 }: {
   /** Use inline on a landing/dashboard section; floating is for portal shells. */
   variant?: "floating" | "inline";
+  /** Optional desktop offset for hosts with a fixed left sidebar. */
+  floatingDesktopLeft?: number;
 }) {
   const [status, setStatus] = useState<CaseCorpusStatus | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -89,11 +101,15 @@ export function CaseCorpusStatus({
       title={`${number.format(status.driveDocuments)} Google Drive documents catalogued. ${number.format(status.searchableJudgments)} judgments are currently published to customer search.`}
       style={{
         position: variant === "floating" ? "fixed" : "relative",
-        left: variant === "floating" ? 12 : undefined,
+        left: variant === "floating"
+          ? (isDesktop && floatingDesktopLeft !== undefined ? floatingDesktopLeft : 12)
+          : undefined,
         bottom: variant === "floating" ? 12 : undefined,
         zIndex: variant === "floating" ? 40 : undefined,
         pointerEvents: variant === "floating" ? "none" : undefined,
-        maxWidth: variant === "floating" ? "calc(100vw - 24px)" : 540,
+        maxWidth: variant === "floating"
+          ? `calc(100vw - ${(isDesktop && floatingDesktopLeft !== undefined ? floatingDesktopLeft : 12) + 12}px)`
+          : 540,
         padding: "7px 10px",
         borderRadius: 9,
         background: "var(--background, #ffffff)",

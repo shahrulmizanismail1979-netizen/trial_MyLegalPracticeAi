@@ -139,7 +139,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Router />
           </WouterRouter>
-          <CaseCorpusStatus />
+          <CaseCorpusStatus floatingDesktopLeft={268} />
           <Toaster />
           <RateLimitWarning />
           <SessionExpiredRedirect />
