@@ -15,7 +15,9 @@ export function WorkspaceShell() {
   const { data: matters, isLoading, error } = useLawyesMatters();
   const identity = useLawyesIdentity();
   const recentWorkspace = useLawyesMatter(matterId);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches
+  );
   const [teamOpen, setTeamOpen] = useState(false);
   const selectedMatter = matters?.find((matter) => String(matter.id) === matterId);
   const isOwner = identity.data?.role === "owner";
