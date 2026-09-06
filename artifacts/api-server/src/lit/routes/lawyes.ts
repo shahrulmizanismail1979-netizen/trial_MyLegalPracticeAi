@@ -162,7 +162,16 @@ const drivePreviewSchema = z.object({
     .refine((ids) => new Set(ids).size === ids.length, "Duplicate output ids are not allowed"),
 });
 const driveConfirmSchema = z.object({ confirmationToken: z.string().min(32).max(200), confirmed: z.literal(true) });
-const resourceTypeSchema = z.enum(["saved-work", "draft", "case-document", "bundle-document"]);
+const resourceTypeSchema = z.enum([
+  "saved-work",
+  "draft",
+  "case-document",
+  "bundle-document",
+  "task",
+  "checklist",
+  "deadline",
+  "event",
+]);
 const resourceIdSchema = z.coerce.number().int().positive();
 const INLINE_CONTENT_TYPES = new Set([
   "application/pdf",
@@ -733,10 +742,10 @@ async function assembleWorkspace(matter: typeof litMatters.$inferSelect) {
       title: item.title,
       createdAt: item.createdAt,
     })),
-    tasks,
-    checklists,
-    deadlines,
-    events,
+    tasks: tasks.map((item) => ({ ...item, resourceType: "task" as const })),
+    checklists: checklists.map((item) => ({ ...item, resourceType: "checklist" as const })),
+    deadlines: deadlines.map((item) => ({ ...item, resourceType: "deadline" as const })),
+    events: events.map((item) => ({ ...item, resourceType: "event" as const })),
     emails,
     outputs: savedWork.filter((item) => {
       const input = item.inputJson as Record<string, unknown> | null;
@@ -805,6 +814,98 @@ async function authorisedResource(
       updatedAt: draft.updated_at,
       citations: [],
       verification: null,
+      readOnly: true,
+    } : null;
+  }
+
+  if (type === "task") {
+    const result = await pool.query(
+      `SELECT id, title, assignee, due_date, priority, status, note, created_at, updated_at
+         FROM case_tasks
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        LIMIT 1`,
+      [resourceId, ownerKey, matter.id],
+    );
+    const task = result.rows[0];
+    return task ? {
+      type,
+      id: task.id,
+      title: task.title,
+      kind: "Task",
+      notes: task.note,
+      assignee: task.assignee,
+      dueDate: task.due_date,
+      priority: task.priority,
+      status: task.status,
+      createdAt: task.created_at,
+      updatedAt: task.updated_at,
+      readOnly: true,
+    } : null;
+  }
+
+  if (type === "checklist") {
+    const result = await pool.query(
+      `SELECT id, item_text, done, position, created_at, updated_at
+         FROM case_checklists
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        LIMIT 1`,
+      [resourceId, ownerKey, matter.id],
+    );
+    const item = result.rows[0];
+    return item ? {
+      type,
+      id: item.id,
+      title: item.item_text,
+      kind: "Checklist item",
+      done: item.done,
+      position: item.position,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      readOnly: true,
+    } : null;
+  }
+
+  if (type === "deadline") {
+    const [deadline] = await db.select().from(litMatterDeadlines).where(and(
+      eq(litMatterDeadlines.id, resourceId),
+      eq(litMatterDeadlines.accessCodeId, matter.accessCodeId),
+      eq(litMatterDeadlines.matterId, matter.id),
+    )).limit(1);
+    return deadline ? {
+      type,
+      id: deadline.id,
+      title: deadline.title,
+      kind: "Deadline",
+      dueDate: deadline.dueDate,
+      category: deadline.category,
+      status: deadline.status,
+      basis: deadline.basis,
+      notes: deadline.notes,
+      createdAt: deadline.createdAt,
+      updatedAt: deadline.updatedAt,
+      readOnly: true,
+    } : null;
+  }
+
+  if (type === "event") {
+    const result = await pool.query(
+      `SELECT id, event_date, title, description, kind, source, created_at, updated_at
+         FROM case_events
+        WHERE id = $1 AND portal = 'lit' AND owner_key = $2 AND matter_id = $3
+        LIMIT 1`,
+      [resourceId, ownerKey, matter.id],
+    );
+    const event = result.rows[0];
+    return event ? {
+      type,
+      id: event.id,
+      title: event.title,
+      kind: event.kind,
+      description: event.description,
+      eventDate: event.event_date,
+      source: event.source,
+      createdAt: event.created_at,
+      updatedAt: event.updated_at,
       readOnly: true,
     } : null;
   }

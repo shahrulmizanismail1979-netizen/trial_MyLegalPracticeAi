@@ -280,9 +280,9 @@ beforeAll(async () => {
     contentType: "application/pdf",
   });
   await pool.query(
-    `INSERT INTO case_tasks (portal, owner_key, matter_id, title)
-     VALUES ($1, $2, $3, $4), ($1, $5, $3, $6), ($1, $2, $7, $8)`,
-    ["lit", String(ownerIds[0]), matterId, "Owned canonical task", String(ownerIds[1]),
+    `INSERT INTO case_tasks (portal, owner_key, matter_id, title, note)
+     VALUES ($1, $2, $3, $4, $5), ($1, $6, $3, $7, NULL), ($1, $2, $8, $9, NULL)`,
+    ["lit", String(ownerIds[0]), matterId, "Owned canonical task", "Task note", String(ownerIds[1]),
       "Foreign canonical task", otherMatterId, "Other matter task"],
   );
   const { rows: roots } = await pool.query(
@@ -321,6 +321,16 @@ afterAll(async () => {
   await pool.query(
     `DELETE FROM case_tasks WHERE portal = $1 AND title IN ($2, $3, $4)`,
     ["lit", "Owned canonical task", "Foreign canonical task", "Other matter task"],
+  );
+  await pool.query(
+    `DELETE FROM case_checklists WHERE portal = 'lit' AND item_text = 'Review witness list'
+      AND matter_id = ANY($1)`,
+    [[matterId, otherMatterId]],
+  );
+  await pool.query(
+    `DELETE FROM case_events WHERE portal = 'lit' AND title = 'Case management'
+      AND matter_id = ANY($1)`,
+    [[matterId, otherMatterId]],
   );
   await pool.query(
     `DELETE FROM case_drafts WHERE portal = $1 AND title IN ($2, $3, $4, $5)`,
@@ -652,6 +662,16 @@ describe("MyLitAI Lawyes vertical slice", () => {
   });
 
   it("loads the same-owner aggregate and isolates foreign tenants with 404", async () => {
+    await pool.query(
+      `INSERT INTO case_checklists (portal, owner_key, matter_id, item_text, done, position)
+       VALUES ('lit', $1, $2, 'Review witness list', true, 2)`,
+      [String(ownerIds[0]), matterId],
+    );
+    await pool.query(
+      `INSERT INTO case_events (portal, owner_key, matter_id, event_date, title, description, kind, source)
+       VALUES ('lit', $1, $2, '2030-01-03', 'Case management', 'Attend remotely', 'hearing', 'manual')`,
+      [String(ownerIds[0]), matterId],
+    );
     const ownList = await agentA.get("/api/lit/lawyes/matters");
     expect(ownList.status).toBe(200);
     expect(ownList.body.map((matter: { id: number }) => matter.id)).toContain(matterId);
@@ -686,7 +706,31 @@ describe("MyLitAI Lawyes vertical slice", () => {
     expect(draftTitles).not.toContain("Version one canonical draft");
     expect(draftTitles).not.toContain("Foreign canonical draft");
     expect(draftTitles).not.toContain("Other matter draft");
-    expect(own.body.checklists).toEqual([]);
+    expect(own.body.checklists).toHaveLength(1);
+
+    const railDetails = [
+      {
+        item: own.body.tasks[0],
+        expected: { type: "task", title: "Owned canonical task", notes: "Task note", readOnly: true },
+      },
+      {
+        item: own.body.checklists[0],
+        expected: { type: "checklist", title: "Review witness list", done: true, readOnly: true },
+      },
+      {
+        item: own.body.deadlines[0],
+        expected: { type: "deadline", title: "Owned deadline", status: "pending", readOnly: true },
+      },
+      {
+        item: own.body.events[0],
+        expected: { type: "event", title: "Case management", description: "Attend remotely", readOnly: true },
+      },
+    ];
+    for (const { item, expected } of railDetails) {
+      expect(item.resourceType).toBe(expected.type);
+      const detailPath = `/api/lit/lawyes/matters/${matterId}/resources/${item.resourceType}/${item.id}`;
+      expect((await agentA.get(detailPath)).body).toMatchObject(expected);
+    }
 
     const research = own.body.research[0] as { id: number; resourceType: string };
     expect(research.resourceType).toBe("saved-work");

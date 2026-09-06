@@ -39,11 +39,11 @@ export interface ResourceItem {
 
   content?: string;
 
-  resourceType?: "saved-work" | "draft" | "case-document" | "bundle-document";
+  resourceType?: "saved-work" | "draft" | "case-document" | "bundle-document" | "task" | "checklist" | "deadline" | "event";
 }
 
 export interface ResourceDetail {
-  type: "saved-work" | "draft" | "case-document" | "bundle-document";
+  type: "saved-work" | "draft" | "case-document" | "bundle-document" | "task" | "checklist" | "deadline" | "event";
   id: number;
   title: string;
   kind?: string;
@@ -71,6 +71,17 @@ export interface ResourceDetail {
   documentDate?: string | null;
   pageCount?: number;
   bundle?: { id: number; title: string } | null;
+  assignee?: string | null;
+  dueDate?: string | null;
+  eventDate?: string | null;
+  priority?: string | null;
+  status?: string | null;
+  category?: string | null;
+  basis?: string | null;
+  description?: string | null;
+  source?: string | null;
+  done?: boolean;
+  position?: number;
   createdAt?: string;
   updatedAt?: string;
   readOnly: true;

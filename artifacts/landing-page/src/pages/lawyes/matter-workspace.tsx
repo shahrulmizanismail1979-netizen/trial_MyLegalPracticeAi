@@ -1000,8 +1000,32 @@ function ResourceViewer({ matterId, item, onClose }: { matterId: string; item: R
 
 function ResourceDetailContent({ detail }: { detail: ResourceDetail }) {
   const mediaType = detail.contentType?.split(";")[0];
+  const metadata = [
+    ["Status", detail.type === "checklist" ? (detail.done ? "Completed" : "Not completed") : detail.status],
+    ["Due date", detail.dueDate],
+    ["Event date", detail.eventDate],
+    ["Assignee", detail.assignee],
+    ["Priority", detail.priority],
+    ["Category", detail.category],
+    ["Deadline basis", detail.basis],
+    ["Source", detail.source],
+  ].filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0);
   return (
     <>
+      {metadata.length > 0 && (
+        <section>
+          <DetailHeading>Details</DetailHeading>
+          <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2">
+            {metadata.map(([label, value]) => (
+              <div key={label} className="bg-white p-4">
+                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</dt>
+                <dd className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{formatDetailValue(label, value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+      {detail.description && <section><DetailHeading>Event details</DetailHeading><p className="whitespace-pre-wrap rounded-xl border border-slate-200 p-4 text-sm leading-relaxed text-slate-700">{detail.description}</p></section>}
       {detail.originalFile && detail.fileUrl && (
         <section>
           <DetailHeading>Original file</DetailHeading>
@@ -1045,9 +1069,19 @@ function ResourceDetailContent({ detail }: { detail: ResourceDetail }) {
       {detail.citations && detail.citations.length > 0 && <section><DetailHeading>Citations</DetailHeading><div className="space-y-2">{detail.citations.map((citation, index) => <a key={`${citation.uri}-${index}`} href={citation.uri} target="_blank" rel="noreferrer noopener" className="block rounded-lg border border-slate-200 p-3 text-sm font-medium text-slate-700 hover:border-primary/40 hover:text-primary">{citation.title}</a>)}</div></section>}
       {detail.verification && <section><DetailHeading>Verification state</DetailHeading><div className={`rounded-xl border p-4 text-sm ${detail.verification.verified ? "border-primary/20 bg-primary/5" : "border-amber-200 bg-amber-50"}`}><strong className="block">{detail.verification.status}</strong>{detail.verification.guidance && <p className="mt-2 leading-relaxed">{detail.verification.guidance}</p>}</div></section>}
       {detail.notes && <section><DetailHeading>Notes</DetailHeading><p className="whitespace-pre-wrap rounded-xl border border-slate-200 p-4 text-sm text-slate-700">{detail.notes}</p></section>}
-      {!detail.originalFile && !detail.content && !detail.derivedText && <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">This record contains metadata only; no original file or text content is stored.</div>}
+      {!detail.originalFile && !detail.content && !detail.derivedText && !detail.description && metadata.length === 0 && !detail.notes && <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">This record contains metadata only; no original file or text content is stored.</div>}
     </>
   );
+}
+
+function formatDetailValue(label: string, value: string) {
+  if (label === "Due date" || label === "Event date") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat("en-MY", { dateStyle: "medium" }).format(date);
+    }
+  }
+  return value.replace(/_/g, " ");
 }
 
 function DetailHeading({ children }: { children: React.ReactNode }) {
