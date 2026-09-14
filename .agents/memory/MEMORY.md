@@ -72,3 +72,4 @@
 - [LAWYes Google legacy rebinding](lawyes-google-legacy-rebinding.md) — old subject-bound encrypted rows migrate only for shared-code owners; named members must never claim them.
 - [Fail-closed legal workflow analytics](legal-workflow-analytics.md) — custom events use a central allowlist for names, keys, enums, and bounded counts; never forward arbitrary caller values.
 - [Matter workspace context rail](matter-workspace-context-rail.md) — keep legal workspaces focused, with a compact Progress/Outputs/Sources rail using real matter data.
+- [Shared-component browser checks](shared-component-browser-checks.md) — scope layout assertions to the shared component unless the task also owns the host artifact shell.
