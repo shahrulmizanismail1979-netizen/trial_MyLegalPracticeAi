@@ -23,11 +23,11 @@ import { DRIVE_INGEST_JOB_KIND } from "../research/drive/driveIngestProcessor";
 
 const RUN_ID = randomUUID();
 const TEST_SECRET = "test-cookie-secret";
-const TEST_PASSWORD = "admin123"; // default in research-admin.ts when IS_PROD=false
+const TEST_PASSWORD = "research-bulk-test-password";
 
 // ── App fixture ──────────────────────────────────────────────────────────────
 
-// Set password before the module is imported so it picks it up.
+// Set a dummy password before the module is imported.
 process.env.ADMIN_PASSWORD = TEST_PASSWORD;
 const { default: researchAdminRouter } = await import("./research-admin");
 

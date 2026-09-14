@@ -107,9 +107,16 @@ describe("subscriberKey per-portal buckets", () => {
   });
 
   it("accident master-override token gets its own bucket, not __noauth__", () => {
+    const previous = process.env.MASTER_ACCESS_CODE;
+    process.env.MASTER_ACCESS_CODE = "dummy-subscriber-key-master";
     const token = createMasterToken();
     const { req, res } = makeReqRes({ cookieHeader: `session_id=${token}` });
-    expect(subscriberKey(req, res)).toBe(`accident:master:${token.slice(0, 24)}`);
+    try {
+      expect(subscriberKey(req, res)).toBe(`accident:master:${token.slice(0, 24)}`);
+    } finally {
+      if (previous === undefined) delete process.env.MASTER_ACCESS_CODE;
+      else process.env.MASTER_ACCESS_CODE = previous;
+    }
   });
 
   it("a non-master session_id cookie does NOT match the master branch", () => {

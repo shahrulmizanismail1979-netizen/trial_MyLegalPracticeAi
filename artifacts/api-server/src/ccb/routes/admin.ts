@@ -4,11 +4,11 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { db, ccbAccessCodes } from "@workspace/db";
 import { logger } from "../../lib/logger";
+import { isAdminCredential } from "../../lib/masterAccess";
 
 const router: IRouter = Router();
 
 const SECRET = process.env.SESSION_SECRET || "myccblitai-secret-key-2024";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "";
 
 function requireAdmin(
   req: import("express").Request,
@@ -48,7 +48,7 @@ router.post("/admin/login", async (req, res): Promise<void> => {
     res.status(400).json({ error: "password required" });
     return;
   }
-  if (!ADMIN_PASSWORD || body.data.password !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(body.data.password)) {
     logger.warn({ req }, "CCB admin login failed");
     res.status(401).json({ error: "Invalid password" });
     return;

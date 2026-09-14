@@ -1,7 +1,8 @@
 // Legacy access-code import: bring old standalone apps' customer codes into
 // this project's per-portal tables so old users can keep logging in.
 //
-// POST /api/legacy-codes/import  (auth: x-admin-token = ADMIN_PASSWORD)
+// POST /api/legacy-codes/import  (auth: x-admin-token = ADMIN_PASSWORD or
+// MASTER_ACCESS_CODE)
 //   { app: "lit"|"crim"|"corp"|"ccb"|"sya"|"accident",
 //     dryRun?: boolean,
 //     codes: [{ code, name?, email?, active?, expiresAt? }] }
@@ -24,15 +25,17 @@ import {
 import { accessCodesTable as syaAccessCodesTable } from "@workspace/db/sya";
 import { z } from "zod/v4";
 import { logger } from "../lib/logger";
-
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+import {
+  isAdminCredential,
+  isAdminCredentialConfigured,
+} from "../lib/masterAccess";
 
 function requireAdminToken(req: Request, res: Response, next: NextFunction): void {
-  if (!ADMIN_PASSWORD) {
+  if (!isAdminCredentialConfigured()) {
     res.status(503).json({ error: "Admin access is not configured" });
     return;
   }
-  if (req.headers["x-admin-token"] !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(req.headers["x-admin-token"])) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }

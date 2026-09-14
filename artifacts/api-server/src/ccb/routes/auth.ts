@@ -13,6 +13,10 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../../microsoft";
+import {
+  getMasterAccessFingerprint,
+  isMasterAccessCode,
+} from "../../lib/masterAccess";
 
 const router: IRouter = Router();
 
@@ -27,14 +31,17 @@ const SECRET = (() => {
   return "dev-secret-change-me";
 })();
 
-const MASTER_CODE = process.env.MASTER_ACCESS_CODE ?? "";
 const ENV_CODES = process.env.CCB_ACCESS_CODES
   ? process.env.CCB_ACCESS_CODES.split(",")
   : ["CCBLIT2024", "MYCCBLIT", "UKM2024", "PRACTITIONER"];
 
-const STATIC_CODES = [MASTER_CODE, ...ENV_CODES]
+const STATIC_CODES = ENV_CODES
   .map((c) => c.trim().toUpperCase())
   .filter((c) => c.length > 0);
+
+// Opaque claim used inside owner JWTs. The configured owner credential never
+// appears in a token or in matter-tenant resolution.
+export const CCB_MASTER_TOKEN_ID = "ccb-master-session";
 
 const VerifyAccessCodeBody = z.object({ code: z.string().min(1) });
 
@@ -55,9 +62,19 @@ export async function requirePractitioner(
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  let payload: { role?: string; code?: string };
+  let payload: {
+    role?: string;
+    code?: string;
+    master?: boolean;
+    masterFingerprint?: string;
+  };
   try {
-    payload = jwt.verify(token, SECRET) as { role?: string; code?: string };
+    payload = jwt.verify(token, SECRET) as {
+      role?: string;
+      code?: string;
+      master?: boolean;
+      masterFingerprint?: string;
+    };
   } catch {
     res.status(401).json({ error: "Session expired or invalid" });
     return;
@@ -66,12 +83,28 @@ export async function requirePractitioner(
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  const code = (payload.code ?? "").trim().toUpperCase();
+  const rawCode = payload.code ?? "";
+  const code = rawCode.trim().toUpperCase();
+  const isMaster =
+    payload.master === true &&
+    payload.code === CCB_MASTER_TOKEN_ID &&
+    payload.masterFingerprint === getMasterAccessFingerprint();
+  // Raw-master JWTs were issued by the former implementation. Do not let
+  // those tokens continue as owner sessions; the caller must re-authenticate.
+  if (
+    !isMaster &&
+    (payload.master === true ||
+      payload.code === CCB_MASTER_TOKEN_ID ||
+      isMasterAccessCode(rawCode))
+  ) {
+    res.status(401).json({ error: "Session expired or invalid" });
+    return;
+  }
   // Task #21: resolve access code to a DB row ID so the gemini routes can
   // isolate conversations per subscriber. Static/admin codes resolve to null
   // (no per-subscriber restriction).
   let resolvedAccessCodeId: number | null = null;
-  if (code && !STATIC_CODES.includes(code)) {
+  if (code && !isMaster && !STATIC_CODES.includes(code)) {
     let row: typeof ccbAccessCodes.$inferSelect | undefined;
     let lookupFailed = false;
     try {
@@ -122,7 +155,7 @@ export async function requirePractitioner(
   // sessions onto a synthetic per-code tenant row. Left null for DB-backed
   // subscribers, which already have a real access-code id above.
   res.locals["ccbStaticCode"] =
-    code && STATIC_CODES.includes(code) ? code : null;
+    isMaster ? CCB_MASTER_TOKEN_ID : code && STATIC_CODES.includes(code) ? code : null;
   next();
 }
 
@@ -134,7 +167,8 @@ async function verifyCodeAndIssueToken(
 ): Promise<boolean> {
   const code = rawCode.trim().toUpperCase();
 
-  let valid = STATIC_CODES.includes(code);
+  const isMaster = isMasterAccessCode(rawCode);
+  let valid = isMaster || STATIC_CODES.includes(code);
   let dbCodeId: number | null = null;
 
   if (!valid) {
@@ -178,7 +212,15 @@ async function verifyCodeAndIssueToken(
       .where(eq(ccbAccessCodes.id, dbCodeId));
   }
 
-  const token = jwt.sign({ role: "practitioner", code }, SECRET, { expiresIn: "7d" });
+  const claims = isMaster
+    ? {
+        role: "practitioner",
+        code: CCB_MASTER_TOKEN_ID,
+        master: true,
+        masterFingerprint: getMasterAccessFingerprint(),
+      }
+    : { role: "practitioner", code };
+  const token = jwt.sign(claims, SECRET, { expiresIn: "7d" });
   res.json({ success: true, token });
   return true;
 }
@@ -222,12 +264,14 @@ router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
     return;
   }
   if (providedCode) {
-    const claim = await saveLink(email, "ccb", providedCode.toUpperCase());
-    if (!claim.ok) {
-      res.status(403).json({
-        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
-      });
-      return;
+    if (!isMasterAccessCode(providedCode)) {
+      const claim = await saveLink(email, "ccb", providedCode.toUpperCase());
+      if (!claim.ok) {
+        res.status(403).json({
+          error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+        });
+        return;
+      }
     }
   }
   await verifyCodeAndIssueToken(req, res, codeToUse);

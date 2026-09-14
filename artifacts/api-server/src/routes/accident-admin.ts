@@ -16,19 +16,16 @@ import {
 } from "@workspace/api-zod";
 import crypto from "crypto";
 import { logger } from "../lib/logger";
+import {
+  isAdminCredential,
+  isAdminCredentialConfigured,
+} from "../lib/masterAccess";
 
 const router: IRouter = Router();
 
-// Fail closed in production: without an ADMIN_PASSWORD secret the accident
-// admin endpoints are disabled entirely. The insecure default only exists
-// for local development and tests.
-const IS_PROD = process.env.NODE_ENV === "production";
-const ADMIN_PASSWORD: string | null =
-  process.env.ADMIN_PASSWORD || (IS_PROD ? null : "admin123");
-
-if (!ADMIN_PASSWORD) {
+if (!isAdminCredentialConfigured()) {
   logger.error(
-    "ADMIN_PASSWORD is not set — MyAccidentAI admin endpoints are disabled until it is configured",
+    "ADMIN_PASSWORD and MASTER_ACCESS_CODE are not set — MyAccidentAI admin endpoints are disabled until one is configured",
   );
 }
 
@@ -40,7 +37,7 @@ function isAdmin(req: { cookies?: Record<string, string> }): boolean {
 }
 
 router.post("/admin/login", async (req, res): Promise<void> => {
-  if (!ADMIN_PASSWORD) {
+  if (!isAdminCredentialConfigured()) {
     res.status(503).json({ error: "Admin access is not configured" });
     return;
   }
@@ -51,7 +48,7 @@ router.post("/admin/login", async (req, res): Promise<void> => {
     return;
   }
 
-  if (parsed.data.password !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(parsed.data.password)) {
     res.status(401).json({ error: "Invalid admin password" });
     return;
   }

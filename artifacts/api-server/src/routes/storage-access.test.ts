@@ -2,6 +2,14 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vites
 import request from "supertest";
 import { randomUUID } from "node:crypto";
 
+const MASTER_ACCESS_CODE = "storage-test-master-code";
+const SESSION_SECRET = "storage-test-session-secret";
+const FINGERPRINT_KEY = "storage-test-fingerprint-key";
+
+vi.stubEnv("MASTER_ACCESS_CODE", MASTER_ACCESS_CODE);
+vi.stubEnv("SESSION_SECRET", SESSION_SECRET);
+vi.stubEnv("MASTER_ACCESS_FINGERPRINT_KEY", FINGERPRINT_KEY);
+
 // Mutable Clerk auth state, mirroring admin-auth.test.ts.
 const state = vi.hoisted(() => ({
   auth: { userId: null as string | null },
@@ -75,6 +83,15 @@ function signInAs(userId: string, email: string): void {
   };
 }
 
+async function masterAgent() {
+  const agent = request.agent(app);
+  await agent
+    .post("/api/admin/master/login")
+    .send({ password: MASTER_ACCESS_CODE })
+    .expect(200);
+  return agent;
+}
+
 const createdPaths = [APPROVED_PATH, PENDING_PATH];
 
 beforeAll(async () => {
@@ -104,6 +121,7 @@ afterAll(async () => {
   await db
     .delete(contributionsTable)
     .where(inArray(contributionsTable.objectPath, createdPaths));
+  vi.unstubAllEnvs();
 });
 
 beforeEach(() => {
@@ -121,6 +139,13 @@ describe("GET /api/storage/objects/* access control", () => {
   it("serves an approved contribution's file to a staff member", async () => {
     signInAs("user_staff", "staff@example.com");
     const res = await request(app).get(urlFor(APPROVED_PATH));
+    expect(res.status).toBe(200);
+    expect(res.text).toBe("file-bytes");
+  });
+
+  it("serves an approved contribution's file to a landing master session", async () => {
+    const agent = await masterAgent();
+    const res = await agent.get(urlFor(APPROVED_PATH));
     expect(res.status).toBe(200);
     expect(res.text).toBe("file-bytes");
   });
@@ -143,6 +168,13 @@ describe("GET /api/storage/objects/* access control", () => {
     expect(res.text).toBe("file-bytes");
   });
 
+  it("serves an admin-review contribution's file to a landing master session", async () => {
+    const agent = await masterAgent();
+    const res = await agent.get(urlFor(PENDING_PATH));
+    expect(res.status).toBe(200);
+    expect(res.text).toBe("file-bytes");
+  });
+
   it("returns 401 for an object not tied to any contribution when anonymous", async () => {
     const res = await request(app).get(urlFor(UNKNOWN_PATH));
     expect(res.status).toBe(401);
@@ -152,5 +184,11 @@ describe("GET /api/storage/objects/* access control", () => {
     signInAs("user_staff", "staff@example.com");
     const res = await request(app).get(urlFor(UNKNOWN_PATH));
     expect(res.status).toBe(200);
+  });
+
+  it("does not let a landing master session read an unregistered private object", async () => {
+    const agent = await masterAgent();
+    const res = await agent.get(urlFor(UNKNOWN_PATH));
+    expect(res.status).toBe(403);
   });
 });

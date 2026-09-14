@@ -14,9 +14,22 @@ import * as jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { isConveyCodeExpired } from "./conveyAuth";
+import {
+  getMasterAccessFingerprint,
+  isMasterAccessCode,
+} from "../lib/masterAccess";
+import { isMasterToken } from "../routes/accident";
 
 const SESSION_SECRET = process.env.SESSION_SECRET ?? "";
-const MASTER_ACCESS_CODE = process.env.MASTER_ACCESS_CODE ?? "";
+const CCB_MASTER_TOKEN_ID = "ccb-master-session";
+const CCB_STATIC_CODES = new Set(
+  (process.env.CCB_ACCESS_CODES
+    ? process.env.CCB_ACCESS_CODES.split(",")
+    : ["CCBLIT2024", "MYCCBLIT", "UKM2024", "PRACTITIONER"]
+  )
+    .map((code) => code.trim().toUpperCase())
+    .filter(Boolean),
+);
 
 export interface PortalAuthIdentity {
   /** Which portal (or master) authenticated the request. */
@@ -134,9 +147,8 @@ export async function requireAnyPortalAuth(
   const xMaster = req.headers["x-master-code"];
   if (
     xMaster &&
-    MASTER_ACCESS_CODE &&
     typeof xMaster === "string" &&
-    xMaster === MASTER_ACCESS_CODE
+    isMasterAccessCode(xMaster)
   ) {
     req.portalAuth = { type: "master", identityKey: "master" };
     next();
@@ -149,7 +161,7 @@ export async function requireAnyPortalAuth(
     const token = authHeader.slice(7).trim();
 
     // Master code as Bearer
-    if (MASTER_ACCESS_CODE && token === MASTER_ACCESS_CODE) {
+    if (isMasterAccessCode(token)) {
       req.portalAuth = { type: "master", identityKey: "master" };
       next();
       return;
@@ -163,6 +175,48 @@ export async function requireAnyPortalAuth(
           unknown
         >;
         const isConvey = Boolean(payload.uid);
+        const ccbMaster =
+          payload.master === true &&
+          payload.code === CCB_MASTER_TOKEN_ID &&
+          payload.masterFingerprint === getMasterAccessFingerprint();
+
+        // Former CCB owner tokens embedded the raw configured credential.
+        // Reject them (and any invalid opaque-owner marker) instead of
+        // treating them as a generic signed CCB JWT.
+        if (
+          !isConvey &&
+          (payload.master === true ||
+            payload.code === CCB_MASTER_TOKEN_ID ||
+            isMasterAccessCode(payload.code))
+        ) {
+          if (!ccbMaster) {
+            res.status(401).json({ error: "Session expired or invalid" });
+            return;
+          }
+          req.portalAuth = { type: "master", identityKey: "master" };
+          next();
+          return;
+        }
+
+        // A CCB JWT with a non-static code must still name a live subscriber
+        // row. This also rejects legacy owner JWTs after a master rotation.
+        if (!isConvey && typeof payload.code === "string") {
+          const code = payload.code.trim().toUpperCase();
+          if (!CCB_STATIC_CODES.has(code)) {
+            const ccbRows = await db.execute(sql`
+              SELECT id
+              FROM ccb_access_codes
+              WHERE code = ${code}
+                AND active = true
+                AND (expires_at IS NULL OR expires_at > NOW())
+              LIMIT 1
+            `);
+            if (ccbRows.rows.length === 0) {
+              res.status(401).json({ error: "Access code no longer active" });
+              return;
+            }
+          }
+        }
         const identityKey = String(
           payload.uid ?? payload.code ?? payload.sub ?? token.slice(0, 32),
         );
@@ -293,6 +347,11 @@ export async function requireAnyPortalAuth(
   // Accident: plain 'session_id' cookie, validated against access_code_usage
   const accidentSid = cookies["session_id"];
   if (accidentSid) {
+    if (isMasterToken(accidentSid)) {
+      req.portalAuth = { type: "master", identityKey: "master" };
+      next();
+      return;
+    }
     try {
       const result = await db.execute(sql`
         SELECT acu.access_code_id

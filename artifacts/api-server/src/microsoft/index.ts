@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { and, eq, sql as sqlOp } from "drizzle-orm";
 import { db, microsoftLinks } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { isMasterAccessCode } from "../lib/masterAccess";
 
 // Fail closed in production: a predictable signing secret would let anyone
 // forge SSO tickets.
@@ -103,8 +104,7 @@ export async function getLinkedCode(email: string, app: string): Promise<string 
 export async function getCodeOwnerEmail(accessCode: string): Promise<string | null> {
   const code = accessCode.trim();
   if (!code) return null;
-  const master = (process.env.MASTER_ACCESS_CODE ?? "").trim();
-  if (master && code.toUpperCase() === master.toUpperCase()) return null;
+  if (isMasterAccessCode(code)) return null;
   const [link] = await db
     .select({ email: microsoftLinks.email })
     .from(microsoftLinks)
@@ -163,6 +163,9 @@ export async function saveLink(
   app: string,
   accessCode: string,
 ): Promise<{ ok: true } | { ok: false; ownerEmail: string }> {
+  // The owner override is an operator credential, never a subscriber identity.
+  // Do not persist it in the Microsoft binding table.
+  if (isMasterAccessCode(accessCode)) return { ok: true };
   const normalized = email.toLowerCase();
   return db.transaction(async (tx) => {
     // Serialize competing claims on the same code: two users racing to link

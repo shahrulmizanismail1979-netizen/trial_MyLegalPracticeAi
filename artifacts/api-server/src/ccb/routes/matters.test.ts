@@ -52,10 +52,20 @@ const CODE_DEMO_B = "MYCCBLIT";
 
 // Synthetic row prefix from matterAuth.ts
 const SYNTHETIC_PREFIX = "MASTER-OVERRIDE-CCB:";
+const MASTER_TOKEN_ID = "ccb-master-session";
+const { getMasterAccessFingerprint } = await import("../../lib/masterAccess");
 
 const SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
 
 function makeToken(code: string) {
+  if (code === TEST_MASTER_CODE) {
+    return jwt.sign({
+      role: "practitioner",
+      code: MASTER_TOKEN_ID,
+      master: true,
+      masterFingerprint: getMasterAccessFingerprint(),
+    }, SECRET, { expiresIn: "1h" });
+  }
   return jwt.sign({ role: "practitioner", code }, SECRET, { expiresIn: "1h" });
 }
 
@@ -78,7 +88,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Remove any matters owned by synthetic rows created during this test run.
-  const allCodes = [TEST_MASTER_CODE, CODE_DEMO_A, CODE_DEMO_B].map(
+  const allCodes = [TEST_MASTER_CODE, MASTER_TOKEN_ID, CODE_DEMO_A, CODE_DEMO_B].map(
     (c) => `${SYNTHETIC_PREFIX}${c}`,
   );
   const { rows: synRows } = await pool.query<{ id: number }>(
@@ -218,6 +228,16 @@ describe("CCB master/demo code matter-file access", () => {
       `synthetic-row login response: ${JSON.stringify(loginRes.body)}`,
     ).toContain(loginRes.status);
     expect(loginRes.body.token).toBeUndefined();
+  });
+
+  it("rejects legacy JWTs that embedded the raw master credential", async () => {
+    const legacyToken = jwt.sign(
+      { role: "practitioner", code: TEST_MASTER_CODE },
+      SECRET,
+      { expiresIn: "1h" },
+    );
+    const res = await api("get", "/api/ccb/matters", legacyToken);
+    expect(res.status).toBe(401);
   });
 
   it("demo code synthetic row is also inactive and cannot be used to log in", async () => {

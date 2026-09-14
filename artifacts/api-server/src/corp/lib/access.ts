@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import type Stripe from "stripe";
 import { db, corpAccessCodes, type CorpAccessCode } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   getEffectiveTier,
   planByLookupKey,
@@ -28,16 +28,9 @@ export function effectiveTierForCode(code: Pick<CorpAccessCode, "tier" | "create
   return getEffectiveTier(code.tier, code.createdAt);
 }
 
-/**
- * Master override password. Entering this in the access gate grants permanent
- * full (legacy_full) access to everything, with no payment and no expiry.
- * Read from the MASTER_ACCESS_CODE secret — when unset, master override is
- * disabled (fail closed).
- */
-export const MASTER_PASSWORD = (process.env.MASTER_ACCESS_CODE ?? "").trim();
-
 /** Sentinel access-code row that backs master-override corpSessions. */
 export const MASTER_CODE = "MASTER-OVERRIDE";
+const MASTER_LABEL = "Master override (full access)";
 
 /**
  * Find-or-create the master-override access code row (always tier=legacy_full,
@@ -45,6 +38,18 @@ export const MASTER_CODE = "MASTER-OVERRIDE";
  * existing session/validate/auth machinery works unchanged.
  */
 export async function ensureMasterCode(): Promise<CorpAccessCode> {
+  // Older releases stored the real owner password in a normal access-code
+  // row. Keep those records for audit, but revoke them before healing the
+  // opaque synthetic tenant so rotation cannot leave a second backdoor.
+  await db
+    .update(corpAccessCodes)
+    .set({ isActive: false })
+    .where(and(
+      eq(corpAccessCodes.label, MASTER_LABEL),
+      eq(corpAccessCodes.tier, "legacy_full"),
+      sql`${corpAccessCodes.code} <> ${MASTER_CODE}`,
+    ));
+
   // Atomic upsert keyed on the unique `code` column so concurrent first logins
   // can't collide on the unique constraint (which would 500). Always heals the
   // row back to active + legacy_full.
@@ -52,7 +57,7 @@ export async function ensureMasterCode(): Promise<CorpAccessCode> {
     .insert(corpAccessCodes)
     .values({
       code: MASTER_CODE,
-      label: "Master override (full access)",
+      label: MASTER_LABEL,
       tier: "legacy_full",
       isActive: true,
     })

@@ -14,16 +14,14 @@ import {
 import { generateAccessCode, releaseCode, isSessionStale } from "../lib/accessCodes";
 import { requireAdmin } from "../middleware/requireAuth";
 import { expandSeed } from "../lib/expand-seed";
-
-// Fail closed: when ADMIN_PASSWORD is unset/blank, admin login is disabled.
-const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD ?? "").trim();
+import { isAdminCredential } from "../../lib/masterAccess";
 
 const router: IRouter = Router();
 
 // ===== Admin auth =====
 router.post("/admin/login", async (req, res): Promise<void> => {
   const password = (req.body?.password ?? "").toString();
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(password)) {
     res.status(401).json({ ok: false, message: "Invalid admin password." });
     return;
   }

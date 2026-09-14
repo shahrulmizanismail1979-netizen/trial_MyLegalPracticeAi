@@ -1,6 +1,5 @@
 import { claimSeat, releaseSeat, seatLimitMessage } from "../../../lib/seatLimits";
 import { Router, type IRouter } from "express";
-import { createHash, timingSafeEqual } from "crypto";
 import { eq } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import { accessCodesTable, usersTable } from "@workspace/db/sya";
@@ -17,37 +16,9 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../../../microsoft";
+import { isMasterAccessCode } from "../../../lib/masterAccess";
 
-// Owner master override. When MASTER_ACCESS_CODE is set, submitting it on the
-// Access Code tab grants a synthetic admin session with full ("firm") access,
-// independent of the database. Compared in constant time. Matching is
-// case-insensitive because the Access Code field uppercases input client-side.
-const MASTER_ACCESS_CODE = process.env.MASTER_ACCESS_CODE ?? "";
 const MASTER_SESSION_USER_ID = -1;
-const MASTER_MIN_LENGTH = 6;
-
-if (MASTER_ACCESS_CODE && MASTER_ACCESS_CODE.trim().length < MASTER_MIN_LENGTH) {
-  logger.warn(
-    `MASTER_ACCESS_CODE is set but shorter than ${MASTER_MIN_LENGTH} characters; master override is disabled until a longer value is provided.`,
-  );
-}
-
-function normalizeCode(value: string): string {
-  return value.trim().toUpperCase();
-}
-
-function matchesMasterCode(submitted: string): boolean {
-  if (
-    !MASTER_ACCESS_CODE ||
-    MASTER_ACCESS_CODE.trim().length < MASTER_MIN_LENGTH
-  )
-    return false;
-  const a = createHash("sha256").update(normalizeCode(submitted)).digest();
-  const b = createHash("sha256")
-    .update(normalizeCode(MASTER_ACCESS_CODE))
-    .digest();
-  return timingSafeEqual(a, b);
-}
 
 // Lightweight in-memory brute-force guard for the access-code endpoint. A single
 // global master credential makes this a higher-value target, so failed attempts
@@ -220,7 +191,8 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
-  if (matchesMasterCode(parsed.data.accessCode)) {
+  const submittedCode = parsed.data.accessCode.trim();
+  if (isMasterAccessCode(submittedCode)) {
     clearVerifyAttempts(ip);
     req.session.userId = MASTER_SESSION_USER_ID;
     req.session.userName = "Owner";
@@ -233,7 +205,18 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
     return;
   }
 
-  const bindErr = await codeLoginBindingError(parsed.data.accessCode);
+  // "master" is reserved for the internal owner session marker below; it is
+  // never a subscriber access code, even if a legacy row was seeded with it.
+  if (submittedCode.toLowerCase() === "master") {
+    recordVerifyFailure(ip);
+    res.status(401).json({ error: "Invalid access code" });
+    return;
+  }
+
+  // Subscriber codes are case-insensitive; normalize only after the
+  // case-sensitive owner credential check above.
+  const subscriberCode = submittedCode.toUpperCase();
+  const bindErr = await codeLoginBindingError(subscriberCode);
   if (bindErr) {
     res.status(403).json({ error: bindErr });
     return;
@@ -242,13 +225,13 @@ router.post("/auth/verify", async (req, res): Promise<void> => {
   let [user] = await db
     .select()
     .from(accessCodesTable)
-    .where(eq(accessCodesTable.code, parsed.data.accessCode))
+    .where(eq(accessCodesTable.code, subscriberCode))
     .limit(1);
 
   // Self-heal codes that were paid for on the landing page but never synced
   // (or whose expiry was extended by a renewal) before rejecting.
   if (!isUsableCodeRow(user)) {
-    const recovered = await recoverCodeFromSubscribers(parsed.data.accessCode);
+    const recovered = await recoverCodeFromSubscribers(subscriberCode);
     if (recovered) user = recovered;
   }
 
@@ -305,14 +288,28 @@ async function loginWithAccessCode(
   res: import("express").Response,
   accessCode: string,
 ): Promise<boolean> {
+  const submittedCode = accessCode.trim();
+  if (isMasterAccessCode(submittedCode)) {
+    req.session.userId = MASTER_SESSION_USER_ID;
+    req.session.userName = "Owner";
+    req.session.userRole = "admin";
+    req.session.accessCode = "master";
+    req.session.userTier = "firm";
+    req.session.accountType = "code";
+    req.session.userEmail = undefined;
+    res.json({ authenticated: true, user: sessionUserPayload(req) });
+    return true;
+  }
+
+  const subscriberCode = submittedCode.toUpperCase();
   let [user] = await db
     .select()
     .from(accessCodesTable)
-    .where(eq(accessCodesTable.code, accessCode))
+    .where(eq(accessCodesTable.code, subscriberCode))
     .limit(1);
 
   if (!isUsableCodeRow(user)) {
-    const recovered = await recoverCodeFromSubscribers(accessCode);
+    const recovered = await recoverCodeFromSubscribers(subscriberCode);
     if (recovered) user = recovered;
   }
 
@@ -379,11 +376,22 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
   }
   const providedCode = typeof code === "string" ? code.trim() : "";
   let codeToUse = providedCode || (await getLinkedCode(email, "sya"));
+  const masterCode = isMasterAccessCode(codeToUse);
+  if (!masterCode && codeToUse) {
+    // Normalize subscriber codes server-side, but preserve the submitted
+    // spelling until after the case-sensitive master check above.
+    codeToUse = codeToUse.trim().toUpperCase();
+  }
 
   // Self-heal a stale link: if the linked code is dead (e.g. a legacy code
   // from before the admin dashboard existed), fall back to the subscriber
   // record matched by email and re-link to their current access code.
-  if (!providedCode && codeToUse && !(await isCodeUsableOrRecoverable(codeToUse))) {
+  if (
+    !providedCode &&
+    !masterCode &&
+    codeToUse &&
+    !(await isCodeUsableOrRecoverable(codeToUse))
+  ) {
     const replacement = await findSubscriberCodeByEmail(email);
     if (replacement && replacement !== codeToUse) {
       const claim = await saveLink(email, "sya", replacement);
@@ -407,12 +415,14 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     return;
   }
   if (providedCode) {
-    const claim = await saveLink(email, "sya", providedCode);
-    if (!claim.ok) {
-      res.status(403).json({
-        error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
-      });
-      return;
+    if (!isMasterAccessCode(providedCode)) {
+      const claim = await saveLink(email, "sya", codeToUse);
+      if (!claim.ok) {
+        res.status(403).json({
+          error: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+        });
+        return;
+      }
     }
   }
   await loginWithAccessCode(req, res, codeToUse);

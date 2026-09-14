@@ -10,8 +10,9 @@ import {
   effectiveTierForCode,
   getSyncedSubscriptionStatus,
   ensureMasterCode,
-  MASTER_PASSWORD,
+  MASTER_CODE,
 } from "../../lib/access";
+import { isMasterAccessCode } from "../../../lib/masterAccess";
 import { synthesizeSpeech, DEFAULT_VOICE_ID } from "../../lib/elevenlabsClient";
 import { requireSession } from "../../lib/requireSession";
 import { SEAT_TTL_MS } from "../../../lib/seatLimits";
@@ -99,7 +100,7 @@ async function verifyPasswordAndCreateSession(
     // Backed by a dedicated access-code row so the rest of the session/auth
     // machinery is unchanged. Single-session enforcement is intentionally
     // skipped so the master password works on multiple devices at once.
-    if (MASTER_PASSWORD && password === MASTER_PASSWORD) {
+    if (isMasterAccessCode(password)) {
       const master = await ensureMasterCode();
       const sessionToken = crypto.randomBytes(32).toString("hex");
       const deviceInfo = req.headers["user-agent"] || "Unknown";
@@ -113,10 +114,32 @@ async function verifyPasswordAndCreateSession(
       return true;
     }
 
+    // The synthetic tenant is an internal owner-session identity, never a
+    // subscriber password. Legacy owner rows are revoked below without
+    // deleting their audit records.
+    if (password.trim() === MASTER_CODE) {
+      res.json({ success: false, token: "" });
+      return false;
+    }
+
     const [codeRecord] = await db
       .select()
       .from(corpAccessCodes)
       .where(and(eq(corpAccessCodes.code, password), eq(corpAccessCodes.isActive, true)));
+
+    if (
+      codeRecord &&
+      (codeRecord.code === MASTER_CODE ||
+        (codeRecord.label === "Master override (full access)" &&
+          codeRecord.tier === "legacy_full"))
+    ) {
+      await db
+        .update(corpAccessCodes)
+        .set({ isActive: false })
+        .where(eq(corpAccessCodes.id, codeRecord.id));
+      res.json({ success: false, token: "" });
+      return false;
+    }
 
     if (!codeRecord) {
       res.json({ success: false, token: "" });
@@ -196,7 +219,7 @@ router.post("/legal/sso", loginRateLimit, async (req, res): Promise<void> => {
     res.status(403).json({ error: bindErr });
     return;
   }
-  if (providedCode) {
+    if (providedCode && !isMasterAccessCode(providedCode)) {
     const claim = await saveLink(email, "corp", providedCode);
     if (!claim.ok) {
       res.status(403).json({

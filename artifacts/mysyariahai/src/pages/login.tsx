@@ -93,14 +93,14 @@ export default function LoginPage() {
       setMsError("Please enter your access code.");
       return;
     }
-    await postSso({ ticket: msTicket, code: linkCode.trim().toUpperCase() });
+    await postSso({ ticket: msTicket, code: linkCode.trim() });
   };
 
   const handleCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCodeError("");
     setCodeLoading(true);
-    const enteredCode = code.trim().toUpperCase();
+    const enteredCode = code.trim();
     const result = await login(enteredCode);
     if (result.success) {
       // Fire-and-forget: persona lookup must never block or fail login.

@@ -4,19 +4,16 @@ import { db } from "@workspace/db";
 import { aiUsageTable, usersTable } from "@workspace/db/schema";
 import { sql, desc, eq, or, count, sum, avg } from "drizzle-orm";
 import { generateAccessCode } from "../lib/access";
+import {
+  isAdminCredential,
+  isAdminCredentialConfigured,
+} from "../lib/masterAccess";
 
 const router: IRouter = Router();
 
-// Fail closed in production: without an ADMIN_PASSWORD secret the admin
-// endpoints are disabled entirely. The insecure default only exists for
-// local development and tests.
-const IS_PROD = process.env.NODE_ENV === "production";
-const ADMIN_PASSWORD: string | null =
-  process.env.ADMIN_PASSWORD || (IS_PROD ? null : "admin2024");
-
-if (!ADMIN_PASSWORD) {
+if (!isAdminCredentialConfigured()) {
   logger.error(
-    "ADMIN_PASSWORD is not set — convey admin endpoints are disabled until it is configured",
+    "ADMIN_PASSWORD and MASTER_ACCESS_CODE are not set — convey admin endpoints are disabled until one is configured",
   );
 }
 
@@ -31,12 +28,12 @@ async function uniqueAccessCode(): Promise<string> {
 }
 
 function requireAdmin(req: any, res: any, next: any) {
-  if (!ADMIN_PASSWORD) {
+  if (!isAdminCredentialConfigured()) {
     res.status(503).json({ error: "Admin access is not configured" });
     return;
   }
   const authHeader = req.headers["x-admin-token"];
-  if (authHeader !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(authHeader)) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
@@ -44,12 +41,12 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 router.post("/convey-admin/auth", (req, res) => {
-  if (!ADMIN_PASSWORD) {
+  if (!isAdminCredentialConfigured()) {
     res.status(503).json({ error: "Admin access is not configured" });
     return;
   }
   const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
+  if (isAdminCredential(password)) {
     res.json({ success: true });
   } else {
     res.status(401).json({ error: "Invalid admin password" });

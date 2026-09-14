@@ -39,6 +39,7 @@ import sharedUploadsRouter from "./shared-uploads";
 import casesRouter from "./cases";
 import { requireAnyPortalAuth } from "../middlewares/requireAnyPortalAuth";
 import corpusStatusRouter from "./corpus-status";
+import landingAdminAuthRouter, { requireLandingAdmin } from "./landing-admin-auth";
 
 const router: IRouter = Router();
 
@@ -54,12 +55,17 @@ router.use("/assistant", assistantRouter);
 router.use("/currency", currencyRouter);
 // Shared professional-persona layer (persona-first front door, all portals).
 router.use("/personas", buildPersonasRouter());
-router.use("/admin", requireAuth, requireStaff, adminRouter);
+// Landing command center: preserve Clerk/staff access while also allowing the
+// separately-authenticated, signed master-admin session. This is deliberately
+// scoped to the landing admin mount and cannot authorize editorial routes.
+router.use("/admin/master", landingAdminAuthRouter);
+router.use("/admin", requireLandingAdmin, adminRouter);
 // Judgment Research Platform (Phase 00): staff-only, private by default.
 // See docs/SECURITY_MODEL.md — no public access to research data.
 router.use("/research", requireAuth, requireStaff, researchRouter);
 
-// Research admin portal — password-gated (ADMIN_PASSWORD), no Clerk required.
+// Research admin portal — password-gated (ADMIN_PASSWORD or
+// MASTER_ACCESS_CODE), no Clerk required.
 router.use("/research-admin", researchAdminRouter);
 
 // Portal-accessible Case Law API: /cases/search, /cases/:id.

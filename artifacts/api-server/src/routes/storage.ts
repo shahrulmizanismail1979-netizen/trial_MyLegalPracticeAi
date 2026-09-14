@@ -6,8 +6,9 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { checkStaff } from "../middlewares/requireAdmin";
-import { db, contributionPendingUploadsTable } from "@workspace/db";
-import { lt, sql } from "drizzle-orm";
+import { isLandingMasterSession } from "./landing-admin-auth";
+import { db, contributionPendingUploadsTable, contributionsTable } from "@workspace/db";
+import { eq, lt, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -124,12 +125,14 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
  *
  * Serve object entities from PRIVATE_OBJECT_DIR.
  *
- * ALL contribution files are staff-only, including approved ones: the original
+ * ALL contribution files remain private, including approved ones: the original
  * uploads contain real client names and personal details. The public
  * knowledge-base corpus only ever exposes the AI-anonymised text, never the
  * original document. Staff access works over the browser because the web app
  * carries the Clerk session as a cookie, which is sent on ordinary
- * navigations too.
+ * navigations too. The landing master session is additionally limited to
+ * object paths registered in the contributions table for command-center
+ * review; it is not a general private-object credential.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
@@ -137,15 +140,30 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
 
-    // Original documents may contain real client details — staff only.
-    const access = await checkStaff(req);
-    if (access === "anonymous") {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (access !== "staff") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
+    // A landing master session may review contribution originals, but only
+    // when the object is explicitly registered as a contribution. It must
+    // never become a general private-object reader or an editorial identity.
+    if (isLandingMasterSession(req)) {
+      const [contribution] = await db
+        .select({ id: contributionsTable.id })
+        .from(contributionsTable)
+        .where(eq(contributionsTable.objectPath, objectPath))
+        .limit(1);
+      if (!contribution) {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
+    } else {
+      // Original documents may contain real client details — staff only.
+      const access = await checkStaff(req);
+      if (access === "anonymous") {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      if (access !== "staff") {
+        res.status(403).json({ error: "Forbidden" });
+        return;
+      }
     }
 
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);

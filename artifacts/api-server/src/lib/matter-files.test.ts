@@ -60,6 +60,12 @@ vi.mock("../lib/objectStorage", () => {
   };
 });
 
+// Keep owner-override coverage deterministic and never use a deployed
+// credential in this database-backed regression.
+const TEST_MASTER_CODE = "dummy-matter-files-master";
+process.env.MASTER_ACCESS_CODE = TEST_MASTER_CODE;
+process.env.SESSION_SECRET = "dummy-matter-files-session-secret";
+
 const { default: app } = await import("../app");
 const { ensureDocumentTables } = await import("../lib/caseDocuments");
 const { ensureMatterFileTables } = await import("../lib/matterFiles");
@@ -82,16 +88,25 @@ const {
 } = await import("@workspace/db");
 const { inArray, like } = await import("drizzle-orm");
 const { signToken } = await import("./auth");
+const { getMasterAccessFingerprint } = await import("../lib/masterAccess");
 
 // Same signing secret resolution as src/ccb/routes/auth.ts + src/lib/auth.ts.
 const SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-me";
 // Reuse the ccb auth token shape (role + code) so requirePractitioner accepts it.
 function signCcbToken(code: string): string {
+  if (code === MASTER_CODE) {
+    return jwt.sign({
+      role: "practitioner",
+      code: "ccb-master-session",
+      master: true,
+      masterFingerprint: getMasterAccessFingerprint(),
+    }, SECRET, { expiresIn: "7d" });
+  }
   return jwt.sign({ role: "practitioner", code }, SECRET, { expiresIn: "7d" });
 }
-// A master/static code (see MASTER_ACCESS_CODE / CCB_ACCESS_CODES defaults)
-// resolves to accessCodeId null in requirePractitioner → matter routes 403.
-const MASTER_CODE = (process.env.MASTER_ACCESS_CODE ?? "CCBLIT2024").trim().toUpperCase();
+// The owner path is represented by an opaque CCB master identity and mapped to
+// its own synthetic matter tenant.
+const MASTER_CODE = TEST_MASTER_CODE;
 
 const RUN_ID = randomUUID().slice(0, 8).toUpperCase();
 

@@ -19,14 +19,10 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../../microsoft";
+import { isMasterAccessCode } from "../../lib/masterAccess";
 
-const LEGACY_ACCESS_CODE = process.env.ACCESS_CODE || "MYCRIMAI2024";
-
-// Master override password. When set, this single code grants unrestricted
-// full access on any device, ignoring tiers, expiry, the subscription system,
-// and the single-session lock. It is not stored in the DB — the session is
-// simply flagged as master.
-const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
+// Legacy support is opt-in. Never ship a usable credential in production.
+const LEGACY_ACCESS_CODE = process.env.ACCESS_CODE?.trim() || null;
 
 const router: IRouter = Router();
 
@@ -72,13 +68,15 @@ router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
     return;
   }
   if (providedCode) {
-    const claim = await saveLink(email, "crim", providedCode);
-    if (!claim.ok) {
-      res.status(403).json({
-        authenticated: false,
-        message: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
-      });
-      return;
+    if (!isMasterAccessCode(providedCode)) {
+      const claim = await saveLink(email, "crim", providedCode);
+      if (!claim.ok) {
+        res.status(403).json({
+          authenticated: false,
+          message: `This access code is linked to a different Microsoft account (${maskEmail(claim.ownerEmail)}).`,
+        });
+        return;
+      }
     }
   }
   await verifyCodeAndLogin(req, res, codeToUse, async () => {});
@@ -97,7 +95,7 @@ async function verifyCodeAndLogin(
 
   // Master override: unrestricted full access on any device, no DB row, no
   // single-session lock, no expiry, no subscription checks.
-  if (MASTER_ACCESS_CODE && accessCode === MASTER_ACCESS_CODE) {
+  if (isMasterAccessCode(accessCode)) {
     try {
       await ensureSession();
     } catch (err) {
@@ -121,7 +119,7 @@ async function verifyCodeAndLogin(
   let row = await findActiveCode(accessCode);
 
   // Legacy fallback: if matches env ACCESS_CODE and not yet in DB, create it
-  if (!row && accessCode === LEGACY_ACCESS_CODE) {
+  if (!row && LEGACY_ACCESS_CODE && accessCode === LEGACY_ACCESS_CODE) {
     const [created] = await db
       .insert(crimAccessCodesTable)
       .values({ code: accessCode, label: "Legacy access code", isActive: true })

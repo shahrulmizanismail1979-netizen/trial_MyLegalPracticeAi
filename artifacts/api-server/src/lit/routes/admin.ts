@@ -12,15 +12,13 @@ import {
   openaiConfigured,
   perplexityConfigured,
 } from "../lib/aiProvider";
+import { isAdminCredential } from "../../lib/masterAccess";
 
 const router: IRouter = Router();
 
-// Fail-closed: admin login is disabled if ADMIN_PASSWORD is not configured.
-const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD ?? "").trim();
-
 function adminAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers["x-admin-password"];
-  if (!authHeader || authHeader !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(authHeader)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   return next();
@@ -28,7 +26,7 @@ function adminAuth(req: Request, res: Response, next: NextFunction) {
 
 router.post("/verify", (req, res) => {
   const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
+  if (isAdminCredential(password)) {
     return res.json({ success: true });
   }
   return res.status(401).json({ error: "Incorrect admin password" });

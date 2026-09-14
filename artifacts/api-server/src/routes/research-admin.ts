@@ -1,7 +1,8 @@
 /**
  * Research Admin API — password-gated routes for the Case Law Research Admin
- * portal (/research-admin/). Uses ADMIN_PASSWORD session auth rather than
- * Clerk, so the standalone admin frontend can log in without a Clerk tenant.
+ * portal (/research-admin/). Uses ADMIN_PASSWORD or MASTER_ACCESS_CODE session
+ * auth rather than Clerk, so the standalone admin frontend can log in without
+ * a Clerk tenant.
  *
  * Mounted at /api/research-admin (outside the Clerk-gated /api/research prefix).
  */
@@ -46,14 +47,14 @@ import {
   materializeVerifiedParagraphs,
   transitionLawyesReport,
 } from "../research/editorial/lawyesReportService";
+import {
+  isAdminCredential,
+  isAdminCredentialConfigured,
+} from "../lib/masterAccess";
 
-const IS_PROD = process.env.NODE_ENV === "production";
-const ADMIN_PASSWORD: string | null =
-  process.env.ADMIN_PASSWORD || (IS_PROD ? null : "admin123");
-
-if (!ADMIN_PASSWORD) {
+if (!isAdminCredentialConfigured()) {
   console.warn(
-    "[research-admin] ADMIN_PASSWORD is not set — research-admin login is disabled until configured",
+    "[research-admin] ADMIN_PASSWORD and MASTER_ACCESS_CODE are not set — research-admin login is disabled until one is configured",
   );
 }
 
@@ -124,12 +125,12 @@ async function promoteVerifiedJudgmentWhenHeadnoted(
 // ── Auth endpoints (no session required) ─────────────────────────────────────
 
 router.post("/auth/login", (req: Request, res: Response) => {
-  if (!ADMIN_PASSWORD) {
+  if (!isAdminCredentialConfigured()) {
     res.status(503).json({ error: "Admin auth not configured" });
     return;
   }
   const { password } = (req.body ?? {}) as { password?: string };
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(password)) {
     res.status(401).json({ error: "Invalid password" });
     return;
   }

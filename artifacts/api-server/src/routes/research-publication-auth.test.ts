@@ -20,6 +20,7 @@ vi.mock("../research/editorial/lawyesReportService", () => ({
 }));
 
 process.env.ADMIN_PASSWORD = "publication-auth-test-password";
+process.env.MASTER_ACCESS_CODE = "publication-master-access-test-code";
 const { default: researchAdminRouter } = await import("./research-admin");
 const { default: lawyesReportsRouter } = await import("../research/routes/lawyesReports");
 
@@ -52,11 +53,14 @@ describe("LAWYes publication authentication boundaries", () => {
     transition.mockResolvedValue({ id: 7, state: "Published" });
   });
 
-  it("does not let a shared ADMIN_PASSWORD sign off or publish", async () => {
+  it.each([
+    ["ADMIN_PASSWORD", "publication-auth-test-password"],
+    ["MASTER_ACCESS_CODE", "publication-master-access-test-code"],
+  ])("does not let a shared %s sign off or publish", async (_credentialName, password) => {
     const agent = request.agent(passwordApp());
     await agent
       .post("/api/research-admin/auth/login")
-      .send({ password: "publication-auth-test-password" })
+      .send({ password })
       .expect(200);
 
     await agent
@@ -71,6 +75,16 @@ describe("LAWYes publication authentication boundaries", () => {
     expect(addReview).not.toHaveBeenCalled();
     expect(transition).not.toHaveBeenCalled();
   });
+
+  it.each(["wrong-publication-credential", ""])(
+    "rejects a wrong or blank research-admin credential (%s)",
+    async (password) => {
+      await request(passwordApp())
+        .post("/api/research-admin/auth/login")
+        .send({ password })
+        .expect(401);
+    },
+  );
 
   it("records the authenticated legal reviewer's own identity", async () => {
     await request(clerkResearchApp("legal_reviewer", 42))

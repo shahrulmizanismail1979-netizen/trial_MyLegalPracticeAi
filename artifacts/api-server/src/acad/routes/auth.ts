@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { loginRateLimit } from "../../lib/loginRateLimit";
 import { claimSeat, releaseSeat, seatLimitMessage } from "../../lib/seatLimits";
-import { randomUUID, createHash, timingSafeEqual } from "crypto";
+import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/acad";
 import { and, eq, sql } from "drizzle-orm";
@@ -11,23 +11,13 @@ import {
   toSafeUser,
   getSessionUser,
 } from "../lib/auth";
+import { isMasterAccessCode } from "../../lib/masterAccess";
 
 // Arbitrary constant used as a postgres advisory-lock key so concurrent
 // /auth/register calls serialize on the "is this the very first user?" check.
 const REGISTER_BOOTSTRAP_LOCK = 7373731n;
 
-// Owner master override. When MASTER_ACCESS_CODE is set, entering it as the
-// password on the login form (any email) grants a full admin session backed by
-// a dedicated master account. Fail-closed: unset secret disables the override.
-const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
 const MASTER_EMAIL = "master-override@mylawacad.local";
-
-function matchesMasterCode(submitted: string): boolean {
-  if (!MASTER_ACCESS_CODE) return false;
-  const a = createHash("sha256").update(submitted.trim()).digest();
-  const b = createHash("sha256").update(MASTER_ACCESS_CODE).digest();
-  return timingSafeEqual(a, b);
-}
 
 /**
  * Find-or-create the synthetic master admin account. It has no password hash,
@@ -179,7 +169,7 @@ router.post("/auth/login", loginRateLimit, async (req: Request, res: Response): 
   }
 
   // Owner master override: master code as password grants a full admin session.
-  if (matchesMasterCode(password)) {
+  if (isMasterAccessCode(password)) {
     const master = await ensureMasterUser();
     await regenerateSession(req);
     req.session.acadUserId = master.id;
@@ -233,17 +223,21 @@ router.post("/auth/login", loginRateLimit, async (req: Request, res: Response): 
 // concurrent seat (per session) before the session is issued.
 router.post("/auth/code-login", loginRateLimit, async (req: Request, res: Response): Promise<void> => {
   const body = (req.body ?? {}) as { code?: unknown };
-  const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
+  const rawCode = typeof body.code === "string" ? body.code.trim() : "";
+  const code = rawCode.toUpperCase();
   if (!code) {
     res.status(400).json({ error: "Access code is required." });
     return;
   }
-  const rows = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.accessCode, code))
-    .limit(1);
-  const user = rows[0];
+  const user = isMasterAccessCode(rawCode)
+    ? await ensureMasterUser()
+    : (
+        await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.accessCode, code))
+          .limit(1)
+      )[0];
   if (!user) {
     res.status(401).json({ error: "Invalid access code." });
     return;

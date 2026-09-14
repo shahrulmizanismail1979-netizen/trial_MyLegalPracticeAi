@@ -26,11 +26,15 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../../microsoft";
+import { isMasterAccessCode } from "../../lib/masterAccess";
 
 const router: IRouter = Router();
 
-// Fail-closed: if MASTER_ACCESS_CODE env var is not set, master login is disabled.
-const MASTER_ACCESS_CODE = (process.env.MASTER_ACCESS_CODE ?? "").trim();
+// Never persist the owner credential itself. This stable synthetic tenant keeps
+// owner-created work isolated from every paid subscriber and survives rotation
+// of MASTER_ACCESS_CODE.
+const MASTER_TENANT_CODE = "MASTER-OVERRIDE-LIT";
+const LEGACY_MASTER_EMAIL = "master@mylitai.local";
 
 type LoginResult = { ok: boolean; status: number; body: Record<string, unknown> };
 
@@ -81,20 +85,32 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
     return { ok: true, status: 200, body: { success: true, message: "Login successful" } };
   }
 
-  if (MASTER_ACCESS_CODE && code === MASTER_ACCESS_CODE) {
+  if (isMasterAccessCode(rawCode)) {
+    // Older deployments persisted the real owner credential as a normal
+    // access-code row. Revoke those rows in place; retaining them as audit
+    // records is safer than deleting them, and prevents rotation leftovers
+    // from remaining usable.
+    await db
+      .update(litAccessCodes)
+      .set({ status: "revoked", compedAccess: false })
+      .where(and(
+        eq(litAccessCodes.recipientEmail, LEGACY_MASTER_EMAIL),
+        sql`${litAccessCodes.code} <> ${MASTER_TENANT_CODE}`,
+      ));
+
     let [master] = await db
       .select()
       .from(litAccessCodes)
-      .where(eq(litAccessCodes.code, MASTER_ACCESS_CODE))
+      .where(eq(litAccessCodes.code, MASTER_TENANT_CODE))
       .limit(1);
 
     if (!master) {
       [master] = await db
         .insert(litAccessCodes)
         .values({
-          code: MASTER_ACCESS_CODE,
+          code: MASTER_TENANT_CODE,
           recipientName: "Master Override",
-          recipientEmail: "master@mylitai.local",
+          recipientEmail: "owner-override@mylitai.local",
           status: "active",
           compedAccess: true,
           notes: "Master overriding access — full access without payment.",
@@ -128,9 +144,22 @@ async function loginWithCode(req: Request, rawCode: string): Promise<LoginResult
   const [record] = await db
     .select()
     .from(litAccessCodes)
-    .where(eq(litAccessCodes.code, code))
+    .where(sql`upper(${litAccessCodes.code}) = ${code}`)
     .limit(1);
 
+  // The synthetic tenant is for sessions created by the owner flow only; it
+  // must never become a subscriber credential. Rows created by the former
+  // implementation stored the master secret itself and are revoked in place
+  // when encountered, so they cannot remain a backdoor after rotation.
+  if (record?.code === MASTER_TENANT_CODE || record?.recipientEmail === LEGACY_MASTER_EMAIL) {
+    if (record.recipientEmail === LEGACY_MASTER_EMAIL) {
+      await db
+        .update(litAccessCodes)
+        .set({ status: "revoked", compedAccess: false })
+        .where(eq(litAccessCodes.id, record.id));
+    }
+    return { ok: false, status: 401, body: { error: "Invalid or expired access code" } };
+  }
   if (!record || record.status !== "active") {
     return { ok: false, status: 401, body: { error: "Invalid or expired access code" } };
   }
@@ -238,7 +267,7 @@ router.post("/sso", loginRateLimit, async (req, res) => {
       return res.status(403).json({ error: bindErr });
     }
 
-    if (providedCode) {
+    if (providedCode && !isMasterAccessCode(providedCode)) {
       const claim = await saveLink(email, app, providedCode.toUpperCase());
       if (!claim.ok) {
         return res.status(403).json({

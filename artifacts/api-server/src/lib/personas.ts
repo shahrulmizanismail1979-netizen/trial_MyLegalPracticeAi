@@ -22,6 +22,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
+import { isMasterAccessCode } from "./masterAccess";
 import { loginRateLimit } from "./loginRateLimit";
 import { resolvePersonaSessionCode } from "./personaSessionOwner";
 
@@ -72,8 +73,7 @@ function normalizeCode(raw: string): string {
  * code is a platform-global identity, not a per-portal one.
  */
 export async function accessCodeExists(code: string): Promise<boolean> {
-  const master = (process.env.MASTER_ACCESS_CODE ?? "").trim();
-  if (master && code === normalizeCode(master)) return false; // operator override, not a user
+  if (isMasterAccessCode(code)) return false; // operator override, not a user
   const { rows } = await pool.query<{ found: boolean }>(
     `SELECT EXISTS (
        SELECT 1 FROM access_codes       WHERE upper(code) = $1 AND is_active AND (expires_at IS NULL OR expires_at > now())

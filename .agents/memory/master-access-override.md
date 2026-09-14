@@ -3,9 +3,11 @@ name: Master access code override
 description: How the single MASTER_ACCESS_CODE grants full access across every portal
 ---
 
-The owner override code (`MASTER_ACCESS_CODE` secret) unlocks full/admin access in every portal. Each portal implements it independently at its login route — there is no shared helper.
+The owner override (`MASTER_ACCESS_CODE` secret) is intended to grant access across practitioner portals and administrator login surfaces, alongside existing administrator credentials. Never store the actual code in source or memory.
 
-**Why:** the user wants one code to open everything; portals have divergent auth (session cookies, JWT/localStorage, access-code vs email+password), so the override lives per-portal.
+**Why:** The user explicitly requested one securely configured credential for all app access, including administration. Portals have divergent session and login mechanisms; one accepted comparison does not prove downstream access works.
+
+**How to apply:** Keep the master login distinct from subscriber identity. Synthetic tenant identifiers are never credentials: reject them from normal login and SSO paths. Keep original subscriber and administrator access working. Shared administrator access does not replace attributed legal-review sign-off, and public Sarawak checkout/billing must not gain a payment or account-ownership bypass.
 
 **How to apply / login endpoints (all take the code):**
 - acad (MyLawAcad): `POST /api/acad/auth/login` `{email, password: code}` — synthetic master user `master-override@mylawacad.local` (no password hash); reserved email blocked from registration.

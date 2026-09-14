@@ -14,6 +14,8 @@ import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
 
+process.env.ADMIN_PASSWORD = "research-restricted-test-password";
+
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock("@clerk/express", () => ({
@@ -56,12 +58,11 @@ const createdAssetIds: number[] = [];
 /**
  * Log in and return the Set-Cookie string for ra_auth.
  *
- * research-admin.ts captures ADMIN_PASSWORD at module-load time using:
- *   process.env.ADMIN_PASSWORD || (IS_PROD ? null : "admin123")
- * Mirror the same resolution so we always match the in-process value.
+ * Use the dummy ADMIN_PASSWORD configured above so the test does not rely on
+ * a development fallback credential.
  */
 async function getAdminCookie(): Promise<string> {
-  const password = process.env.ADMIN_PASSWORD || "admin123";
+  const password = process.env.ADMIN_PASSWORD!;
   const res = await request(app)
     .post("/api/research-admin/auth/login")
     .send({ password });

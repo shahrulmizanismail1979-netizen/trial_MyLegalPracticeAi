@@ -99,7 +99,7 @@ export default function Login() {
       setError("Please enter an access code");
       return;
     }
-    postSso({ ticket: msTicket, code: linkCode.trim().toUpperCase() });
+    postSso({ ticket: msTicket, code: linkCode.trim() });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,13 +109,14 @@ export default function Login() {
       setError("Please enter an access code");
       return;
     }
+    const submittedCode = code.trim();
     verifyCode.mutate(
-      { data: { code: code.trim().toUpperCase() } },
+      { data: { code: submittedCode } },
       {
         onSuccess: async (result) => {
           if (result.valid) {
             // Fire-and-forget: never block or fail login on persona lookup.
-            void lookupPersona(code.trim().toUpperCase());
+            void lookupPersona(submittedCode);
             queryClient.setQueryData(getAccidentCheckSessionQueryKey(), {
               authenticated: true,
               codeLabel: null,

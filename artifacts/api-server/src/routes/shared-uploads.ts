@@ -39,6 +39,10 @@ import { accessCodeUsageTable } from "@workspace/db/schema";
 import { isConveyCodeExpired } from "../middlewares/conveyAuth.js";
 import { SEAT_TTL_MS, claimSeat, deviceSeatKey } from "../lib/seatLimits.js";
 import { logger } from "../lib/logger.js";
+import {
+  getMasterAccessFingerprint,
+  isMasterAccessCode,
+} from "../lib/masterAccess.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +68,7 @@ const SESSION_SECRET = (() => {
   }
   return "dev-secret-change-me";
 })();
+const CCB_MASTER_TOKEN_ID = "ccb-master-session";
 
 // ── Per-portal auth helpers ────────────────────────────────────────────────────
 
@@ -90,12 +95,11 @@ async function tryCorpAuth(token: string): Promise<boolean> {
 // ── CCB static-code set (mirrors ccb/routes/auth.ts STATIC_CODES) ─────────────
 // Evaluated once at module load so the cost is paid once, not per request.
 const CCB_STATIC_CODES: ReadonlySet<string> = (() => {
-  const master = (process.env.MASTER_ACCESS_CODE ?? "").trim().toUpperCase();
   const envList = process.env.CCB_ACCESS_CODES
     ? process.env.CCB_ACCESS_CODES.split(",")
     : ["CCBLIT2024", "MYCCBLIT", "UKM2024", "PRACTITIONER"];
   return new Set(
-    [master, ...envList]
+    envList
       .map((c) => c.trim().toUpperCase())
       .filter((c) => c.length > 0),
   );
@@ -118,9 +122,20 @@ async function tryCCBAuth(
   req: Request,
 ): Promise<boolean> {
   if (payload.role !== "practitioner" && payload.role !== "admin") return false;
-  const code = typeof payload.code === "string" ? payload.code.trim().toUpperCase() : "";
+  const rawCode = typeof payload.code === "string" ? payload.code : "";
+  const code = rawCode.trim().toUpperCase();
   if (!code) return false; // No code field — not a standard practitioner JWT.
-  if (CCB_STATIC_CODES.has(code)) return true; // Static/env/master code — always allowed.
+  const isMaster =
+    payload.master === true &&
+    rawCode === CCB_MASTER_TOKEN_ID &&
+    payload.masterFingerprint === getMasterAccessFingerprint();
+  // Legacy CCB owner JWTs contained the raw configured credential. They are
+  // intentionally not accepted; the owner must sign in again for an opaque,
+  // rotation-aware token.
+  if (payload.master === true || rawCode === CCB_MASTER_TOKEN_ID || isMasterAccessCode(rawCode)) {
+    return isMaster;
+  }
+  if (CCB_STATIC_CODES.has(code)) return true;
   try {
     const [row] = await db
       .select({
@@ -241,18 +256,31 @@ async function trySessionCookieAuth(req: Request): Promise<boolean> {
 
 /**
  * Accident master-token: replicates isMasterToken from accident routes.
- * Format: master.<nonce>.<HMAC-SHA256(SESSION_SECRET, "master:"+nonce)>
+ * Format: master.<nonce>.<issued-at-ms>.<master-fingerprint>.<HMAC-SHA256(
+ * SESSION_SECRET, "master:"+nonce+":"+issued-at-ms+":"+master-fingerprint)>
  */
 function isAccidentMasterToken(token: string): boolean {
   const parts = token.split(".");
-  if (parts.length !== 3 || parts[0] !== "master") return false;
+  if (parts.length !== 5 || parts[0] !== "master") return false;
   const nonce = parts[1];
+  const issuedAt = Number(parts[2]);
+  const currentFingerprint = getMasterAccessFingerprint();
+  const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+  if (
+    !Number.isSafeInteger(issuedAt) ||
+    issuedAt > Date.now() ||
+    Date.now() - issuedAt > maxAgeMs ||
+    !currentFingerprint ||
+    parts[3] !== currentFingerprint
+  ) {
+    return false;
+  }
   const expected = crypto
     .createHmac("sha256", SESSION_SECRET)
-    .update(`master:${nonce}`)
+    .update(`master:${nonce}:${issuedAt}:${parts[3]}`)
     .digest("hex");
   try {
-    const actualBuf = Buffer.from(parts[2], "hex");
+    const actualBuf = Buffer.from(parts[4], "hex");
     const expectedBuf = Buffer.from(expected, "hex");
     if (actualBuf.length !== expectedBuf.length) return false;
     return crypto.timingSafeEqual(actualBuf, expectedBuf);

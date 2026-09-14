@@ -4,12 +4,9 @@ import { db, corpAccessCodes, corpSessions } from "@workspace/db";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { ACCESS_TIERS, type AccessTier } from "@workspace/tiers";
 import { MASTER_CODE } from "../../lib/access";
+import { isAdminCredential } from "../../../lib/masterAccess";
 
 const router: IRouter = Router();
-
-// Fail closed: if ADMIN_PASSWORD is not configured, admin login is disabled
-// entirely (no hardcoded fallback credential).
-const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD ?? "").trim();
 
 const activeAdminTokens = new Set<string>();
 
@@ -36,7 +33,7 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
 
 router.post("/admin/login", async (req, res): Promise<void> => {
   const { password } = req.body;
-  if (!password || password !== ADMIN_PASSWORD) {
+  if (!isAdminCredential(password)) {
     res.status(401).json({ error: "Invalid admin credentials" });
     return;
   }

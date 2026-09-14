@@ -4,9 +4,9 @@ import { loginRateLimit } from "../lib/loginRateLimit";
 import { aiRateLimit } from "../lib/aiRateLimit";
 import { logger } from "../lib/logger";
 import { ai } from "@workspace/integrations-gemini-ai";
-import { db } from "@workspace/db";
+import { db, microsoftLinks } from "@workspace/db";
 import { aiUsageTable, usersTable } from "@workspace/db/schema";
-import { eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signToken } from "../lib/auth";
 import {
@@ -19,6 +19,7 @@ import {
 } from "../microsoft";
 import { conveyGate } from "../middlewares/conveyGate";
 import { isConveyCodeExpired } from "../middlewares/conveyAuth";
+import { isMasterAccessCode } from "../lib/masterAccess";
 import { accessSummary, isBeforeCutoff, generateAccessCode, PLANS, CURRENCIES, CURRENCY_LABELS, CURRENCY_SYMBOLS } from "../lib/access";
 import { synthesizeSpeech } from "../lib/elevenlabs";
 import {
@@ -86,34 +87,46 @@ async function trackUsage(tool: string, inputLength: number, outputLength: numbe
   }
 }
 
-// Master override code: logging in with this unlocks EVERYTHING (Firm tier) for
-// free, forever — no payment, no subscription. It maps to a single permanent
-// master account that is always Firm-tier + grandfathered + active.
-// Fail closed in production: no hardcoded fallback code. The default only
-// exists for local development and tests. Without the secret in production,
-// no master account is created or maintained.
-const rawMasterCode =
-  process.env.MASTER_ACCESS_CODE ||
-  (process.env.NODE_ENV === "production" ? null : "240680");
-const MASTER_ACCESS_CODE: string | null = rawMasterCode
-  ? rawMasterCode.trim().toUpperCase()
-  : null;
+// Never persist the owner credential itself. This stable synthetic account is
+// only the tenant backing owner sessions and remains valid across rotation.
+const MASTER_TENANT_CODE = "MASTER-OVERRIDE-CONVEY";
+const LEGACY_MASTER_DISPLAY_NAME = "Master Access";
+
+async function deactivateReservedMasterBindings(): Promise<void> {
+  // The synthetic tenant is an internal owner-session identity, never a
+  // Microsoft subscriber binding. Revoke any legacy binding in place before
+  // rejecting the SSO request; do not delete audit history.
+  await db
+    .update(microsoftLinks)
+    .set({ active: false })
+    .where(sql`lower(${microsoftLinks.accessCode}) = lower(${MASTER_TENANT_CODE})`);
+}
+
+async function deactivateLegacyMasterUsers() {
+  // The former implementation stored MASTER_ACCESS_CODE directly in a
+  // normal user row. Preserve those rows for audit/history, but make every
+  // such row inactive so rotation cannot leave a second owner credential.
+  await db
+    .update(usersTable)
+    .set({ isActive: false })
+    .where(and(
+      eq(usersTable.displayName, LEGACY_MASTER_DISPLAY_NAME),
+      eq(usersTable.role, "admin"),
+      sql`${usersTable.accessCode} IS NOT NULL`,
+      sql`${usersTable.accessCode} <> ${MASTER_TENANT_CODE}`,
+    ));
+}
 
 async function ensureMasterUser() {
-  if (!MASTER_ACCESS_CODE) {
-    logger.warn(
-      "MASTER_ACCESS_CODE is not set — skipping master override account setup",
-    );
-    return;
-  }
   try {
+    await deactivateLegacyMasterUsers();
     const existing = await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.accessCode, MASTER_ACCESS_CODE));
+      .where(eq(usersTable.accessCode, MASTER_TENANT_CODE));
     if (existing.length === 0) {
       await db.insert(usersTable).values({
-        accessCode: MASTER_ACCESS_CODE,
+        accessCode: MASTER_TENANT_CODE,
         displayName: "Master Access",
         role: "admin",
         isActive: true,
@@ -127,10 +140,17 @@ async function ensureMasterUser() {
       await db
         .update(usersTable)
         .set({ role: "admin", isActive: true, grandfathered: true, subscriptionTier: "firm", subscriptionStatus: "active" })
-        .where(eq(usersTable.accessCode, MASTER_ACCESS_CODE));
+        .where(eq(usersTable.accessCode, MASTER_TENANT_CODE));
     }
+    const [master] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.accessCode, MASTER_TENANT_CODE))
+      .limit(1);
+    return master;
   } catch (e) {
     logger.error({ err: e }, "Failed to ensure master user");
+    return undefined;
   }
 }
 
@@ -239,11 +259,48 @@ router.post("/convey/auth", loginRateLimit, async (req, res) => {
         user = candidate;
       }
     } else {
-      const code = (body.accessCode ?? "").trim().toUpperCase();
+      const rawCode = typeof body.accessCode === "string" ? body.accessCode : "";
+      const code = rawCode.trim().toUpperCase();
       if (code) {
-        const rows = await db.select().from(usersTable).where(eq(usersTable.accessCode, code));
-        user = rows[0];
+        if (isMasterAccessCode(rawCode)) {
+          user = await ensureMasterUser();
+        } else if (code === MASTER_TENANT_CODE) {
+          // The synthetic owner tenant is an internal session identity, not a
+          // subscriber credential. Only the configured owner flow may issue it.
+          res.status(401).json({ error: "Invalid credentials" });
+          return;
+        } else {
+          const rows = await db
+            .select()
+            .from(usersTable)
+            .where(sql`upper(${usersTable.accessCode}) = ${code}`);
+          user = rows[0];
+          if (
+            user &&
+            user.displayName === LEGACY_MASTER_DISPLAY_NAME &&
+            user.role === "admin"
+          ) {
+            await db
+              .update(usersTable)
+              .set({ isActive: false })
+              .where(eq(usersTable.id, user.id));
+            user = undefined;
+          }
+        }
       }
+    }
+
+    if (
+      user &&
+      user.displayName === LEGACY_MASTER_DISPLAY_NAME &&
+      user.role === "admin" &&
+      user.accessCode !== MASTER_TENANT_CODE
+    ) {
+      await db
+        .update(usersTable)
+        .set({ isActive: false })
+        .where(eq(usersTable.id, user.id));
+      user = undefined;
     }
 
     if (!user) {
@@ -312,15 +369,31 @@ router.post("/convey/auth/sso", loginRateLimit, async (req, res) => {
   }
 
   try {
-    const providedCode = typeof code === "string" ? code.trim().toUpperCase() : "";
-    const codeToUse = providedCode || (await getLinkedCode(email, "convey"));
+    const providedRawCode = typeof code === "string" ? code.trim() : "";
+    const providedCode = providedRawCode.toUpperCase();
+    // Reject the synthetic owner tenant before either direct lookup or linked
+    // Microsoft-code lookup. It must never become an SSO subscriber identity.
+    if (providedCode === MASTER_TENANT_CODE) {
+      await deactivateReservedMasterBindings();
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
+
+    const linkedCode = providedCode ? null : await getLinkedCode(email, "convey");
+    const codeToUse = providedCode || linkedCode;
     if (!codeToUse) {
       res.status(404).json({ needsLink: true });
       return;
     }
+    if (codeToUse.trim().toUpperCase() === MASTER_TENANT_CODE) {
+      await deactivateReservedMasterBindings();
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
 
-    const rows = await db.select().from(usersTable).where(eq(usersTable.accessCode, codeToUse));
-    const user = rows[0];
+    const user = isMasterAccessCode(providedRawCode || codeToUse)
+      ? await ensureMasterUser()
+      : (await db.select().from(usersTable).where(eq(usersTable.accessCode, codeToUse)))[0];
     if (!user) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
@@ -339,7 +412,7 @@ router.post("/convey/auth/sso", loginRateLimit, async (req, res) => {
       return;
     }
 
-    if (providedCode) {
+    if (providedCode && !isMasterAccessCode(providedRawCode)) {
       const linkClaim = await saveLink(email, "convey", providedCode);
       if (!linkClaim.ok) {
         res.status(403).json({

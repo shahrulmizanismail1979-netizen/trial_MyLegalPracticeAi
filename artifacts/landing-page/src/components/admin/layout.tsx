@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { useClerk, useUser } from "@clerk/react";
+import { useAuth, useClerk, useUser } from "@clerk/react";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -17,8 +18,39 @@ import { basePath } from "@/lib/clerk";
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { signOut } = useClerk();
+  const { isSignedIn } = useAuth();
   const { user } = useUser();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const email = user?.primaryEmailAddress?.emailAddress ?? "";
+
+  async function handleSignOut() {
+    setSignOutError(null);
+    try {
+      const masterLogout = await fetch("/api/admin/master/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!masterLogout.ok) {
+        throw new Error(`Master logout failed with status ${masterLogout.status}`);
+      }
+    } catch {
+      setSignOutError(
+        "Unable to end the command-center session. Please try signing out again.",
+      );
+      return;
+    }
+
+    if (isSignedIn) {
+      try {
+        await signOut({ redirectUrl: basePath || "/" });
+      } catch {
+        setSignOutError("Unable to sign out. Please try again.");
+      }
+      return;
+    }
+
+    window.location.assign(basePath || "/");
+  }
 
   const navItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Overview" },
@@ -77,12 +109,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </Link>
           <button
             type="button"
-            onClick={() => signOut({ redirectUrl: basePath || "/" })}
+            onClick={() => void handleSignOut()}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <LogOut size={18} />
             Sign out
           </button>
+          {signOutError && (
+            <p className="px-3 pt-1 text-xs text-destructive" role="alert">
+              {signOutError}
+            </p>
+          )}
         </div>
       </aside>
 

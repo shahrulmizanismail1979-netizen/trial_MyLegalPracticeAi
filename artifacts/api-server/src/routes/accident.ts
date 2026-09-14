@@ -20,28 +20,20 @@ import {
   codeLoginBindingError,
   maskEmail,
 } from "../microsoft";
+import {
+  getMasterAccessFingerprint,
+  isMasterAccessCode,
+} from "../lib/masterAccess";
 
 const router: IRouter = Router();
 
-// Fail closed in production: without a MASTER_ACCESS_CODE secret the master
-// override login is disabled entirely. The insecure default only exists for
-// local development and tests.
-const IS_PROD = process.env.NODE_ENV === "production";
-const MASTER_ACCESS_CODE: string | null =
-  process.env.MASTER_ACCESS_CODE || (IS_PROD ? null : "240680");
-
-if (!MASTER_ACCESS_CODE) {
-  logger.warn(
-    "MASTER_ACCESS_CODE is not set — MyAccidentAI master override login is disabled",
-  );
-}
-
 // Fail closed in production: a predictable HMAC secret would let anyone forge
 // master session tokens.
+const MASTER_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_SECRET = (() => {
   const fromEnv = process.env.SESSION_SECRET;
   if (fromEnv) return fromEnv;
-  if (IS_PROD) {
+  if (process.env.NODE_ENV === "production") {
     throw new Error("SESSION_SECRET is required in production");
   }
   return "dev-secret-change-me";
@@ -49,21 +41,41 @@ const SESSION_SECRET = (() => {
 
 const MASTER_LABEL = "Master Access";
 
-function signMasterNonce(nonce: string): string {
-  return crypto.createHmac("sha256", SESSION_SECRET).update(`master:${nonce}`).digest("hex");
+function signMasterNonce(
+  nonce: string,
+  issuedAt: number,
+  masterFingerprint: string,
+): string {
+  return crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(`master:${nonce}:${issuedAt}:${masterFingerprint}`)
+    .digest("hex");
 }
 
 export function createMasterToken(): string {
   const nonce = crypto.randomBytes(16).toString("hex");
-  return `master.${nonce}.${signMasterNonce(nonce)}`;
+  const issuedAt = Date.now();
+  const masterFingerprint = getMasterAccessFingerprint() ?? "";
+  return `master.${nonce}.${issuedAt}.${masterFingerprint}.${signMasterNonce(nonce, issuedAt, masterFingerprint)}`;
 }
 
 export function isMasterToken(token: string | undefined): boolean {
   if (!token) return false;
   const parts = token.split(".");
-  if (parts.length !== 3 || parts[0] !== "master") return false;
-  const expected = signMasterNonce(parts[1]!);
-  const provided = Buffer.from(parts[2]!);
+  if (parts.length !== 5 || parts[0] !== "master") return false;
+  const issuedAt = Number(parts[2]);
+  const currentFingerprint = getMasterAccessFingerprint();
+  if (
+    !Number.isSafeInteger(issuedAt) ||
+    issuedAt > Date.now() ||
+    Date.now() - issuedAt > MASTER_TOKEN_TTL_MS ||
+    !currentFingerprint ||
+    parts[3] !== currentFingerprint
+  ) {
+    return false;
+  }
+  const expected = signMasterNonce(parts[1]!, issuedAt, parts[3]!);
+  const provided = Buffer.from(parts[4]!);
   const valid = Buffer.from(expected);
   return provided.length === valid.length && crypto.timingSafeEqual(provided, valid);
 }
@@ -88,13 +100,10 @@ function setSessionCookies(res: Response, sessionId: string, label: string): voi
 
 // Shared by the normal access-code login and the Microsoft SSO exchange.
 async function verifyCodeAndStartSession(res: Response, rawCode: string): Promise<boolean> {
-  const code = rawCode.trim().toUpperCase();
+  const submittedCode = rawCode.trim();
+  const code = submittedCode.toUpperCase();
 
-  if (
-    MASTER_ACCESS_CODE &&
-    (rawCode.trim() === MASTER_ACCESS_CODE ||
-      code === MASTER_ACCESS_CODE.trim().toUpperCase())
-  ) {
+  if (isMasterAccessCode(submittedCode)) {
     const masterToken = createMasterToken();
     setSessionCookies(res, masterToken, MASTER_LABEL);
     res.json(
@@ -184,7 +193,7 @@ router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
     res.status(403).json({ error: bindErr });
     return;
   }
-  if (providedCode) {
+  if (providedCode && !isMasterAccessCode(providedCode)) {
     const claim = await saveLink(email, "accident", providedCode.toUpperCase());
     if (!claim.ok) {
       res.status(403).json({
