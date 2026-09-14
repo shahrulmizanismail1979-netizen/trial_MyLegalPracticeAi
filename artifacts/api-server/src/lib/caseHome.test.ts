@@ -28,6 +28,7 @@ vi.mock("@clerk/express", () => ({
 
 // Mock object storage (caseDocuments.ts imports it)
 vi.mock("../lib/objectStorage", () => {
+  class FakeObjectNotFoundError extends Error {}
   class FakeObjectStorageService {
     async getObjectEntityUploadURL(): Promise<string> {
       return `https://storage.example.com/bucket/.private/uploads/fake-uuid?sig=x`;
@@ -36,14 +37,12 @@ vi.mock("../lib/objectStorage", () => {
       return rawPath;
     }
     async getObjectEntityFile(): Promise<never> {
-      const err = new Error("Object not found") as Error & { name: string };
-      err.name = "ObjectNotFoundError";
-      throw err;
+      throw new FakeObjectNotFoundError("Object not found");
     }
   }
   return {
     ObjectStorageService: FakeObjectStorageService,
-    ObjectNotFoundError: class extends Error {},
+    ObjectNotFoundError: FakeObjectNotFoundError,
   };
 });
 
@@ -191,6 +190,54 @@ describe("case-home — ownership", () => {
       .get(`/api/accident/matters/${mId}/case-home`)
       .set("Cookie", cookieB);
     expect(bRes.status).toBe(404);
+  });
+
+  it("opens only outputs and documents filed to the owned matter", async () => {
+    const cookieA = await loginWith(CODE_A);
+    const first = await request(app)
+      .post("/api/accident/matters")
+      .set("Cookie", cookieA)
+      .send({ title: `Rail open A ${RUN_ID}` });
+    const second = await request(app)
+      .post("/api/accident/matters")
+      .set("Cookie", cookieA)
+      .send({ title: `Rail open B ${RUN_ID}` });
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const firstMatterId = first.body.id as number;
+    const secondMatterId = second.body.id as number;
+    createdMatterIds.push(firstMatterId, secondMatterId);
+
+    const saved = await pool.query(
+      `INSERT INTO acc_saved_work (matter_id, owner_id, kind, title, content)
+       VALUES ($1, $2, 'analysis', $3, $4) RETURNING id`,
+      [firstMatterId, codeIds[0], `Rail output ${RUN_ID}`, `Private output ${RUN_ID}`],
+    );
+    const savedId = saved.rows[0].id as number;
+    const opened = await request(app)
+      .get(`/api/accident/matters/${firstMatterId}/case-home/saved-work/${savedId}/open`)
+      .set("Cookie", cookieA);
+    expect(opened.status).toBe(200);
+    expect(opened.text).toBe(`Private output ${RUN_ID}`);
+    expect(opened.headers["content-disposition"]).toMatch(/^inline;/);
+
+    const wrongMatterOutput = await request(app)
+      .get(`/api/accident/matters/${secondMatterId}/case-home/saved-work/${savedId}/open`)
+      .set("Cookie", cookieA);
+    expect(wrongMatterOutput.status).toBe(404);
+
+    const document = await pool.query(
+      `INSERT INTO case_documents
+         (portal, owner_key, matter_id, object_path, file_name, content_type, size_bytes)
+       VALUES ('acc', $1, $2, $3, $4, 'application/pdf', 10) RETURNING id`,
+      [String(codeIds[0]), firstMatterId, `/private/${RUN_ID}.pdf`, `Source ${RUN_ID}.pdf`],
+    );
+    const documentId = document.rows[0].id as number;
+    const wrongMatterDocument = await request(app)
+      .get(`/api/accident/matters/${secondMatterId}/case-home/documents/${documentId}/open`)
+      .set("Cookie", cookieA);
+    expect(wrongMatterDocument.status).toBe(404);
+    await pool.query(`DELETE FROM case_documents WHERE id = $1`, [documentId]);
   });
 });
 

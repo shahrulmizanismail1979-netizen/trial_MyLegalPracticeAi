@@ -632,6 +632,13 @@ const CSS = `
   display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:7px;
   background:var(--ch-surface-2);border:1px solid var(--ch-border);
 }
+.ch-doc-button{
+  width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+.ch-doc-button:hover{border-color:var(--ch-accent);}
+.ch-doc-button:focus-visible{outline:2px solid var(--ch-accent);outline-offset:2px;}
+.ch-doc-button:disabled{cursor:wait;opacity:.65;}
 .ch-doc-icon{
   flex:0 0 26px;width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;
   font-size:10px;font-weight:700;color:#fff;background:#0891b2;
@@ -1263,15 +1270,78 @@ function PeoplePanel({ people }: { people: CasePerson[] }) {
   );
 }
 
-function DocumentsPanel({ documents }: { documents: CaseDocument[] }) {
+async function openRailItem(
+  request: CaseHomeRequest,
+  path: string,
+  fallbackName: string,
+): Promise<void> {
+  const popup = typeof window !== "undefined" ? window.open("", "_blank", "noopener,noreferrer") : null;
+  try {
+    const response = await request(path);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(body.error || `Unable to open item (${response.status})`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const disposition = response.headers.get("content-disposition") ?? "";
+    if (/^\s*attachment\b/i.test(disposition)) {
+      popup?.close();
+      const match = /filename="([^"]+)"/i.exec(disposition);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = match?.[1] ?? fallbackName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } else if (popup) {
+      popup.location.href = objectUrl;
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } else {
+      window.location.href = objectUrl;
+    }
+  } catch (error) {
+    popup?.close();
+    throw error;
+  }
+}
+function DocumentsPanel({
+  documents,
+  matterId,
+  request,
+}: {
+  documents: CaseDocument[];
+  matterId: number;
+  request: CaseHomeRequest;
+}) {
+  const [opening, setOpening] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   if (documents.length === 0) return <p className="ch-empty">No documents attached.</p>;
   return (
     <div className="ch-doc-list">
+      {error && <p className="ch-err" role="alert">{error}</p>}
       {documents.map((doc, i) => {
         const kindShort = (doc.category ?? doc.content_type ?? "DOC").replace(/[^a-z]/gi, "").slice(0, 3).toUpperCase() || "DOC";
         const size = fmtBytes(doc.size_bytes);
         return (
-          <div key={doc.id ?? i} className="ch-doc-item">
+          <button
+            key={doc.id ?? i}
+            type="button"
+            className="ch-doc-item ch-doc-button"
+            disabled={opening === String(doc.id)}
+            aria-label={`Open source document ${doc.file_name}`}
+            onClick={() => {
+              setOpening(String(doc.id));
+              setError(null);
+              void openRailItem(
+                request,
+                `/${matterId}/case-home/documents/${doc.id}/open`,
+                doc.file_name,
+              ).catch((ex) => setError(ex instanceof Error ? ex.message : "Unable to open document"))
+                .finally(() => setOpening(null));
+            }}
+          >
             <div className="ch-doc-icon" aria-hidden="true">
               {kindShort}
             </div>
@@ -1287,19 +1357,46 @@ function DocumentsPanel({ documents }: { documents: CaseDocument[] }) {
                 {size && <span>{size}</span>}
               </div>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
   );
 }
 
-function SavedWorkPanel({ items }: { items: CaseSavedWork[] }) {
+function SavedWorkPanel({
+  items,
+  matterId,
+  request,
+}: {
+  items: CaseSavedWork[];
+  matterId: number;
+  request: CaseHomeRequest;
+}) {
+  const [opening, setOpening] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   if (items.length === 0) return <p className="ch-empty">No filed work yet.</p>;
   return (
     <div className="ch-sw-list">
+      {error && <p className="ch-err" role="alert">{error}</p>}
       {items.map((sw, i) => (
-        <div key={sw.id ?? i} className="ch-doc-item">
+        <button
+          key={sw.id ?? i}
+          type="button"
+          className="ch-doc-item ch-doc-button"
+          disabled={opening === String(sw.id)}
+          aria-label={`Open saved output ${sw.title}`}
+          onClick={() => {
+            setOpening(String(sw.id));
+            setError(null);
+            void openRailItem(
+              request,
+              `/${matterId}/case-home/saved-work/${sw.id}/open`,
+              `${sw.title}.txt`,
+            ).catch((ex) => setError(ex instanceof Error ? ex.message : "Unable to open saved output"))
+              .finally(() => setOpening(null));
+          }}
+        >
           <div className="ch-doc-icon" aria-hidden="true" style={{ background: "var(--ch-ai)" }}>
             ✦
           </div>
@@ -1311,7 +1408,7 @@ function SavedWorkPanel({ items }: { items: CaseSavedWork[] }) {
               <AiLabel tool={sw.tool} at={sw.created_at} />
             </div>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -1540,7 +1637,7 @@ export function CaseHomePanel({ matterId, request, accent, className = "", actio
                 title={<><IconOutputs /> Outputs</>}
                 count={savedWork.length}
               />
-              <SavedWorkPanel items={savedWork} />
+              <SavedWorkPanel items={savedWork} matterId={matterId} request={request} />
             </div>
 
             <div className="ch-rail-section">
@@ -1548,7 +1645,7 @@ export function CaseHomePanel({ matterId, request, accent, className = "", actio
                 title={<><IconSources /> Sources</>}
                 count={documents.length}
               />
-              <DocumentsPanel documents={documents} />
+              <DocumentsPanel documents={documents} matterId={matterId} request={request} />
             </div>
 
           </div>

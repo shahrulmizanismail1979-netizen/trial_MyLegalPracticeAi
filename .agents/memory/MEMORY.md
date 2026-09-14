@@ -73,3 +73,4 @@
 - [Fail-closed legal workflow analytics](legal-workflow-analytics.md) — custom events use a central allowlist for names, keys, enums, and bounded counts; never forward arbitrary caller values.
 - [Matter workspace context rail](matter-workspace-context-rail.md) — keep legal workspaces focused, with a compact Progress/Outputs/Sources rail using real matter data.
 - [Shared-component browser checks](shared-component-browser-checks.md) — scope layout assertions to the shared component unless the task also owns the host artifact shell.
+- [Matter rail file opening](matter-rail-file-opening.md) — open private rail files through the host portal's authenticated request adapter, never raw storage or artifact-rebased API links.

@@ -23,13 +23,17 @@
  * response.
  */
 import type { IRouter, Request, Response } from "express";
+import { Readable } from "stream";
 import { pool } from "@workspace/db";
 import { PORTAL_STAGES, type Portal } from "./caseStages";
 import { logger } from "./logger";
+import { ObjectNotFoundError, ObjectStorageService } from "./objectStorage";
+import { isInlineSafe } from "./caseDocuments";
 
 type MatterRow = Record<string, unknown>;
 type GetOwnerKey = (req: Request, res: Response) => string | null;
 type GetMatter = (req: Request, res: Response, id: string) => Promise<MatterRow | undefined>;
+const objectStorage = new ObjectStorageService();
 
 // ── Per-portal owner predicate (mirrors caseBriefing.ts helper) ─────────────
 
@@ -117,6 +121,126 @@ export function attachCaseHome(opts: {
   const { router, portal, getOwnerKey, getMatter } = opts;
   const P = opts.pathPrefix ?? "";
   const stages = PORTAL_STAGES[portal];
+
+  async function ownedMatterContext(req: Request, res: Response) {
+    const ownerKey = getOwnerKey(req, res);
+    if (!ownerKey) {
+      res.status(401).json({ error: "Not authenticated" });
+      return undefined;
+    }
+    const matterRow = await getMatter(req, res, req.params.id as string);
+    if (!matterRow) return undefined;
+    return { ownerKey, matterId: matterRow.id as number };
+  }
+
+  router.get(`${P}/:id/case-home/documents/:documentId/open`, async (req, res) => {
+    const context = await ownedMatterContext(req, res);
+    if (!context) return;
+    const documentId = parseInt(req.params.documentId as string, 10);
+    if (Number.isNaN(documentId) || documentId <= 0) {
+      res.status(400).json({ error: "Invalid document id" });
+      return;
+    }
+    const { rows } = await pool.query(
+      `SELECT object_path, file_name, content_type
+       FROM case_documents
+       WHERE id = $1 AND portal = $2 AND owner_key = $3 AND matter_id = $4`,
+      [documentId, portal, context.ownerKey, context.matterId],
+    );
+    const document = rows[0] as Record<string, unknown> | undefined;
+    if (!document) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    try {
+      const file = await objectStorage.getObjectEntityFile(document.object_path as string);
+      const response = await objectStorage.downloadObject(file, 0);
+      res.status(response.status);
+      response.headers.forEach((value, key) => {
+        if (!["cache-control", "content-type", "content-disposition"].includes(key.toLowerCase())) {
+          res.setHeader(key, value);
+        }
+      });
+      const inline = isInlineSafe(document.content_type);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader(
+        "Content-Type",
+        inline ? String(document.content_type) : "application/octet-stream",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `${inline ? "inline" : "attachment"}; filename="${String(document.file_name).replace(/["\\\r\n]/g, "_")}"`,
+      );
+      if (response.body) Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+      else res.end();
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) {
+        res.status(404).json({ error: "Stored file not found" });
+        return;
+      }
+      logger.error({ err, portal, documentId }, "case-home document open failed");
+      res.status(500).json({ error: "Failed to open the document" });
+    }
+  });
+
+  router.get(`${P}/:id/case-home/saved-work/:workId/open`, async (req, res) => {
+    const context = await ownedMatterContext(req, res);
+    if (!context) return;
+    const workId = parseInt(req.params.workId as string, 10);
+    if (Number.isNaN(workId) || workId <= 0) {
+      res.status(400).json({ error: "Invalid saved output id" });
+      return;
+    }
+    const pred = portalOwnerPredicate(portal, context.ownerKey, 3);
+    if (!pred) {
+      res.status(404).json({ error: "Saved output not found" });
+      return;
+    }
+    const { rows } = await pool.query(
+      `SELECT * FROM ${portal}_saved_work
+       WHERE id = $1 AND matter_id = $2 AND ${pred.clause}`,
+      [workId, context.matterId, ...pred.params],
+    );
+    const work = rows[0] as Record<string, unknown> | undefined;
+    if (!work) {
+      res.status(404).json({ error: "Saved output not found" });
+      return;
+    }
+    const filename = String(work.file_name ?? work.title ?? "saved-output").replace(/["\\\r\n]/g, "_");
+    const objectPath = work.object_path;
+    if (typeof objectPath !== "string" || !objectPath) {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Content-Disposition", `inline; filename="${filename}.txt"`);
+      res.send(typeof work.content === "string" ? work.content : "");
+      return;
+    }
+    try {
+      const file = await objectStorage.getObjectEntityFile(objectPath);
+      const response = await objectStorage.downloadObject(file, 0);
+      res.status(response.status);
+      response.headers.forEach((value, key) => {
+        if (!["cache-control", "content-type", "content-disposition"].includes(key.toLowerCase())) {
+          res.setHeader(key, value);
+        }
+      });
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      if (response.body) Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+      else res.end();
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) {
+        res.status(404).json({ error: "Stored output not found" });
+        return;
+      }
+      logger.error({ err, portal, workId }, "case-home saved output open failed");
+      res.status(500).json({ error: "Failed to open the saved output" });
+    }
+  });
 
   router.get(`${P}/:id/case-home`, async (req: Request, res: Response) => {
     const ownerKey = getOwnerKey(req, res);
