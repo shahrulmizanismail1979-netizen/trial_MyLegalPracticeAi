@@ -53,7 +53,7 @@ const S = {
   panel: {
     position: "fixed",
     bottom: 92,
-    right: 20,
+    right: "max(16px, env(safe-area-inset-right))",
     zIndex: 2147483000,
     width: "min(380px, calc(100vw - 32px))",
     height: "min(560px, calc(100vh - 120px))",
@@ -67,6 +67,7 @@ const S = {
     border: "1px solid rgba(200,170,110,0.35)",
     fontFamily: "system-ui, sans-serif",
     fontSize: 14,
+    maxWidth: "calc(100vw - 32px)",
   } as React.CSSProperties,
   header: (accent: string): React.CSSProperties => ({
     display: "flex",
@@ -102,6 +103,7 @@ const S = {
   } as React.CSSProperties,
   input: {
     flex: 1,
+    minWidth: 0,
     background: "rgba(255,255,255,0.07)",
     border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: 8,

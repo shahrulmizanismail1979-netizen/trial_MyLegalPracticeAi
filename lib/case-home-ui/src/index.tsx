@@ -105,11 +105,13 @@ export function CaseCorpusStatus({
           ? (isDesktop && floatingDesktopLeft !== undefined ? floatingDesktopLeft : 12)
           : undefined,
         bottom: variant === "floating" ? 12 : undefined,
+        right: variant === "floating" && !isDesktop ? "var(--vp-fab-clearance, 12px)" : undefined,
         zIndex: variant === "floating" ? 40 : undefined,
         pointerEvents: variant === "floating" ? "none" : undefined,
         maxWidth: variant === "floating"
           ? `calc(100vw - ${(isDesktop && floatingDesktopLeft !== undefined ? floatingDesktopLeft : 12) + 12}px)`
           : 540,
+        overflowWrap: "anywhere",
         padding: "7px 10px",
         borderRadius: 9,
         background: "var(--background, #ffffff)",
@@ -458,6 +460,10 @@ const CSS = `
   font-size: 14px;
   background: transparent;
   container-type: inline-size;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ch-root *{box-sizing:border-box;}
 
@@ -483,6 +489,8 @@ const CSS = `
 }
 .ch-rail {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -510,10 +518,13 @@ const CSS = `
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 .ch-rail-section {
   padding: 16px;
   border-bottom: 1px solid var(--ch-border);
+  min-width: 0;
 }
 .ch-rail-section:last-child {
   border-bottom: none;
@@ -528,12 +539,16 @@ const CSS = `
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 .ch-rail-title {
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--ch-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ch-rail-title svg {
   color: var(--ch-accent);
@@ -561,9 +576,9 @@ const CSS = `
 .ch-sub{font-size:13px;color:var(--ch-muted);margin-top:2px;}
 .ch-eyebrow{font-size:11px;color:var(--ch-muted);margin-bottom:4px;}
 .ch-kv{display:flex;flex-direction:column;gap:8px;}
-.ch-kv-row{display:flex;gap:8px;align-items:flex-start;}
+.ch-kv-row{display:flex;gap:8px;align-items:flex-start;min-width:0;}
 .ch-kv-label{flex:0 0 130px;font-size:12px;color:var(--ch-muted);padding-top:2px;}
-.ch-kv-val{flex:1;font-size:13px;color:var(--ch-fg);font-weight:500;}
+.ch-kv-val{flex:1;min-width:0;font-size:13px;color:var(--ch-fg);font-weight:500;overflow-wrap:anywhere;}
 .ch-deadline-soon{color:#c2760a;font-weight:700;}
 .ch-deadline-overdue{color:var(--ch-danger);font-weight:700;}
 .ch-task-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
@@ -642,7 +657,8 @@ const CSS = `
 .ch-loading{color:var(--ch-muted);font-size:13px;padding:24px;text-align:center;}
 .ch-action-link{
   display:inline-flex;align-items:center;justify-content:center;padding:8px 16px;border-radius:7px;
-  font-size:13px;font-weight:600;text-decoration:none;color:var(--ch-on-accent);background:var(--ch-accent);
+  max-width:100%;font-size:13px;font-weight:600;text-decoration:none;text-align:center;
+  overflow-wrap:anywhere;color:var(--ch-on-accent);background:var(--ch-accent);
 }
 .ch-btn{
   display:inline-flex;align-items:center;justify-content:center;padding:7px 14px;border-radius:7px;
@@ -661,6 +677,28 @@ const CSS = `
   display:inline-flex;align-items:center;gap:4px;padding:0;margin-top:10px;font-family:inherit;
 }
 .ch-toggle:hover{color:var(--ch-fg);}
+@media (max-width: 480px) {
+  .ch-root { padding-bottom: calc(var(--vp-fab-clearance, 0px) + 12px); }
+}
+@container (max-width: 480px) {
+  .ch-card,.ch-rail-section { padding: 12px; }
+  .ch-rail-header { align-items: flex-start; flex-wrap: wrap; }
+  .ch-rail-header > :last-child { max-width: 100%; }
+  .ch-task-create { width: 100%; }
+  .ch-task-create > .ch-btn { width: 100%; }
+  .ch-task-item { flex-wrap: wrap; }
+  .ch-task-body { flex-basis: calc(100% - 26px); }
+  .ch-task-actions {
+    width: 100%;
+    margin-left: 26px;
+    flex-wrap: wrap;
+  }
+  .ch-task-actions .ch-btn { flex: 1 1 80px; }
+  .ch-kv-row { flex-direction: column; gap: 2px; }
+  .ch-kv-label { flex-basis: auto; }
+  .ch-form-row { flex-direction: column; }
+  .ch-form-group { flex-basis: auto; width: 100%; min-width: 0; }
+}
 .jl-toolbar,.jl-filters,.jl-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .jl-toolbar .ch-input{flex:1 1 280px}.jl-filters{margin:10px 0}.jl-filters>*{flex:1 1 145px}
 .jl-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
@@ -861,7 +899,7 @@ function CreateTaskForm({
   };
 
   return (
-    <div>
+    <div className="ch-task-create">
       <Btn onClick={() => setOpen((v) => !v)} small>
         {open ? "✕ Cancel" : "+ New Task"}
       </Btn>
