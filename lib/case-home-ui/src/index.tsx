@@ -1275,36 +1275,22 @@ async function openRailItem(
   path: string,
   fallbackName: string,
 ): Promise<void> {
-  const popup = typeof window !== "undefined" ? window.open("", "_blank", "noopener,noreferrer") : null;
-  try {
-    const response = await request(path);
+    const response = await request(path, { method: "POST" });
     if (!response.ok) {
       const body = await response.json().catch(() => ({})) as { error?: string };
       throw new Error(body.error || `Unable to open item (${response.status})`);
     }
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const disposition = response.headers.get("content-disposition") ?? "";
-    if (/^\s*attachment\b/i.test(disposition)) {
-      popup?.close();
-      const match = /filename="([^"]+)"/i.exec(disposition);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = match?.[1] ?? fallbackName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    } else if (popup) {
-      popup.location.href = objectUrl;
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    } else {
-      window.location.href = objectUrl;
-    }
-  } catch (error) {
-    popup?.close();
-    throw error;
-  }
+    const { url } = await response.json() as { url: string };
+    const target = new URL(url, window.location.origin);
+    if (target.origin !== window.location.origin || !target.pathname.startsWith("/api/") ||
+        target.search !== "?download=1") throw new Error("Invalid download handoff");
+    const link = document.createElement("a");
+    link.href = target.href;
+    link.download = fallbackName;
+    link.rel = "noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 function DocumentsPanel({
   documents,

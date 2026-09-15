@@ -29,6 +29,7 @@ import { PORTAL_STAGES, type Portal } from "./caseStages";
 import { logger } from "./logger";
 import { ObjectNotFoundError, ObjectStorageService } from "./objectStorage";
 import { isInlineSafe } from "./caseDocuments";
+import { issueMatterDownload } from "./matterDownloadHandoff";
 
 type MatterRow = Record<string, unknown>;
 type GetOwnerKey = (req: Request, res: Response) => string | null;
@@ -133,7 +134,8 @@ export function attachCaseHome(opts: {
     return { ownerKey, matterId: matterRow.id as number };
   }
 
-  router.get(`${P}/:id/case-home/documents/:documentId/open`, async (req, res) => {
+  router.all(`${P}/:id/case-home/documents/:documentId/open`, async (req, res) => {
+    if (!["GET", "POST"].includes(req.method)) { res.sendStatus(405); return; }
     const context = await ownedMatterContext(req, res);
     if (!context) return;
     const documentId = parseInt(req.params.documentId as string, 10);
@@ -152,6 +154,7 @@ export function attachCaseHome(opts: {
       res.status(404).json({ error: "Document not found" });
       return;
     }
+    if (req.method === "POST") { issueMatterDownload(req, res); return; }
     try {
       const file = await objectStorage.getObjectEntityFile(document.object_path as string);
       const response = await objectStorage.downloadObject(file, 0);
@@ -161,7 +164,7 @@ export function attachCaseHome(opts: {
           res.setHeader(key, value);
         }
       });
-      const inline = isInlineSafe(document.content_type);
+      const inline = req.query.download !== "1" && isInlineSafe(document.content_type);
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader(
@@ -184,7 +187,8 @@ export function attachCaseHome(opts: {
     }
   });
 
-  router.get(`${P}/:id/case-home/saved-work/:workId/open`, async (req, res) => {
+  router.all(`${P}/:id/case-home/saved-work/:workId/open`, async (req, res) => {
+    if (!["GET", "POST"].includes(req.method)) { res.sendStatus(405); return; }
     const context = await ownedMatterContext(req, res);
     if (!context) return;
     const workId = parseInt(req.params.workId as string, 10);
@@ -207,13 +211,14 @@ export function attachCaseHome(opts: {
       res.status(404).json({ error: "Saved output not found" });
       return;
     }
+    if (req.method === "POST") { issueMatterDownload(req, res); return; }
     const filename = String(work.file_name ?? work.title ?? "saved-output").replace(/["\\\r\n]/g, "_");
     const objectPath = work.object_path;
     if (typeof objectPath !== "string" || !objectPath) {
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.setHeader("Content-Disposition", `inline; filename="${filename}.txt"`);
+      res.setHeader("Content-Disposition", `${req.query.download === "1" ? "attachment" : "inline"}; filename="${filename}.txt"`);
       res.send(typeof work.content === "string" ? work.content : "");
       return;
     }

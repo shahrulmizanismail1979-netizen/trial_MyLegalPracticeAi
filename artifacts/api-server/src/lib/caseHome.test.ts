@@ -8,11 +8,15 @@
  *  - Timeline ordering: verifies events ordered newest-first
  *  - nextAction derivation: overdue task takes precedence
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
 import cookieParser from "cookie-parser";
 import { inArray } from "drizzle-orm";
+
+const storageTestState = vi.hoisted(() => ({
+  accesses: [] as string[],
+}));
 
 // Mock Clerk (needed because app.ts pulls it in for the admin dashboard)
 vi.mock("@clerk/express", () => ({
@@ -36,8 +40,14 @@ vi.mock("../lib/objectStorage", () => {
     normalizeObjectEntityPath(rawPath: string): string {
       return rawPath;
     }
-    async getObjectEntityFile(): Promise<never> {
-      throw new FakeObjectNotFoundError("Object not found");
+    async getObjectEntityFile(path: string): Promise<{ path: string }> {
+      storageTestState.accesses.push(path);
+      return { path };
+    }
+    async downloadObject(file: { path: string }): Promise<Response> {
+      return new Response(`Stored test document from ${file.path}`, {
+        headers: { "Content-Type": "application/pdf" },
+      });
     }
   }
   return {
@@ -55,6 +65,7 @@ const { attachCaseHome } = await import("./caseHome");
 const { makeCaseTasksRouter } = await import("./caseTasks");
 const { ensureCaseIntelligenceTables } = await import("./ensureCaseIntelligenceTables");
 const { ensureCaseEventsTable, recordCaseEvent } = await import("./caseEvents");
+const { restoreMatterDownload } = await import("./matterDownloadHandoff");
 const { db, pool } = await import("@workspace/db");
 const { accessCodesTable, accessCodeUsageTable, accMatters } = await import(
   "@workspace/db/schema"
@@ -70,6 +81,7 @@ const codeIds: number[] = [];
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(restoreMatterDownload);
 app.use("/api/accident", accidentAuthRouter);
 app.use("/api/accident", accidentMattersRouter);
 
@@ -172,6 +184,9 @@ describe("case-home — authentication", () => {
 });
 
 describe("case-home — ownership", () => {
+  beforeEach(() => vi.stubEnv("SESSION_SECRET", "dummy-case-home-download-secret"));
+  afterEach(() => vi.unstubAllEnvs());
+
   it("returns 404 for a matter owned by another tenant", async () => {
     const cookieA = await loginWith(CODE_A);
     const cookieB = await loginWith(CODE_B);
@@ -194,6 +209,7 @@ describe("case-home — ownership", () => {
 
   it("opens only outputs and documents filed to the owned matter", async () => {
     const cookieA = await loginWith(CODE_A);
+    const cookieB = await loginWith(CODE_B);
     const first = await request(app)
       .post("/api/accident/matters")
       .set("Cookie", cookieA)
@@ -233,6 +249,46 @@ describe("case-home — ownership", () => {
       [String(codeIds[0]), firstMatterId, `/private/${RUN_ID}.pdf`, `Source ${RUN_ID}.pdf`],
     );
     const documentId = document.rows[0].id as number;
+
+    // A handoff POST must prove both normal ownership and exact matter/file
+    // linkage before it can mint a cookie. It must never touch object storage.
+    storageTestState.accesses.length = 0;
+    const wrongOwnerHandoff = await request(app)
+      .post(`/api/accident/matters/${firstMatterId}/case-home/documents/${documentId}/open`)
+      .set("Cookie", cookieB);
+    expect(wrongOwnerHandoff.status).toBe(404);
+    expect(storageTestState.accesses).toEqual([]);
+
+    const wrongMatterHandoff = await request(app)
+      .post(`/api/accident/matters/${secondMatterId}/case-home/documents/${documentId}/open`)
+      .set("Cookie", cookieA);
+    expect(wrongMatterHandoff.status).toBe(404);
+    expect(storageTestState.accesses).toEqual([]);
+
+    const handoff = await request(app)
+      .post(`/api/accident/matters/${firstMatterId}/case-home/documents/${documentId}/open`)
+      .set("Cookie", cookieA);
+    expect(handoff.status).toBe(200);
+    expect(handoff.body.url).toBe(
+      `/api/accident/matters/${firstMatterId}/case-home/documents/${documentId}/open?download=1`,
+    );
+    expect(storageTestState.accesses).toEqual([]);
+
+    const handoffCookie = handoff.headers["set-cookie"]?.find(
+      (value: string) => value.startsWith("matter_download="),
+    )?.split(";")[0];
+    expect(handoffCookie).toBeDefined();
+
+    const downloaded = await request(app)
+      .get(handoff.body.url as string)
+      .set("Cookie", [cookieA, handoffCookie as string]);
+    expect(downloaded.status).toBe(200);
+    expect(Buffer.isBuffer(downloaded.body)).toBe(true);
+    expect(downloaded.body.toString("utf8")).toContain("Stored test document");
+    expect(downloaded.headers["content-disposition"]).toMatch(/^attachment;/);
+    expect(downloaded.headers["content-type"]).toContain("application/octet-stream");
+    expect(storageTestState.accesses).toEqual([`/private/${RUN_ID}.pdf`]);
+
     const wrongMatterDocument = await request(app)
       .get(`/api/accident/matters/${secondMatterId}/case-home/documents/${documentId}/open`)
       .set("Cookie", cookieA);

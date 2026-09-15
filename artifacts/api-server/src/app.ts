@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { restoreMatterDownload } from "./lib/matterDownloadHandoff";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -305,6 +306,7 @@ for (const prefix of LIT_HEAVY_PREFIXES) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SESSION_SECRET ?? "dev-cookie-secret"));
+app.use(restoreMatterDownload);
 
 if (process.env.NODE_ENV !== "production") {
   app.post("/api/internal/e2e/login-rate-limit/reset", (req, res) => {
