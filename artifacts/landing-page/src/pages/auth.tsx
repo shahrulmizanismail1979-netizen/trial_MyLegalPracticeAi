@@ -2,6 +2,7 @@ import { SignIn, SignUp } from "@clerk/react";
 import { useLocation } from "wouter";
 import { basePath } from "@/lib/clerk";
 import { AuthView } from "@/pages/lawyes/auth-view";
+import { StaffSignInLoading } from "@/components/staff-sign-in-loading";
 import {
   practitionerAuthDestination,
 } from "@/pages/lawyes/auth-routing";
@@ -32,6 +33,7 @@ export function StaffSignInPage() {
   return (
     <ClerkAuthFrame>
       <SignIn
+        fallback={<StaffSignInLoading />}
         routing="path"
         path={`${basePath}/staff/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
