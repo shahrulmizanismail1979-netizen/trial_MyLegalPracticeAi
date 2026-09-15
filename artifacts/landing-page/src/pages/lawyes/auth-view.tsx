@@ -1,15 +1,27 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "./use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, KeyRound, Lock, Scale } from "lucide-react";
 
-export function AuthView() {
+export function AuthView({ returnTo }: { returnTo?: string } = {}) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
+
+  const currentLocation =
+    typeof window !== "undefined"
+      ? `${location}${window.location.search}${window.location.hash}`
+      : location;
+  const destination =
+    returnTo ||
+    (currentLocation === "/lawyes" || currentLocation.startsWith("/lawyes/")
+      ? currentLocation
+      : "/lawyes");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +37,9 @@ export function AuthView() {
         title: "Authentication Failed",
         description: error || "Invalid access code. Please verify your credentials and try again."
       });
+      return;
     }
+    setLocation(destination);
   };
 
   return (
@@ -106,6 +120,16 @@ export function AuthView() {
             </form>
           </div>
           
+          <p className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
+            Staff member?{" "}
+            <a
+              href="/staff/sign-in"
+              className="font-medium text-primary hover:underline"
+            >
+              Use staff sign in
+            </a>
+          </p>
+
           <p className="text-center text-xs text-slate-400 mt-8">
             Unauthorized access to this system is strictly prohibited.
           </p>

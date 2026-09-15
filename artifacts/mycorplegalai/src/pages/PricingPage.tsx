@@ -44,7 +44,7 @@ export default function PricingPage() {
 
           <div className="space-y-3">
             <a
-              href="/#pricing"
+              href="/apps#pricing"
               className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors"
             >
               <ExternalLink className="h-4 w-4" />

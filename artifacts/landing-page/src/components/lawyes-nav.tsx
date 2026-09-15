@@ -44,7 +44,7 @@ export function LawyesNav() {
                   {item.label}
                 </a>
               ))}
-              <a href="#apps" className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10" data-testid="link-all-products">
+              <a href="/apps#apps" className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10" data-testid="link-all-products">
                 View all LAWYes products
               </a>
             </div>
@@ -52,10 +52,10 @@ export function LawyesNav() {
           <a href="/mylitai/app/case-law" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-foreground hover:bg-secondary" data-testid="link-judgment-library">
             <BookOpen className="h-4 w-4 text-primary" /> Judgment Library
           </a>
-          <a href="#pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary" data-testid="link-pricing">
+          <a href="/apps#pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary" data-testid="link-pricing">
             Pricing
           </a>
-          <a href="#security" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary" data-testid="link-trust-security">
+          <a href="/apps#security" className="rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary" data-testid="link-trust-security">
             Trust & security
           </a>
         </div>
@@ -65,7 +65,7 @@ export function LawyesNav() {
             <Link href="/sign-in" data-testid="link-sign-in">Sign in</Link>
           </Button>
           <Button asChild className="gap-2">
-            <a href="/mylitai/" data-testid="link-open-workspace"><Scale className="h-4 w-4" /> Open workspace</a>
+            <a href="/lawyes" data-testid="link-open-workspace"><Scale className="h-4 w-4" /> Open workspace</a>
           </Button>
         </div>
 
@@ -94,10 +94,12 @@ export function LawyesNav() {
             <a href="/mylitai/app/case-law" className="mt-2 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2.5 text-sm font-semibold text-primary" data-testid="link-mobile-judgment-library">
               <BookOpen className="h-4 w-4" /> Judgment Library
             </a>
-            <a href="#pricing" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary" data-testid="link-mobile-pricing">Pricing</a>
+            <a href="/apps#apps" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10" data-testid="link-mobile-all-products">View all LAWYes products</a>
+            <a href="/apps#pricing" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary" data-testid="link-mobile-pricing">Pricing</a>
+            <a href="/apps#security" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 text-sm hover:bg-secondary" data-testid="link-mobile-trust-security">Trust &amp; security</a>
             <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-4">
               <Button asChild variant="outline"><Link href="/sign-in" data-testid="link-mobile-sign-in">Sign in</Link></Button>
-              <Button asChild><a href="/mylitai/" data-testid="link-mobile-workspace">Open workspace</a></Button>
+              <Button asChild><a href="/lawyes" data-testid="link-mobile-workspace">Open workspace</a></Button>
             </div>
           </div>
         </div>

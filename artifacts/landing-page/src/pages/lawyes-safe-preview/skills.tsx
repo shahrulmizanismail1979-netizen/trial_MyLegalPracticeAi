@@ -208,7 +208,7 @@ export function SkillsView({
                         ) : (
                           <div>
                             <a
-                              href={specialist?.url ?? "/apps"}
+                              href={specialist?.url ?? "/apps#apps"}
                               className="flex w-full items-center justify-between rounded-lg border border-primary/20 bg-white p-3 text-primary transition-colors hover:bg-primary/5"
                               data-testid={`link-specialist-capability-${capability.id}`}
                             >

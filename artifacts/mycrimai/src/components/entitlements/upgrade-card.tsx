@@ -34,7 +34,7 @@ export function UpgradeCard({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button size="lg" className="w-full" data-testid="button-view-plans" onClick={() => { window.location.href = "/#pricing"; }}>
+          <Button size="lg" className="w-full" data-testid="button-view-plans" onClick={() => { window.location.href = "/apps#pricing"; }}>
             <Sparkles className="mr-2 h-4 w-4" />
             View plans &amp; upgrade
             <ArrowRight className="ml-2 h-4 w-4" />

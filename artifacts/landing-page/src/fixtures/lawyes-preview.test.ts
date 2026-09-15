@@ -270,3 +270,59 @@ describe("URL state synchronization", () => {
     expect(serializeUrlState(matterState).get("matterStep")).toBe("1");
   });
 });
+
+describe("LAWYes navigation destinations", () => {
+  const readSource = (relativePath: string) =>
+    readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8");
+
+  it("keeps the public navigation on the canonical workspace and directory routes", () => {
+    const nav = readSource("../components/lawyes-nav.tsx");
+    const preview = readSource("../pages/lawyes-safe-preview.tsx");
+    const previewHome = readSource("../pages/lawyes-safe-preview/home.tsx");
+    const skills = readSource("../pages/lawyes-safe-preview/skills.tsx");
+    const footer = readSource("../components/footer.tsx");
+    const trust = readSource("../components/trust.tsx");
+
+    for (const source of [nav, preview, previewHome, skills, footer, trust]) {
+      expect(source).not.toMatch(/(?:href|location\.href)\s*=?\s*["'`]\/#(?:pricing|security)/);
+    }
+
+    expect(nav).toContain('href="/lawyes"');
+    expect(nav).toContain('href="/apps#apps"');
+    expect(nav).toContain('href="/apps#pricing"');
+    expect(nav).toContain('href="/apps#security"');
+    expect(nav).toContain('href="/sign-in"');
+
+    expect(preview).toContain('href="/lawyes"');
+    expect(preview).toContain('href="/apps#apps"');
+    expect(preview).toContain('href="/apps#pricing"');
+    expect(preview).toContain('href="/apps#security"');
+    expect(preview).toContain('href="/sign-in"');
+
+    expect(previewHome).toContain('href="/lawyes"');
+    expect(previewHome).toContain('href="/sign-in"');
+    expect(skills).toContain('"/apps#apps"');
+    expect(footer).toContain('href="/apps#privacy"');
+    expect(trust).toContain('href="/apps#privacy"');
+  });
+
+  it("keeps portal upgrade prompts pointed at the marketing pricing section", () => {
+    const portalSources = [
+      "../../../mylitai/src/components/SubscriptionGate.tsx",
+      "../../../mysyariahai/src/pages/pricing.tsx",
+      "../../../mysyariahai/src/components/upgrade-prompt.tsx",
+      "../../../mycorplegalai/src/pages/PricingPage.tsx",
+      "../../../mycrimai/src/pages/pricing.tsx",
+      "../../../mycrimai/src/components/entitlements/upgrade-card.tsx",
+      "../../../myconveylitai/src/pages/Pricing.tsx",
+      "../../../myconveylitai/src/pages/Dashboard.tsx",
+      "../../../mylawacad/src/pages/billing.tsx",
+    ];
+
+    for (const relativePath of portalSources) {
+      const source = readSource(relativePath);
+      expect(source).not.toContain("/#pricing");
+      expect(source).toContain("/apps#pricing");
+    }
+  });
+});

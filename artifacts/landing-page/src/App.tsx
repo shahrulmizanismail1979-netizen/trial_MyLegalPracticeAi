@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode, useEffect, useRef } from "react";
-import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
+import { Redirect, Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { ClerkProvider, useClerk } from "@clerk/react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,7 +9,12 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import ContributePage from "@/pages/contribute";
 import ManageSubscriptionPage from "@/pages/manage-subscription";
-import { SignInPage, SignUpPage } from "@/pages/auth";
+import {
+  SignInPage,
+  SignUpPage,
+  StaffSignInPage,
+  StaffSignUpPage,
+} from "@/pages/auth";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AppStatsPage from "@/pages/admin/app-stats";
@@ -31,6 +36,7 @@ import {
 
 import { PersonaProvider } from "@/lib/persona";
 import LawYesSafePreview from "@/pages/lawyes-safe-preview";
+import { rootExperience } from "@/route-selection";
 
 const queryClient = new QueryClient();
 
@@ -99,13 +105,23 @@ function ClerkQueryClientCacheInvalidator() {
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LawYesSafePreview} />
-      <Route path="/apps" component={Home} />
-      <Route path="/contribute" component={ContributePage} />
-      <Route path="/manage-subscription" component={ManageSubscriptionPage} />
-      <Route path="/unsubscribe" component={ManageSubscriptionPage} />
+      {/* Keep the retained chat-first surface at the bare root. Explicit
+          checkout returns and legacy marketing anchors opt into Home. */}
+      <Route path="/" component={RootRoute} />
+      {/* The marketing page remains available at its explicit /apps route. */}
+      <Route path="/apps" component={HomeRoute} />
+      <Route path="/apps/*?" component={HomeRoute} />
+      <Route path="/contribute" component={ContributeRoute} />
+      <Route path="/manage-subscription/*?" component={ManageSubscriptionPage} />
+      <Route path="/unsubscribe/*?" component={ManageSubscriptionPage} />
       <Route path="/sign-in/*?" component={SignInPage} />
+      <Route path="/staff/sign-in/*?" component={StaffSignInPage} />
       <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/staff/sign-up/*?" component={StaffSignUpPage} />
+      {/* Older command-center bookmarks must not send staff to practitioner
+          access-code authentication. */}
+      <Route path="/admin/sign-in/*?" component={LegacyStaffSignInRedirect} />
+      <Route path="/admin/login/*?" component={LegacyStaffSignInRedirect} />
       <Route path="/admin">
         <AdminGuard>
           <AdminDashboard />
@@ -154,6 +170,31 @@ function Router() {
   );
 }
 
+function HomeRoute() {
+  return <Home />;
+}
+
+function RootRoute() {
+  const search = typeof window !== "undefined" ? window.location.search : "";
+  const hash = typeof window !== "undefined" ? window.location.hash : "";
+  return rootExperience(search, hash) === "marketing" ? (
+    <Home />
+  ) : (
+    <LawYesSafePreview />
+  );
+}
+
+function ContributeRoute() {
+  return <ContributePage />;
+}
+
+function LegacyStaffSignInRedirect() {
+  const search =
+    typeof window !== "undefined" ? window.location.search : "";
+  const hash = typeof window !== "undefined" ? window.location.hash : "";
+  return <Redirect to={`/staff/sign-in${search}${hash}`} />;
+}
+
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
@@ -166,7 +207,7 @@ function ClerkProviderWithRoutes() {
       publishableKey={clerkPubKey}
       proxyUrl={clerkProxyUrl}
       appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
+      signInUrl={`${basePath}/staff/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={clerkLocalization}
       routerPush={(to) => setLocation(stripBase(to))}
@@ -185,26 +226,67 @@ function ClerkProviderWithRoutes() {
   );
 }
 
-function App() {
-  // LAWYes is the primary experience. It deliberately renders before Clerk,
-  // React Query, and every production provider while the unified identity and
-  // ownership model is still being completed. The former Safe Preview URL
-  // remains as a compatibility alias.
-  const pathname =
-    typeof window !== "undefined"
-      ? window.location.pathname.replace(/\/+$/, "") || "/"
-      : "";
-  if (pathname === "/" || pathname === "/lawyes-safe-preview") {
-    return <LawYesSafePreview />;
-  }
+function Providers({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CurrencyProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </CurrencyProvider>
+    </QueryClientProvider>
+  );
+}
 
+function PublicApp() {
+  return (
+    <PersonaProvider>
+      <WouterRouter base={basePath}>
+        <Providers>
+          <Router />
+          <Toaster />
+        </Providers>
+      </WouterRouter>
+    </PersonaProvider>
+  );
+}
+
+function StaffApp() {
+  return (
+    <WouterRouter base={basePath}>
+      <ClerkProviderWithRoutes />
+    </WouterRouter>
+  );
+}
+
+function pathWithoutBase(pathname: string) {
+  const normalizedBase = basePath.replace(/\/+$/, "");
+  if (
+    normalizedBase &&
+    (pathname === normalizedBase || pathname.startsWith(`${normalizedBase}/`))
+  ) {
+    return pathname.slice(normalizedBase.length) || "/";
+  }
+  return pathname || "/";
+}
+
+function isStaffRoute(pathname: string) {
+  const path = pathWithoutBase(pathname).replace(/\/+$/, "") || "/";
+  return (
+    path === "/sign-up" ||
+    path.startsWith("/sign-up/") ||
+    path.startsWith("/staff/") ||
+    path === "/admin" ||
+    path.startsWith("/admin/")
+  );
+}
+
+function App() {
   return (
     <LandingErrorBoundary>
-      <PersonaProvider>
-        <WouterRouter base={basePath}>
-          <ClerkProviderWithRoutes />
-        </WouterRouter>
-      </PersonaProvider>
+      {typeof window !== "undefined" && isStaffRoute(window.location.pathname) ? (
+        <StaffApp />
+      ) : (
+        <PublicApp />
+      )}
     </LandingErrorBoundary>
   );
 }

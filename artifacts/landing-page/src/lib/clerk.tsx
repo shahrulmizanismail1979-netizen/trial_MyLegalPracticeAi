@@ -3,7 +3,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 // REQUIRED — resolves the key from window.location.hostname so the same build
 // serves multiple Clerk custom domains. Do not inline the env var.
 export const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
+  typeof window !== "undefined" ? window.location.hostname : "",
   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 );
 
@@ -27,7 +27,9 @@ export const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/lawyes-logo.png`,
+    logoImageUrl: `${
+      typeof window !== "undefined" ? window.location.origin : ""
+    }${basePath}/lawyes-logo.png`,
     socialButtonsPlacement: "bottom" as const,
     socialButtonsVariant: "blockButton" as const,
   },

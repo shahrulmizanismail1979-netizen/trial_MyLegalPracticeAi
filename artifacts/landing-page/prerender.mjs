@@ -15,8 +15,12 @@ await build({
 const serverEntry = resolve(__dirname, "dist/server/entry-server.js");
 const { render } = await import(serverEntry);
 
-function injectInto(distHtmlPath, renderedHtml, label) {
+function injectInto(distHtmlPath, renderedHtml, label, expectedRoute) {
   const template = readFileSync(distHtmlPath, "utf-8");
+  const marker = `data-ssr-path="${expectedRoute}"`;
+  if (!template.includes(marker)) {
+    throw new Error(`Prerender: ${distHtmlPath} is missing ${marker}`);
+  }
   const html = template.replace("<!--ssr-outlet-->", renderedHtml);
   writeFileSync(distHtmlPath, html);
   console.log(`Prerender: ${label} injected into ${distHtmlPath}`);
@@ -30,7 +34,7 @@ try {
   console.error("Prerender: renderToString failed for / —", err.message);
   process.exit(1);
 }
-injectInto(resolve(__dirname, "dist/public/index.html"), homeHtml, "/");
+injectInto(resolve(__dirname, "dist/public/index.html"), homeHtml, "/", "/");
 
 // /contribute is an interactive, noindex form page. The HTML shell contains a
 // <noscript> static fallback (heading, copy, and a home link) so non-JS crawlers
@@ -40,7 +44,12 @@ injectInto(resolve(__dirname, "dist/public/index.html"), homeHtml, "/");
 console.log("Prerender: rendering /contribute to string...");
 try {
   const contributeHtml = render("/contribute");
-  injectInto(resolve(__dirname, "dist/public/contribute.html"), contributeHtml, "/contribute");
+    injectInto(
+      resolve(__dirname, "dist/public/contribute.html"),
+      contributeHtml,
+      "/contribute",
+      "/contribute",
+    );
 } catch (err) {
   console.warn(
     "Prerender: skipping SSR for /contribute (noscript fallback covers crawlers) —",

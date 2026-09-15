@@ -67,10 +67,15 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ContributePage() {
+export default function ContributePage({
+  initialSearch = "",
+}: {
+  initialSearch?: string;
+} = {}) {
+  const search =
+    typeof window !== "undefined" ? window.location.search : initialSearch;
   const isJudgment =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("type") === "judgment";
+    new URLSearchParams(search).get("type") === "judgment";
   const [files, setFiles] = useState<TrackedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submittedCount, setSubmittedCount] = useState<number | null>(null);

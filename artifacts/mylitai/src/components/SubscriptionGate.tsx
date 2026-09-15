@@ -49,7 +49,7 @@ export function SubscriptionGate({ children }: { children: React.ReactNode }) {
           ))}
         </ul>
 
-        <a href="/#pricing">
+        <a href="/apps#pricing">
           <Button className="mt-8 gap-2" size="lg">
             <Sparkles className="h-4 w-4" />
             Renew subscription

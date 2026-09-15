@@ -50,7 +50,7 @@ export function PricingPage() {
               size="lg"
               className="w-full gap-2"
             >
-              <a href="/#pricing">
+              <a href="/apps#pricing">
                 <ExternalLink className="h-4 w-4" />
                 Go to LAWYes to Purchase
               </a>

@@ -27,6 +27,10 @@ from = "/contribute"
 to = "/contribute.html"
 
 [[services.production.rewrites]]
+from = "/contribute/*"
+to = "/contribute.html"
+
+[[services.production.rewrites]]
 from = "/sign-in"
 to = "/index.html"
 
@@ -48,6 +52,62 @@ to = "/index.html"
 
 [[services.production.rewrites]]
 from = "/admin/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/apps"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/apps/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/lawyes"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/lawyes/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/lawyes-safe-preview"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/lawyes-safe-preview/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/manage-subscription"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/manage-subscription/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/unsubscribe"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/unsubscribe/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/staff/sign-in"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/staff/sign-in/*"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/staff/sign-up"
+to = "/index.html"
+
+[[services.production.rewrites]]
+from = "/staff/sign-up/*"
 to = "/index.html"
 
 [services.env]

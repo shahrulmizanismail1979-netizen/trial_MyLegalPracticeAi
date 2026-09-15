@@ -24,10 +24,10 @@ publish-blocking failure. This exact regression shipped once via an SEO/crawlabi
 change that added `/contribute` to the prerender list without verifying the build.
 
 **How to apply:**
-- Production hydrates when the root contains prerendered elements, preserving
-  the first paint while Clerk initializes. Vite development serves only the
-  `<!--ssr-outlet-->` comment, so the client must detect that empty-element case
-  and use `createRoot`; blindly calling `hydrateRoot` there causes a mismatch.
+- Hydrate only when the prerendered route and URL-dependent initial state match
+  the requested route. A static rewrite can serve homepage markup on sign-in or
+  workspace URLs; those must mount fresh, not hydrate the wrong page. Vite's
+  empty development shell must also mount fresh.
 - Initial client state for any browser preference (persona, currency, locale)
   must match the SSR default, then restore from browser APIs in a one-time effect.
 - Post-merge setup only runs typecheck + db push, NOT the build. So a task that
@@ -37,6 +37,19 @@ change that added `/contribute` to the prerender list without verifying the buil
   any change to routing, SSR entry, or prerender before considering deploy-ready.
 
 # Dual provider trees: entry-server has its own copy
+
+Every newly declared client route needs production static routing coverage;
+Vite's automatic fallback is not evidence that a custom-domain deep link works.
+Keep root checkout returns and historical marketing anchors working when moving
+the marketing page away from the homepage.
+
+**Why:** The chat-first homepage shipped with functioning React destinations but
+missing host rewrites, while checkout still returned to the old root location.
+Build success and a homepage HTTP 200 missed both failures.
+
+**How to apply:** Verify direct requests and refreshes using production build
+files and manifest routing, preserve existing billing return URLs, and test the
+custom domain after publishing rather than treating preview success as proof.
 
 The SSR entry does NOT reuse the client `App` — it builds its own provider tree
 and renders pages directly. **Any new global React context/provider added to the

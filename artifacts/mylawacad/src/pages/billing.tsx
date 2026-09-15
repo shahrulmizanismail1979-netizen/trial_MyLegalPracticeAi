@@ -48,7 +48,7 @@ export default function BillingPage() {
 
             <div className="space-y-3">
               <GoldButton
-                onClick={() => { window.location.href = "/#pricing"; }}
+                onClick={() => { window.location.href = "/apps#pricing"; }}
                 className="w-full gap-2"
               >
                 <ExternalLink className="h-4 w-4" />

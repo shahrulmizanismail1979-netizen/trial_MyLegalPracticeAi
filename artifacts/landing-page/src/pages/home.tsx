@@ -21,19 +21,29 @@ import { usePersona } from "@/lib/persona";
 import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { LawyesNav } from "@/components/lawyes-nav";
 
-export default function Home() {
+export default function Home({
+  initialSearch = "",
+  initialHash = "",
+}: {
+  /** URL state supplied by the SSR renderer; browser URLs remain authoritative. */
+  initialSearch?: string;
+  initialHash?: string;
+} = {}) {
   const { persona, skipped } = usePersona();
 
   // A fresh checkout return must always see its confirmation — never hide it
   // behind the persona front door (new subscribers have no persona yet).
+  const search =
+    typeof window !== "undefined" ? window.location.search : initialSearch;
+  const checkoutState = new URLSearchParams(search).get("checkout");
   const isCheckoutReturn =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).has("session_id");
+    checkoutState === "success" || checkoutState === "cancelled";
 
-  // When an external portal sends visitors directly to /#pricing we must bypass
+  // When an external portal sends visitors directly to /apps#pricing we must bypass
   // the front door so they land on the pricing section, not the persona selector.
+  const hash = typeof window !== "undefined" ? window.location.hash : initialHash;
   const isAnchorLink =
-    typeof window !== "undefined" && window.location.hash !== "";
+    hash !== "";
 
   // After the page renders, honour any URL hash by scrolling to the target
   // element. This is needed because SPAs don't auto-scroll on initial paint.

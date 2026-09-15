@@ -48,7 +48,7 @@ export default function PricingPage() {
 
           <div className="space-y-3">
             <Button asChild size="lg" className="w-full gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-              <a href="/#pricing">
+              <a href="/apps#pricing">
                 <ExternalLink className="h-4 w-4" />
                 {isBm ? "Pergi ke LAWYes untuk Membeli" : "Go to LAWYes to Purchase"}
               </a>

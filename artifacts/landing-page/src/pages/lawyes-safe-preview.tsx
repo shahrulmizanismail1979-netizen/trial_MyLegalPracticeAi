@@ -204,7 +204,7 @@ export default function LawYesSafePreview() {
                   <span className="flex-1 text-left">My Matters</span>
                 </a>
 
-                <a href="/apps" data-testid="link-sidebar-specialist-portals" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-[hsl(var(--lawyes-sidebar-text))] transition-all duration-200">
+                <a href="/apps#apps" data-testid="link-sidebar-specialist-portals" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-[hsl(var(--lawyes-sidebar-text))] transition-all duration-200">
                   <Grid size={16} />
                   <span className="flex-1 text-left">Specialist Portals</span>
                 </a>
@@ -219,7 +219,7 @@ export default function LawYesSafePreview() {
                   <span className="flex-1 text-left">Contribute</span>
                 </a>
 
-                <a href="/apps#about" data-testid="link-sidebar-trust-security" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-[hsl(var(--lawyes-sidebar-text))] transition-all duration-200">
+                <a href="/apps#security" data-testid="link-sidebar-trust-security" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(var(--lawyes-sidebar-text))]/80 hover:bg-[hsl(var(--lawyes-sidebar-hover))]/70 hover:text-[hsl(var(--lawyes-sidebar-text))] transition-all duration-200">
                   <ShieldAlert size={16} />
                   <span className="flex-1 text-left">Trust & Security</span>
                 </a>
@@ -258,9 +258,14 @@ export default function LawYesSafePreview() {
           >
             <Menu size={20} />
           </button>
-          <div className="flex items-center" aria-label="LAWYes — Your Legal Work, Solved.">
+          <button
+            type="button"
+            onClick={() => handleNavigate("home")}
+            className="flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label="LAWYes home — Your Legal Work, Solved."
+          >
             <LawYesBrand mobile />
-          </div>
+          </button>
           <button
              onClick={startNewWorkspace}
             className="p-2 text-foreground focus:outline-none hover:bg-muted rounded-lg transition-colors"

@@ -24,17 +24,17 @@ export function Footer() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Platform</p>
               <ul className="space-y-2">
                 <li>
-                  <a href="#apps" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#apps" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     AI Portals
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <a href="#payment" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#payment" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     How to Subscribe
                   </a>
                 </li>
@@ -50,7 +50,7 @@ export function Footer() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
               <ul className="space-y-2">
                 <li>
-                  <a href="#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     About
                   </a>
                 </li>
@@ -76,12 +76,12 @@ export function Footer() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Legal</p>
               <ul className="space-y-2">
                 <li>
-                  <a href="#terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Terms of Service
                   </a>
                 </li>
                 <li>
-                  <a href="#privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <a href="/apps#privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Privacy Policy
                   </a>
                 </li>

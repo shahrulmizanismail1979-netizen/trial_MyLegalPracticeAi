@@ -158,7 +158,7 @@ function MasterAdminLogin({ onAuthenticated }: { onAuthenticated: () => void }) 
         <div className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
           <span>Staff member?</span>{" "}
           <Link
-            href="/sign-in"
+            href="/staff/sign-in"
             className="font-medium text-primary hover:underline"
           >
             Continue with staff sign-in
