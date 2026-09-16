@@ -31,3 +31,13 @@ description: How browser e2e tests run here without downloading browsers, and au
   like a test failure rather than an application assertion failure.
 - **How to apply:** check workflow status and restart only the API plus the
   target artifact before rerunning a failed browser suite.
+
+- Native attachment downloads may not emit page response events or page CDP
+  Network events in the provided Chromium.
+- **Why:** both response-listener approaches timed out despite successful
+  attachment GETs and completed native downloads.
+- **How to apply:** register the Playwright download wait before clicking,
+  verify the downloaded filename and bytes from the Download object, and use a
+  separate cookie-context API request for header-contract checks. Do not claim
+  those separately requested headers were captured from the native response.
+  Normalize URLs with `new URL(...).href` before comparing default ports.
