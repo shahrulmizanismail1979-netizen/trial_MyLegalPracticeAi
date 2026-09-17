@@ -8,11 +8,11 @@ import { hasTier, effectiveTier, type Tier } from "../lib/access";
 import { claimSeat, deviceSeatKey } from "../lib/seatLimits";
 
 /**
- * Convey users have no expiry column of their own — their access lifetime is
- * governed by the landing-page subscription that issued the access code. This
- * checks the subscribers table for the code's latest expiry. Codes without a
- * matching subscriber row (legacy imports, admin-created, master) never expire
- * here.
+ * Landing-issued Convey users mirror their optional expiry to users.current_period_end,
+ * but the landing-page subscriber remains the access source of truth. Checking
+ * that row here means a renewal can replace an old period without a stale
+ * user mirror revoking a valid subscriber. Codes without a matching subscriber
+ * row (legacy imports, admin-created, master) never expire here.
  */
 export async function isConveyCodeExpired(accessCode: string | null): Promise<boolean> {
   if (!accessCode) return false;

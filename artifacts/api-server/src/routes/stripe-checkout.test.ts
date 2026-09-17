@@ -22,6 +22,11 @@ const state = vi.hoisted(() => ({
   counter: 0,
   productSearches: 0,
   failingTiers: new Set<string>(),
+  sessionsByIdempotencyKey: new Map<string, { id: string; url: string }>(),
+  sessionParamsByIdempotencyKey: new Map<string, string>(),
+  sessionStatuses: new Map<string, "open" | "complete" | "expired">(),
+  sessionIdempotencyKeys: [] as Array<string | undefined>,
+  retrieveError: false,
 }));
 
 vi.mock("../stripeClient", () => ({
@@ -68,9 +73,49 @@ vi.mock("../stripeClient", () => ({
     },
     checkout: {
       sessions: {
-        create: vi.fn().mockImplementation(async (args: CreatedSessionArgs) => {
+        create: vi.fn().mockImplementation(async (
+          args: CreatedSessionArgs,
+          options?: { idempotencyKey?: string },
+        ) => {
+          state.sessionIdempotencyKeys.push(options?.idempotencyKey);
+          if (options?.idempotencyKey) {
+            const prior = state.sessionsByIdempotencyKey.get(options.idempotencyKey);
+            const params = JSON.stringify(args);
+            const priorParams = state.sessionParamsByIdempotencyKey.get(
+              options.idempotencyKey,
+            );
+            if (prior && priorParams !== params) {
+              const error = new Error("Keys for different parameters");
+              Object.assign(error, {
+                code: "idempotency_error",
+                type: "idempotency_error",
+              });
+              throw error;
+            }
+            if (prior) return prior;
+            state.sessionParamsByIdempotencyKey.set(options.idempotencyKey, params);
+          }
           state.sessionsCreated.push(args);
-          return { id: `cs_test_${++state.counter}`, url: "https://checkout.stripe.test/session" };
+          const session = {
+            id: `cs_test_${++state.counter}`,
+            url: `https://checkout.stripe.test/session`,
+          };
+          if (options?.idempotencyKey) {
+            state.sessionsByIdempotencyKey.set(options.idempotencyKey, session);
+          }
+          state.sessionStatuses.set(session.id, "open");
+          return session;
+        }),
+        retrieve: vi.fn().mockImplementation(async (id: string) => {
+          if (state.retrieveError) throw new Error("Stripe retrieve unavailable");
+          const session = [...state.sessionsByIdempotencyKey.values()].find(
+            (candidate) => candidate.id === id,
+          );
+          return {
+            id,
+            url: session?.url ?? "https://checkout.stripe.test/session",
+            status: state.sessionStatuses.get(id) ?? "open",
+          };
         }),
       },
     },
@@ -163,6 +208,11 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
     state.counter = 0;
     state.productSearches = 0;
     state.failingTiers.clear();
+    state.sessionsByIdempotencyKey.clear();
+    state.sessionParamsByIdempotencyKey.clear();
+    state.sessionStatuses.clear();
+    state.sessionIdempotencyKeys.length = 0;
+    state.retrieveError = false;
     vi.mocked(stripeClient.requireLiveStripeInProduction).mockResolvedValue(undefined);
     resetCatalogPriceCacheForTests();
   });
@@ -357,5 +407,117 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
     const res = await request(app).post("/api/stripe/checkout").send({});
     expect(res.status).toBe(400);
     expect(state.sessionsCreated).toHaveLength(0);
+  });
+
+  it("reuses one pending checkout intent and Stripe idempotency key on a retry", async () => {
+    const checkoutIntentId = "11111111-1111-4111-8111-111111111111";
+    const first = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "/mylitai/", checkoutIntentId });
+    const second = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "/mylitai/", checkoutIntentId });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.body.url).toBe(first.body.url);
+    expect(state.sessionsCreated).toHaveLength(1);
+    expect(state.sessionIdempotencyKeys).toHaveLength(2);
+    expect(state.sessionIdempotencyKeys[0]).toMatch(
+      new RegExp(`lawyes-landing-checkout-v1-${checkoutIntentId}$`),
+    );
+    expect(state.sessionIdempotencyKeys[1]).toBe(state.sessionIdempotencyKeys[0]);
+  });
+
+  it("does not bind an intent to a changed tier or portal selection", async () => {
+    const checkoutIntentId = "22222222-2222-4222-8222-222222222222";
+    const first = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "/mylitai/", checkoutIntentId });
+    const changed = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "/mycrimai/", checkoutIntentId });
+
+    expect(first.status).toBe(200);
+    expect(changed.status).toBe(409);
+    expect(state.sessionsCreated).toHaveLength(1);
+  });
+
+  it("reports an expired session and requires a new client intent", async () => {
+    const checkoutIntentId = "33333333-3333-4333-8333-333333333333";
+    const body = { tier: "single", appUrl: "/mylitai/", checkoutIntentId };
+    const first = await request(app).post("/api/stripe/checkout").send(body);
+    const firstSessionId = [...state.sessionStatuses.keys()][0];
+    state.sessionStatuses.set(firstSessionId, "expired");
+
+    const second = await request(app).post("/api/stripe/checkout").send(body);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(409);
+    expect(second.body.code).toBe("checkout_intent_expired");
+    expect(state.sessionsCreated).toHaveLength(1);
+    expect(state.sessionIdempotencyKeys[0]).toBe(state.sessionIdempotencyKeys[1]);
+  });
+
+  it("does not return a stale URL when Stripe session verification is unavailable", async () => {
+    const checkoutIntentId = "55555555-5555-4555-8555-555555555555";
+    const body = { tier: "single", appUrl: "/mylitai/", checkoutIntentId };
+    const first = await request(app).post("/api/stripe/checkout").send(body);
+    state.retrieveError = true;
+    const retry = await request(app).post("/api/stripe/checkout").send(body);
+
+    expect(first.status).toBe(200);
+    expect(retry.status).toBe(502);
+    expect(retry.body.code).toBe("checkout_session_unavailable");
+    expect(retry.body.url).toBeUndefined();
+    state.retrieveError = false;
+  });
+
+  it("does not recreate a completed checkout session", async () => {
+    const checkoutIntentId = "66666666-6666-4666-8666-666666666666";
+    const body = { tier: "single", appUrl: "/mylitai/", checkoutIntentId };
+    const first = await request(app).post("/api/stripe/checkout").send(body);
+    const sessionId = [...state.sessionStatuses.keys()][0];
+    state.sessionStatuses.set(sessionId, "complete");
+    const retry = await request(app).post("/api/stripe/checkout").send(body);
+
+    expect(first.status).toBe(200);
+    expect(retry.status).toBe(409);
+    expect(retry.body.code).toBe("checkout_intent_completed");
+    expect(state.sessionsCreated).toHaveLength(1);
+  });
+
+  it("coalesces concurrent retries through Stripe idempotency", async () => {
+    const checkoutIntentId = "77777777-7777-4777-8777-777777777777";
+    const body = { tier: "single", appUrl: "/mylitai/", checkoutIntentId };
+    const [one, two] = await Promise.all([
+      request(app).post("/api/stripe/checkout").send(body),
+      request(app).post("/api/stripe/checkout").send(body),
+    ]);
+
+    expect(one.status).toBe(200);
+    expect(two.status).toBe(200);
+    expect(one.body.url).toBe(two.body.url);
+    expect(state.sessionsCreated).toHaveLength(1);
+    expect(state.sessionIdempotencyKeys).toHaveLength(2);
+    expect(state.sessionIdempotencyKeys[0]).toBe(state.sessionIdempotencyKeys[1]);
+  });
+
+  it("replays Stripe's durable idempotency result after a route-module restart", async () => {
+    const checkoutIntentId = "44444444-4444-4444-8444-444444444444";
+    const body = { tier: "single", appUrl: "/mylitai/", checkoutIntentId };
+    const first = await request(app).post("/api/stripe/checkout").send(body);
+
+    // A fresh route module has no process-local checkout state by design.
+    // Stripe's idempotency result is the cross-instance/restart safeguard.
+    vi.resetModules();
+    const { default: restartedApp } = await import("../app");
+    const second = await request(restartedApp).post("/api/stripe/checkout").send(body);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(second.body.url).toBe(first.body.url);
+    expect(state.sessionsCreated).toHaveLength(1);
+    expect(state.sessionIdempotencyKeys[1]).toBe(state.sessionIdempotencyKeys[0]);
   });
 });

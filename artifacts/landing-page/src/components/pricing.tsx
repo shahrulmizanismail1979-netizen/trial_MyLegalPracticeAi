@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, AlertCircle, Sparkles, Loader2, Clock, Zap, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trackEvent } from "@/lib/analytics";
+import { createCheckoutIntentId } from "@/lib/checkout-intent";
 
 type CheckoutTier = "bundle" | "single" | "standard";
 type LoadingKey = CheckoutTier | "trial";
@@ -59,6 +60,10 @@ export function Pricing() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [trialPortal, setTrialPortal] = useState<string>("");
   const [singlePortal, setSinglePortal] = useState<string>("");
+  // Keep one intent per concrete selection. A network failure can therefore
+  // be retried without creating a second Stripe Checkout Session, while
+  // another tier, trial choice, or portal remains an intentional purchase.
+  const checkoutIntents = useRef(new Map<string, string>());
   const { format } = useCurrency();
   const { prices, isLoading: isPricesLoading } = useStripeCatalogPrices();
   const singlePrice = getCatalogUsdAmount(prices, "single");
@@ -70,6 +75,12 @@ export function Pricing() {
   const startCheckout = async (tier: CheckoutTier, trial = false, appUrl?: string) => {
     setCheckoutError(null);
     setLoadingTier(trial ? "trial" : tier);
+    const selectionKey = JSON.stringify([tier, trial, appUrl ?? null]);
+    let checkoutIntentId = checkoutIntents.current.get(selectionKey);
+    if (!checkoutIntentId) {
+      checkoutIntentId = createCheckoutIntentId();
+      checkoutIntents.current.set(selectionKey, checkoutIntentId);
+    }
     let httpStatus = 0;
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -79,11 +90,19 @@ export function Pricing() {
           tier,
           ...(trial ? { trial: true } : {}),
           ...(appUrl ? { appUrl } : {}),
+          checkoutIntentId,
         }),
       });
       httpStatus = res.status;
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = (await res.json()) as {
+        url?: string;
+        error?: string;
+        code?: string;
+      };
       if (!res.ok || !data.url) {
+        if (data.code === "checkout_intent_expired") {
+          checkoutIntents.current.delete(selectionKey);
+        }
         throw new Error(data.error || "Could not start checkout. Please try again.");
       }
       trackEvent("checkout_started", {
@@ -320,7 +339,7 @@ export function Pricing() {
         </div>
 
         {checkoutError && (
-          <div className="mt-8 max-w-2xl mx-auto flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+          <div role="alert" className="mt-8 max-w-2xl mx-auto flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{checkoutError}</span>
           </div>

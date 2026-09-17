@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { trackEvent } from "./analytics";
+import { createCheckoutIntentId } from "./checkout-intent";
 
 /**
  * Starts a Stripe subscription checkout for a team bundle tier
@@ -9,20 +10,33 @@ import { trackEvent } from "./analytics";
 export function useBundleCheckout() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const checkoutIntents = useRef(new Map<string, string>());
 
   const startCheckout = async (tier: string) => {
     setError(null);
     setLoadingTier(tier);
+    let checkoutIntentId = checkoutIntents.current.get(tier);
+    if (!checkoutIntentId) {
+      checkoutIntentId = createCheckoutIntentId();
+      checkoutIntents.current.set(tier, checkoutIntentId);
+    }
     let httpStatus = 0;
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, checkoutIntentId }),
       });
       httpStatus = res.status;
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = (await res.json()) as {
+        url?: string;
+        error?: string;
+        code?: string;
+      };
       if (!res.ok || !data.url) {
+        if (data.code === "checkout_intent_expired") {
+          checkoutIntents.current.delete(tier);
+        }
         throw new Error(data.error || "Could not start checkout. Please try again.");
       }
       trackEvent("checkout_started", {

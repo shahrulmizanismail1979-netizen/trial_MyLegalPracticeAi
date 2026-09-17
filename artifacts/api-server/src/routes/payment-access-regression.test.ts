@@ -68,9 +68,19 @@ vi.mock("../stripeClient", () => ({
           }),
         retrieve: vi.fn().mockImplementation(async (sessionId: string) => {
           const session = state.sessions.get(sessionId);
+          if (session) return session;
+          // The checkout route now verifies the newly-created session before
+          // returning its URL. This synthetic pending session mirrors Stripe's
+          // real response; the completed webhook fixture is installed below.
+          if (sessionId === WEBHOOK_SESSION_ID) {
+            return {
+              id: WEBHOOK_SESSION_ID,
+              status: "open",
+              url: "https://checkout.stripe.test/payment-guard",
+            };
+          }
           if (!session)
             throw new Error(`Unknown synthetic checkout session: ${sessionId}`);
-          return session;
         }),
         list: vi
           .fn()

@@ -86,7 +86,7 @@ const {
   conveyMatterDeadlines,
   conveySavedWork,
 } = await import("@workspace/db");
-const { inArray, like } = await import("drizzle-orm");
+const { eq, inArray, like } = await import("drizzle-orm");
 const { signToken } = await import("./auth");
 const { getMasterAccessFingerprint } = await import("../lib/masterAccess");
 
@@ -528,7 +528,17 @@ describe("private generated draft storage", () => {
     expect([first.status, second.status].sort()).toEqual([200, 201]);
     expect(first.body.id).toBe(second.body.id);
     const paths = [firstGrant.body.objectPath, secondGrant.body.objectPath];
-    expect(paths.some((path) => storageTestState.deletedObjects.has(path))).toBe(true);
+    const canonicalPath = first.body.objectPath;
+    const redundantPath = paths.find((path) => path !== canonicalPath);
+    expect(redundantPath).toBeDefined();
+    expect(storageTestState.deletedObjects.has(redundantPath!)).toBe(true);
+    expect(storageTestState.deletedObjects.has(canonicalPath)).toBe(false);
+    const savedRows = await db
+      .select()
+      .from(corpSavedWork)
+      .where(eq(corpSavedWork.clientRequestId, `race-${RUN_ID}`));
+    expect(savedRows).toHaveLength(1);
+    expect(savedRows[0].objectPath).toBe(canonicalPath);
   });
 
   it("rejects oversized legacy JSON drafts and unissued storage paths", async () => {

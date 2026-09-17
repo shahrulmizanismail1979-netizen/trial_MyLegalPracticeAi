@@ -119,12 +119,15 @@ function includesConveyApp(apps: string[]): boolean {
  * to the hosted app. Idempotent via the unique access_code constraint.
  * Best-effort: never fails provisioning. Stripe IDs are intentionally NOT
  * copied — landing billing stays owned by the subscribers table, so the
- * convey app's own Stripe reconciliation ignores these users.
+ * convey app's own Stripe reconciliation ignores these users. The nullable
+ * current_period_end is a mirror only; landing subscribers remain the source
+ * of truth for access expiry (see isConveyCodeExpired).
  */
 async function syncConveyUser(params: {
   accessCode: string;
   name: string;
   email: string | null;
+  expiresAt?: Date | null;
   maxSeats: number | null;
 }): Promise<void> {
   try {
@@ -138,6 +141,7 @@ async function syncConveyUser(params: {
         isActive: true,
         subscriptionTier: "firm",
         subscriptionStatus: "active",
+        currentPeriodEnd: params.expiresAt ?? null,
         maxSeats: params.maxSeats,
       })
       .onConflictDoUpdate({
@@ -146,6 +150,9 @@ async function syncConveyUser(params: {
           isActive: true,
           subscriptionTier: "firm",
           subscriptionStatus: "active",
+          // Explicitly write NULL when an admin clears an expiry. Otherwise a
+          // previously expired mirror would survive a renewal/expiry reset.
+          currentPeriodEnd: params.expiresAt ?? null,
           maxSeats: params.maxSeats,
         },
       });
@@ -543,7 +550,7 @@ export async function syncPortalAccessCodes(subscriber: {
       : undefined) ??
     null;
   if (includesConveyApp(apps))
-    await syncConveyUser({ accessCode, name, email, maxSeats });
+    await syncConveyUser({ accessCode, name, email, expiresAt, maxSeats });
   if (includesAccidentApp(apps))
     await syncAccidentAccessCode({
       accessCode,

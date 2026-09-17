@@ -31,6 +31,7 @@ const { requireAnyPortalAuth } = await import(
 const { db } = await import("@workspace/db");
 const { usersTable, subscribersTable } = await import("@workspace/db/schema");
 const { eq } = await import("drizzle-orm");
+const { syncPortalAccessCodes } = await import("../lib/provisioning");
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -149,9 +150,10 @@ describe("case law routes — Convey subscription expiry gate", () => {
 
   it("reinstates access on /search once expiry is moved to the future", async () => {
     // Push expiry 30 days forward.
+    const renewalExpiry = new Date(Date.now() + 86_400_000 * 30);
     await db
       .update(subscribersTable)
-      .set({ subscriptionExpiry: new Date(Date.now() + 86_400_000 * 30) })
+      .set({ subscriptionExpiry: renewalExpiry })
       .where(eq(subscribersTable.id, subscriberId));
 
     const app = buildApp();
@@ -160,6 +162,27 @@ describe("case law routes — Convey subscription expiry gate", () => {
       .set("Authorization", `Bearer ${token}`);
     // 200 = auth passed; the stub handler returns { ok: true }.
     expect(res.status).toBe(200);
+
+    // Convey keeps the subscriber expiry as the source of truth, rather than
+    // trusting a stale user mirror from the previous billing period.
+    const [userBeforeSync] = await db
+      .select({ currentPeriodEnd: usersTable.currentPeriodEnd })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    expect(userBeforeSync?.currentPeriodEnd).toBeNull();
+
+    // The normal landing->portal sync mirrors the optional expiry and must
+    // also clear it explicitly when a later renewal removes the date.
+    const [renewedSubscriber] = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.id, subscriberId));
+    await syncPortalAccessCodes(renewedSubscriber!);
+    const [userAfterSync] = await db
+      .select({ currentPeriodEnd: usersTable.currentPeriodEnd })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    expect(userAfterSync?.currentPeriodEnd?.getTime()).toBe(renewalExpiry.getTime());
   });
 
   it("reinstates access on /cases/:id once expiry is moved to the future", async () => {
@@ -167,6 +190,29 @@ describe("case law routes — Convey subscription expiry gate", () => {
     const app = buildApp();
     const res = await request(app)
       .get("/api/cases/42")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+  });
+
+  it("clears the mirrored Convey expiry when the subscriber expiry is cleared", async () => {
+    await db
+      .update(subscribersTable)
+      .set({ subscriptionExpiry: null })
+      .where(eq(subscribersTable.id, subscriberId));
+    const [subscriber] = await db
+      .select()
+      .from(subscribersTable)
+      .where(eq(subscribersTable.id, subscriberId));
+    await syncPortalAccessCodes(subscriber!);
+
+    const [user] = await db
+      .select({ currentPeriodEnd: usersTable.currentPeriodEnd })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    expect(user?.currentPeriodEnd).toBeNull();
+
+    const res = await request(buildApp())
+      .get("/api/cases/search")
       .set("Authorization", `Bearer ${token}`);
     expect(res.status).toBe(200);
   });

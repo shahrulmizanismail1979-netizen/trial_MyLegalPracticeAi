@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import rateLimit from "express-rate-limit";
 import type Stripe from "stripe";
+import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db, subscribersTable } from "@workspace/db";
 import {
@@ -74,6 +75,31 @@ const sarawak20CheckoutRateLimit = rateLimit({
       "Too many checkout attempts. Please wait a few minutes and try again.",
   },
 });
+
+/**
+ * Stripe is the durable idempotency authority for landing checkout intents.
+ * This is deliberately not a subscriber/customer deduplication mechanism:
+ * anonymous purchasers have no reliable identity, and separate intent IDs
+ * remain legitimate separate purchases.
+ */
+function landingCheckoutIdempotencyKey(intentId: string): string {
+  return `lawyes-landing-checkout-v1-${intentId}`;
+}
+
+function readCheckoutIntentId(value: unknown): string {
+  // The landing page sends UUIDs from crypto.randomUUID(). Keep accepting only
+  // similarly unguessable-looking values when a caller supplies an ID.
+  if (value === undefined || value === null || value === "") return randomUUID();
+  if (
+    typeof value !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  ) {
+    throw new Error("Invalid checkout intent.");
+  }
+  return value;
+}
 
 /**
  * Allowlist of app URLs that can be used as post-checkout redirect targets.
@@ -474,6 +500,13 @@ router.post("/checkout", async (req, res) => {
   const tier = req.body?.tier as string | undefined;
   const appUrl = req.body?.appUrl as string | undefined;
   const trial = req.body?.trial === true;
+  let checkoutIntentId: string;
+  try {
+    checkoutIntentId = readCheckoutIntentId(req.body?.checkoutIntentId);
+  } catch {
+    res.status(400).json({ error: "Invalid checkout intent." });
+    return;
+  }
 
   if (trial && tier !== "single") {
     res
@@ -571,7 +604,11 @@ router.post("/checkout", async (req, res) => {
     success_url: successUrl,
     cancel_url: `${origin}/?checkout=cancelled`,
     subscription_data: {
-      metadata: { tier, trial: trial ? "true" : "false" },
+      metadata: {
+        tier,
+        trial: trial ? "true" : "false",
+        checkout_intent_id: checkoutIntentId,
+      },
       ...(trial
         ? {
             trial_period_days: 7,
@@ -584,21 +621,36 @@ router.post("/checkout", async (req, res) => {
     metadata: {
       tier,
       trial: trial ? "true" : "false",
+      checkout_intent_id: checkoutIntentId,
       ...(appUrl ? { appUrl } : {}),
     },
   });
 
   let session;
+  const idempotencyKey = landingCheckoutIdempotencyKey(checkoutIntentId);
   try {
-    session = await stripe.checkout.sessions.create(
-      buildSessionParams(priceId),
-    );
+    session = await stripe.checkout.sessions.create(buildSessionParams(priceId), {
+      idempotencyKey,
+    });
   } catch (err: unknown) {
     const stripeErr = err as {
       code?: string;
+      type?: string;
       param?: string;
       message?: string;
     };
+    const isIdempotencyConflict =
+      stripeErr?.code === "idempotency_error" ||
+      stripeErr?.code === "idempotency_key_in_use" ||
+      stripeErr?.type === "idempotency_error";
+    if (isIdempotencyConflict) {
+      res.status(409).json({
+        code: "checkout_intent_conflict",
+        error:
+          "This checkout attempt was reused with different purchase details. Start a new checkout.",
+      });
+      return;
+    }
     // The DB price may be stale (e.g. test-mode price used with a live key).
     // Fall back to searching Stripe directly for a live-mode price for this tier.
     if (stripeErr?.code === "resource_missing") {
@@ -628,9 +680,41 @@ router.post("/checkout", async (req, res) => {
         return;
       }
       invalidateCatalogPriceCache();
-      session = await stripe.checkout.sessions.create(
-        buildSessionParams(livePriceId),
-      );
+      try {
+        // Stripe does not retain an idempotency result when the original
+        // request fails validation for a missing price, so the same key is
+        // safe for this exact server-side price repair. If Stripe reports a
+        // parameter conflict, do not guess or create another session.
+        session = await stripe.checkout.sessions.create(
+          buildSessionParams(livePriceId),
+          { idempotencyKey },
+        );
+      } catch (fallbackErr: unknown) {
+        const fallbackStripeErr = fallbackErr as {
+          code?: string;
+          type?: string;
+        };
+        if (
+          fallbackStripeErr?.code === "idempotency_error" ||
+          fallbackStripeErr?.code === "idempotency_key_in_use" ||
+          fallbackStripeErr?.type === "idempotency_error"
+        ) {
+          res.status(409).json({
+            code: "checkout_intent_conflict",
+            error:
+              "This checkout attempt was reused with different purchase details. Start a new checkout.",
+          });
+          return;
+        }
+        req.log.error(
+          { err: fallbackErr, tier },
+          "Stripe checkout session fallback failed",
+        );
+        res.status(502).json({
+          error: "Payment provider error. Please try again.",
+        });
+        return;
+      }
     } else {
       req.log.error({ err, tier }, "Stripe checkout session creation failed");
       res
@@ -640,7 +724,63 @@ router.post("/checkout", async (req, res) => {
     }
   }
 
-  res.json({ url: session.url });
+  if (!session?.id) {
+    req.log.error({ tier }, "Stripe checkout returned no session id");
+    res.status(502).json({
+      code: "checkout_session_unavailable",
+      error: "Payment provider returned an unusable checkout session.",
+    });
+    return;
+  }
+
+  // Never trust a cached/local URL or silently reuse a session whose status
+  // cannot be verified. Stripe's response is authoritative across restarts
+  // and API instances.
+  let verifiedSession: Stripe.Checkout.Session;
+  try {
+    verifiedSession = await stripe.checkout.sessions.retrieve(session.id);
+  } catch (err) {
+    req.log.error(
+      { err, tier, sessionId: session.id },
+      "Unable to verify Stripe checkout session",
+    );
+    res.status(502).json({
+      code: "checkout_session_unavailable",
+      error: "We could not verify the checkout session. Please try again.",
+    });
+    return;
+  }
+  if (verifiedSession.status === "expired") {
+    res.status(409).json({
+      code: "checkout_intent_expired",
+      error:
+        "This checkout session has expired. Start checkout again to continue.",
+    });
+    return;
+  }
+  if (verifiedSession.status === "complete") {
+    res.status(409).json({
+      code: "checkout_intent_completed",
+      error:
+        "This checkout session is already complete. We did not create another purchase.",
+    });
+    return;
+  }
+  if (
+    verifiedSession.status !== "open" ||
+    !verifiedSession.url
+  ) {
+    req.log.error(
+      { tier, sessionId: session.id, status: verifiedSession.status },
+      "Stripe checkout session is not payable",
+    );
+    res.status(502).json({
+      code: "checkout_session_unavailable",
+      error: "The checkout session is not currently available. Please try again.",
+    });
+    return;
+  }
+  res.json({ url: verifiedSession.url });
 });
 
 router.get("/sarawak20/status", async (req, res) => {

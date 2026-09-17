@@ -56,6 +56,44 @@ async function cleanExpiredSavedWorkUploads(): Promise<void> {
   );
 }
 
+/**
+ * A retry can arrive after the canonical saved-work row has already been
+ * committed, but with a second direct-upload object. Consume only that
+ * retry's owner-scoped grant before deleting it; this keeps an arbitrary
+ * object path from becoming a deletion primitive and never touches the
+ * canonical object referenced by the saved-work row.
+ */
+async function discardRedundantSavedWorkUpload(
+  portal: Portal,
+  ownerId: number,
+  objectPath: string,
+  canonicalObjectPath: string | null | undefined,
+): Promise<void> {
+  if (!objectPath || objectPath === canonicalObjectPath) return;
+  const consumed = await pool.query(
+    `DELETE FROM case_pending_uploads
+     WHERE object_path = $1 AND portal = $2 AND owner_key = $3
+       AND purpose = 'saved-work'
+     RETURNING id`,
+    [objectPath, portal, String(ownerId)],
+  );
+  if (consumed.rowCount === 0) return;
+  try {
+    const file = await savedWorkStorage.getObjectEntityFile(objectPath);
+    await file.delete();
+  } catch (err) {
+    // Retain an expired grant so a later cleanup pass can retry a failed
+    // delete without exposing the object to any saved-work row.
+    await pool.query(
+      `INSERT INTO case_pending_uploads (portal, owner_key, object_path, purpose, expires_at)
+       VALUES ($1, $2, $3, 'saved-work', now() - interval '1 second')
+       ON CONFLICT (object_path) DO NOTHING`,
+      [portal, String(ownerId), objectPath],
+    ).catch(() => {});
+    logger.warn({ err, portal, ownerId, objectPath }, "saved work: redundant upload delete failed");
+  }
+}
+
 type OwnedRequest = Request & { matterOwnerId: number };
 
 function makeRequireOwner(getOwnerId: GetOwnerId) {
@@ -571,6 +609,14 @@ export function createMatterFileRouters(
       // A dropped response after the DB insert is safe to retry: return the
       // already-filed row instead of consuming the upload grant twice.
       if (existing) {
+        if (typeof objectPath === "string" && portal) {
+          await discardRedundantSavedWorkUpload(
+            portal,
+            ownerId,
+            objectPath,
+            existing.objectPath,
+          );
+        }
         res.status(200).json(existing);
         return;
       }
@@ -659,7 +705,7 @@ export function createMatterFileRouters(
       try {
         await client.query("BEGIN");
         const existing = await client.query(
-          `SELECT id FROM ${savedWorkStorageTable}
+          `SELECT id, object_path FROM ${savedWorkStorageTable}
            WHERE ${savedWorkOwnerColumn} = $1 AND client_request_id = $2 LIMIT 1`,
           [ownerId, clientRequestId],
         );
@@ -667,6 +713,18 @@ export function createMatterFileRouters(
         if (existing.rows[0]) {
           savedId = Number(existing.rows[0].id);
           wasRetry = true;
+          if (existing.rows[0].object_path !== objectMeta.objectPath) {
+            const consumed = await client.query(
+              `DELETE FROM case_pending_uploads
+               WHERE object_path = $1 AND portal = $2 AND owner_key = $3
+                 AND purpose = 'saved-work'
+              RETURNING id`,
+              [objectMeta.objectPath, portal, String(ownerId)],
+            );
+            if ((consumed.rowCount ?? 0) > 0) {
+              redundantObjectPath = objectMeta.objectPath;
+            }
+          }
         } else {
           const consumed = await client.query(
             `DELETE FROM case_pending_uploads
