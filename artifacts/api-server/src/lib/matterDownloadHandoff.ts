@@ -54,6 +54,11 @@ export const restoreMatterDownload: RequestHandler = (req, res, next) => {
     const token = req.cookies?.[COOKIE];
     if (typeof token !== "string" || token.length > 3500) throw new Error("Missing handoff");
     const bytes = Buffer.from(token, "base64url");
+    // Node's decoder accepts ignored characters and non-zero padding bits.
+    // Accept only the exact encoding we issue, not alternate spellings of it.
+    if (bytes.length <= 28 || bytes.toString("base64url") !== token) {
+      throw new Error("Invalid handoff encoding");
+    }
     const decipher = createDecipheriv("aes-256-gcm", key(), bytes.subarray(0, 12));
     decipher.setAAD(Buffer.from(req.path));
     decipher.setAuthTag(bytes.subarray(12, 28));

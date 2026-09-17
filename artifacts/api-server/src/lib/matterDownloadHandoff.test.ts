@@ -94,15 +94,21 @@ describe("matter download handoff middleware", () => {
     expect(wrongPath.body.error).toContain("Download link expired");
   });
 
-  it("fails closed for a tampered encrypted cookie", async () => {
+  it.each([
+    ["IV", 0],
+    ["authentication tag", 12],
+    ["ciphertext", 28],
+  ] as const)("fails closed for a tampered %s", async (_part, offset) => {
     const app = makeApp();
     const minted = await request(app)
       .post(OPEN_PATH)
       .set("Authorization", "Bearer dummy-bearer-token");
     const cookie = handoffCookie(minted);
     const token = cookie.slice("matter_download=".length);
-    const tamperedToken =
-      token.slice(0, -1) + (token.endsWith("A") ? "B" : "A");
+    // Change an actual encrypted byte, not unused base64 padding bits.
+    const bytes = Buffer.from(token, "base64url");
+    bytes[offset] ^= 1;
+    const tamperedToken = bytes.toString("base64url");
 
     const tampered = await request(app)
       .get(`${OPEN_PATH}?download=1`)
@@ -110,6 +116,21 @@ describe("matter download handoff middleware", () => {
 
     expect(tampered.status).toBe(401);
     expect(tampered.body.error).toContain("Download link expired");
+  });
+
+  it("rejects noncanonical encodings even when they decode to the original bytes", async () => {
+    const app = makeApp();
+    const minted = await request(app)
+      .post(OPEN_PATH)
+      .set("Authorization", "Bearer dummy-bearer-token");
+    const token = handoffCookie(minted).slice("matter_download=".length);
+    const alternate = `${token}=`;
+    expect(Buffer.from(alternate, "base64url")).toEqual(Buffer.from(token, "base64url"));
+
+    const response = await request(app)
+      .get(`${OPEN_PATH}?download=1`)
+      .set("Cookie", `matter_download=${alternate}`);
+    expect(response.status).toBe(401);
   });
 
   it("fails closed after the short handoff expiry", async () => {

@@ -38,6 +38,9 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
   retries: 0,
+  // Completion validation also runs the API suite and builds. Multiple
+  // Chromium instances can exhaust this workspace's process/thread limit.
+  workers: 1,
   reporter: "list",
   use: {
     // Point directly at the Vite dev server (port 25700), which proxies /api/*

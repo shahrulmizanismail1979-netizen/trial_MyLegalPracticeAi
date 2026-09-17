@@ -63,28 +63,6 @@ task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run test:e2e:corp-drafts && pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile && pnpm --filter @workspace/api-server run test:e2e:case-home"
 
 [[workflows.workflow]]
-name = "artifacts/mylitai: web"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=25300 BASE_PATH=/mylitai/ pnpm --filter @workspace/mylitai run dev"
-
-[[workflows.workflow]]
-name = "artifacts/mylitai-irac: web"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=25400 BASE_PATH=/mylitai-irac/ pnpm --filter @workspace/mylitai-irac run dev"
-
-[[workflows.workflow]]
 name = "payment-access"
 author = "agent"
 

@@ -37,7 +37,9 @@ const { inArray, eq } = await import("drizzle-orm");
 const { ensureSyaMatterTables } = await import("./index");
 
 const RUN_ID = `sya-rc-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-const CODE_A = `SYARC-${RUN_ID}`;
+// The SYA access-code login normalises submitted subscriber codes to uppercase
+// before its case-sensitive database lookup.
+const CODE_A = `SYARC-${RUN_ID}`.toUpperCase();
 
 let codeId: number;
 let agentA: ReturnType<typeof request.agent>;

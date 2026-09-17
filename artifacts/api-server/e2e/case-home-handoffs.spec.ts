@@ -805,7 +805,9 @@ async function exerciseHandoff(
 
   const panel = page.getByLabel(`Case home for matter ${matterId}`);
   await expect(panel).toBeVisible({ timeout: 30_000 });
-  await expect(panel.getByText("Outstanding Tasks")).toBeVisible();
+  await expect(panel.getByText("Progress", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Outputs", { exact: true })).toBeVisible();
+  await expect(panel.getByText("Sources", { exact: true })).toBeVisible();
   await expect(panel.getByText("Latest Activity")).toBeVisible();
 
   const action = panel.locator(".ch-action-link");

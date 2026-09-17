@@ -22,8 +22,10 @@ const { accessCodesTable, syaMattersTable, syaMatterDeadlinesTable, syaSavedWork
 const { ensureSyaMatterTables } = await import("./index");
 
 const RUN_ID = `syamatters-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-const CODE_A = `TEST-${RUN_ID}-A`;
-const CODE_B = `TEST-${RUN_ID}-B`;
+// The SYA access-code login normalises submitted subscriber codes to uppercase
+// before its case-sensitive database lookup.
+const CODE_A = `TEST-${RUN_ID}-A`.toUpperCase();
+const CODE_B = `TEST-${RUN_ID}-B`.toUpperCase();
 
 const codeIds: number[] = [];
 

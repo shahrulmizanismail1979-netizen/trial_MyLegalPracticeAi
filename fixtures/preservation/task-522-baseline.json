@@ -28,7 +28,7 @@
     { "mount": "/api", "source": "artifacts/api-server/src/app.ts", "marker": "app.use(\"/api\", router)" },
     { "mount": "/api/stripe", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/stripe\", stripeRouter)" },
     { "mount": "/api/access", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/access\", accessRouter)" },
-    { "mount": "/api/admin", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/admin\", requireAuth, requireStaff, adminRouter)" },
+    { "mount": "/api/admin", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/admin\", requireLandingAdmin, adminRouter)" },
     { "mount": "/api/research", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/research\", requireAuth, requireStaff, researchRouter)" },
     { "mount": "/api/research-admin", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/research-admin\", researchAdminRouter)" },
     { "mount": "/api/cases", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/cases\", requireAnyPortalAuth, casesRouter)" },
@@ -42,7 +42,7 @@
     { "mount": "/api/firm", "source": "artifacts/api-server/src/routes/index.ts", "marker": "router.use(\"/firm\", firmRouter)" }
   ],
   "authContracts": [
-    { "mechanism": "Clerk plus staff allowlist", "scope": "/api/admin and /api/research" },
+    { "mechanism": "Scoped signed landing-admin cookie or Clerk plus staff allowlist", "scope": "/api/admin; Clerk plus staff allowlist only for /api/research" },
     { "mechanism": "PostgreSQL-backed express-session cookie lit.sid", "scope": "/api/lit" },
     { "mechanism": "PostgreSQL-backed express-session cookie crim.sid", "scope": "/api/crim" },
     { "mechanism": "PostgreSQL-backed express-session cookie sya.sid", "scope": "/api/sya" },
@@ -105,6 +105,7 @@
   "regressionEvidence": [
     { "contract": "billing and access provisioning", "path": "artifacts/api-server/src/routes/payment-access-regression.test.ts", "marker": "payment-to-access customer journey" },
     { "contract": "staff roles and rights enforcement", "path": "artifacts/api-server/src/research/phase02.test.ts", "marker": "quarantine and enforcement gates" },
+    { "contract": "landing admin authentication boundaries", "path": "artifacts/api-server/src/routes/landing-admin-auth.test.ts", "marker": "does not let the landing master session cross into research routes" },
     { "contract": "research authentication and IDOR isolation", "path": "artifacts/api-server/src/research/phase12d-security.test.ts", "marker": "unauthenticated GET /containers" },
     { "contract": "shared upload subscriber isolation", "path": "artifacts/api-server/src/routes/shared-uploads.test.ts", "marker": "cross-subscriber isolation" },
     { "contract": "corporate chat tenant isolation", "path": "artifacts/api-server/src/corp/routes/corp-security.test.ts", "marker": "cross-tenant isolation" },

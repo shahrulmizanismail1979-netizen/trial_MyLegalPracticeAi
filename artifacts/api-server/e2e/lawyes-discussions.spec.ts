@@ -124,7 +124,8 @@ test("a lawyer files and reassigns a discussion, and LAWYes shows only the selec
   ]);
 
   await page.goto(`/lawyes/${secondMatterId}`);
-  await page.getByRole("tab", { name: /Discussions/ }).click();
+  // LAWYes matter workspaces expose recent discussions in the matter
+  // navigation rail; they do not have the former Discussions tab.
   await expect(page.getByText(DISCUSSION_TITLE)).toBeVisible();
   await expect(page.getByText(`Unlinked private discussion ${RUN_ID}`)).not.toBeVisible();
 });

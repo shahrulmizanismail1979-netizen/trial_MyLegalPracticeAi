@@ -11,3 +11,11 @@ Tests use vitest + supertest (`pnpm --filter @workspace/api-server run test`, re
 - **Do NOT mock `pdf-parse`.** It runs fine under vitest un-externalized (it is only externalized in the esbuild bundle because of native @napi-rs/canvas). A hand-built minimal PDF with correct xref offsets is enough for `PDFParse.getText()` to extract.
 - **DB is the live `DATABASE_URL`** (no separate test DB). Tag rows with a per-run UUID marker and delete only those rows in `afterAll` to avoid polluting dev data.
 - **Why:** the upload → extraction → knowledge-base flow has no other automated coverage; a pdf-parse/bundling regression would otherwise fail silently in production.
+
+## Focused Vitest invocation
+
+Use `pnpm --filter @workspace/api-server exec vitest run <test paths>` for selected suites, not `pnpm --filter @workspace/api-server run test -- <test paths>`.
+
+**Why:** The latter forwards a literal `--` to Vitest in this workspace, causing the file filters to be ignored and the entire live-database suite to run.
+
+**How to apply:** Invoke Vitest directly with `exec` when limiting regression coverage to specific files.

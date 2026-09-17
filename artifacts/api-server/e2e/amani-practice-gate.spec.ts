@@ -29,7 +29,9 @@ test.describe("Amani release regressions", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${BASE}/`);
+    // The bare root is the retained chat-first LAWYes workspace.  Amani's
+    // role-guidance trigger belongs to the explicit marketing/apps surface.
+    await page.goto(`${BASE}/apps`);
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
