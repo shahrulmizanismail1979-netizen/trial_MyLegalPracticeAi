@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import {
   db,
   meetingsTable,
@@ -10,6 +10,8 @@ import {
 import { serializeOne } from "./taskService";
 import type { SerializedTask } from "./taskLogic";
 import type { TaskDraft } from "./meetingAi";
+import { firmScope, firmValues } from "./workspace";
+import { isKnownUser } from "./goalService";
 
 export type SerializedMeeting = {
   id: number;
@@ -24,7 +26,7 @@ export type SerializedMeeting = {
 };
 
 async function nameMap(): Promise<Map<number, string>> {
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   return new Map(users.map((u) => [u.id, u.name]));
 }
 
@@ -58,6 +60,7 @@ export async function listMeetings(): Promise<SerializedMeeting[]> {
   const rows = await db
     .select()
     .from(meetingsTable)
+    .where(firmScope(meetingsTable))
     .orderBy(desc(meetingsTable.createdAt));
   const names = await nameMap();
   return rows.map((m) => serialize(m, names));
@@ -67,7 +70,7 @@ export async function loadMeeting(id: number): Promise<Meeting | undefined> {
   const [meeting] = await db
     .select()
     .from(meetingsTable)
-    .where(eq(meetingsTable.id, id));
+    .where(and(firmScope(meetingsTable), eq(meetingsTable.id, id)));
   return meeting;
 }
 
@@ -76,9 +79,16 @@ export async function createTaskFromDraft(
   draft: TaskDraft,
   actingUserId: number | null,
 ): Promise<SerializedTask> {
+  if (actingUserId != null && !(await isKnownUser(actingUserId))) {
+    throw new Error("Task creator does not belong to this workspace.");
+  }
+  if (draft.suggestedOwnerId != null && !(await isKnownUser(draft.suggestedOwnerId))) {
+    throw new Error("Task owner does not belong to this workspace.");
+  }
   const [task] = await db
     .insert(tasksTable)
     .values({
+      ...firmValues(),
       title: draft.title,
       description: draft.description ?? null,
       category: draft.category,

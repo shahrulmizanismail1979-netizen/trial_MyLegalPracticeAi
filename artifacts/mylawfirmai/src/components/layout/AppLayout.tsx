@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Radar, AlertCircle, Inbox, User as UserIcon, BarChart2, CalendarDays, Target, BookOpen, Languages, FileText, Mic, Inbox as InboxIcon, Trophy, MessageCircle, History, Users, Landmark } from "lucide-react";
+import { Radar, AlertCircle, Inbox, User as UserIcon, BarChart2, CalendarDays, Target, BookOpen, Languages, FileText, Mic, Inbox as InboxIcon, Trophy, MessageCircle, History, Users, Landmark, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useT, useLanguage, LANGUAGES, type Lang } from "@/lib/i18n";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
@@ -17,7 +17,7 @@ const paralegalRequest = (path: string, init?: RequestInit) =>
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { isManager, currentUser } = useAuth();
+  const { isManager, currentUser, signOut } = useAuth();
   const t = useT();
   const { lang, setLang } = useLanguage();
   const [contactOpen, setContactOpen] = useState(false);
@@ -193,6 +193,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarFooter className="p-4 border-t border-sidebar-border space-y-3">
             <ManagerAccess />
             {!isManager && <UserSwitcher />}
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-xs text-sidebar-foreground/80"
+              onClick={() => void signOut()}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </Button>
             {currentUser && (
               <Button
                 variant="outline"

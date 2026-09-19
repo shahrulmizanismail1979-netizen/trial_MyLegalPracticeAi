@@ -25,9 +25,11 @@ import {
   serializeOneGoal,
   loadGoal,
   loadKpi,
+  isKnownUser,
 } from "../lib/goalService";
 import { requireManagerSession } from "../lib/managerSession";
 import { generateGoalDraft, AiProviderError } from "../lib/aiService";
+import { firmScope, firmValues } from "../lib/workspace";
 
 const router: IRouter = Router();
 
@@ -38,7 +40,8 @@ router.get("/goals", async (req, res): Promise<void> => {
   if (!includeArchived) {
     conditions.push(eq(goalsTable.archived, false));
   }
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  conditions.unshift(firmScope(goalsTable));
+  const where = and(...conditions);
 
   const goals = await db
     .select()
@@ -61,10 +64,15 @@ router.post("/goals", async (req, res): Promise<void> => {
     res.status(403).json({ error: "Only managers can create goals." });
     return;
   }
+  if (parsed.data.ownerId != null && !(await isKnownUser(parsed.data.ownerId))) {
+    res.status(400).json({ error: "Goal owner does not belong to this workspace." });
+    return;
+  }
 
   const [goal] = await db
     .insert(goalsTable)
     .values({
+      ...firmValues(),
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       ownerId: parsed.data.ownerId ?? null,
@@ -153,11 +161,15 @@ router.patch("/goals/:id", async (req, res): Promise<void> => {
     res.json(await serializeOneGoal(existing, new Date()));
     return;
   }
+  if (d.ownerId != null && !(await isKnownUser(d.ownerId))) {
+    res.status(400).json({ error: "Goal owner does not belong to this workspace." });
+    return;
+  }
 
   const [goal] = await db
     .update(goalsTable)
     .set(updates)
-    .where(eq(goalsTable.id, params.data.id))
+    .where(and(firmScope(goalsTable), eq(goalsTable.id, params.data.id)))
     .returning();
 
   res.json(await serializeOneGoal(goal, new Date()));
@@ -189,7 +201,7 @@ router.delete("/goals/:id", async (req, res): Promise<void> => {
   const [goal] = await db
     .update(goalsTable)
     .set({ archived: true })
-    .where(eq(goalsTable.id, params.data.id))
+    .where(and(firmScope(goalsTable), eq(goalsTable.id, params.data.id)))
     .returning();
 
   // Detach deliverables so they don't keep pointing at a goal that has
@@ -197,7 +209,7 @@ router.delete("/goals/:id", async (req, res): Promise<void> => {
   await db
     .update(tasksTable)
     .set({ goalId: null })
-    .where(eq(tasksTable.goalId, params.data.id));
+    .where(and(firmScope(tasksTable), eq(tasksTable.goalId, params.data.id)));
 
   res.json(await serializeOneGoal(goal, new Date()));
 });
@@ -226,6 +238,7 @@ router.post("/goals/:id/kpis", async (req, res): Promise<void> => {
   }
 
   await db.insert(kpisTable).values({
+    ...firmValues(),
     goalId: goal.id,
     name: parsed.data.name,
     unit: parsed.data.unit ?? null,
@@ -277,7 +290,7 @@ router.patch("/goals/:id/kpis/:kpiId", async (req, res): Promise<void> => {
     await db
       .update(kpisTable)
       .set(updates)
-      .where(eq(kpisTable.id, params.data.kpiId));
+      .where(and(firmScope(kpisTable), eq(kpisTable.id, params.data.kpiId)));
   }
 
   res.json(await serializeOneGoal(goal, new Date()));
@@ -311,7 +324,7 @@ router.delete("/goals/:id/kpis/:kpiId", async (req, res): Promise<void> => {
     return;
   }
 
-  await db.delete(kpisTable).where(eq(kpisTable.id, params.data.kpiId));
+  await db.delete(kpisTable).where(and(firmScope(kpisTable), eq(kpisTable.id, params.data.kpiId)));
 
   res.json(await serializeOneGoal(goal, new Date()));
 });

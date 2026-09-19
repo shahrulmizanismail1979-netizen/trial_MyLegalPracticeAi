@@ -11,6 +11,7 @@ import {
 import { serializeTasks } from "../lib/taskService";
 import { generateBriefing, AiProviderError } from "../lib/aiService";
 import { requireManagerSession } from "../lib/managerSession";
+import { firmScope } from "../lib/workspace";
 
 const router: IRouter = Router();
 
@@ -28,8 +29,8 @@ router.get("/dashboard", async (req, res): Promise<void> => {
   const tasks = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.archived, false));
-  const users = await db.select().from(usersTable);
+    .where(and(eq(tasksTable.archived, false), firmScope(tasksTable)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const serialized = await serializeTasks(tasks, now);
 
   const open = serialized.filter((t) => t.status !== "done");
@@ -169,7 +170,7 @@ router.get("/digest", async (_req, res): Promise<void> => {
   const tasks = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.archived, false));
+    .where(and(eq(tasksTable.archived, false), firmScope(tasksTable)));
   const serialized = await serializeTasks(tasks, now);
   const open = serialized.filter((t) => t.status !== "done");
 
@@ -271,7 +272,7 @@ router.get("/activity", async (req, res): Promise<void> => {
         .filter(Boolean)
     : [];
 
-  const conditions = [];
+  const conditions = [firmScope(taskActivityTable)];
   if (actorParam === "system") {
     conditions.push(isNull(taskActivityTable.actorId));
   } else if (actorParam) {
@@ -336,7 +337,7 @@ router.get("/activity", async (req, res): Promise<void> => {
       ? await db
           .select({ id: usersTable.id, name: usersTable.name })
           .from(usersTable)
-          .where(inArray(usersTable.id, actorIds))
+          .where(and(inArray(usersTable.id, actorIds), firmScope(usersTable)))
       : [];
   const userNamesById = new Map<number, string>(
     users.map((u) => [u.id, u.name]),
@@ -346,7 +347,7 @@ router.get("/activity", async (req, res): Promise<void> => {
       ? await db
           .select({ id: tasksTable.id, title: tasksTable.title })
           .from(tasksTable)
-          .where(inArray(tasksTable.id, taskIds))
+          .where(and(inArray(tasksTable.id, taskIds), firmScope(tasksTable)))
       : [];
   const taskTitlesById = new Map<number, string>(
     tasks.map((t) => [t.id, t.title]),

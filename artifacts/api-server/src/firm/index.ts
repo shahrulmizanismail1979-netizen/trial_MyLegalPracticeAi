@@ -2,11 +2,13 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { eq } from "drizzle-orm";
 import { db, firmAccessCodesTable, isFirmAccessCodeExpired } from "./db";
 import {
-  staffSessionCodeId,
-  hasManagerCookie,
-  verifySession,
-  MANAGER_COOKIE,
+  staffSessionIdentity,
+  managerSessionIdentity,
+  hasMixedTenantCookies,
+  requireManagerSession,
+  clearManagerCookie,
 } from "./lib/managerSession";
+import { runWithFirmWorkspace } from "./lib/workspace";
 import { claimSeat, deviceSeatKey, seatLimitMessage } from "../lib/seatLimits";
 import { attachVirtualParalegal } from "../lib/virtualParalegal";
 import firmRoutes from "./routes";
@@ -25,7 +27,10 @@ const SESSION_PUBLIC_PATHS = new Set<string>([
   "/auth/staff",
   "/auth/manager",
   "/auth/logout",
+  "/auth/signout",
   "/auth/session",
+  "/auth/manager/setup/send",
+  "/auth/manager/setup/verify",
   "/healthz",
 ]);
 
@@ -34,25 +39,45 @@ async function sessionGate(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  if (SESSION_PUBLIC_PATHS.has(req.path)) {
+  if (req.path === "/auth/staff" || req.path === "/healthz") {
     next();
     return;
   }
-  if (hasManagerCookie(req)) {
+  // Recovery must remain possible even when stale cookies disagree.
+  if (req.path === "/auth/signout") {
     next();
     return;
   }
-  const codeId = staffSessionCodeId(req);
-  if (codeId != null) {
-    if (codeId === 0) {
-      // Master-code / manager-granted staff session — no code row to re-check.
+  if (hasMixedTenantCookies(req)) {
+    res.status(401).json({ error: "Conflicting firm sessions. Please sign in again." });
+    return;
+  }
+  const staffIdentity = staffSessionIdentity(req);
+  const managerIdentity = managerSessionIdentity(req);
+  const continueInWorkspace = async (workspaceId: number): Promise<void> => {
+    await runWithFirmWorkspace(workspaceId, async () => {
+      // A password reset or demotion invalidates the manager cookie for every
+      // endpoint, including manager-owned paralegal history, not only HR.
+      if (managerIdentity && (await requireManagerSession(req)) == null) {
+        clearManagerCookie(res);
+        res.status(401).json({ error: "Manager session ended. Please sign in again." });
+        return;
+      }
       next();
+    });
+  };
+  const identity = staffIdentity ?? managerIdentity;
+  if (identity) {
+    const ownerStaff = staffIdentity?.workspaceId === 0 && staffIdentity.userId === 0;
+    const ownerManagerOnly = !staffIdentity && managerIdentity?.workspaceId === 0;
+    if (ownerStaff || ownerManagerOnly) {
+      await continueInWorkspace(0);
       return;
     }
     const [row] = await db
       .select()
       .from(firmAccessCodesTable)
-      .where(eq(firmAccessCodesTable.id, codeId));
+      .where(eq(firmAccessCodesTable.id, identity.workspaceId));
     if (row && row.isActive && !isFirmAccessCodeExpired(row.expiresAt)) {
       // Refresh this device's seat on every request (keeps active devices
       // inside the 24h TTL); fail closed if the seat is gone and the code's
@@ -69,7 +94,19 @@ async function sessionGate(
           return;
         }
       }
+      await continueInWorkspace(identity.workspaceId);
+      return;
+    }
+  }
+  if (SESSION_PUBLIC_PATHS.has(req.path) && !staffIdentity && !managerIdentity) {
+    // Session/logout report an unauthenticated state; manager/setup endpoints
+    // still require a current staff subscription.
+    if (req.path === "/auth/session" || req.path === "/auth/logout") {
       next();
+      return;
+    }
+    if (req.path === "/auth/manager") {
+      runWithFirmWorkspace(0, next);
       return;
     }
   }
@@ -78,7 +115,7 @@ async function sessionGate(
 
 const router: IRouter = Router();
 router.use((req, res, next) => {
-  void sessionGate(req, res, next);
+  void sessionGate(req, res, next).catch(next);
 });
 
 // Floating dashboard virtual paralegal (chat + voice). Mounted behind the
@@ -94,12 +131,14 @@ attachVirtualParalegal({
   focus:
     "Law firm practice management — matters, clients, billing, deadlines, staff productivity and firm operations.",
   getOwnerKey: (req) => {
-    const cookies = (req as typeof req & { cookies?: Record<string, string> })
-      .cookies;
-    const managerId = verifySession(cookies?.[MANAGER_COOKIE]);
-    if (managerId != null) return `mgr:${managerId}`;
-    const staffCodeId = staffSessionCodeId(req);
-    if (staffCodeId != null) return `staff:${staffCodeId}`;
+    const manager = managerSessionIdentity(req);
+    if (manager) return manager.workspaceId === 0
+      ? `mgr:${manager.userId}`
+      : `ws:${manager.workspaceId}:mgr:${manager.userId}`;
+    const staff = staffSessionIdentity(req);
+    if (staff) return staff.workspaceId === 0
+      ? "staff:0"
+      : `ws:${staff.workspaceId}:staff:${staff.userId}`;
     return null;
   },
   pathPrefix: "",

@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const taskEvidenceTable = pgTable("firm_task_evidence", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   taskId: integer("task_id").notNull(),
   authorId: integer("author_id"),
   objectPath: text("object_path").notNull(),

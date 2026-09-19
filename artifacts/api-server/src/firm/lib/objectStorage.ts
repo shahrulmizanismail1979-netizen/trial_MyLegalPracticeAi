@@ -1,6 +1,11 @@
 import { Storage, File } from "@google-cloud/storage";
 import { Readable } from "stream";
 import { randomUUID } from "crypto";
+import { currentFirmWorkspaceId } from "./workspace";
+import {
+  createFirmUploadObjectName,
+  isLegacyOwnerObjectPath,
+} from "./storageTokens";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -106,7 +111,9 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(
+    workspaceId: number = currentFirmWorkspaceId(),
+  ): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -116,7 +123,8 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    const entityName = createFirmUploadObjectName(workspaceId, objectId);
+    const fullPath = `${privateObjectDir}/${entityName}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
@@ -139,6 +147,21 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+    if (
+      entityId.includes("..") ||
+      entityId.includes("\\") ||
+      entityId.includes("//")
+    ) {
+      throw new ObjectNotFoundError();
+    }
+    const workspaceId = currentFirmWorkspaceId();
+    const workspacePrefix = `firm/${workspaceId}/`;
+    if (
+      !entityId.startsWith(workspacePrefix) &&
+      !(workspaceId === 0 && isLegacyOwnerObjectPath(objectPath))
+    ) {
+      throw new ObjectNotFoundError();
+    }
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
@@ -169,6 +192,9 @@ export class ObjectStorageService {
 
   normalizeObjectEntityPath(rawPath: string): string {
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
+      if (!rawPath.startsWith("/objects/")) {
+        throw new ObjectNotFoundError();
+      }
       return rawPath;
     }
 
@@ -181,7 +207,7 @@ export class ObjectStorageService {
     }
 
     if (!rawObjectPath.startsWith(objectEntityDir)) {
-      return rawObjectPath;
+      throw new ObjectNotFoundError();
     }
 
     const entityId = rawObjectPath.slice(objectEntityDir.length);
@@ -204,15 +230,18 @@ export class ObjectStorageService {
 
   async canAccessObjectEntity({
     userId,
+    workspaceId = currentFirmWorkspaceId(),
     objectFile,
     requestedPermission,
   }: {
     userId?: string;
+    workspaceId?: number;
     objectFile: File;
     requestedPermission?: ObjectPermission;
   }): Promise<boolean> {
     return canAccessObject({
       userId,
+      workspaceId,
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });

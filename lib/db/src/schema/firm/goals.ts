@@ -12,6 +12,7 @@ import { z } from "zod/v4";
 
 export const goalsTable = pgTable("firm_goals", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   title: text("title").notNull(),
   description: text("description"),
   ownerId: integer("owner_id"),
@@ -29,6 +30,7 @@ export const goalsTable = pgTable("firm_goals", {
 
 export const kpisTable = pgTable("firm_kpis", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   goalId: integer("goal_id").notNull(),
   name: text("name").notNull(),
   unit: text("unit"),

@@ -18,6 +18,7 @@ export const taskActivityTable = pgTable(
   "firm_task_activity",
   {
     id: serial("id").primaryKey(),
+    workspaceId: integer("workspace_id").notNull().default(0),
     taskId: integer("task_id").notNull(),
     actorId: integer("actor_id"),
     action: text("action").notNull(),
@@ -31,6 +32,7 @@ export const taskActivityTable = pgTable(
   // instead of a full sort/scan as the audit trail grows.
   (table) => [
     index("firm_task_activity_created_at_id_idx").on(
+      table.workspaceId,
       table.createdAt.desc(),
       table.id.desc(),
     ),

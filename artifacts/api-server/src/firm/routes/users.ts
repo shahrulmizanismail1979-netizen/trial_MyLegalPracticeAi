@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import rateLimit from "express-rate-limit";
 import { db, usersTable } from "../db";
 import {
@@ -13,6 +13,7 @@ import {
   UpdateUserContactResponse,
 } from "../apiZod";
 import { requireManagerSession } from "../lib/managerSession";
+import { firmScope, firmValues } from "../lib/workspace";
 
 const router: IRouter = Router();
 
@@ -30,7 +31,11 @@ const createUserRateLimit = rateLimit({
 });
 
 router.get("/users", async (_req, res): Promise<void> => {
-  const users = await db.select().from(usersTable).orderBy(usersTable.name);
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(firmScope(usersTable))
+    .orderBy(usersTable.name);
   res.json(ListUsersResponse.parse(users));
 });
 
@@ -56,6 +61,7 @@ router.post("/users", createUserRateLimit, async (req, res): Promise<void> => {
       title: parsed.data.title ?? null,
       email: parsed.data.email,
       activeStatus: parsed.data.activeStatus ?? true,
+      ...firmValues(),
     })
     .returning();
 
@@ -83,7 +89,7 @@ router.patch("/users/:id", async (req, res): Promise<void> => {
   const [updated] = await db
     .update(usersTable)
     .set({ role: parsed.data.role })
-    .where(eq(usersTable.id, params.data.id))
+    .where(and(eq(usersTable.id, params.data.id), firmScope(usersTable)))
     .returning();
 
   if (!updated) {
@@ -121,7 +127,7 @@ router.patch("/users/:id/contact", async (req, res): Promise<void> => {
   const [existing] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, params.data.id));
+    .where(and(eq(usersTable.id, params.data.id), firmScope(usersTable)));
 
   if (!existing) {
     res.status(404).json({ error: "User not found." });
@@ -151,7 +157,7 @@ router.patch("/users/:id/contact", async (req, res): Promise<void> => {
       smsOptIn,
       smsOptInAt,
     })
-    .where(eq(usersTable.id, params.data.id))
+    .where(and(eq(usersTable.id, params.data.id), firmScope(usersTable)))
     .returning();
 
   req.log.info(

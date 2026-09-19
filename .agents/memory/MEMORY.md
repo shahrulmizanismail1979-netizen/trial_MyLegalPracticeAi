@@ -75,3 +75,4 @@
 - [Shared-component browser checks](shared-component-browser-checks.md) — scope layout assertions to the shared component unless the task also owns the host artifact shell.
 - [Matter rail file opening](matter-rail-file-opening.md) — open private rail files through the host portal's authenticated request adapter, never raw storage or artifact-rebased API links.
 - [Managed workflow name collisions](managed-workflow-name-collisions.md) — duplicate legacy entries can occupy managed artifact ports while workflow status reports only the failing managed service.
+- [MyLawFirmAi workspace ownership](firm-workspace-ownership.md) — legacy records stay owner-private; subscribing firms get isolated workspaces, never access to the owner's connected accounts.

@@ -191,4 +191,12 @@ describe("GET /api/storage/objects/* access control", () => {
     const res = await agent.get(urlFor(UNKNOWN_PATH));
     expect(res.status).toBe(403);
   });
+
+  it("does not let platform staff bypass a firm workspace object route", async () => {
+    signInAs("user_staff", "staff@example.com");
+    const res = await request(app).get(
+      "/api/storage/objects/firm/123/uploads/known-object",
+    );
+    expect(res.status).toBe(404);
+  });
 });

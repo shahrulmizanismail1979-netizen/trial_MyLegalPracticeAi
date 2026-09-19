@@ -5,6 +5,7 @@ import {
   bigint,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -18,6 +19,7 @@ import {
 // ── Office account entries ─────────────────────────────────────────────────────
 export const officeEntriesTable = pgTable("firm_accounts_office_entries", {
   id:          serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   type:        text("type").notNull(),       // "income" | "expense"
   category:    text("category").notNull(),
   description: text("description").notNull(),
@@ -32,6 +34,7 @@ export const officeEntriesTable = pgTable("firm_accounts_office_entries", {
 // ── Client trust ledgers ───────────────────────────────────────────────────────
 export const clientLedgersTable = pgTable("firm_accounts_client_ledgers", {
   id:           serial("id").primaryKey(),
+  workspaceId:  integer("workspace_id").notNull().default(0),
   clientName:   text("client_name").notNull(),
   matterRef:    text("matter_ref"),
   /** Running balance in sen. Updated atomically in transactions. */
@@ -52,6 +55,7 @@ export const clientLedgersTable = pgTable("firm_accounts_client_ledgers", {
 // Enforced server-side via SELECT … FOR UPDATE in a transaction.
 export const clientEntriesTable = pgTable("firm_accounts_client_entries", {
   id:          serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   ledgerId:    integer("ledger_id").notNull(),
   type:        text("type").notNull(),       // "deposit" | "disbursement" | "transfer_to_office"
   description: text("description").notNull(),
@@ -62,3 +66,23 @@ export const clientEntriesTable = pgTable("firm_accounts_client_entries", {
   createdBy:   integer("created_by"),
   createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Monthly expense budgets ──────────────────────────────────────────────────
+// This table was historically managed by raw SQL in the API. Keeping its
+// definition here ensures schema publishing and migrations include it.
+export const budgetsTable = pgTable(
+  "firm_accounts_budgets",
+  {
+    id:          serial("id").primaryKey(),
+    workspaceId: integer("workspace_id").notNull().default(0),
+    year:        integer("year").notNull(),
+    month:       integer("month").notNull(),
+    category:    text("category").notNull(),
+    budgetSen:   bigint("budget_sen", { mode: "number" }).notNull(),
+    createdBy:   integer("created_by"),
+    updatedAt:   timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique().on(table.workspaceId, table.year, table.month, table.category),
+  ],
+);

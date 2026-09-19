@@ -1,4 +1,4 @@
-import { inArray, eq, desc, asc } from "drizzle-orm";
+import { inArray, eq, desc, asc, and } from "drizzle-orm";
 import {
   db,
   goalsTable,
@@ -11,6 +11,7 @@ import {
 } from "../db";
 import { serializeTasks } from "./taskService";
 import { serializeGoal, type SerializedGoal } from "./goalLogic";
+import { firmScope } from "./workspace";
 
 export async function serializeGoals(
   goals: Goal[],
@@ -21,13 +22,13 @@ export async function serializeGoals(
   const goalIds = goals.map((g) => g.id);
 
   const usersById = new Map<number, User>();
-  const allUsers = await db.select().from(usersTable);
+  const allUsers = await db.select().from(usersTable).where(firmScope(usersTable));
   for (const u of allUsers) usersById.set(u.id, u);
 
   const kpis = await db
     .select()
     .from(kpisTable)
-    .where(inArray(kpisTable.goalId, goalIds))
+    .where(and(firmScope(kpisTable), inArray(kpisTable.goalId, goalIds)))
     .orderBy(asc(kpisTable.id));
   const kpisByGoal = new Map<number, Kpi[]>();
   for (const k of kpis) {
@@ -39,7 +40,7 @@ export async function serializeGoals(
   const deliverables = await db
     .select()
     .from(tasksTable)
-    .where(inArray(tasksTable.goalId, goalIds))
+    .where(and(firmScope(tasksTable), inArray(tasksTable.goalId, goalIds)))
     .orderBy(desc(tasksTable.createdAt));
   const activeDeliverables = deliverables.filter((t) => !t.archived);
   const serializedDeliverables = await serializeTasks(activeDeliverables, now);
@@ -73,23 +74,23 @@ export async function serializeOneGoal(
 }
 
 export async function loadGoal(id: number): Promise<Goal | undefined> {
-  const [goal] = await db.select().from(goalsTable).where(eq(goalsTable.id, id));
+  const [goal] = await db.select().from(goalsTable).where(and(firmScope(goalsTable), eq(goalsTable.id, id)));
   return goal;
 }
 
 export async function loadKpi(id: number): Promise<Kpi | undefined> {
-  const [kpi] = await db.select().from(kpisTable).where(eq(kpisTable.id, id));
+  const [kpi] = await db.select().from(kpisTable).where(and(firmScope(kpisTable), eq(kpisTable.id, id)));
   return kpi;
 }
 
 export async function isManagerUser(id: number | null): Promise<boolean> {
   if (id == null) return false;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  const [user] = await db.select().from(usersTable).where(and(firmScope(usersTable), eq(usersTable.id, id)));
   return user?.role === "manager";
 }
 
 export async function isKnownUser(id: number | null | undefined): Promise<boolean> {
   if (id == null) return false;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  const [user] = await db.select().from(usersTable).where(and(firmScope(usersTable), eq(usersTable.id, id)));
   return user != null;
 }

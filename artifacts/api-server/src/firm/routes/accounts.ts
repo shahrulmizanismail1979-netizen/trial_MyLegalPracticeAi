@@ -19,8 +19,10 @@ import {
   officeEntriesTable,
   clientLedgersTable,
   clientEntriesTable,
+  usersTable,
 } from "../db";
 import { requireManagerSession } from "../lib/managerSession";
+import { currentFirmWorkspaceId, firmScope, firmValues } from "../lib/workspace";
 
 // ── Boot-time schema ───────────────────────────────────────────────────────────
 
@@ -30,6 +32,7 @@ export async function ensureAccountsTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_accounts_office_entries (
       id          serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       type        text NOT NULL CHECK (type IN ('income','expense')),
       category    text NOT NULL,
       description text NOT NULL,
@@ -46,6 +49,7 @@ export async function ensureAccountsTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_accounts_client_ledgers (
       id           serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       client_name  text NOT NULL,
       matter_ref   text,
       balance      bigint NOT NULL DEFAULT 0,
@@ -59,6 +63,7 @@ export async function ensureAccountsTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_accounts_client_entries (
       id          serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       ledger_id   integer NOT NULL REFERENCES firm_accounts_client_ledgers(id) ON DELETE CASCADE,
       type        text NOT NULL CHECK (type IN ('deposit','disbursement','transfer_to_office')),
       description text NOT NULL,
@@ -75,56 +80,18 @@ export async function ensureAccountsTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_accounts_budgets (
       id          serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       year        integer NOT NULL,
       month       integer NOT NULL CHECK (month >= 1 AND month <= 12),
       category    text NOT NULL,
       budget_sen  bigint NOT NULL CHECK (budget_sen >= 0),
       created_by  integer REFERENCES firm_users(id),
       updated_at  timestamptz NOT NULL DEFAULT now(),
-      UNIQUE (year, month, category)
+      UNIQUE (workspace_id, year, month, category)
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS firm_acc_budgets_ym_idx ON firm_accounts_budgets(year, month)`);
 
-  // ── Migration: convert existing double-precision columns to bigint sen ─────
-  // Safe because the tables are new (no user-visible history yet) and float
-  // values like 5000.0 map cleanly to 500000 sen. This runs at every boot but
-  // is a no-op once columns are already bigint.
-  await db.execute(sql`
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'firm_accounts_office_entries'
-          AND column_name = 'amount'
-          AND data_type IN ('double precision','real','numeric')
-      ) THEN
-        ALTER TABLE firm_accounts_office_entries
-          ALTER COLUMN amount TYPE bigint
-            USING ROUND(amount * 100)::bigint;
-      END IF;
-      IF EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'firm_accounts_client_ledgers'
-          AND column_name = 'balance'
-          AND data_type IN ('double precision','real','numeric')
-      ) THEN
-        ALTER TABLE firm_accounts_client_ledgers
-          ALTER COLUMN balance TYPE bigint
-            USING ROUND(balance * 100)::bigint;
-      END IF;
-      IF EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'firm_accounts_client_entries'
-          AND column_name = 'amount'
-          AND data_type IN ('double precision','real','numeric')
-      ) THEN
-        ALTER TABLE firm_accounts_client_entries
-          ALTER COLUMN amount TYPE bigint
-            USING ROUND(amount * 100)::bigint;
-      END IF;
-    END $$
-  `);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -136,6 +103,12 @@ async function requireMgr(
   const uid = await requireManagerSession(req);
   if (uid == null) {
     res.status(403).json({ error: "Manager authentication required." });
+    return null;
+  }
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(and(eq(usersTable.id, uid), firmScope(usersTable)));
+  if (!user) {
+    res.status(403).json({ error: "Manager is not a member of this workspace." });
     return null;
   }
   return uid;
@@ -231,7 +204,7 @@ router.get("/accounts/budgets", async (req, res): Promise<void> => {
   }
   const rows = await db.execute(sql`
     SELECT category, budget_sen FROM firm_accounts_budgets
-    WHERE year = ${year} AND month = ${month}
+    WHERE workspace_id = ${currentFirmWorkspaceId()} AND year = ${year} AND month = ${month}
   `);
   const budgets: Record<string, number> = {};
   for (const r of (rows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
@@ -252,13 +225,13 @@ router.put("/accounts/budgets", async (req, res): Promise<void> => {
   if (budgetSen === 0) {
     await db.execute(sql`
       DELETE FROM firm_accounts_budgets
-      WHERE year = ${year} AND month = ${month} AND category = ${category}
+      WHERE workspace_id = ${currentFirmWorkspaceId()} AND year = ${year} AND month = ${month} AND category = ${category}
     `);
   } else {
     await db.execute(sql`
-      INSERT INTO firm_accounts_budgets (year, month, category, budget_sen, created_by, updated_at)
-      VALUES (${year}, ${month}, ${category}, ${budgetSen}, ${uid}, now())
-      ON CONFLICT (year, month, category)
+      INSERT INTO firm_accounts_budgets (workspace_id, year, month, category, budget_sen, created_by, updated_at)
+      VALUES (${currentFirmWorkspaceId()}, ${year}, ${month}, ${category}, ${budgetSen}, ${uid}, now())
+      ON CONFLICT (workspace_id, year, month, category)
       DO UPDATE SET budget_sen = EXCLUDED.budget_sen, updated_at = now()
     `);
   }
@@ -279,7 +252,7 @@ router.get("/accounts/office/entries", async (req, res): Promise<void> => {
   const rawEntries = await db
     .select()
     .from(officeEntriesTable)
-    .where(sql`entry_date LIKE ${prefix + "-%"}`)
+    .where(and(firmScope(officeEntriesTable), sql`entry_date LIKE ${prefix + "-%"}`))
     .orderBy(desc(officeEntriesTable.entryDate), desc(officeEntriesTable.id));
   const entries = rawEntries.map(officeRm);
   // Totals computed in sen first (exact integer) then converted to RM.
@@ -302,6 +275,7 @@ router.post("/accounts/office/entries", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(officeEntriesTable)
     .values({
+      ...firmValues(),
       type:        b.data.type,
       category:    b.data.category,
       description: b.data.description,
@@ -326,7 +300,7 @@ router.delete("/accounts/office/entries/:id", async (req, res): Promise<void> =>
   if (await requireMgr(req, res) == null) return;
   const id = paramInt(req.params.id);
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [entry] = await db.select().from(officeEntriesTable).where(eq(officeEntriesTable.id, id));
+  const [entry] = await db.select().from(officeEntriesTable).where(and(eq(officeEntriesTable.id, id), firmScope(officeEntriesTable)));
   if (!entry) { res.status(404).json({ error: "Entry not found." }); return; }
   if (entry.reference?.startsWith("JV-CA-")) {
     res.status(409).json({
@@ -335,7 +309,7 @@ router.delete("/accounts/office/entries/:id", async (req, res): Promise<void> =>
     });
     return;
   }
-  await db.delete(officeEntriesTable).where(eq(officeEntriesTable.id, id));
+  await db.delete(officeEntriesTable).where(and(eq(officeEntriesTable.id, id), firmScope(officeEntriesTable)));
   res.json({ deleted: true, id });
 });
 
@@ -352,7 +326,7 @@ router.get("/accounts/office/categories", async (req, res): Promise<void> => {
 /** GET /accounts/client/ledgers */
 router.get("/accounts/client/ledgers", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const rawLedgers = await db.select().from(clientLedgersTable).orderBy(desc(clientLedgersTable.updatedAt));
+  const rawLedgers = await db.select().from(clientLedgersTable).where(firmScope(clientLedgersTable)).orderBy(desc(clientLedgersTable.updatedAt));
   res.json({ ledgers: rawLedgers.map(ledgerRm) });
 });
 
@@ -364,7 +338,7 @@ router.post("/accounts/client/ledgers", async (req, res): Promise<void> => {
   if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
   const [row] = await db
     .insert(clientLedgersTable)
-    .values({ clientName: b.data.clientName, matterRef: b.data.matterRef ?? null, notes: b.data.notes ?? null, createdBy: uid, balance: 0 })
+    .values({ ...firmValues(), clientName: b.data.clientName, matterRef: b.data.matterRef ?? null, notes: b.data.notes ?? null, createdBy: uid, balance: 0 })
     .returning();
   res.status(201).json(row);
 });
@@ -374,12 +348,12 @@ router.get("/accounts/client/ledgers/:id", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const id = paramInt(req.params.id);
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [ledger] = await db.select().from(clientLedgersTable).where(eq(clientLedgersTable.id, id));
+  const [ledger] = await db.select().from(clientLedgersTable).where(and(eq(clientLedgersTable.id, id), firmScope(clientLedgersTable)));
   if (!ledger) { res.status(404).json({ error: "Client ledger not found." }); return; }
   const rawEntries = await db
     .select()
     .from(clientEntriesTable)
-    .where(eq(clientEntriesTable.ledgerId, id))
+    .where(and(eq(clientEntriesTable.ledgerId, id), firmScope(clientEntriesTable)))
     .orderBy(desc(clientEntriesTable.entryDate), desc(clientEntriesTable.id));
   res.json({ ledger: ledgerRm(ledger), entries: rawEntries.map(clientRm) });
 });
@@ -404,7 +378,7 @@ router.post("/accounts/client/ledgers/:id/entries", async (req, res): Promise<vo
       // Lock the ledger row to prevent concurrent overdraft.
       const locked = await tx.execute(sql`
         SELECT balance FROM firm_accounts_client_ledgers
-        WHERE id = ${ledgerId} FOR UPDATE
+        WHERE id = ${ledgerId} AND workspace_id = ${currentFirmWorkspaceId()} FOR UPDATE
       `);
       const row = (locked as unknown as { rows: { balance: string | number }[] }).rows[0];
       if (!row) throw Object.assign(new Error("NOT_FOUND"), { code: "NOT_FOUND" });
@@ -427,6 +401,7 @@ router.post("/accounts/client/ledgers/:id/entries", async (req, res): Promise<vo
       const [e] = await tx
         .insert(clientEntriesTable)
         .values({
+          ...firmValues(),
           ledgerId,
           type:        b.data.type,
           description: b.data.description,
@@ -441,7 +416,7 @@ router.post("/accounts/client/ledgers/:id/entries", async (req, res): Promise<vo
       await tx
         .update(clientLedgersTable)
         .set({ balance: newBalanceSen, updatedAt: new Date() })
-        .where(eq(clientLedgersTable.id, ledgerId));
+        .where(and(eq(clientLedgersTable.id, ledgerId), firmScope(clientLedgersTable)));
 
       ledgerBalanceSen = newBalanceSen;
 
@@ -453,6 +428,7 @@ router.post("/accounts/client/ledgers/:id/entries", async (req, res): Promise<vo
       if (b.data.type === "transfer_to_office" && e) {
         const jvRef = `JV-CA-${String(e.id).padStart(6, "0")}`;
         await tx.insert(officeEntriesTable).values({
+          ...firmValues(),
           type:        "income",
           category:    "client_trust_transfer",
           description: `Trust transfer from client account — ${b.data.description}`,
@@ -534,7 +510,8 @@ router.get("/accounts/reports/pl", async (req, res): Promise<void> => {
       type,
       SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE entry_date >= ${fromYM + "-01"}
+    WHERE workspace_id = ${currentFirmWorkspaceId()}
+      AND entry_date >= ${fromYM + "-01"}
       AND SUBSTRING(entry_date, 1, 7) <= ${toYM}
     GROUP BY month, type
     ORDER BY month
@@ -593,7 +570,7 @@ router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
   const rows = await db.execute(sql`
     SELECT category, SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE type = 'expense'
+    WHERE workspace_id = ${currentFirmWorkspaceId()} AND type = 'expense'
       AND ${whereClause}
     GROUP BY category
     ORDER BY total DESC
@@ -616,7 +593,7 @@ router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
     const [ymYear, ymMonth] = singleMonth.split("-").map(Number);
     const budgetRows = await db.execute(sql`
       SELECT category, budget_sen FROM firm_accounts_budgets
-      WHERE year = ${ymYear} AND month = ${ymMonth}
+      WHERE workspace_id = ${currentFirmWorkspaceId()} AND year = ${ymYear} AND month = ${ymMonth}
     `);
     const budgetMap: Record<string, number> = {};
     for (const r of (budgetRows as unknown as { rows: { category: string; budget_sen: string }[] }).rows) {
@@ -637,7 +614,7 @@ router.get("/accounts/reports/expenses", async (req, res): Promise<void> => {
 /** GET /accounts/reports/trust — all client ledger balances */
 router.get("/accounts/reports/trust", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const rawLedgers2 = await db.select().from(clientLedgersTable).orderBy(desc(clientLedgersTable.balance));
+  const rawLedgers2 = await db.select().from(clientLedgersTable).where(firmScope(clientLedgersTable)).orderBy(desc(clientLedgersTable.balance));
   const totalBalanceSen = rawLedgers2.reduce((s, l) => s + (l.balance ?? 0), 0);
   res.json({ ledgers: rawLedgers2.map(ledgerRm), totalBalance: senToRm(totalBalanceSen) });
 });
@@ -652,7 +629,8 @@ router.get("/accounts/reports/cashflow", async (req, res): Promise<void> => {
       type,
       SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE entry_date >= to_char(NOW() - INTERVAL '1 month' * ${months}, 'YYYY-MM') || '-01'
+    WHERE workspace_id = ${currentFirmWorkspaceId()}
+      AND entry_date >= to_char(NOW() - INTERVAL '1 month' * ${months}, 'YYYY-MM') || '-01'
     GROUP BY month, type
     ORDER BY month
   `);
@@ -688,7 +666,7 @@ router.get("/accounts/voucher/office/:id/pdf", async (req, res): Promise<void> =
   if (await requireMgr(req, res) == null) return;
   const id = paramInt(req.params.id);
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [entry] = await db.select().from(officeEntriesTable).where(eq(officeEntriesTable.id, id));
+  const [entry] = await db.select().from(officeEntriesTable).where(and(eq(officeEntriesTable.id, id), firmScope(officeEntriesTable)));
   if (!entry) { res.status(404).json({ error: "Entry not found." }); return; }
 
   const voucherType = entry.type === "income" ? "OFFICIAL RECEIPT" : "PAYMENT VOUCHER";
@@ -715,9 +693,9 @@ router.get("/accounts/voucher/client/:id/pdf", async (req, res): Promise<void> =
   if (await requireMgr(req, res) == null) return;
   const id = paramInt(req.params.id);
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
-  const [entry] = await db.select().from(clientEntriesTable).where(eq(clientEntriesTable.id, id));
+  const [entry] = await db.select().from(clientEntriesTable).where(and(eq(clientEntriesTable.id, id), firmScope(clientEntriesTable)));
   if (!entry) { res.status(404).json({ error: "Entry not found." }); return; }
-  const [ledger] = await db.select().from(clientLedgersTable).where(eq(clientLedgersTable.id, entry.ledgerId));
+  const [ledger] = await db.select().from(clientLedgersTable).where(and(eq(clientLedgersTable.id, entry.ledgerId), firmScope(clientLedgersTable)));
 
   const voucherTypeMap: Record<string, string> = {
     deposit:            "OFFICIAL RECEIPT (CLIENT ACCOUNT)",
@@ -756,7 +734,7 @@ router.get("/accounts/reports/expenses/pdf", async (req, res): Promise<void> => 
   const rows = await db.execute(sql`
     SELECT category, SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE type = 'expense' AND entry_date LIKE ${prefix + "%"}
+    WHERE workspace_id = ${currentFirmWorkspaceId()} AND type = 'expense' AND entry_date LIKE ${prefix + "%"}
     GROUP BY category ORDER BY total DESC
   `);
   const breakdown = (rows as unknown as { rows: { category: string; total: string }[] }).rows.map(r => ({
@@ -774,7 +752,7 @@ router.get("/accounts/reports/expenses/pdf", async (req, res): Promise<void> => 
 /** GET /accounts/reports/trust/pdf — trust balances PDF */
 router.get("/accounts/reports/trust/pdf", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const rawL = await db.select().from(clientLedgersTable).orderBy(desc(clientLedgersTable.balance));
+  const rawL = await db.select().from(clientLedgersTable).where(firmScope(clientLedgersTable)).orderBy(desc(clientLedgersTable.balance));
   const totalBalanceSen2 = rawL.reduce((s, l) => s + (l.balance ?? 0), 0);
   const buf = await generateTrustPDF({
     ledgers:      rawL.map(ledgerRm),
@@ -793,7 +771,8 @@ router.get("/accounts/reports/cashflow/pdf", async (req, res): Promise<void> => 
   const rows = await db.execute(sql`
     SELECT SUBSTRING(entry_date, 1, 7) AS month, type, SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE entry_date >= to_char(NOW() - INTERVAL '1 month' * ${months}, 'YYYY-MM') || '-01'
+    WHERE workspace_id = ${currentFirmWorkspaceId()}
+      AND entry_date >= to_char(NOW() - INTERVAL '1 month' * ${months}, 'YYYY-MM') || '-01'
     GROUP BY month, type ORDER BY month
   `);
   const bySenPdf: Record<string, { month: string; income: number; expense: number }> = {};
@@ -831,7 +810,7 @@ router.get("/accounts/reports/pl/pdf", async (req, res): Promise<void> => {
   const rows = await db.execute(sql`
     SELECT SUBSTRING(entry_date,1,7) AS month, type, SUM(amount) AS total
     FROM firm_accounts_office_entries
-    WHERE entry_date LIKE ${year + "-%"}
+    WHERE workspace_id = ${currentFirmWorkspaceId()} AND entry_date LIKE ${year + "-%"}
     GROUP BY month, type ORDER BY month
   `);
   const byMonthSen: Record<string, { income: number; expense: number }> = {};

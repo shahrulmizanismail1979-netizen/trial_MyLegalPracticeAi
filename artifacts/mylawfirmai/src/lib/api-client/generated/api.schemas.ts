@@ -38,6 +38,7 @@ export interface User {
 export interface ManagerSessionResponse {
   manager: boolean;
   staff: boolean;
+  workspaceId?: number;
   user?: User;
 }
 

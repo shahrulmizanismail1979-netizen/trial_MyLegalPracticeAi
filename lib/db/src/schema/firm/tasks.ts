@@ -11,6 +11,7 @@ import { z } from "zod/v4";
 
 export const tasksTable = pgTable("firm_tasks", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category").notNull().default("backlog"),

@@ -11,3 +11,4 @@ export * from "./meetings";
 export * from "./accessCodes";
 export * from "./hr";
 export * from "./accounts";
+export * from "./workspaceCredentials";

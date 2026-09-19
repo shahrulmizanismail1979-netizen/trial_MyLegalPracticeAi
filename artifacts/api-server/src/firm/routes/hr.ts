@@ -22,11 +22,13 @@ import {
 } from "../db";
 import { requireManagerSession } from "../lib/managerSession";
 import { calcPayroll, generatePayslipPDF } from "../lib/payroll";
+import { currentFirmWorkspaceId, firmScope, firmValues } from "../lib/workspace";
 
 export async function ensureHrTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_profiles (
       user_id          integer PRIMARY KEY REFERENCES firm_users(id) ON DELETE CASCADE,
+      workspace_id     integer NOT NULL DEFAULT 0,
       ic_number        text,
       position         text,
       department       text,
@@ -49,6 +51,7 @@ export async function ensureHrTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_leave_entitlements (
       id           serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       user_id      integer NOT NULL REFERENCES firm_users(id) ON DELETE CASCADE,
       year         integer NOT NULL,
       leave_type   text NOT NULL,
@@ -56,12 +59,13 @@ export async function ensureHrTables(): Promise<void> {
       used         double precision NOT NULL DEFAULT 0,
       created_at   timestamptz NOT NULL DEFAULT now(),
       updated_at   timestamptz NOT NULL DEFAULT now(),
-      UNIQUE(user_id, year, leave_type)
+      UNIQUE(workspace_id, user_id, year, leave_type)
     )
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_leave_requests (
       id             serial PRIMARY KEY,
+      workspace_id   integer NOT NULL DEFAULT 0,
       user_id        integer NOT NULL REFERENCES firm_users(id) ON DELETE CASCADE,
       leave_type     text NOT NULL,
       start_date     text NOT NULL,
@@ -80,6 +84,7 @@ export async function ensureHrTables(): Promise<void> {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_attendance (
       id         serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       user_id    integer NOT NULL REFERENCES firm_users(id) ON DELETE CASCADE,
       work_date  text NOT NULL,
       clock_in   text,
@@ -87,24 +92,26 @@ export async function ensureHrTables(): Promise<void> {
       status     text NOT NULL DEFAULT 'present',
       notes      text,
       created_at timestamptz NOT NULL DEFAULT now(),
-      UNIQUE(user_id, work_date)
+      UNIQUE(workspace_id, user_id, work_date)
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS firm_hr_att_user_date_idx ON firm_hr_attendance(user_id, work_date)`);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_payroll_runs (
       id         serial PRIMARY KEY,
+      workspace_id integer NOT NULL DEFAULT 0,
       month      integer NOT NULL CHECK (month BETWEEN 1 AND 12),
       year       integer NOT NULL,
       run_by     integer REFERENCES firm_users(id),
       status     text NOT NULL DEFAULT 'draft',
       created_at timestamptz NOT NULL DEFAULT now(),
-      UNIQUE(month, year)
+      UNIQUE(workspace_id, month, year)
     )
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS firm_hr_payslips (
       id               serial PRIMARY KEY,
+      workspace_id     integer NOT NULL DEFAULT 0,
       run_id           integer NOT NULL REFERENCES firm_hr_payroll_runs(id) ON DELETE CASCADE,
       user_id          integer NOT NULL REFERENCES firm_users(id) ON DELETE CASCADE,
       gross_salary     double precision NOT NULL,
@@ -120,7 +127,7 @@ export async function ensureHrTables(): Promise<void> {
       total_deductions double precision NOT NULL,
       net_pay          double precision NOT NULL,
       created_at       timestamptz NOT NULL DEFAULT now(),
-      UNIQUE(run_id, user_id)
+      UNIQUE(workspace_id, run_id, user_id)
     )
   `);
 }
@@ -188,7 +195,18 @@ async function requireMgr(req: Parameters<typeof requireManagerSession>[0], res:
     res.status(403).json({ error: "Manager authentication required." });
     return null;
   }
+  if (!await workspaceUserExists(uid)) {
+    res.status(403).json({ error: "Manager is not a member of this workspace." });
+    return null;
+  }
   return uid;
+}
+
+/** User IDs are global primary keys, so never accept one from another workspace. */
+async function workspaceUserExists(userId: number): Promise<boolean> {
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable)
+    .where(and(eq(usersTable.id, userId), firmScope(usersTable)));
+  return !!user;
 }
 
 // ── Router ─────────────────────────────────────────────────────────────────────
@@ -202,8 +220,8 @@ const router: IRouter = Router();
 /** GET /hr/employees — list all users with their HR profile (or null). */
 router.get("/hr/employees", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const users    = await db.select().from(usersTable).orderBy(usersTable.name);
-  const profiles = await db.select().from(hrProfilesTable);
+  const users    = await db.select().from(usersTable).where(firmScope(usersTable)).orderBy(usersTable.name);
+  const profiles = await db.select().from(hrProfilesTable).where(firmScope(hrProfilesTable));
   const pm = new Map(profiles.map(p => [p.userId, p]));
   res.json({ employees: users.map(u => ({ user: u, profile: pm.get(u.id) ?? null })) });
 });
@@ -216,7 +234,9 @@ router.post("/hr/employees/:userId", async (req, res): Promise<void> => {
   if (Number.isNaN(uid)) { res.status(400).json({ error: "Invalid userId" }); return; }
   const b = ProfileBody.safeParse(req.body);
   if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
+  if (!await workspaceUserExists(uid)) { res.status(404).json({ error: "User not found." }); return; }
   const values = {
+    ...firmValues(),
     userId:          uid,
     icNumber:        b.data.icNumber ?? null,
     position:        b.data.position ?? null,
@@ -238,7 +258,7 @@ router.post("/hr/employees/:userId", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(hrProfilesTable)
     .values(values)
-    .onConflictDoUpdate({ target: hrProfilesTable.userId, set: { ...values, userId: undefined } })
+    .onConflictDoUpdate({ target: hrProfilesTable.userId, set: { ...values, userId: undefined, workspaceId: undefined } })
     .returning();
   res.status(201).json(row);
 });
@@ -251,8 +271,8 @@ router.post("/hr/employees/:userId", async (req, res): Promise<void> => {
 router.get("/hr/leave", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const { status, userId } = req.query;
-  const rows = await db.select().from(hrLeaveRequestsTable).orderBy(hrLeaveRequestsTable.createdAt);
-  const users = await db.select().from(usersTable);
+  const rows = await db.select().from(hrLeaveRequestsTable).where(firmScope(hrLeaveRequestsTable)).orderBy(hrLeaveRequestsTable.createdAt);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const um = new Map(users.map(u => [u.id, u]));
   let filtered = rows;
   if (status && typeof status === "string") filtered = filtered.filter(r => r.status === status);
@@ -266,8 +286,8 @@ router.get("/hr/leave", async (req, res): Promise<void> => {
 router.get("/hr/leave/balances", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const year = parseInt((req.query.year as string) ?? String(new Date().getFullYear()), 10);
-  const ents  = await db.select().from(hrLeaveEntitlementsTable).where(eq(hrLeaveEntitlementsTable.year, year));
-  const users = await db.select().from(usersTable);
+  const ents  = await db.select().from(hrLeaveEntitlementsTable).where(and(firmScope(hrLeaveEntitlementsTable), eq(hrLeaveEntitlementsTable.year, year)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const um    = new Map(users.map(u => [u.id, u]));
   res.json({ year, balances: ents.map(e => ({ ...e, userName: um.get(e.userId)?.name ?? "?" })) });
 });
@@ -277,11 +297,12 @@ router.post("/hr/leave/entitlements", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const b = EntitlementBody.safeParse(req.body);
   if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
+  if (!await workspaceUserExists(b.data.userId)) { res.status(404).json({ error: "User not found." }); return; }
   const [row] = await db
     .insert(hrLeaveEntitlementsTable)
-    .values({ userId: b.data.userId, year: b.data.year, leaveType: b.data.leaveType, entitlement: b.data.entitlement, used: 0 })
+    .values({ ...firmValues(), userId: b.data.userId, year: b.data.year, leaveType: b.data.leaveType, entitlement: b.data.entitlement, used: 0 })
     .onConflictDoUpdate({
-      target: [hrLeaveEntitlementsTable.userId, hrLeaveEntitlementsTable.year, hrLeaveEntitlementsTable.leaveType],
+      target: [hrLeaveEntitlementsTable.workspaceId, hrLeaveEntitlementsTable.userId, hrLeaveEntitlementsTable.year, hrLeaveEntitlementsTable.leaveType],
       set: { entitlement: b.data.entitlement, updatedAt: new Date() },
     })
     .returning();
@@ -297,7 +318,7 @@ router.patch("/hr/leave/:id", async (req, res): Promise<void> => {
   const b = LeaveReviewBody.safeParse(req.body);
   if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
 
-  const [existing] = await db.select().from(hrLeaveRequestsTable).where(eq(hrLeaveRequestsTable.id, id));
+  const [existing] = await db.select().from(hrLeaveRequestsTable).where(and(eq(hrLeaveRequestsTable.id, id), firmScope(hrLeaveRequestsTable)));
   if (!existing) { res.status(404).json({ error: "Leave request not found." }); return; }
 
   const previousStatus = existing.status;
@@ -309,7 +330,7 @@ router.patch("/hr/leave/:id", async (req, res): Promise<void> => {
       reviewedBy:   mgr,
       reviewedAt:   new Date(),
     })
-    .where(eq(hrLeaveRequestsTable.id, id))
+    .where(and(eq(hrLeaveRequestsTable.id, id), firmScope(hrLeaveRequestsTable)))
     .returning();
 
   // Update leave balance: increment used on approve; decrement on reject-after-approve.
@@ -318,13 +339,13 @@ router.patch("/hr/leave/:id", async (req, res): Promise<void> => {
     await db.execute(sql`
       UPDATE firm_hr_leave_entitlements
          SET used = used + ${existing.daysRequested}, updated_at = now()
-       WHERE user_id = ${existing.userId} AND year = ${year} AND leave_type = ${existing.leaveType}
+       WHERE workspace_id = ${currentFirmWorkspaceId()} AND user_id = ${existing.userId} AND year = ${year} AND leave_type = ${existing.leaveType}
     `);
   } else if (b.data.status === "rejected" && previousStatus === "approved") {
     await db.execute(sql`
       UPDATE firm_hr_leave_entitlements
          SET used = GREATEST(0, used - ${existing.daysRequested}), updated_at = now()
-       WHERE user_id = ${existing.userId} AND year = ${year} AND leave_type = ${existing.leaveType}
+       WHERE workspace_id = ${currentFirmWorkspaceId()} AND user_id = ${existing.userId} AND year = ${year} AND leave_type = ${existing.leaveType}
     `);
   }
 
@@ -342,8 +363,8 @@ router.get("/hr/attendance", async (req, res): Promise<void> => {
   const month = String(parseInt((req.query.month as string) ?? String(now.getMonth() + 1), 10)).padStart(2, "0");
   const year  = (req.query.year as string) ?? String(now.getFullYear());
   const prefix = `${year}-${month}`;
-  const rows = await db.select().from(hrAttendanceTable).where(sql`work_date LIKE ${prefix + "-%"}`);
-  const users = await db.select().from(usersTable);
+  const rows = await db.select().from(hrAttendanceTable).where(and(firmScope(hrAttendanceTable), sql`work_date LIKE ${prefix + "-%"}`));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const um    = new Map(users.map(u => [u.id, u]));
   res.json({ records: rows.map(r => ({ ...r, userName: um.get(r.userId)?.name ?? "?" })) });
 });
@@ -353,7 +374,9 @@ router.post("/hr/attendance", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
   const b = AttendanceBody.safeParse(req.body);
   if (!b.success) { res.status(400).json({ error: b.error.message }); return; }
+  if (!await workspaceUserExists(b.data.userId)) { res.status(404).json({ error: "User not found." }); return; }
   const values = {
+    ...firmValues(),
     userId:   b.data.userId,
     workDate: b.data.workDate,
     status:   b.data.status,
@@ -364,7 +387,7 @@ router.post("/hr/attendance", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(hrAttendanceTable)
     .values(values)
-    .onConflictDoUpdate({ target: [hrAttendanceTable.userId, hrAttendanceTable.workDate], set: { ...values, userId: undefined, workDate: undefined } })
+    .onConflictDoUpdate({ target: [hrAttendanceTable.workspaceId, hrAttendanceTable.userId, hrAttendanceTable.workDate], set: { ...values, userId: undefined, workDate: undefined, workspaceId: undefined } })
     .returning();
   res.json(row);
 });
@@ -376,7 +399,7 @@ router.post("/hr/attendance", async (req, res): Promise<void> => {
 /** GET /hr/payroll/runs — list payroll runs newest first. */
 router.get("/hr/payroll/runs", async (req, res): Promise<void> => {
   if (await requireMgr(req, res) == null) return;
-  const runs = await db.select().from(hrPayrollRunsTable).orderBy(hrPayrollRunsTable.year, hrPayrollRunsTable.month);
+  const runs = await db.select().from(hrPayrollRunsTable).where(firmScope(hrPayrollRunsTable)).orderBy(hrPayrollRunsTable.year, hrPayrollRunsTable.month);
   res.json({ runs });
 });
 
@@ -389,12 +412,12 @@ router.post("/hr/payroll/run", async (req, res): Promise<void> => {
   const { month, year } = b.data;
 
   // Employees with an HR profile and non-zero salary
-  const profiles = await db.select().from(hrProfilesTable).where(sql`salary > 0`);
+  const profiles = await db.select().from(hrProfilesTable).where(and(firmScope(hrProfilesTable), sql`salary > 0`));
   if (profiles.length === 0) {
     res.status(422).json({ error: "No employees with salary configured." });
     return;
   }
-  const users  = await db.select().from(usersTable);
+  const users  = await db.select().from(usersTable).where(firmScope(usersTable));
   const um     = new Map(users.map(u => [u.id, u]));
 
   // Insert run (unique constraint catches duplicates)
@@ -402,7 +425,7 @@ router.post("/hr/payroll/run", async (req, res): Promise<void> => {
   try {
     const [r] = await db
       .insert(hrPayrollRunsTable)
-      .values({ month, year, runBy: mgr, status: "draft" })
+      .values({ ...firmValues(), month, year, runBy: mgr, status: "draft" })
       .returning();
     run = r;
   } catch {
@@ -416,6 +439,7 @@ router.post("/hr/payroll/run", async (req, res): Promise<void> => {
     const [slip] = await db
       .insert(hrPayslipsTable)
       .values({
+          ...firmValues(),
         runId:           run.id,
         userId:          profile.userId,
         grossSalary:     result.grossSalary,
@@ -441,8 +465,12 @@ router.get("/hr/payroll/runs/:runId/payslips", async (req, res): Promise<void> =
   if (await requireMgr(req, res) == null) return;
   const runId = parseInt([req.params.runId].flat()[0] ?? "", 10);
   if (Number.isNaN(runId)) { res.status(400).json({ error: "Invalid runId" }); return; }
-  const slips = await db.select().from(hrPayslipsTable).where(eq(hrPayslipsTable.runId, runId));
-  const users = await db.select().from(usersTable);
+  const [run] = await db.select({ id: hrPayrollRunsTable.id }).from(hrPayrollRunsTable)
+    .where(and(eq(hrPayrollRunsTable.id, runId), firmScope(hrPayrollRunsTable)));
+  if (!run) { res.status(404).json({ error: "Payroll run not found." }); return; }
+  const slips = await db.select().from(hrPayslipsTable)
+    .where(and(eq(hrPayslipsTable.runId, runId), firmScope(hrPayslipsTable)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const um    = new Map(users.map(u => [u.id, u]));
   res.json({ payslips: slips.map(s => ({ ...s, userName: um.get(s.userId)?.name ?? "?" })) });
 });
@@ -467,8 +495,8 @@ router.get("/hr/payroll/payslips/:id/pdf", async (req, res): Promise<void> => {
 router.get("/hr/me/profile", async (req, res): Promise<void> => {
   const uid = await requireMgr(req, res);
   if (uid == null) return;
-  const [profile] = await db.select().from(hrProfilesTable).where(eq(hrProfilesTable.userId, uid));
-  const [user]    = await db.select().from(usersTable).where(eq(usersTable.id, uid));
+  const [profile] = await db.select().from(hrProfilesTable).where(and(eq(hrProfilesTable.userId, uid), firmScope(hrProfilesTable)));
+  const [user]    = await db.select().from(usersTable).where(and(eq(usersTable.id, uid), firmScope(usersTable)));
   if (!user) { res.status(404).json({ error: "User not found." }); return; }
   res.json({ user, profile: profile ?? null });
 });
@@ -477,10 +505,10 @@ router.get("/hr/me/profile", async (req, res): Promise<void> => {
 router.get("/hr/me/leave", async (req, res): Promise<void> => {
   const uid = await requireMgr(req, res);
   if (uid == null) return;
-  const requests = await db.select().from(hrLeaveRequestsTable).where(eq(hrLeaveRequestsTable.userId, uid));
+  const requests = await db.select().from(hrLeaveRequestsTable).where(and(eq(hrLeaveRequestsTable.userId, uid), firmScope(hrLeaveRequestsTable)));
   const year = new Date().getFullYear();
   const balances = await db.select().from(hrLeaveEntitlementsTable)
-    .where(and(eq(hrLeaveEntitlementsTable.userId, uid), eq(hrLeaveEntitlementsTable.year, year)));
+    .where(and(firmScope(hrLeaveEntitlementsTable), eq(hrLeaveEntitlementsTable.userId, uid), eq(hrLeaveEntitlementsTable.year, year)));
   res.json({ requests, balances });
 });
 
@@ -500,6 +528,7 @@ router.post("/hr/me/leave", async (req, res): Promise<void> => {
   const [row] = await db
     .insert(hrLeaveRequestsTable)
     .values({
+      ...firmValues(),
       userId:        uid,           // server-derived from session, not client-supplied
       leaveType:     b.data.leaveType,
       startDate:     b.data.startDate,
@@ -521,7 +550,7 @@ router.get("/hr/me/attendance", async (req, res): Promise<void> => {
   const year  = (req.query.year as string) ?? String(now.getFullYear());
   const prefix = `${year}-${month}`;
   const records = await db.select().from(hrAttendanceTable)
-    .where(and(eq(hrAttendanceTable.userId, uid), sql`work_date LIKE ${prefix + "-%"}`));
+    .where(and(firmScope(hrAttendanceTable), eq(hrAttendanceTable.userId, uid), sql`work_date LIKE ${prefix + "-%"}`));
   res.json({ records });
 });
 
@@ -529,8 +558,8 @@ router.get("/hr/me/attendance", async (req, res): Promise<void> => {
 router.get("/hr/me/payslips", async (req, res): Promise<void> => {
   const uid = await requireMgr(req, res);
   if (uid == null) return;
-  const slips = await db.select().from(hrPayslipsTable).where(eq(hrPayslipsTable.userId, uid));
-  const runs  = await db.select().from(hrPayrollRunsTable);
+  const slips = await db.select().from(hrPayslipsTable).where(and(eq(hrPayslipsTable.userId, uid), firmScope(hrPayslipsTable)));
+  const runs  = await db.select().from(hrPayrollRunsTable).where(firmScope(hrPayrollRunsTable));
   const rm    = new Map(runs.map(r => [r.id, r]));
   res.json({ payslips: slips.map(s => ({ ...s, run: rm.get(s.runId) ?? null })) });
 });
@@ -557,7 +586,7 @@ async function servePayslipPDF(
   const id = parseInt(rawId, 10);
   if (Number.isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const [slip] = await db.select().from(hrPayslipsTable).where(eq(hrPayslipsTable.id, id));
+  const [slip] = await db.select().from(hrPayslipsTable).where(and(eq(hrPayslipsTable.id, id), firmScope(hrPayslipsTable)));
   if (!slip) { res.status(404).json({ error: "Payslip not found." }); return; }
 
   // Ownership gate for self-service downloads.
@@ -565,9 +594,10 @@ async function servePayslipPDF(
     res.status(403).json({ error: "You can only download your own payslips." });
     return;
   }
-  const [run]  = await db.select().from(hrPayrollRunsTable).where(eq(hrPayrollRunsTable.id, slip.runId));
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, slip.userId));
-  const [profile] = await db.select().from(hrProfilesTable).where(eq(hrProfilesTable.userId, slip.userId));
+  const [run]  = await db.select().from(hrPayrollRunsTable).where(and(eq(hrPayrollRunsTable.id, slip.runId), firmScope(hrPayrollRunsTable)));
+  if (!run) { res.status(404).json({ error: "Payroll run not found." }); return; }
+  const [user] = await db.select().from(usersTable).where(and(eq(usersTable.id, slip.userId), firmScope(usersTable)));
+  const [profile] = await db.select().from(hrProfilesTable).where(and(eq(hrProfilesTable.userId, slip.userId), firmScope(hrProfilesTable)));
 
   const buf = await generatePayslipPDF({
     firmName:         "MyLawFirmAi",

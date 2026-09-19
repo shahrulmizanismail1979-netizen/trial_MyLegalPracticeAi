@@ -22,6 +22,7 @@ export const ManagerLoginBody = zod.object({
 export const ManagerLoginResponse = zod.object({
   "manager": zod.boolean(),
   "staff": zod.boolean(),
+  "workspaceId": zod.number().optional(),
   "user": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -52,6 +53,7 @@ export const StaffLoginBody = zod.object({
 export const StaffLoginResponse = zod.object({
   "manager": zod.boolean(),
   "staff": zod.boolean(),
+  "workspaceId": zod.number().optional(),
   "user": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -74,6 +76,7 @@ export const StaffLoginResponse = zod.object({
 export const ManagerLogoutResponse = zod.object({
   "manager": zod.boolean(),
   "staff": zod.boolean(),
+  "workspaceId": zod.number().optional(),
   "user": zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -96,6 +99,7 @@ export const ManagerLogoutResponse = zod.object({
 export const GetManagerSessionResponse = zod.object({
   "manager": zod.boolean(),
   "staff": zod.boolean(),
+  "workspaceId": zod.number().optional(),
   "user": zod.object({
   "id": zod.number(),
   "name": zod.string(),

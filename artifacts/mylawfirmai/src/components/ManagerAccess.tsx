@@ -19,9 +19,13 @@ import {
 import { ShieldCheck, Lock, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useT } from "@/lib/i18n";
+import {
+  sendManagerSetupCode,
+  verifyManagerSetupCode,
+} from "@/lib/firm-auth-api";
 
 export function ManagerAccess() {
-  const { currentUser, setCurrentUser, isManager } = useAuth();
+  const { currentUser, setCurrentUser, isManager, workspaceId, refreshSession } = useAuth();
   const { data: users } = useListUsers();
   const { mutateAsync: managerLogin, isPending: loggingIn } = useManagerLogin();
   const { mutateAsync: managerLogout } = useManagerLogout();
@@ -29,6 +33,12 @@ export function ManagerAccess() {
   const [open, setOpen] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState(false);
+  const [setup, setSetup] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [setupError, setSetupError] = useState("");
+  const [setupPending, setSetupPending] = useState(false);
 
   // The passcode is verified server-side, which mints a signed httpOnly manager
   // session cookie. The browser never decides manager status on its own.
@@ -44,6 +54,7 @@ export function ManagerAccess() {
       }
 
       setCurrentUser(res.user);
+      await refreshSession();
       setOpen(false);
       setPasscode("");
       setError(false);
@@ -56,12 +67,43 @@ export function ManagerAccess() {
   const handleExit = async () => {
     try {
       await managerLogout();
+      await refreshSession();
     } catch {
-      // Best-effort: still drop the local manager identity below.
+      toast.error("Could not exit manager mode. Please try again.");
+      return;
     }
-    const staff = users?.find((u) => u.role !== "manager") ?? null;
-    setCurrentUser(staff);
     toast.success(t("manager.locked"));
+  };
+
+  const sendSetupCode = async () => {
+    setSetupPending(true);
+    setSetupError("");
+    try {
+      await sendManagerSetupCode();
+      setCodeSent(true);
+      toast.success("Verification code sent to the firm's registered email.");
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : "Could not send the code.");
+    } finally {
+      setSetupPending(false);
+    }
+  };
+
+  const saveManagerPassword = async () => {
+    setSetupPending(true);
+    setSetupError("");
+    try {
+      await verifyManagerSetupCode(verificationCode, newPassword);
+      setSetup(false);
+      setCodeSent(false);
+      setVerificationCode("");
+      setNewPassword("");
+      toast.success("Manager password updated. Sign in with the new password.");
+    } catch (err) {
+      setSetupError(err instanceof Error ? err.message : "Could not update the password.");
+    } finally {
+      setSetupPending(false);
+    }
   };
 
   if (isManager) {
@@ -97,14 +139,21 @@ export function ManagerAccess() {
 
   return (
     <>
-      <Button
-        className="w-full justify-center h-12 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md ring-1 ring-primary/30 jewel-gradient"
-        onClick={() => setOpen(true)}
-      >
-        <ShieldCheck className="w-4 h-4 mr-2" />
-        {t("manager.enter")}
-        <Lock className="w-3.5 h-3.5 ml-2 opacity-70" />
-      </Button>
+      <div className="space-y-2">
+        <Button
+          className="w-full justify-center h-12 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md ring-1 ring-primary/30 jewel-gradient"
+          onClick={() => setOpen(true)}
+        >
+          <ShieldCheck className="w-4 h-4 mr-2" />
+          {t("manager.enter")}
+          <Lock className="w-3.5 h-3.5 ml-2 opacity-70" />
+        </Button>
+        {workspaceId !== 0 && (
+          <Button variant="ghost" className="w-full text-xs" onClick={() => setSetup(true)}>
+            Set/reset manager password
+          </Button>
+        )}
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="rounded-2xl">
@@ -118,7 +167,6 @@ export function ManagerAccess() {
           <div className="space-y-2">
             <Input
               type="password"
-              inputMode="numeric"
               autoFocus
               value={passcode}
               placeholder={t("manager.passwordPlaceholder")}
@@ -146,6 +194,46 @@ export function ManagerAccess() {
               {t("manager.unlock")}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={setup} onOpenChange={setSetup}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Set/reset manager password</DialogTitle>
+            <DialogDescription>
+              A 6-digit code will be sent only to the registered email for this firm.
+            </DialogDescription>
+          </DialogHeader>
+          {!codeSent ? (
+            <Button onClick={sendSetupCode} disabled={setupPending}>
+              Send email code
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <Input
+                inputMode="numeric"
+                maxLength={6}
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ""))}
+                placeholder="6-digit email code"
+              />
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="New password (at least 12 characters)"
+              />
+              <Button
+                className="w-full"
+                onClick={saveManagerPassword}
+                disabled={setupPending || verificationCode.length !== 6 || newPassword.length < 12}
+              >
+                Save manager password
+              </Button>
+            </div>
+          )}
+          {setupError && <p className="text-sm text-destructive">{setupError}</p>}
         </DialogContent>
       </Dialog>
     </>

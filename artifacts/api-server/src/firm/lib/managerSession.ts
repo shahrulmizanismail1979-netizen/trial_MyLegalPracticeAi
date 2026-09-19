@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import type { Request, Response } from "express";
+import { eq } from "drizzle-orm";
+import { db, firmWorkspaceCredentialsTable } from "../db";
 import { isManagerUser } from "./goalService";
 
 /**
@@ -72,11 +74,25 @@ function sign(payload: string): string {
 
 interface SessionPayload {
   uid: number;
+  wid?: number;
+  ver?: number;
   exp: number;
 }
 
 /** Produce a signed cookie value encoding the manager user id and expiry. */
-export function signSession(uid: number): string {
+export function signSession(uid: number, workspaceId = 0, credentialVersion?: number): string {
+  const payload: SessionPayload = {
+    uid,
+    wid: workspaceId,
+    ...(credentialVersion === undefined ? {} : { ver: credentialVersion }),
+    exp: Date.now() + TTL_MS,
+  };
+  const body = base64url(JSON.stringify(payload));
+  return `${body}.${sign(body)}`;
+}
+
+/** Produce the pre-workspace token shape retained solely for owner compatibility. */
+export function signLegacySession(uid: number): string {
   const payload: SessionPayload = { uid, exp: Date.now() + TTL_MS };
   const body = base64url(JSON.stringify(payload));
   return `${body}.${sign(body)}`;
@@ -88,6 +104,23 @@ export function signSession(uid: number): string {
  * to avoid signature-timing leaks.
  */
 export function verifySession(raw: string | undefined): number | null {
+  return verifySessionIdentity(raw)?.userId ?? null;
+}
+
+export interface VerifiedFirmSession {
+  userId: number;
+  workspaceId: number;
+  credentialVersion?: number;
+}
+
+/**
+ * Verify a cookie and return its complete tenant-bound identity. Cookies issued
+ * before workspace isolation did not contain `wid`; those owner-only sessions
+ * are intentionally mapped to the legacy workspace 0.
+ */
+export function verifySessionIdentity(
+  raw: string | undefined,
+): VerifiedFirmSession | null {
   if (!raw) return null;
   const dot = raw.lastIndexOf(".");
   if (dot <= 0) return null;
@@ -104,11 +137,20 @@ export function verifySession(raw: string | undefined): number | null {
       "base64",
     ).toString("utf8");
     const parsed = JSON.parse(json) as SessionPayload;
-    if (typeof parsed.uid !== "number" || typeof parsed.exp !== "number") {
+    if (
+      typeof parsed.uid !== "number" ||
+      typeof parsed.exp !== "number" ||
+      (parsed.wid !== undefined && typeof parsed.wid !== "number") ||
+      (parsed.ver !== undefined && typeof parsed.ver !== "number")
+    ) {
       return null;
     }
     if (parsed.exp <= Date.now()) return null;
-    return parsed.uid;
+    return {
+      userId: parsed.uid,
+      workspaceId: parsed.wid ?? 0,
+      credentialVersion: parsed.ver,
+    };
   } catch {
     return null;
   }
@@ -116,8 +158,13 @@ export function verifySession(raw: string | undefined): number | null {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-export function setManagerCookie(res: Response, uid: number): void {
-  res.cookie(MANAGER_COOKIE, signSession(uid), {
+export function setManagerCookie(
+  res: Response,
+  uid: number,
+  workspaceId = 0,
+  credentialVersion?: number,
+): void {
+  res.cookie(MANAGER_COOKIE, signSession(uid, workspaceId, credentialVersion), {
     httpOnly: true,
     sameSite: "lax",
     secure: isProduction,
@@ -141,8 +188,12 @@ export function clearManagerCookie(res: Response): void {
  * Encoding the code id lets the session gate re-check active/expiry status per
  * request, so a session cannot outlive a deactivated or expired code.
  */
-export function setStaffCookie(res: Response, codeId: number = STAFF_SENTINEL): void {
-  res.cookie(STAFF_COOKIE, signSession(codeId), {
+export function setStaffCookie(
+  res: Response,
+  codeId: number = STAFF_SENTINEL,
+  workspaceId: number = codeId,
+): void {
+  res.cookie(STAFF_COOKIE, signSession(codeId, workspaceId), {
     httpOnly: true,
     sameSite: "lax",
     secure: isProduction,
@@ -163,7 +214,11 @@ export function clearStaffCookie(res: Response): void {
 function readCookie(req: Request, name: string): string | undefined {
   const cookies = (req as Request & { cookies?: Record<string, string> })
     .cookies;
-  return cookies?.[name];
+  const signedCookies = (
+    req as Request & { signedCookies?: Record<string, string | false> }
+  ).signedCookies;
+  const signed = signedCookies?.[name];
+  return typeof signed === "string" ? signed : cookies?.[name];
 }
 
 /**
@@ -195,17 +250,51 @@ export function staffSessionCodeId(req: Request): number | null {
   return verifySession(readCookie(req, STAFF_COOKIE));
 }
 
+export function staffSessionIdentity(req: Request): VerifiedFirmSession | null {
+  return verifySessionIdentity(readCookie(req, STAFF_COOKIE));
+}
+
+export function managerSessionIdentity(req: Request): VerifiedFirmSession | null {
+  return verifySessionIdentity(readCookie(req, MANAGER_COOKIE));
+}
+
+/**
+ * Resolve the sole cookie-derived workspace. A request carrying valid cookies
+ * for two different firms is rejected rather than selecting either tenant.
+ */
+export function requestFirmWorkspaceId(req: Request): number | null {
+  const staff = staffSessionIdentity(req);
+  const manager = managerSessionIdentity(req);
+  if (staff && manager && staff.workspaceId !== manager.workspaceId) return null;
+  return manager?.workspaceId ?? staff?.workspaceId ?? null;
+}
+
+export function hasMixedTenantCookies(req: Request): boolean {
+  const staff = staffSessionIdentity(req);
+  const manager = managerSessionIdentity(req);
+  return Boolean(staff && manager && staff.workspaceId !== manager.workspaceId);
+}
+
 /** True if the caller holds a valid (signature+expiry) manager cookie. */
 export function hasManagerCookie(req: Request): boolean {
-  return verifySession(readCookie(req, MANAGER_COOKIE)) != null;
+  return managerSessionIdentity(req) != null;
 }
 
 export async function requireManagerSession(
   req: Request,
 ): Promise<number | null> {
   const raw = readCookie(req, MANAGER_COOKIE);
-  const uid = verifySession(raw);
-  if (uid == null) return null;
-  const ok = await isManagerUser(uid);
-  return ok ? uid : null;
+  const identity = verifySessionIdentity(raw);
+  if (!identity || hasMixedTenantCookies(req)) return null;
+  if (identity.workspaceId > 0) {
+    if (identity.credentialVersion === undefined) return null;
+    const [credential] = await db
+      .select({ version: firmWorkspaceCredentialsTable.credentialVersion })
+      .from(firmWorkspaceCredentialsTable)
+      .where(eq(firmWorkspaceCredentialsTable.workspaceId, identity.workspaceId))
+      .limit(1);
+    if (!credential || credential.version !== identity.credentialVersion) return null;
+  }
+  const ok = await isManagerUser(identity.userId);
+  return ok ? identity.userId : null;
 }

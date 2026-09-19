@@ -140,6 +140,13 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
 
+    // MyLawFirmAI objects have their own access-code/workspace boundary. The
+    // platform-wide staff route must never provide a second way around it.
+    if (objectPath.startsWith("/objects/firm/")) {
+      res.status(404).json({ error: "Object not found" });
+      return;
+    }
+
     // A landing master session may review contribution originals, but only
     // when the object is explicitly registered as a contribution. It must
     // never become a general private-object reader or an editorial identity.

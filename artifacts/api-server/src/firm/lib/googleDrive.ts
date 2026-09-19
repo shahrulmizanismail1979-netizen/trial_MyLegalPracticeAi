@@ -1,6 +1,7 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { logger } from "./logger";
 import { ObjectStorageService } from "./objectStorage";
+import { currentFirmWorkspaceId } from "./workspace";
 
 // Google Drive sync (Replit connector). Auth + token refresh are injected by
 // the connectors proxy; never read a raw API key or OAuth token here.
@@ -58,6 +59,11 @@ export async function uploadToDrive(
   fileName: string,
   mimeType: string,
 ): Promise<{ id: string }> {
+  // This is the platform owner's connector, not a subscriber firm's Drive.
+  // Local uploads must never be copied to another workspace's remote account.
+  if (currentFirmWorkspaceId() !== 0) {
+    throw new Error("The owner's Google Drive connection is not available to this firm workspace.");
+  }
   try {
     return await uploadOnce(buffer, fileName, mimeType, await ensureFolder());
   } catch (err) {
@@ -104,6 +110,7 @@ export function syncToDrive(
   mimeType: string,
   context: Record<string, unknown> = {},
 ): void {
+  if (currentFirmWorkspaceId() !== 0) return;
   if (!buffer || buffer.length === 0) return;
   uploadToDrive(buffer, fileName, mimeType)
     .then((r) => {
@@ -125,6 +132,7 @@ export function syncObjectToDrive(
   mimeType: string,
   context: Record<string, unknown> = {},
 ): void {
+  if (currentFirmWorkspaceId() !== 0) return;
   (async () => {
     const storage = new ObjectStorageService();
     const file = await storage.getObjectEntityFile(objectPath);

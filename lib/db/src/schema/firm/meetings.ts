@@ -35,6 +35,7 @@ export type MeetingMinutes = {
 
 export const meetingsTable = pgTable("firm_meetings", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").notNull().default(0),
   title: text("title").notNull(),
   lang: text("lang").notNull().default("en"),
   segments: jsonb("segments").$type<MeetingSegment[]>().notNull().default([]),

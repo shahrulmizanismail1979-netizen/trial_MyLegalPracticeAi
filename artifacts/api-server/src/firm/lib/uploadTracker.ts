@@ -1,74 +1,128 @@
-/**
- * In-memory tracker for presigned upload URLs that have been issued but not
- * yet claimed (i.e. the corresponding evidence record has not been saved).
- *
- * Purpose: prevent storage abuse by limiting how many unclaimed upload slots
- * a single user can hold open at once.  A URL is considered "claimed" when
- * the evidence route that calls markUploadClaimed() completes.  Entries older
- * than PENDING_TTL_MS are evicted automatically on the next call per user.
- *
- * This tracker is intentionally in-memory — unclaimed URLs expire naturally
- * (presigned URLs have their own TTL on the storage side) and restarting the
- * server evicts all pending entries, which is acceptable.
- */
+import { pool } from "@workspace/db";
+import { sql, type SQL } from "drizzle-orm";
 
+/**
+ * Persistent, single-use grants for firm evidence uploads.
+ *
+ * The table is shared with the case portals. Firm rows are isolated by their
+ * portal, purpose and owner key, so a grant from another product (or user)
+ * cannot be consumed here.
+ */
 export const MAX_PENDING_PER_USER = 5;
-const PENDING_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const PORTAL = "firm";
+const PURPOSE = "firm-evidence";
+const PENDING_TTL_MINUTES = 30;
 
-interface PendingEntry {
-  objectPath: string;
-  issuedAt: number;
-}
-
-const pendingUploads = new Map<number, PendingEntry[]>();
-
-/**
- * Record that a presigned upload URL was issued for the given user/objectPath.
- * Call this immediately after minting the upload URL.
- */
-export function trackPendingUpload(userId: number, objectPath: string): void {
-  const entries = pendingUploads.get(userId) ?? [];
-  entries.push({ objectPath, issuedAt: Date.now() });
-  pendingUploads.set(userId, entries);
+function ownerKey(workspaceId: number, userId: number): string {
+  return `${workspaceId}:${userId}`;
 }
 
 /**
- * Remove entries that have exceeded the TTL for the given user.
- * Call this before checking getPendingCount() to ensure stale entries are
- * not counted against the user's limit.
+ * Atomically reserve one of the uploader's pending slots.
+ *
+ * The transaction-scoped advisory lock makes the count-and-insert sequence
+ * safe across processes and autoscaled instances. Returns false when the cap
+ * has already been reached.
  */
-export async function cleanupStaleUploads(userId: number): Promise<void> {
-  const entries = pendingUploads.get(userId);
-  if (!entries) return;
-  const now = Date.now();
-  const fresh = entries.filter((e) => now - e.issuedAt < PENDING_TTL_MS);
-  if (fresh.length === 0) {
-    pendingUploads.delete(userId);
-  } else {
-    pendingUploads.set(userId, fresh);
+export async function trackPendingUpload(
+  workspaceId: number,
+  userId: number,
+  objectPath: string,
+): Promise<boolean> {
+  const owner = ownerKey(workspaceId, userId);
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+      [`${PORTAL}:${PURPOSE}:${owner}`],
+    );
+    const countResult = await client.query<{ pending_count: string }>(
+      `SELECT count(*)::text AS pending_count
+         FROM case_pending_uploads
+        WHERE portal = $1 AND owner_key = $2 AND purpose = $3
+          AND status = 'pending' AND expires_at > now()`,
+      [PORTAL, owner, PURPOSE],
+    );
+    if (Number(countResult.rows[0]?.pending_count ?? 0) >= MAX_PENDING_PER_USER) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    const inserted = await client.query(
+      `INSERT INTO case_pending_uploads
+         (portal, owner_key, object_path, purpose, status, expires_at)
+       VALUES ($1, $2, $3, $4, 'pending',
+               now() + ($5 * interval '1 minute'))
+       ON CONFLICT (object_path) DO NOTHING`,
+      [PORTAL, owner, objectPath, PURPOSE, PENDING_TTL_MINUTES],
+    );
+    if (inserted.rowCount !== 1) {
+      throw new Error("Could not persist the firm upload grant.");
+    }
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
   }
 }
 
-/**
- * Return the number of active (non-expired) pending upload entries for a user.
- * Always call cleanupStaleUploads() first.
- */
-export function getPendingCount(userId: number): number {
-  return pendingUploads.get(userId)?.length ?? 0;
+/** Remove only expired grant rows; backing objects are handled elsewhere. */
+export async function cleanupStaleUploads(
+  workspaceId: number,
+  userId: number,
+): Promise<void> {
+  await pool.query(
+    `DELETE FROM case_pending_uploads
+      WHERE portal = $1 AND owner_key = $2 AND purpose = $3
+        AND status = 'pending' AND expires_at <= now()`,
+    [PORTAL, ownerKey(workspaceId, userId), PURPOSE],
+  );
 }
 
+/** Query the live database so process restarts cannot reset the pending cap. */
+export async function getPendingCount(
+  workspaceId: number,
+  userId: number,
+): Promise<number> {
+  const result = await pool.query<{ pending_count: string }>(
+    `SELECT count(*)::text AS pending_count
+       FROM case_pending_uploads
+      WHERE portal = $1 AND owner_key = $2 AND purpose = $3
+        AND status = 'pending' AND expires_at > now()`,
+    [PORTAL, ownerKey(workspaceId, userId), PURPOSE],
+  );
+  return Number(result.rows[0]?.pending_count ?? 0);
+}
+
+type GrantTransaction = {
+  execute(query: SQL): Promise<unknown>;
+};
+
 /**
- * Mark an upload as claimed (the evidence record has been persisted).
- * Call this from the evidence creation route after successfully saving the
- * evidence record so the slot is freed immediately rather than waiting for TTL.
+ * Consume an exact, unexpired grant using the caller's transaction.
+ *
+ * Callers must insert the evidence row in that same transaction. If their
+ * insert fails, PostgreSQL rolls this DELETE back and the grant remains usable.
  */
-export function markUploadClaimed(userId: number, objectPath: string): void {
-  const entries = pendingUploads.get(userId);
-  if (!entries) return;
-  const filtered = entries.filter((e) => e.objectPath !== objectPath);
-  if (filtered.length === 0) {
-    pendingUploads.delete(userId);
-  } else {
-    pendingUploads.set(userId, filtered);
-  }
+export async function markUploadClaimed(
+  tx: GrantTransaction,
+  workspaceId: number,
+  userId: number,
+  objectPath: string,
+): Promise<boolean> {
+  const result = await tx.execute(sql`
+    DELETE FROM case_pending_uploads
+     WHERE portal = ${PORTAL}
+       AND owner_key = ${ownerKey(workspaceId, userId)}
+       AND purpose = ${PURPOSE}
+       AND status = 'pending'
+       AND object_path = ${objectPath}
+       AND expires_at > now()
+     RETURNING id
+  `);
+  return ((result as { rows?: unknown[] }).rows?.length ?? 0) === 1;
 }

@@ -12,6 +12,7 @@ import {
   taskCollaboratorsTable,
   taskActivityTable,
   usersTable,
+  goalsTable,
 } from "../db";
 import {
   CreateTaskBody,
@@ -71,6 +72,15 @@ import {
   firstManager,
 } from "../lib/taskService";
 import { sendNudge, notifyManager } from "../lib/notifications";
+import {
+  currentFirmWorkspaceId,
+  firmScope,
+  firmValues,
+} from "../lib/workspace";
+import { markUploadClaimed } from "../lib/uploadTracker";
+import {
+  isFirmUploadObjectPath,
+} from "../lib/storageTokens";
 
 const router: IRouter = Router();
 
@@ -113,7 +123,20 @@ async function logActivity(
     actorId: actorId ?? null,
     action,
     meta: meta ?? null,
+    ...firmValues(),
   });
+}
+
+async function validateUserReferences(
+  ids: Array<number | null | undefined>,
+): Promise<boolean> {
+  const wanted = [...new Set(ids.filter((id): id is number => id != null))];
+  if (wanted.length === 0) return true;
+  const rows = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(inArray(usersTable.id, wanted), firmScope(usersTable)));
+  return rows.length === wanted.length;
 }
 
 // List tasks with filters
@@ -143,7 +166,12 @@ router.get("/tasks", async (req, res): Promise<void> => {
       const collabTaskIds = await db
         .select({ taskId: taskCollaboratorsTable.taskId })
         .from(taskCollaboratorsTable)
-        .where(eq(taskCollaboratorsTable.userId, memberId));
+        .where(
+          and(
+            eq(taskCollaboratorsTable.userId, memberId),
+            firmScope(taskCollaboratorsTable),
+          ),
+        );
       const ids = collabTaskIds.map((r) => r.taskId);
       const memberCond =
         ids.length > 0
@@ -160,7 +188,8 @@ router.get("/tasks", async (req, res): Promise<void> => {
     conditions.push(eq(tasksTable.archived, false));
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  conditions.push(firmScope(tasksTable));
+  const where = and(...conditions);
   const tasks = await db
     .select()
     .from(tasksTable)
@@ -181,6 +210,26 @@ router.post("/tasks", async (req, res): Promise<void> => {
     return;
   }
 
+  const suppliedUsers = [
+    parsed.data.ownerId,
+    parsed.data.createdById,
+    ...(parsed.data.collaboratorIds ?? []),
+  ];
+  if (!(await validateUserReferences(suppliedUsers))) {
+    res.status(400).json({ error: "A referenced user does not belong to this workspace." });
+    return;
+  }
+  if (parsed.data.goalId != null) {
+    const [goal] = await db
+      .select({ id: goalsTable.id })
+      .from(goalsTable)
+      .where(and(eq(goalsTable.id, parsed.data.goalId), firmScope(goalsTable)));
+    if (!goal) {
+      res.status(400).json({ error: "The referenced goal does not belong to this workspace." });
+      return;
+    }
+  }
+
   const [task] = await db
     .insert(tasksTable)
     .values({
@@ -199,6 +248,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
       natureOfWork: parsed.data.natureOfWork ?? null,
       businessUnit: parsed.data.businessUnit ?? null,
       deliverable: parsed.data.deliverable ?? null,
+      ...firmValues(),
     })
     .returning();
 
@@ -207,7 +257,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
   // repeated id can't error. Validity is bounded to existing users.
   const collaboratorIds = parsed.data.collaboratorIds ?? [];
   if (collaboratorIds.length > 0) {
-    const users = await db.select().from(usersTable);
+    const users = await db.select().from(usersTable).where(firmScope(usersTable));
     const validIds = new Set(users.map((u) => u.id));
     const toAdd = [...new Set(collaboratorIds)].filter(
       (uid) => validIds.has(uid) && uid !== task.ownerId,
@@ -220,10 +270,12 @@ router.post("/tasks", async (req, res): Promise<void> => {
             taskId: task.id,
             userId: uid,
             addedById: parsed.data.createdById ?? null,
+            ...firmValues(),
           })),
         )
         .onConflictDoNothing({
           target: [
+            taskCollaboratorsTable.workspaceId,
             taskCollaboratorsTable.taskId,
             taskCollaboratorsTable.userId,
           ],
@@ -297,6 +349,22 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (
+    !(await validateUserReferences([parsed.data.ownerId, parsed.data.actingUserId]))
+  ) {
+    res.status(400).json({ error: "A referenced user does not belong to this workspace." });
+    return;
+  }
+  if (parsed.data.goalId != null) {
+    const [goal] = await db
+      .select({ id: goalsTable.id })
+      .from(goalsTable)
+      .where(and(eq(goalsTable.id, parsed.data.goalId), firmScope(goalsTable)));
+    if (!goal) {
+      res.status(400).json({ error: "The referenced goal does not belong to this workspace." });
+      return;
+    }
+  }
 
   const updates: Record<string, unknown> = {};
   const d = parsed.data;
@@ -334,7 +402,7 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
   const [task] = await db
     .update(tasksTable)
     .set(updates)
-    .where(eq(tasksTable.id, params.data.id))
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)))
     .returning();
 
   // Record an audit trail of what changed, for accountability under the
@@ -428,10 +496,14 @@ router.delete("/tasks/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([body.data.actingUserId]))) {
+    res.status(400).json({ error: "The acting user does not belong to this workspace." });
+    return;
+  }
   const [task] = await db
     .update(tasksTable)
     .set({ archived: true })
-    .where(eq(tasksTable.id, params.data.id))
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)))
     .returning();
   await logActivity(task.id, body.data.actingUserId ?? null, "archived");
   res.json(await serializeOne(task, new Date()));
@@ -455,6 +527,10 @@ router.post("/tasks/:id/acknowledge", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([parsed.data.actingUserId]))) {
+    res.status(400).json({ error: "The acting user does not belong to this workspace." });
+    return;
+  }
   const now = new Date();
   const newStatus = existing.status === "todo" ? "acknowledged" : existing.status;
   const [task] = await db
@@ -463,7 +539,7 @@ router.post("/tasks/:id/acknowledge", async (req, res): Promise<void> => {
       acknowledgedAt: existing.acknowledgedAt ?? now,
       status: newStatus,
     })
-    .where(eq(tasksTable.id, params.data.id))
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)))
     .returning();
 
   const actorId = parsed.data.actingUserId ?? null;
@@ -472,6 +548,7 @@ router.post("/tasks/:id/acknowledge", async (req, res): Promise<void> => {
       taskId: task.id,
       authorId: actorId,
       body: "Acknowledged this task.",
+      ...firmValues(),
     });
   }
 
@@ -504,6 +581,10 @@ router.post("/tasks/:id/status", async (req, res): Promise<void> => {
   const existing = await loadTask(params.data.id);
   if (!existing) {
     res.status(404).json({ error: "Task not found" });
+    return;
+  }
+  if (!(await validateUserReferences([parsed.data.actingUserId]))) {
+    res.status(400).json({ error: "The acting user does not belong to this workspace." });
     return;
   }
 
@@ -552,7 +633,7 @@ router.post("/tasks/:id/status", async (req, res): Promise<void> => {
   const [task] = await db
     .update(tasksTable)
     .set(patch)
-    .where(eq(tasksTable.id, params.data.id))
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)))
     .returning();
 
   const actorId = parsed.data.actingUserId ?? null;
@@ -561,6 +642,7 @@ router.post("/tasks/:id/status", async (req, res): Promise<void> => {
       taskId: task.id,
       authorId: actorId,
       body: parsed.data.note.trim(),
+      ...firmValues(),
     });
   }
 
@@ -598,7 +680,12 @@ router.get("/tasks/:id/assessment", async (req, res): Promise<void> => {
   const [row] = await db
     .select()
     .from(taskAssessmentsTable)
-    .where(eq(taskAssessmentsTable.taskId, params.data.id));
+    .where(
+      and(
+        eq(taskAssessmentsTable.taskId, params.data.id),
+        firmScope(taskAssessmentsTable),
+      ),
+    );
   if (!row) {
     res.json(GetTaskAssessmentResponse.parse(null));
     return;
@@ -636,6 +723,10 @@ router.put("/tasks/:id/assessment", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([raterId]))) {
+    res.status(403).json({ error: "Manager does not belong to this workspace." });
+    return;
+  }
   if (task.status !== "done") {
     res
       .status(400)
@@ -653,9 +744,13 @@ router.put("/tasks/:id/assessment", async (req, res): Promise<void> => {
       creativityScore: parsed.data.creativityScore,
       note: parsed.data.note ?? null,
       updatedAt: now,
+      ...firmValues(),
     })
     .onConflictDoUpdate({
-      target: taskAssessmentsTable.taskId,
+      target: [
+        taskAssessmentsTable.workspaceId,
+        taskAssessmentsTable.taskId,
+      ],
       set: {
         raterId,
         qualityScore: parsed.data.qualityScore,
@@ -682,10 +777,15 @@ async function loadCollaborators(
   const rows = await db
     .select()
     .from(taskCollaboratorsTable)
-    .where(eq(taskCollaboratorsTable.taskId, taskId))
+    .where(
+      and(
+        eq(taskCollaboratorsTable.taskId, taskId),
+        firmScope(taskCollaboratorsTable),
+      ),
+    )
     .orderBy(taskCollaboratorsTable.createdAt);
   if (rows.length === 0) return [];
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const namesById = new Map<number, string>(users.map((u) => [u.id, u.name]));
   return rows.map((r) => ({
     userId: r.userId,
@@ -730,15 +830,24 @@ router.post("/tasks/:id/collaborators", async (req, res): Promise<void> => {
     res.status(400).json({ error: "That user does not exist." });
     return;
   }
+  if (!(await validateUserReferences([parsed.data.actingUserId]))) {
+    res.status(400).json({ error: "The acting user does not belong to this workspace." });
+    return;
+  }
   const inserted = await db
     .insert(taskCollaboratorsTable)
     .values({
       taskId: params.data.id,
       userId: parsed.data.userId,
       addedById: parsed.data.actingUserId ?? null,
+      ...firmValues(),
     })
     .onConflictDoNothing({
-      target: [taskCollaboratorsTable.taskId, taskCollaboratorsTable.userId],
+      target: [
+        taskCollaboratorsTable.workspaceId,
+        taskCollaboratorsTable.taskId,
+        taskCollaboratorsTable.userId,
+      ],
     })
     .returning();
   // Only log when a row was actually added (a duplicate is a no-op).
@@ -760,10 +869,23 @@ router.delete(
       return;
     }
     const body = RemoveTaskCollaboratorBody.safeParse(req.body ?? {});
-    const actorId = body.success ? (body.data.actingUserId ?? null) : null;
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+    const actorId = body.data.actingUserId ?? null;
     const task = await loadTask(params.data.id);
     if (!task) {
       res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    if (
+      !(await validateUserReferences([
+        params.data.userId,
+        actorId,
+      ]))
+    ) {
+      res.status(400).json({ error: "A referenced user does not belong to this workspace." });
       return;
     }
     const removed = await db
@@ -772,6 +894,7 @@ router.delete(
         and(
           eq(taskCollaboratorsTable.taskId, params.data.id),
           eq(taskCollaboratorsTable.userId, params.data.userId),
+          firmScope(taskCollaboratorsTable),
         ),
       )
       .returning();
@@ -797,10 +920,15 @@ router.get("/tasks/:id/activity", async (req, res): Promise<void> => {
   const rows = await db
     .select()
     .from(taskActivityTable)
-    .where(eq(taskActivityTable.taskId, params.data.id))
+    .where(
+      and(
+        eq(taskActivityTable.taskId, params.data.id),
+        firmScope(taskActivityTable),
+      ),
+    )
     .orderBy(desc(taskActivityTable.createdAt));
 
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const namesById = new Map<number, string>(users.map((u) => [u.id, u.name]));
 
   const result = rows.map((r) => ({
@@ -834,6 +962,10 @@ router.post("/tasks/:id/nudge", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([parsed.data.actingUserId]))) {
+    res.status(400).json({ error: "The acting user does not belong to this workspace." });
+    return;
+  }
 
   const now = new Date();
   const owner = await loadUser(existing.ownerId);
@@ -843,7 +975,7 @@ router.post("/tasks/:id/nudge", async (req, res): Promise<void> => {
   const [task] = await db
     .update(tasksTable)
     .set({ lastNudgedAt: now })
-    .where(eq(tasksTable.id, params.data.id))
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)))
     .returning();
 
   await logActivity(task.id, parsed.data.actingUserId ?? null, "nudged", {
@@ -864,10 +996,15 @@ router.get("/tasks/:id/notes", async (req, res): Promise<void> => {
   const notes = await db
     .select()
     .from(taskNotesTable)
-    .where(eq(taskNotesTable.taskId, params.data.id))
+    .where(
+      and(
+        eq(taskNotesTable.taskId, params.data.id),
+        firmScope(taskNotesTable),
+      ),
+    )
     .orderBy(desc(taskNotesTable.createdAt));
 
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const usersById = new Map<number, string>(users.map((u) => [u.id, u.name]));
 
   const result = notes.map((note) => ({
@@ -900,6 +1037,10 @@ router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([parsed.data.authorId]))) {
+    res.status(400).json({ error: "The author does not belong to this workspace." });
+    return;
+  }
 
   const [note] = await db
     .insert(taskNotesTable)
@@ -907,6 +1048,7 @@ router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
       taskId: params.data.id,
       authorId: parsed.data.authorId ?? null,
       body: parsed.data.body,
+      ...firmValues(),
     })
     .returning();
 
@@ -914,7 +1056,7 @@ router.post("/tasks/:id/notes", async (req, res): Promise<void> => {
   await db
     .update(tasksTable)
     .set({ lastUpdatedAt: new Date() })
-    .where(eq(tasksTable.id, params.data.id));
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)));
 
   await logActivity(params.data.id, note.authorId, "note_added");
 
@@ -940,10 +1082,15 @@ router.get("/tasks/:id/attempts", async (req, res): Promise<void> => {
   const attempts = await db
     .select()
     .from(taskAttemptsTable)
-    .where(eq(taskAttemptsTable.taskId, params.data.id))
+    .where(
+      and(
+        eq(taskAttemptsTable.taskId, params.data.id),
+        firmScope(taskAttemptsTable),
+      ),
+    )
     .orderBy(desc(taskAttemptsTable.createdAt));
 
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const usersById = new Map<number, string>(users.map((u) => [u.id, u.name]));
 
   const result = attempts.map((a) => ({
@@ -975,6 +1122,10 @@ router.post("/tasks/:id/attempts", async (req, res): Promise<void> => {
   const existing = await loadTask(params.data.id);
   if (!existing) {
     res.status(404).json({ error: "Task not found" });
+    return;
+  }
+  if (!(await validateUserReferences([parsed.data.authorId]))) {
+    res.status(400).json({ error: "The author does not belong to this workspace." });
     return;
   }
 
@@ -1026,13 +1177,14 @@ router.post("/tasks/:id/attempts", async (req, res): Promise<void> => {
       authorId: parsed.data.authorId ?? null,
       body,
       source,
+      ...firmValues(),
     })
     .returning();
 
   await db
     .update(tasksTable)
     .set({ lastUpdatedAt: new Date() })
-    .where(eq(tasksTable.id, params.data.id));
+    .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)));
 
   await logActivity(params.data.id, attempt.authorId, "attempt_added", {
     source: attempt.source,
@@ -1070,10 +1222,15 @@ router.get("/tasks/:id/evidence", async (req, res): Promise<void> => {
   const evidence = await db
     .select()
     .from(taskEvidenceTable)
-    .where(eq(taskEvidenceTable.taskId, params.data.id))
+    .where(
+      and(
+        eq(taskEvidenceTable.taskId, params.data.id),
+        firmScope(taskEvidenceTable),
+      ),
+    )
     .orderBy(desc(taskEvidenceTable.createdAt));
 
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const usersById = new Map<number, string>(users.map((u) => [u.id, u.name]));
 
   const result = evidence.map((e) => ({
@@ -1109,6 +1266,10 @@ router.post("/tasks/:id/evidence", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+  if (!(await validateUserReferences([parsed.data.authorId]))) {
+    res.status(400).json({ error: "The author does not belong to this workspace." });
+    return;
+  }
 
   // Post-upload size validation: verify the GCS object exists and that its
   // actual byte count does not exceed the permitted limit. This closes the gap
@@ -1118,6 +1279,21 @@ router.post("/tasks/:id/evidence", async (req, res): Promise<void> => {
   // object before it is ever committed as a task evidence record.
   const MAX_EVIDENCE_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
   const objectSvc = new ObjectStorageService();
+  const workspaceId = currentFirmWorkspaceId();
+  const uploaderId = parsed.data.authorId ?? 0;
+  const isCurrentUpload = isFirmUploadObjectPath(
+    parsed.data.objectPath,
+    workspaceId,
+  );
+  // Existing legacy evidence rows remain readable through the storage route,
+  // but legacy object names are never accepted for a new attachment: only a
+  // current workspace-bound HMAC path plus its DB grant may be attached.
+  if (!isCurrentUpload) {
+    res.status(400).json({
+      error: "The upload was not issued for this workspace.",
+    });
+    return;
+  }
   let evidenceObjectFile;
   try {
     evidenceObjectFile = await objectSvc.getObjectEntityFile(parsed.data.objectPath);
@@ -1133,25 +1309,45 @@ router.post("/tasks/:id/evidence", async (req, res): Promise<void> => {
       res.status(400).json({ error: "Uploaded file not found in storage. The upload may have failed." });
       return;
     }
-    req.log.warn({ err }, "Could not verify uploaded file size; proceeding with attachment");
+    req.log.warn({ err }, "Could not verify uploaded file");
+    res.status(400).json({ error: "The uploaded file could not be verified." });
+    return;
   }
+  const evidence = await db.transaction(async (tx) => {
+    const claimed = await markUploadClaimed(
+      tx,
+      workspaceId,
+      uploaderId,
+      parsed.data.objectPath,
+    );
+    if (!claimed) return null;
 
-  const [evidence] = await db
-    .insert(taskEvidenceTable)
-    .values({
-      taskId: params.data.id,
-      authorId: parsed.data.authorId ?? null,
-      objectPath: parsed.data.objectPath,
-      fileName: parsed.data.fileName,
-      contentType: parsed.data.contentType ?? null,
-      fileSize: parsed.data.fileSize ?? null,
-    })
-    .returning();
+    const [inserted] = await tx
+      .insert(taskEvidenceTable)
+      .values({
+        taskId: params.data.id,
+        authorId: parsed.data.authorId ?? null,
+        objectPath: parsed.data.objectPath,
+        fileName: parsed.data.fileName,
+        contentType: parsed.data.contentType ?? null,
+        fileSize: parsed.data.fileSize ?? null,
+        ...firmValues(),
+      })
+      .returning();
 
-  await db
-    .update(tasksTable)
-    .set({ lastUpdatedAt: new Date() })
-    .where(eq(tasksTable.id, params.data.id));
+    await tx
+      .update(tasksTable)
+      .set({ lastUpdatedAt: new Date() })
+      .where(and(eq(tasksTable.id, params.data.id), firmScope(tasksTable)));
+    return inserted;
+  });
+  if (!evidence) {
+    res.status(400).json({
+      error:
+        "The upload token is expired, already consumed, or belongs to another uploader.",
+    });
+    return;
+  }
 
   await logActivity(params.data.id, evidence.authorId, "evidence_added", {
     target: evidence.fileName,
@@ -1172,6 +1368,7 @@ router.post("/tasks/:id/evidence", async (req, res): Promise<void> => {
   if (evidence.authorId != null) {
     const aclPolicy: ObjectAclPolicy = {
       owner: String(evidence.authorId),
+      workspaceId,
       visibility: "private",
     };
     (async () => {
@@ -1228,6 +1425,10 @@ router.delete("/tasks/:id/evidence/:evidenceId", async (req, res): Promise<void>
     res.status(403).json({ error: "Only managers can remove evidence." });
     return;
   }
+  if (!(await validateUserReferences([removerId]))) {
+    res.status(403).json({ error: "Manager does not belong to this workspace." });
+    return;
+  }
 
   const [deleted] = await db
     .delete(taskEvidenceTable)
@@ -1235,6 +1436,7 @@ router.delete("/tasks/:id/evidence/:evidenceId", async (req, res): Promise<void>
       and(
         eq(taskEvidenceTable.id, params.data.evidenceId),
         eq(taskEvidenceTable.taskId, params.data.id),
+        firmScope(taskEvidenceTable),
       ),
     )
     .returning();

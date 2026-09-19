@@ -1,4 +1,4 @@
-import { inArray, eq, desc } from "drizzle-orm";
+import { and, inArray, eq, desc } from "drizzle-orm";
 import {
   db,
   tasksTable,
@@ -11,6 +11,7 @@ import {
   type TaskNote,
 } from "../db";
 import { serializeTask, type SerializedTask } from "./taskLogic";
+import { firmScope } from "./workspace";
 
 type Collaborator = { userId: number; name: string | null };
 
@@ -37,17 +38,17 @@ async function buildContext(tasks: Task[]): Promise<{
     };
   }
 
-  const allUsers = await db.select().from(usersTable);
+  const allUsers = await db.select().from(usersTable).where(firmScope(usersTable));
   for (const u of allUsers) usersById.set(u.id, u);
 
-  const allGoals = await db.select().from(goalsTable);
+  const allGoals = await db.select().from(goalsTable).where(firmScope(goalsTable));
   for (const g of allGoals) goalTitleById.set(g.id, g.title);
 
   const taskIds = tasks.map((t) => t.id);
   const notes = await db
     .select()
     .from(taskNotesTable)
-    .where(inArray(taskNotesTable.taskId, taskIds))
+    .where(and(inArray(taskNotesTable.taskId, taskIds), firmScope(taskNotesTable)))
     .orderBy(desc(taskNotesTable.createdAt));
 
   for (const note of notes) {
@@ -63,7 +64,7 @@ async function buildContext(tasks: Task[]): Promise<{
   const collaborators = await db
     .select()
     .from(taskCollaboratorsTable)
-    .where(inArray(taskCollaboratorsTable.taskId, taskIds))
+    .where(and(inArray(taskCollaboratorsTable.taskId, taskIds), firmScope(taskCollaboratorsTable)))
     .orderBy(taskCollaboratorsTable.createdAt);
 
   for (const c of collaborators) {
@@ -117,13 +118,19 @@ export async function serializeOne(
 }
 
 export async function loadTask(id: number): Promise<Task | undefined> {
-  const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+  const [task] = await db
+    .select()
+    .from(tasksTable)
+    .where(and(eq(tasksTable.id, id), firmScope(tasksTable)));
   return task;
 }
 
 export async function loadUser(id: number | null): Promise<User | null> {
   if (id == null) return null;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.id, id), firmScope(usersTable)));
   return user ?? null;
 }
 
@@ -131,6 +138,6 @@ export async function firstManager(): Promise<User | null> {
   const [manager] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.role, "manager"));
+    .where(and(eq(usersTable.role, "manager"), firmScope(usersTable)));
   return manager ?? null;
 }

@@ -7,10 +7,10 @@ import {
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import {
   trackPendingUpload,
-  cleanupStaleUploads,
-  getPendingCount,
-  MAX_PENDING_PER_USER,
 } from "../lib/uploadTracker";
+import { and, eq } from "drizzle-orm";
+import { db, taskEvidenceTable } from "../db";
+import { currentFirmWorkspaceId, firmScope } from "../lib/workspace";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -18,18 +18,19 @@ const objectStorageService = new ObjectStorageService();
 // Per-user sliding-window rate limit for upload URL minting.
 // Bounds the blast radius even when a session is valid: at most
 // UPLOAD_RATE_MAX signed PUT URLs per UPLOAD_RATE_WINDOW_MS per user.
-const uploadRateLimiter = new Map<number, number[]>();
+const uploadRateLimiter = new Map<string, number[]>();
 const UPLOAD_RATE_WINDOW_MS = 60_000;
 const UPLOAD_RATE_MAX = 10;
 
-function checkUploadRateLimit(userId: number): boolean {
+function checkUploadRateLimit(workspaceId: number, userId: number): boolean {
+  const key = `${workspaceId}:${userId}`;
   const now = Date.now();
-  const timestamps = (uploadRateLimiter.get(userId) ?? []).filter(
+  const timestamps = (uploadRateLimiter.get(key) ?? []).filter(
     (t) => now - t < UPLOAD_RATE_WINDOW_MS,
   );
   if (timestamps.length >= UPLOAD_RATE_MAX) return false;
   timestamps.push(now);
-  uploadRateLimiter.set(userId, timestamps);
+  uploadRateLimiter.set(key, timestamps);
   return true;
 }
 
@@ -72,8 +73,9 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
   // session; actingUserId is used only for attribution and per-user abuse
   // bounding (rate limit + pending-upload cap).
   const uploaderId = actingUserId;
+  const workspaceId = currentFirmWorkspaceId();
 
-  if (!checkUploadRateLimit(uploaderId)) {
+  if (!checkUploadRateLimit(workspaceId, uploaderId)) {
     res.status(429).json({ error: "Too many upload requests. Please wait before requesting another upload URL." });
     return;
   }
@@ -83,17 +85,16 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
     return;
   }
 
-  await cleanupStaleUploads(uploaderId);
-  if (getPendingCount(uploaderId) >= MAX_PENDING_PER_USER) {
-    res.status(429).json({ error: "Too many unclaimed uploads. Complete or cancel pending uploads before requesting a new URL." });
-    return;
-  }
-
   try {
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL(workspaceId);
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
-    trackPendingUpload(uploaderId, objectPath);
+    // Reservation is persisted and cap-checked under a database advisory lock,
+    // so restarts and concurrent instances cannot mint around the limit.
+    if (!(await trackPendingUpload(workspaceId, uploaderId, objectPath))) {
+      res.status(429).json({ error: "Too many unclaimed uploads. Complete or cancel pending uploads before requesting a new URL." });
+      return;
+    }
 
     res.json(
       RequestUploadUrlResponse.parse({
@@ -157,6 +158,22 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
+    // Object names are not bearer credentials. A persisted evidence row in the
+    // authenticated workspace is the authoritative read grant.
+    const [grant] = await db
+      .select({ id: taskEvidenceTable.id })
+      .from(taskEvidenceTable)
+      .where(
+        and(
+          eq(taskEvidenceTable.objectPath, objectPath),
+          firmScope(taskEvidenceTable),
+        ),
+      )
+      .limit(1);
+    if (!grant) {
+      res.status(404).json({ error: "Object not found" });
+      return;
+    }
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
 
     const response = await objectStorageService.downloadObject(objectFile);

@@ -13,7 +13,7 @@ import { useT, useLanguage, LANGUAGES, type Lang } from "@/lib/i18n";
  * holds a verified session, nothing in the app is reachable.
  */
 export function StaffGate({ children }: { children: React.ReactNode }) {
-  const { authenticated, sessionChecked, setAuthenticated } = useAuth();
+  const { authenticated, sessionChecked, refreshSession } = useAuth();
   const { mutateAsync: staffLogin, isPending } = useStaffLogin();
   const t = useT();
   const { lang, setLang } = useLanguage();
@@ -29,7 +29,7 @@ export function StaffGate({ children }: { children: React.ReactNode }) {
       }
       setError(false);
       setPasscode("");
-      setAuthenticated(true);
+      await refreshSession();
     } catch {
       setError(true);
     }

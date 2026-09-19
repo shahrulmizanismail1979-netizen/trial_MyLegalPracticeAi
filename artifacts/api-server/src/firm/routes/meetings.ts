@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, meetingsTable, tasksTable, type MeetingMinutes } from "../db";
+import { eq, and } from "drizzle-orm";
+import { db, meetingsTable, tasksTable, type MeetingMinutes, usersTable } from "../db";
 import {
   CreateMeetingBody,
   TranscribeMeetingBody,
@@ -26,6 +26,7 @@ import { syncToDrive } from "../lib/googleDrive";
 import { transcribeWithDiarization } from "../lib/transcription";
 import { exportMinutesToGoogleDoc } from "../lib/googleDocs";
 import { firmAiRateLimit as aiRateLimit } from "../lib/firmAiRateLimit";
+import { firmScope, firmValues } from "../lib/workspace";
 
 const router: IRouter = Router();
 
@@ -81,11 +82,24 @@ router.post(
       return;
     }
     const { title, lang, segments, rawTranscript, actingUserId } = parsed.data;
+    if (actingUserId != null) {
+      const [creator] = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(and(firmScope(usersTable), eq(usersTable.id, actingUserId)));
+      if (!creator) {
+        res.status(400).json({
+          error: "Meeting creator does not belong to this workspace.",
+        });
+        return;
+      }
+    }
     try {
       const minutes = await generateMinutes(segments, rawTranscript, lang);
       const [meeting] = await db
         .insert(meetingsTable)
         .values({
+          ...firmValues(),
           title: title?.trim() || minutes.title,
           lang,
           segments,
@@ -138,7 +152,7 @@ router.delete("/meetings/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Meeting not found" });
     return;
   }
-  await db.delete(meetingsTable).where(eq(meetingsTable.id, params.data.id));
+  await db.delete(meetingsTable).where(and(firmScope(meetingsTable), eq(meetingsTable.id, params.data.id)));
   res.status(204).end();
 });
 
@@ -179,9 +193,18 @@ router.post("/meetings/:id/create-tasks", async (req, res): Promise<void> => {
   for (const item of parsed.data.items) {
     const action = minutes.actionItems[item.actionItemIndex];
     const fallbackTitle = action?.text ?? "Follow-up";
+    if (item.ownerId != null) {
+      const [owner] = await db.select({ id: usersTable.id }).from(usersTable)
+        .where(and(firmScope(usersTable), eq(usersTable.id, item.ownerId)));
+      if (!owner) {
+        res.status(400).json({ error: "Task owner does not belong to this workspace." });
+        return;
+      }
+    }
     const [task] = await db
       .insert(tasksTable)
       .values({
+        ...firmValues(),
         title: item.title?.trim() || fallbackTitle,
         description: `From meeting: ${meeting.title}`,
         category: item.category,
@@ -199,7 +222,7 @@ router.post("/meetings/:id/create-tasks", async (req, res): Promise<void> => {
   const [updated] = await db
     .update(meetingsTable)
     .set({ minutes })
-    .where(eq(meetingsTable.id, meeting.id))
+    .where(and(firmScope(meetingsTable), eq(meetingsTable.id, meeting.id)))
     .returning();
 
   res.json({ created, meeting: await serializeMeeting(updated) });

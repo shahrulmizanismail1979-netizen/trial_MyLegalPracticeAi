@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, tasksTable, usersTable } from "../db";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import {
@@ -8,6 +8,7 @@ import {
 } from "../apiZod";
 import { serializeTasks } from "./taskService";
 import type { SerializedTask } from "./taskLogic";
+import { firmScope } from "./workspace";
 
 export type Lang = "en" | "ms";
 
@@ -195,8 +196,8 @@ export async function generateBriefing(lang: Lang) {
   const rawTasks = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.archived, false));
-  const users = await db.select().from(usersTable);
+    .where(and(eq(tasksTable.archived, false), firmScope(tasksTable)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const serialized = await serializeTasks(rawTasks, now);
   const open = serialized.filter((t) => t.status !== "done");
 
@@ -277,8 +278,8 @@ export async function generateTriage(input: {
   const rawTasks = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.archived, false));
-  const users = await db.select().from(usersTable);
+    .where(and(eq(tasksTable.archived, false), firmScope(tasksTable)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   const serialized = await serializeTasks(rawTasks, now);
   const open = serialized.filter((t) => t.status !== "done");
 

@@ -32,6 +32,7 @@ export interface ObjectAclRule {
 // Stored as object custom metadata under "custom:aclPolicy" (JSON string).
 export interface ObjectAclPolicy {
   owner: string;
+  workspaceId?: number;
   visibility: "public" | "private";
   aclRules?: Array<ObjectAclRule>;
 }
@@ -96,15 +97,22 @@ export async function getObjectAclPolicy(
 
 export async function canAccessObject({
   userId,
+  workspaceId,
   objectFile,
   requestedPermission,
 }: {
   userId?: string;
+  workspaceId: number;
   objectFile: File;
   requestedPermission: ObjectPermission;
 }): Promise<boolean> {
   const aclPolicy = await getObjectAclPolicy(objectFile);
   if (!aclPolicy) {
+    return false;
+  }
+
+  // Metadata written before workspace isolation belongs to the owner workspace.
+  if ((aclPolicy.workspaceId ?? 0) !== workspaceId) {
     return false;
   }
 

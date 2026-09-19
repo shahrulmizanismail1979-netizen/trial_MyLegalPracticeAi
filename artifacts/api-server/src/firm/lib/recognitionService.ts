@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   db,
   tasksTable,
@@ -13,6 +13,7 @@ import {
   median,
   type RecognitionEntry,
 } from "./recognitionLogic";
+import { firmScope } from "./workspace";
 
 export type LeaderboardPayload = {
   generatedAt: string;
@@ -45,9 +46,12 @@ async function loadRecognitionEntries(): Promise<{
   const tasks = await db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.archived, false));
-  const users = await db.select().from(usersTable);
-  const assessments = await db.select().from(taskAssessmentsTable);
+    .where(and(firmScope(tasksTable), eq(tasksTable.archived, false)));
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
+  const assessments = await db
+    .select()
+    .from(taskAssessmentsTable)
+    .where(firmScope(taskAssessmentsTable));
 
   const doneTasks = tasks.filter((t) => t.status === "done");
   const assessmentsByTask = new Map<number, TaskAssessment>(

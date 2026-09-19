@@ -1,4 +1,5 @@
 import { db, usersTable } from "../db";
+import { firmScope } from "./workspace";
 import type { MeetingSegment, MeetingMinutes } from "../db";
 import { z } from "zod/v4";
 import {
@@ -28,7 +29,7 @@ const TASK_CATEGORIES = ["urgent", "backlog"] as const;
 export type TeamMember = { id: number; name: string; role: string };
 
 export async function loadTeam(): Promise<TeamMember[]> {
-  const users = await db.select().from(usersTable);
+  const users = await db.select().from(usersTable).where(firmScope(usersTable));
   return users.map((u) => ({ id: u.id, name: u.name, role: u.role }));
 }
 

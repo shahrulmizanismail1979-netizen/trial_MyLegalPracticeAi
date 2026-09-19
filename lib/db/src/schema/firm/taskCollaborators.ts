@@ -12,6 +12,7 @@ export const taskCollaboratorsTable = pgTable(
   "firm_task_collaborators",
   {
     id: serial("id").primaryKey(),
+    workspaceId: integer("workspace_id").notNull().default(0),
     taskId: integer("task_id").notNull(),
     userId: integer("user_id").notNull(),
     addedById: integer("added_by_id"),
@@ -19,7 +20,7 @@ export const taskCollaboratorsTable = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [unique().on(table.taskId, table.userId)],
+  (table) => [unique().on(table.workspaceId, table.taskId, table.userId)],
 );
 
 export const insertTaskCollaboratorSchema = createInsertSchema(
