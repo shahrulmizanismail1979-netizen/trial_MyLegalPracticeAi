@@ -62,7 +62,7 @@ const {
   researchAuthorities,
   researchLegislationRefs,
 } = await import("@workspace/db");
-const { eq, inArray, like } = await import("drizzle-orm");
+const { eq, inArray, like, sql } = await import("drizzle-orm");
 
 const {
   createFolder,
@@ -323,7 +323,9 @@ afterAll(async () => {
     await db.delete(researchExtractionRuns).where(inArray(researchExtractionRuns.containerId, trackedContainerIds)).catch(() => {});
     await db.delete(researchSourcePages).where(inArray(researchSourcePages.containerId, trackedContainerIds)).catch(() => {});
     await db.delete(researchRightsRecords).where(inArray(researchRightsRecords.containerId, trackedContainerIds)).catch(() => {});
-    const jobsToDelete = await db.select({ id: researchJobs.id }).from(researchJobs).where(like(researchJobs.idempotencyKey, `%${RUN_ID.slice(0, 8)}%`)).catch(() => []);
+    const jobsToDelete = await db.select({ id: researchJobs.id }).from(researchJobs).where(
+      inArray(sql<string>`${researchJobs.payload}->>'containerId'`, trackedContainerIds.map(String)),
+    ).catch(() => []);
     if (jobsToDelete.length > 0) await db.delete(researchJobs).where(inArray(researchJobs.id, jobsToDelete.map((j) => j.id))).catch(() => {});
     await db.delete(researchSourceContainers).where(inArray(researchSourceContainers.id, trackedContainerIds)).catch(() => {});
   }

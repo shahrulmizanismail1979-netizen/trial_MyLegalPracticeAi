@@ -56,7 +56,7 @@ const {
   researchBookmarks,
   researchSearchIndex,
 } = await import("@workspace/db");
-const { eq, like, inArray, and, desc, ne, sql } = await import("drizzle-orm");
+const { eq, inArray, and, desc, ne, sql } = await import("drizzle-orm");
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -79,30 +79,8 @@ function buildApp(userEmail: string) {
 }
 
 /**
- * Drain all QUEUED (non-RUN_ID) stale jobs of a given kind so they don't
- * block our test's specific job from being claimed. Also marks RUNNING jobs
- * as failed to unblock the queue.
- */
-async function drainStaleJobs(kind: string): Promise<void> {
-  // Fail any RUNNING jobs of this kind stuck from previous runs.
-  await db.execute(
-    sql`UPDATE research_jobs
-        SET state = 'FAILED', failure_reason = 'STALE', last_error = 'cleaned up by test runner'
-        WHERE kind = ${kind} AND state = 'RUNNING'`,
-  );
-  // Drain remaining QUEUED stale jobs by running them (they'll fail fast with
-  // NO_PROCESSOR in other contexts, or succeed here).
-  for (let i = 0; i < 50; i++) {
-    const job = await runNextJob(kind);
-    if (!job) break; // queue empty
-    // If this is our RUN_ID's job, stop draining.
-    if ((job.idempotencyKey as string).includes(RUN_ID.slice(0, 8))) break;
-  }
-}
-
-/**
- * Enqueue a job, drain any stale prior jobs, then drive the queue until our
- * specific job reaches a terminal state (by idempotency key lookup).
+ * Enqueue a job, then drive the queue until our specific job reaches a
+ * terminal state (by idempotency key lookup).
  */
 async function enqueueAndDrive(
   kind: string,
@@ -138,8 +116,8 @@ async function enqueueAndDrive(
   return row;
 }
 
-// driveUntilComplete: on every iteration, purge any competing QUEUED/RUNNING
-// jobs of the same kind so our job is always at the front of the queue.
+// Drive the queue until this test-owned key completes without mutating
+// competing jobs owned by other runs.
 async function driveUntilComplete(
   idempotencyKey: string,
   kind: string,
@@ -165,7 +143,7 @@ async function driveUntilComplete(
       );
       runningStreak = 0;
     }
-    // A parallel test worker's purge (below) may have parked OUR job as
+    // A parallel test worker may have parked OUR job as
     // FAILED_RETRYABLE — claimNext only picks QUEUED, so re-queue it.
     if (row && row.state === "FAILED_RETRYABLE") {
       await db.execute(
@@ -174,12 +152,6 @@ async function driveUntilComplete(
             WHERE idempotency_key = ${idempotencyKey} AND state = 'FAILED_RETRYABLE'`,
       );
     }
-    // Purge competing jobs each iteration to handle concurrent test workers.
-    await db.execute(
-      sql`UPDATE research_jobs
-          SET state = 'FAILED_RETRYABLE', failure_reason = '"STALE"'::jsonb, last_error = 'cleaned by driveUntilComplete'
-          WHERE kind = ${kind} AND state IN ('RUNNING','QUEUED') AND idempotency_key != ${idempotencyKey}`,
-    );
     try {
       await runNextJob(kind);
     } catch (err) {
@@ -463,7 +435,18 @@ afterAll(async () => {
     }
     await db.delete(researchExtractionRuns).where(inArray(researchExtractionRuns.containerId, trackedContainerIds)).catch(() => {});
     await db.delete(researchSourcePages).where(inArray(researchSourcePages.containerId, trackedContainerIds)).catch(() => {});
-    const jobsToDelete = await db.select({ id: researchJobs.id }).from(researchJobs).where(like(researchJobs.idempotencyKey, `%${RUN_ID.slice(0, 8)}%`)).catch(() => []);
+    const ownedContainers = new Set(trackedContainerIds);
+    const jobsToDelete = await db
+      .select({ id: researchJobs.id, payload: researchJobs.payload })
+      .from(researchJobs)
+      .then((rows) =>
+        rows.filter((row) =>
+          ownedContainers.has(
+            Number((row.payload as Record<string, unknown>).containerId),
+          ),
+        ),
+      )
+      .catch(() => []);
     if (jobsToDelete.length > 0) {
       await db.delete(researchJobs).where(inArray(researchJobs.id, jobsToDelete.map(j => j.id))).catch(() => {});
     }

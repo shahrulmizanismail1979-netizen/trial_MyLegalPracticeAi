@@ -31,7 +31,15 @@ const {
   researchReviewItems,
   researchAuditEvents,
 } = await import("@workspace/db");
-const { eq, like, inArray, and } = await import("drizzle-orm");
+const { eq, inArray, and } = await import("drizzle-orm");
+
+const ownedJobIds = new Set<number>();
+
+async function enqueueOwned(...args: Parameters<typeof enqueue>) {
+  const job = await enqueue(...args);
+  if (job) ownedJobIds.add(job.id);
+  return job;
+}
 
 let counter = 0;
 async function makeContainer() {
@@ -100,11 +108,7 @@ afterAll(async () => {
       .delete(researchSourceContainers)
       .where(inArray(researchSourceContainers.id, ids));
   }
-  const jobs = await db
-    .select({ id: researchJobs.id })
-    .from(researchJobs)
-    .where(like(researchJobs.idempotencyKey, `%${RUN_ID}%`));
-  const jobIds = jobs.map((j) => j.id);
+  const jobIds = [...ownedJobIds];
   if (jobIds.length > 0) {
     await db
       .delete(researchAuditEvents)
@@ -305,7 +309,7 @@ describe("processor-side rights re-check", () => {
     const unregister = registerProcessor(kind, async () => ({}));
     try {
       const key = `content-blocked-${RUN_ID}`;
-      await enqueue(kind, key, { containerId: container.id });
+      await enqueueOwned(kind, key, { containerId: container.id });
       const ran = await runNextJob(kind);
       expect(ran?.idempotencyKey).toBe(key);
       const [row] = await db
@@ -330,7 +334,7 @@ describe("processor-side rights re-check", () => {
     const unregister = registerProcessor(kind, async () => ({}));
     try {
       const key = `content-ok-${RUN_ID}`;
-      await enqueue(kind, key, { containerId: container.id });
+      await enqueueOwned(kind, key, { containerId: container.id });
       await runNextJob(kind);
       const [row] = await db
         .select()
@@ -347,7 +351,7 @@ describe("processor-side rights re-check", () => {
     const key = `container-registered-${container.id}`;
     // Job was enqueued by registerContainer? No — tests register directly via
     // data layer, so enqueue explicitly here.
-    await enqueue("container.registered", key, { containerId: container.id });
+    await enqueueOwned("container.registered", key, { containerId: container.id });
     let ran = await runNextJob("container.registered");
     while (ran && ran.idempotencyKey !== key) {
       ran = await runNextJob("container.registered");

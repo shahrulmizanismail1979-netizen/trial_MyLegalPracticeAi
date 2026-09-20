@@ -11,5 +11,5 @@ All research test files use the live DB and one shared `research_jobs` queue. Pa
 **How to apply:**
 - At cleanup start, DELETE this file's still-QUEUED jobs by `payload->>'containerId'`.
 - Wrap every FK-sensitive parent delete (candidates, case boundaries, validation runs, jobs, containers, pages) in a retry loop (~5 × 1s) that re-queries and re-clears ALL FK holders on failure.
-- Before deleting jobs by tracked ids, EXCLUDE ids still referenced by segmentation/validation/editorial runs or upload_batch_items — those are stolen jobs owned by another file.
+- Never use globally claimed job IDs as cleanup authority, even if unreferenced. Derive jobs from proven run-owned batches/containers or explicit fixture identities; never clear foreign batch-item links to make deletion succeed.
 - After drain loops, poll (≈15s) for the expected state instead of asserting immediately; tolerate "already done by another worker" outcomes.

@@ -35,7 +35,7 @@ const {
   researchQuotations,
   researchQuotationAlterations,
 } = await import("@workspace/db");
-const { eq, inArray, like, and } = await import("drizzle-orm");
+const { eq, inArray, and, sql } = await import("drizzle-orm");
 const { formatCitation, renderAlteredText } = await import(
   "./quotations/formatter"
 );
@@ -448,7 +448,9 @@ afterAll(async () => {
     const jobsToDelete = await db
       .select({ id: researchJobs.id })
       .from(researchJobs)
-      .where(like(researchJobs.idempotencyKey, `%${RUN_ID.slice(0, 8)}%`))
+      .where(
+        inArray(sql<string>`${researchJobs.payload}->>'containerId'`, trackedContainerIds.map(String)),
+      )
       .catch(() => []);
     if (jobsToDelete.length > 0) {
       await db

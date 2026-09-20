@@ -47,7 +47,7 @@ const {
   researchCandidateCoherenceChecks,
   researchPageBlocks,
 } = await import("@workspace/db");
-const { eq, like, inArray, and } = await import("drizzle-orm");
+const { eq, inArray, and, sql } = await import("drizzle-orm");
 
 // ── App helper (same pattern as phase05.test.ts) ───────────────────────────
 
@@ -321,7 +321,9 @@ afterAll(async () => {
   await db.delete(researchExtractionRuns).where(inArray(researchExtractionRuns.containerId, trackedContainerIds)).catch(() => {});
   await db.delete(researchTransformations).where(inArray(researchTransformations.containerId, trackedContainerIds)).catch(() => {});
   await db.delete(researchSourcePages).where(inArray(researchSourcePages.containerId, trackedContainerIds)).catch(() => {});
-  const jobsToDelete = await db.select({ id: researchJobs.id }).from(researchJobs).where(like(researchJobs.idempotencyKey, `%${RUN_ID.slice(0, 8)}%`)).catch(() => []);
+  const jobsToDelete = await db.select({ id: researchJobs.id }).from(researchJobs).where(
+    inArray(sql<string>`${researchJobs.payload}->>'containerId'`, trackedContainerIds.map(String)),
+  ).catch(() => []);
   if (jobsToDelete.length > 0) {
     await db.delete(researchJobs).where(inArray(researchJobs.id, jobsToDelete.map(j => j.id))).catch(() => {});
   }

@@ -278,21 +278,6 @@ beforeAll(async () => {
     })
     .onConflictDoNothing();
 
-  // Cancel orphaned QUEUED validation and segmentation jobs whose containers no
-  // longer exist (left behind by previous test runs that had a cleanup failure).
-  // This prevents drain loops from consuming iterations on ghost jobs before
-  // reaching the container under test.
-  await db.execute(sql`
-    UPDATE research_jobs
-    SET state = 'FAILED_PERMANENT'
-    WHERE kind IN ('container.validate', 'container.segment')
-      AND state = 'QUEUED'
-      AND NOT EXISTS (
-        SELECT 1 FROM research_source_containers
-        WHERE id = (research_jobs.payload->>'containerId')::int
-      )
-  `);
-
   registerSegmentationProcessor();
   registerValidationProcessor();
 });
@@ -308,6 +293,25 @@ afterAll(async () => {
       `DELETE FROM research_jobs WHERE state = 'QUEUED' AND (payload->>'containerId')::int IN (${trackedContainerIds.join(",")})`,
     ),
   );
+
+  // runNextJob() claims globally. Restrict claimed IDs to jobs whose payload
+  // names a container seeded by this RUN_ID before touching jobs or children.
+  const ownedTrackedJobIds = trackedJobIds.length > 0
+    ? await db
+        .select({ id: researchJobs.id, payload: researchJobs.payload })
+        .from(researchJobs)
+        .where(inArray(researchJobs.id, trackedJobIds))
+        .then((rows) => {
+          const ownedContainers = new Set(trackedContainerIds);
+          return rows
+            .filter((row) =>
+              ownedContainers.has(
+                Number((row.payload as Record<string, unknown>).containerId),
+              ),
+            )
+            .map((row) => row.id);
+        })
+    : [];
 
   // ── Step 1: collect candidate IDs for FK-ordered deletion ─────────────────
   const candidateIds = await db
@@ -336,18 +340,17 @@ afterAll(async () => {
   }
 
   // ── Step 3: delete validation runs (collect job_ids first) ────────────────
-  // Query by both containerId AND by trackedJobIds: runNextJob() loops may pick
-  // up auto-triggered validation jobs for containers outside trackedContainerIds,
-  // creating validation_runs that are invisible to a containerId-only query.
+  // Include validation jobs claimed by this test only after payload ownership
+  // has been established; foreign claimed jobs and children remain untouched.
   const valRunByContainer = await db
     .select({ id: researchValidationRuns.id, jobId: researchValidationRuns.jobId })
     .from(researchValidationRuns)
     .where(inArray(researchValidationRuns.containerId, trackedContainerIds));
-  const valRunByJob = trackedJobIds.length > 0
+  const valRunByJob = ownedTrackedJobIds.length > 0
     ? await db
         .select({ id: researchValidationRuns.id, jobId: researchValidationRuns.jobId })
         .from(researchValidationRuns)
-        .where(inArray(researchValidationRuns.jobId, trackedJobIds))
+        .where(inArray(researchValidationRuns.jobId, ownedTrackedJobIds))
     : [];
   const allValRunRows = [
     ...new Map(
@@ -583,11 +586,10 @@ afterAll(async () => {
   }
 
   // ── Step 8: jobs (now safe — all FK holders deleted above) ────────────────
-  // trackedJobIds can include jobs STOLEN from other test files' queues
-  // (runNextJob is global) whose seg/validation/editorial rows still exist —
-  // skip any job something still references; the owning file cleans those up.
+  // Only jobs derived from owned container runs or payload-proven claimed IDs
+  // are eligible. Referenced jobs are still left for their owning rows.
   const allJobIds = [
-    ...new Set([...valJobIds, ...segJobIds, ...trackedJobIds]),
+    ...new Set([...valJobIds, ...segJobIds, ...ownedTrackedJobIds]),
   ];
   if (allJobIds.length > 0) {
     for (let attempt = 0; attempt < 5; attempt++) {

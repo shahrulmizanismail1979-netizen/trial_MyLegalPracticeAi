@@ -22,9 +22,16 @@ const {
   researchAuditEvents,
   researchRightsRecords,
 } = await import("@workspace/db");
-const { eq, like, inArray, and } = await import("drizzle-orm");
+const { eq, inArray, and } = await import("drizzle-orm");
 
 const FIXTURES = path.resolve(__dirname, "../../../../fixtures/synthetic");
+const ownedJobIds = new Set<number>();
+
+async function enqueueOwned(...args: Parameters<typeof enqueue>) {
+  const job = await enqueue(...args);
+  if (job) ownedJobIds.add(job.id);
+  return job;
+}
 
 async function fixtureContainer(name: string) {
   // Salt with the run id so parallel/consecutive runs never collide on the
@@ -71,11 +78,7 @@ afterAll(async () => {
       .delete(researchSourceContainers)
       .where(inArray(researchSourceContainers.id, ids));
   }
-  const jobs = await db
-    .select({ id: researchJobs.id })
-    .from(researchJobs)
-    .where(like(researchJobs.idempotencyKey, `%${RUN_ID}%`));
-  const jobIds = jobs.map((j) => j.id);
+  const jobIds = [...ownedJobIds];
   if (jobIds.length > 0) {
     await db
       .delete(researchAuditEvents)
@@ -168,8 +171,8 @@ describe("source containers (rights gating + provenance)", () => {
 describe("job queue", () => {
   it("enqueues idempotently", async () => {
     const key = `idem-${RUN_ID}`;
-    const first = await enqueue("container.registered", key, { test: true });
-    const second = await enqueue("container.registered", key, { test: true });
+    const first = await enqueueOwned("container.registered", key, { test: true });
+    const second = await enqueueOwned("container.registered", key, { test: true });
     expect(first).not.toBeNull();
     expect(second).toBeNull();
   });
@@ -177,7 +180,7 @@ describe("job queue", () => {
   it("claims, runs, and completes a job (round trip)", async () => {
     const container = await fixtureContainer("empty-container.txt");
     const kind = "container.registered";
-    await enqueue(kind, `roundtrip-${RUN_ID}`, { containerId: container.id });
+    await enqueueOwned(kind, `roundtrip-${RUN_ID}`, { containerId: container.id });
 
     // Claiming other suites' jobs could collide with parallel runs; claim in
     // a loop until we see our job or the queue drains.
@@ -208,7 +211,7 @@ describe("job queue", () => {
   it("retries retryable failures then ends FAILED_PERMANENT with the reason recorded", async () => {
     const key = `deadjob-${RUN_ID}`;
     const kind = `test.failing.${RUN_ID}`;
-    const job = await enqueue(kind, key, {}, { maxAttempts: 2 });
+    const job = await enqueueOwned(kind, key, {}, { maxAttempts: 2 });
     expect(job).not.toBeNull();
 
     // Two attempts allowed → first failure requeues, second exhausts retries.
@@ -240,7 +243,7 @@ describe("job queue", () => {
   it("complete() marks a claimed job SUCCEEDED", async () => {
     const key = `complete-${RUN_ID}`;
     const kind = `test.complete.${RUN_ID}`;
-    const job = await enqueue(kind, key, {});
+    const job = await enqueueOwned(kind, key, {});
     expect(job).not.toBeNull();
     const claimed = await claimNext(kind);
     expect(claimed?.idempotencyKey).toBe(key);
@@ -259,7 +262,7 @@ describe("job queue", () => {
     // so this job must remain QUEUED and not be stolen.
     const unregisteredKind = `editorial.unregistered.${RUN_ID}`;
     const key = `no-steal-${RUN_ID}`;
-    const job = await enqueue(unregisteredKind, key, {});
+    const job = await enqueueOwned(unregisteredKind, key, {});
     expect(job).not.toBeNull();
 
     // Run the job runner once with no kind filter.  It should return null (or
@@ -332,7 +335,7 @@ describe("job queue", () => {
     const unregisteredKind = `editorial.noproc.${RUN_ID}`;
     const key = `noproc-${RUN_ID}`;
     // maxAttempts:3 to prove we don't retry even when retries are allowed.
-    const job = await enqueue(
+    const job = await enqueueOwned(
       unregisteredKind,
       key,
       { containerId: container.id },

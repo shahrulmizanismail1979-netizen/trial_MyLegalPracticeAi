@@ -5,8 +5,8 @@ description: Test afterAll cleanup must sweep validation_runs by job ID, not onl
 
 ## Rule
 
-When a test loop calls `runNextJob()`, it may pick up auto-triggered validation jobs whose containers belong to other test scopes. Cleaning up only by `containerId` leaves orphaned `validation_runs` rows that block the final `DELETE FROM research_jobs`.
+When a test loop calls `runNextJob()`, it may pick up auto-triggered validation jobs whose containers belong to other test scopes. Claiming a job is not proof of ownership: cleanup must leave those jobs and their validation runs untouched.
 
 **Why:** `startValidation()` fires automatically after every segmentation job (both clean and review-required outcomes), so extra QUEUED jobs appear in the DB beyond what a given test explicitly enqueued. These extra jobs may be dequeued mid-test and create `validation_runs` rows whose `containerId` is outside the test's tracked set.
 
-**How to apply:** Any test that calls `runNextJob()` in a loop and tracks job IDs must delete `validation_runs` keyed by those job IDs (union with the container-scoped set) before deleting jobs and containers.
+**How to apply:** Derive cleanup jobs from this run's proven container/batch ownership or exact explicitly-created fixture identities. Delete validation runs only for owned containers; never union globally claimed job IDs into child cleanup. An unreferenced job is not necessarily owned.

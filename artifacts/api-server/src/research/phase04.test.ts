@@ -105,6 +105,24 @@ function unique(bytes: Buffer): Buffer {
 
 const trackedJobIds: number[] = [];
 
+async function ownedJobIds(
+  jobIds: number[],
+  containerIds: number[],
+): Promise<number[]> {
+  if (jobIds.length === 0 || containerIds.length === 0) return [];
+  const ownedContainers = new Set(containerIds);
+  const rows = await db
+    .select({ id: researchJobs.id, payload: researchJobs.payload })
+    .from(researchJobs)
+    .where(inArray(researchJobs.id, jobIds));
+  return rows
+    .filter((row) => {
+      const payload = row.payload as Record<string, unknown>;
+      return ownedContainers.has(Number(payload.containerId));
+    })
+    .map((row) => row.id);
+}
+
 // Deletes jobs after clearing any rows that reference them (validation runs,
 // editorial runs — created by auto-triggered downstream processing, possibly
 // by parallel test workers mid-cleanup), retrying until it sticks.
@@ -319,7 +337,11 @@ afterAll(async () => {
         .from(researchJobs)
         .where(like(researchJobs.idempotencyKey, `extract-container-${cid}-%`));
       if (jobsToDelete.length > 0) {
-        const jids = jobsToDelete.map((j) => j.id);
+        const jids = await ownedJobIds(
+          jobsToDelete.map((j) => j.id),
+          containerIds,
+        );
+        if (jids.length === 0) continue;
         const vrIds = (
           await db
             .select({ id: researchValidationRuns.id })
@@ -338,32 +360,36 @@ afterAll(async () => {
       }
     }
     if (trackedJobIds.length > 0) {
-      const vrIds = (
-        await db
-          .select({ id: researchValidationRuns.id })
-          .from(researchValidationRuns)
-          .where(inArray(researchValidationRuns.jobId, trackedJobIds))
-      ).map((r) => r.id);
-      if (vrIds.length > 0) {
-        await db
-          .delete(researchCandidateCoherenceChecks)
-          .where(inArray(researchCandidateCoherenceChecks.validationRunId, vrIds));
-        await db
-          .delete(researchValidationRuns)
-          .where(inArray(researchValidationRuns.id, vrIds));
-      }
-      // drainJobs() can steal other test files' queued jobs (e.g. ingest jobs
-      // referenced by their upload_batch_items) — deleting those violates FKs
-      // and destroys rows the owning file's cleanup expects. Delete only jobs
-      // that nothing references; the owning file cleans up the rest.
-      const referenced = await db
-        .select({ jobId: researchUploadBatchItems.jobId })
-        .from(researchUploadBatchItems)
-        .where(inArray(researchUploadBatchItems.jobId, trackedJobIds));
-      const referencedIds = new Set(referenced.map((r) => r.jobId));
-      const deletableJobIds = trackedJobIds.filter((id) => !referencedIds.has(id));
-      if (deletableJobIds.length > 0) {
-        await deleteJobsSafely(deletableJobIds);
+      // runNextJob() is global and may claim another test's job. A claimed ID
+      // is not ownership proof; only jobs whose payload names our containers
+      // may have their children or job row removed here.
+      const ownedTrackedJobIds = await ownedJobIds(trackedJobIds, containerIds);
+      if (ownedTrackedJobIds.length > 0) {
+        const vrIds = (
+          await db
+            .select({ id: researchValidationRuns.id })
+            .from(researchValidationRuns)
+            .where(inArray(researchValidationRuns.jobId, ownedTrackedJobIds))
+        ).map((r) => r.id);
+        if (vrIds.length > 0) {
+          await db
+            .delete(researchCandidateCoherenceChecks)
+            .where(inArray(researchCandidateCoherenceChecks.validationRunId, vrIds));
+          await db
+            .delete(researchValidationRuns)
+            .where(inArray(researchValidationRuns.id, vrIds));
+        }
+        const referenced = await db
+          .select({ jobId: researchUploadBatchItems.jobId })
+          .from(researchUploadBatchItems)
+          .where(inArray(researchUploadBatchItems.jobId, ownedTrackedJobIds));
+        const referencedIds = new Set(referenced.map((r) => r.jobId));
+        const deletableJobIds = ownedTrackedJobIds.filter(
+          (id) => !referencedIds.has(id),
+        );
+        if (deletableJobIds.length > 0) {
+          await deleteJobsSafely(deletableJobIds);
+        }
       }
     }
     await db

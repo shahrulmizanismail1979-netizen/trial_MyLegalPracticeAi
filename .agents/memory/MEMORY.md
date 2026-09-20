@@ -28,7 +28,7 @@
 - [Portal content boot-seeding](portal-content-seeding.md) — donor ports often arrive with empty content tables; recover data from donor seed scripts via stubbed-db run, then boot-seed only-when-empty (crim/sya/lit pattern). Prod fills on next publish.
 - [Storage adapter canonical keys](storage-adapter-canonical-keys.md) — always persist the key returned by storage.put(); memory adapters hide prefix mismatches that 404 in real object storage.
 - [Research segmentation state machine path](research-segmentation-state-machine.md) — SEGMENTATION_PENDING can only go to SEGMENTATION_PROPOSED; reach SEGMENTATION_REVIEW_REQUIRED via a second transition from PROPOSED.
-- [Phase 06 test cleanup isolation](phase06-test-cleanup.md) — auto-triggered validation jobs can be run by runNextJob() outside trackedContainerIds; cleanup must query validation_runs by both containerId AND trackedJobIds.
+- [Phase 06 test cleanup isolation](phase06-test-cleanup.md) — claiming a shared-queue job never grants cleanup ownership; leave foreign jobs and their validation runs untouched.
 - [Chat isolation and upload submitter binding](chat-isolation-upload-binding.md) — CCB/Lit conversations now isolated per access_code_id; requireLitAuth gates lit gemini routes; research containers record uploaded_by from batch.
 - [Upload ownership registry](upload-ownership-registry.md) — presigned-upload ownership must live in a DB table (atomic owner-checked consume), never a process-local Map; ship migration + boot ensure.
 - [Research test job-queue races](research-test-job-races.md) — parallel workers steal/purge each other's jobs; poll+re-drain after drains, tolerate StateTransitionError, scope audit lookups to RUN_ID.

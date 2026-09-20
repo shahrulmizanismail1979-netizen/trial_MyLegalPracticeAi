@@ -733,6 +733,12 @@ afterAll(async () => {
         await db
           .delete(researchEditorialRuns)
           .where(inArray(researchEditorialRuns.containerId, allContainerIds));
+        // Keep the parent delete in this retry boundary: another queue worker
+        // can create a validation run after the child sweep above. On an FK
+        // conflict, re-query only our containers' children before retrying.
+        await db.delete(researchJobs).where(
+          inArray(sql<string>`${researchJobs.payload}->>'containerId'`, allContainerIds.map(String)),
+        );
         break;
       } catch (err) {
         if (attempt === 4) throw err;
@@ -741,25 +747,8 @@ afterAll(async () => {
     }
   }
 
-  // ── Delete ALL jobs that reference our containers or batches ─────────────────
-  //
-  // This is the comprehensive job cleanup.  Ingest, segment, validate, editorial,
-  // and any future downstream kinds all embed `containerId` and/or `batchId` in
-  // their JSON payload.  Deleting by payload content (not by idempotency key)
-  // ensures nothing is left in the queue to contaminate subsequent test files.
-  //
-  // FK ordering is already satisfied:
-  //   • researchUploadBatchItems (job_id FK) was deleted above.
-  //   • No other table has a FK into research_jobs.
-  //
-  // We use sql.raw with integer lists that originated from DB queries — safe.
-  if (allContainerIds.length > 0) {
-    await db.execute(
-      sql.raw(
-        `DELETE FROM research_jobs WHERE (payload->>'containerId')::int IN (${allContainerIds.join(",")})`,
-      ),
-    );
-  }
+  // Container jobs were deleted with their dependent rows above. Ingest jobs
+  // are batch-owned, and their batch-item FK holders have also been removed.
   if (batchIds.length > 0) {
     await db.execute(
       sql.raw(
@@ -767,12 +756,6 @@ afterAll(async () => {
       ),
     );
   }
-  // Belt-and-suspenders: also sweep by idempotency-key pattern for any jobs
-  // that store RUN_ID directly (e.g. manual test fixtures, future kinds).
-  await db
-    .delete(researchJobs)
-    .where(like(researchJobs.idempotencyKey, `%${RUN_ID}%`));
-
   // Now it is safe to delete containers (batch_items FK cleared above).
   // In-flight jobs from parallel workers can repopulate container-referencing
   // tables right up to this delete — re-clear them and retry until it sticks.

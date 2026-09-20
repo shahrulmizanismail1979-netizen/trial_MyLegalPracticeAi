@@ -39,7 +39,7 @@ const {
   researchUploadBatchItems,
   researchContainerInventories,
 } = await import("@workspace/db");
-const { eq, like, inArray, and, sql } = await import("drizzle-orm");
+const { eq, inArray, and, or, sql } = await import("drizzle-orm");
 
 const FIXTURES = path.resolve(__dirname, "../../../../fixtures/synthetic");
 const fixture = (name: string) => readFileSync(path.join(FIXTURES, name));
@@ -93,14 +93,11 @@ async function upload(files: Array<{ name: string; bytes: Buffer }>) {
   );
 }
 
-const trackedJobIds: number[] = [];
-
 async function drainJobs(kind?: string) {
   // Run queued jobs until the queue is empty for the kind.
   for (let i = 0; i < 100; i++) {
     const job = await runNextJob(kind);
     if (!job) return;
-    trackedJobIds.push(job.id);
   }
   throw new Error("job queue did not drain");
 }
@@ -182,23 +179,35 @@ function approvedDecision() {
   } as Parameters<typeof recordRightsDecision>[1];
 }
 
-afterAll(async () => {
+async function cleanupRun(runId: string) {
   const batches = await db
     .select({ id: researchUploadBatches.id })
     .from(researchUploadBatches)
-    .where(eq(researchUploadBatches.declaredSource, `test-${RUN_ID}`));
+    .where(and(
+      eq(researchUploadBatches.declaredSource, `test-${runId}`),
+      eq(researchUploadBatches.uploadedBy, `tester-${runId}`),
+    ));
   const batchIds = batches.map((b) => b.id);
+  const jobIds: number[] = [];
   if (batchIds.length > 0) {
+    const containers = await db
+      .select({ id: researchSourceContainers.id })
+      .from(researchSourceContainers)
+      .where(inArray(researchSourceContainers.sourceBatch, batchIds.map((id) => `upload-batch-${id}`)));
+    const cIds = containers.map((c) => c.id);
+    // A globally claimed job is not ours. Discover even unclaimed jobs from
+    // fixture ownership, before deleting the rows that prove that ownership.
+    const ownedJobs = await db.select({ id: researchJobs.id }).from(researchJobs)
+      .where(or(
+        inArray(sql<string>`${researchJobs.payload}->>'batchId'`, batchIds.map(String)),
+        ...(cIds.length ? [inArray(sql<string>`${researchJobs.payload}->>'containerId'`, cIds.map(String))] : []),
+      ));
+    jobIds.push(...ownedJobs.map((job) => job.id));
     const items = await db
       .select({ id: researchUploadBatchItems.id })
       .from(researchUploadBatchItems)
       .where(inArray(researchUploadBatchItems.batchId, batchIds));
     const itemIds = items.map((i) => i.id);
-    const itemJobs = await db
-      .select({ jobId: researchUploadBatchItems.jobId })
-      .from(researchUploadBatchItems)
-      .where(inArray(researchUploadBatchItems.batchId, batchIds));
-    for (const j of itemJobs) if (j.jobId) trackedJobIds.push(j.jobId);
     if (itemIds.length > 0) {
       await db
         .delete(researchAuditEvents)
@@ -223,16 +232,6 @@ afterAll(async () => {
     await db
       .delete(researchUploadBatches)
       .where(inArray(researchUploadBatches.id, batchIds));
-    const containers = await db
-      .select({ id: researchSourceContainers.id })
-      .from(researchSourceContainers)
-      .where(
-        inArray(
-          researchSourceContainers.sourceBatch,
-          batchIds.map((id) => `upload-batch-${id}`),
-        ),
-      );
-    const cIds = containers.map((c) => c.id);
     if (cIds.length > 0) {
       await db
         .delete(researchContainerInventories)
@@ -259,18 +258,7 @@ afterAll(async () => {
         .where(inArray(researchSourceContainers.id, cIds));
     }
   }
-  const jobIds = [...new Set(trackedJobIds)];
   if (jobIds.length > 0) {
-    // Clear the FK reference on batch items that point to these jobs before
-    // deleting the jobs.  This handles batch items created by the job worker
-    // during test execution that weren't captured by the batch filter above.
-    // We NULL the jobId rather than deleting the batch item so we don't
-    // accidentally remove rows owned by concurrent test runs.
-    await db
-      .update(researchUploadBatchItems)
-      .set({ jobId: null })
-      .where(inArray(researchUploadBatchItems.jobId, jobIds));
-
     await db
       .delete(researchAuditEvents)
       .where(
@@ -281,7 +269,57 @@ afterAll(async () => {
       );
     await db.delete(researchJobs).where(inArray(researchJobs.id, jobIds));
   }
-  if (previousAdapters) setAdapters(previousAdapters);
+}
+
+afterAll(async () => {
+  try {
+    await cleanupRun(RUN_ID);
+  } finally {
+    if (previousAdapters) setAdapters(previousAdapters);
+  }
+});
+
+describe("run-owned cleanup", () => {
+  it("preserves another run's claimed job and batch-item link", async () => {
+    const owner = randomUUID();
+    const other = randomUUID();
+    const makeFixture = (runId: string) => processUpload(
+      [{ originalName: "cleanup.txt", bytes: Buffer.from(`Synthetic cleanup fixture ${runId} ${randomUUID()}`) }],
+      { declaredSource: `test-${runId}`, uploadedBy: `tester-${runId}`, provenance: { runId } },
+    );
+    try {
+      const own = await makeFixture(owner);
+      const foreign = await makeFixture(other);
+      const foreignItem = foreign.items[0]!;
+      // Use the same global helper as the proof tests: both runs' jobs can be
+      // claimed by this worker, but only owner is authorized for cleanup.
+      await drainJobs("container.ingest");
+      const before = await getBatchItem(foreignItem.id);
+      expect(before!.state).toBe("INGESTED");
+      expect(before!.jobId).toBeTruthy();
+      const [jobBefore] = await db.select().from(researchJobs).where(eq(researchJobs.id, before!.jobId!));
+      const ownBefore = await getBatchItem(own.items[0]!.id);
+      expect(ownBefore!.state).toBe("INGESTED");
+      // Cleanup must also find owned jobs this worker never claimed.
+      const pending = await makeFixture(owner);
+      const pendingBefore = await getBatchItem(pending.items[0]!.id);
+      expect(pendingBefore!.jobId).toBeTruthy();
+      await cleanupRun(owner);
+      expect(await getBatchItem(own.items[0]!.id)).toBeUndefined();
+      expect(await getBatchItem(pending.items[0]!.id)).toBeUndefined();
+      expect(await db.select().from(researchJobs).where(
+        inArray(researchJobs.id, [ownBefore!.jobId!, pendingBefore!.jobId!]),
+      )).toHaveLength(0);
+      expect(await getContainer(ownBefore!.containerId!)).toBeUndefined();
+      expect(await getBatchItem(foreignItem.id)).toEqual(before);
+      const [jobAfter] = await db.select().from(researchJobs).where(eq(researchJobs.id, before!.jobId!));
+      expect(jobAfter).toEqual(jobBefore);
+      expect(jobAfter).toBeDefined();
+    } finally {
+      await cleanupRun(owner);
+      await cleanupRun(other);
+    }
+  });
 });
 
 describe("secure upload pipeline", () => {

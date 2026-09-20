@@ -92,21 +92,6 @@ beforeAll(async () => {
   registerValidationProcessor();
   registerEditorialProcessor();
 
-  // Cancel orphaned QUEUED validation and editorial jobs whose containers no
-  // longer exist (left behind by previous pilot test runs that had a cleanup
-  // failure).  This prevents later drain loops from claiming and permanently
-  // failing jobs that belong to ghost containers.
-  await db.execute(sql`
-    UPDATE research_jobs
-    SET state = 'FAILED_PERMANENT'
-    WHERE kind IN ('container.validate', 'container.editorial_classify')
-      AND state = 'QUEUED'
-      AND NOT EXISTS (
-        SELECT 1 FROM research_source_containers
-        WHERE id = (research_jobs.payload->>'containerId')::int
-      )
-  `);
-
   setAdapters({
     storage: {
       name: "pilot-memory",
@@ -631,10 +616,11 @@ afterAll(async () => {
     await db
       .delete(researchUploadBatchItems)
       .where(inArray(researchUploadBatchItems.batchId, batchIds));
-    const likePrefix = `pilot-batch-${RUN_ID}%`;
-    await db.execute(
-      sql`DELETE FROM research_jobs WHERE idempotency_key LIKE ${likePrefix}`,
-    );
+    await db
+      .delete(researchJobs)
+      .where(
+        inArray(sql<string>`${researchJobs.payload}->>'batchId'`, batchIds.map(String)),
+      );
     await db
       .delete(researchUploadBatches)
       .where(inArray(researchUploadBatches.id, batchIds));

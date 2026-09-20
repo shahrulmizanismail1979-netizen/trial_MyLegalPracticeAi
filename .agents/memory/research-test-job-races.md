@@ -14,7 +14,7 @@ Parallel vitest workers all poll the same live `research_jobs` table, so any wor
 
 **Why:** these races made `api-tests` validation fail nondeterministically (different file each run) while every file passed in isolation.
 
-- Cross-worker purges must park competitors in a state the owner can recover from; each worker must re-queue its own job if a competitor parked it, or tests strand jobs and time out.
+- Never purge or park another run's jobs to unblock a test. Stale-job repair must be restricted to proven run-owned fixtures.
 
 - drainSegmentationQueue-style loops that exit when runNextJob() returns null miss the case where a parallel worker is mid-run on your container's job — always follow with a state poll (leave PENDING) + re-drain loop.
 - Batch items dead-lettered by a contending worker can be revived via retryBatchItem() inside the poll loop (terminal item state is DEAD_LETTER, not FAILED).

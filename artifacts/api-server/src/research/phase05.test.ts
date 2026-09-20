@@ -483,17 +483,34 @@ afterAll(async () => {
     .delete(researchExtractionRuns)
     .where(inArray(researchExtractionRuns.containerId, trackedContainerIds));
 
-  if (trackedJobIds.length > 0) {
-    // Parallel workers may have processed this file's queued jobs and created
-    // segmentation runs referencing them (research_segmentation_runs.job_id),
-    // possibly under containers outside trackedContainerIds — clear runs by
-    // jobId (children first) before deleting the jobs, and retry on races.
+  // runNextJob() is global, so claimed trackedJobIds can belong to another
+  // test. Only payload containerId membership proves this run owns the job.
+  const ownedTrackedJobIds = trackedJobIds.length > 0
+    ? await db
+        .select({ id: researchJobs.id, payload: researchJobs.payload })
+        .from(researchJobs)
+        .where(inArray(researchJobs.id, trackedJobIds))
+        .then((rows) => {
+          const ownedContainers = new Set(trackedContainerIds);
+          return rows
+            .filter((row) =>
+              ownedContainers.has(
+                Number((row.payload as Record<string, unknown>).containerId),
+              ),
+            )
+            .map((row) => row.id);
+        })
+    : [];
+
+  if (ownedTrackedJobIds.length > 0) {
+    // Clear only segmentation children of jobs proven to belong to this run,
+    // then delete those jobs, retrying on races.
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const strayRuns = await db
           .select({ id: researchSegmentationRuns.id })
           .from(researchSegmentationRuns)
-          .where(inArray(researchSegmentationRuns.jobId, trackedJobIds));
+          .where(inArray(researchSegmentationRuns.jobId, ownedTrackedJobIds));
         const strayRunIds = strayRuns.map((r) => r.id);
         if (strayRunIds.length > 0) {
           const strayCandidates = await db
@@ -536,7 +553,7 @@ afterAll(async () => {
         }
         await db
           .delete(researchJobs)
-          .where(inArray(researchJobs.id, trackedJobIds));
+          .where(inArray(researchJobs.id, ownedTrackedJobIds));
         break;
       } catch (err) {
         if (attempt === 4) throw err;
