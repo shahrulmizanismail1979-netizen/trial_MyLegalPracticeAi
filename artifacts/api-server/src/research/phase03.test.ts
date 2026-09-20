@@ -105,6 +105,46 @@ async function drainJobs(kind?: string) {
   throw new Error("job queue did not drain");
 }
 
+async function waitForIngestion(itemId: number) {
+  // An empty QUEUED set does not mean another worker has finished our item.
+  // Wait only for this fixture, re-draining for jobs queued between polls.
+  // Never revive failed jobs: a real processor failure must remain a failure.
+  const deadline = Date.now() + 10_000;
+  let snapshot: unknown;
+  do {
+    try {
+      await drainJobs("container.ingest");
+    } catch (error) {
+      // Another worker can finish/transition a claimed job. Check the item
+      // below; swallowing arbitrary processor or database errors is unsafe.
+      if (!(error instanceof Error) || error.name !== "StateTransitionError") throw error;
+    }
+    // Read item and job together so completion between two SELECTs cannot
+    // produce a stale PENDING item paired with a freshly SUCCEEDED job.
+    const [row] = await db.select({
+      item: researchUploadBatchItems,
+      job: {
+          id: researchJobs.id,
+          state: researchJobs.state,
+          failureReason: researchJobs.failureReason,
+          lastError: researchJobs.lastError,
+      },
+    }).from(researchUploadBatchItems)
+      .leftJoin(researchJobs, eq(researchJobs.id, researchUploadBatchItems.jobId))
+      .where(eq(researchUploadBatchItems.id, itemId));
+    const item = row?.item;
+    const job = row?.job;
+    snapshot = { itemId, state: item?.state, errorReport: item?.errorReport, job };
+    if (item?.state === "INGESTED") return item;
+    if (item?.state !== "PENDING" || !job ||
+        !["QUEUED", "RUNNING"].includes(job.state)) {
+      throw new Error(`Ingestion did not succeed: ${JSON.stringify(snapshot)}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  } while (Date.now() < deadline);
+  throw new Error(`Timed out waiting for ingestion: ${JSON.stringify(snapshot)}`);
+}
+
 // A synthetic single-case text with a real court header + citation, so the
 // analyzer sees exactly one case-title region.
 function singleCaseText(): Buffer {
@@ -253,8 +293,7 @@ describe("secure upload pipeline", () => {
     expect(items[0]!.stagingKey).toBeTruthy();
     expect(stored.has(items[0]!.stagingKey!)).toBe(true);
 
-    await drainJobs("container.ingest");
-    const item = await getBatchItem(items[0]!.id);
+    const item = await waitForIngestion(items[0]!.id);
     expect(item!.state).toBe("INGESTED");
     expect(item!.containerId).toBeTruthy();
 

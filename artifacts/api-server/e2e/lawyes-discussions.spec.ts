@@ -108,7 +108,12 @@ test("a lawyer files and reassigns a discussion, and LAWYes shows only the selec
   );
   await page.getByLabel("File discussion in matter").selectOption(String(secondMatterId));
   expect((await linkResponse).ok()).toBe(true);
-  await expect(page.getByText("Discussion filed to matter")).toBeVisible();
+  // Radix also announces the title in a separate accessibility live region.
+  // Assert the exact visible toast, not that duplicate announcement.
+  await expect(
+    page.getByRole("region", { name: "Notifications (F8)", exact: true })
+      .getByText("Discussion filed to matter", { exact: true }),
+  ).toBeVisible();
 
   const firstWorkspace = await page.request.get(
     `/api/lit/lawyes/matters/${firstMatterId}/workspace`,

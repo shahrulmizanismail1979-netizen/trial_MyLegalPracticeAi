@@ -18,3 +18,11 @@ Parallel vitest workers all poll the same live `research_jobs` table, so any wor
 
 - drainSegmentationQueue-style loops that exit when runNextJob() returns null miss the case where a parallel worker is mid-run on your container's job — always follow with a state poll (leave PENDING) + re-drain loop.
 - Batch items dead-lettered by a contending worker can be revived via retryBatchItem() inside the poll loop (terminal item state is DEAD_LETTER, not FAILED).
+
+## Preserve failure signals in ingestion success tests
+
+Wait for the owned item while its job is queued/running; do not automatically retry failed/dead-lettered jobs unless interference is positively identified. Read item and job state in one database snapshot when diagnosing completion.
+
+**Why:** Unconditional revival can hide real processor defects, and separate reads can falsely combine a stale pending item with a newly completed job.
+
+**How to apply:** Use bounded, item-scoped waits with item/job failure diagnostics; leave the final successful-state and output assertions strict.
