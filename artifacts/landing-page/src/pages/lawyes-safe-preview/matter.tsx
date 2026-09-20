@@ -3,6 +3,31 @@ import { Briefcase, ArrowLeft, ArrowRight, Download, CheckCircle, Search, FileTe
 import { REPORTS, MATTER_WORKFLOW, buildLocalExportManifest } from "@/fixtures/lawyes-preview";
 import type { RouterState } from "./use-router-state";
 import { download } from "./shared";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
+
+function formatMatterManifest(
+  manifest: ReturnType<typeof buildLocalExportManifest>,
+) {
+  return [
+    `# Matter Manifest: ${manifest.createdFor}`,
+    `Date: ${new Date().toISOString().split("T")[0]}`,
+    `Kind: ${manifest.kind}`,
+    "",
+    "## Warnings",
+    ...manifest.warnings.map((warning) => `- ${warning}`),
+    "",
+    "## Selected Materials",
+    ...manifest.materials.flatMap((material) => [
+      `### ${material.title}`,
+      `Status: ${material.status}`,
+      `URL: ${material.sourceUrl}`,
+      `Gap: ${material.verificationGap}`,
+      "",
+    ]),
+    "## Source Gateways Required",
+    ...manifest.sourceIds.map((id) => `- ${id}`),
+  ].join("\n");
+}
 
 export function MatterView({ state, updateState, navigate }: { state: RouterState; updateState: (updates: Partial<RouterState>, replace?: boolean) => void; navigate: (view: "home" | "search" | "draft") => void }) {
   const step = state.matterStep;
@@ -17,6 +42,11 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
 
   const selectedMaterialsArray = useMemo(() => state.selectedMaterials ? state.selectedMaterials.split(",") : [], [state.selectedMaterials]);
   const selectedReports = useMemo(() => REPORTS.filter(r => selectedMaterialsArray.includes(r.id)), [selectedMaterialsArray]);
+  const manifest = useMemo(
+    () => buildLocalExportManifest(selectedReports, `${matterName} (${clientRef})`),
+    [clientRef, matterName, selectedReports],
+  );
+  const manifestText = useMemo(() => formatMatterManifest(manifest), [manifest]);
 
   // Sync back local state to router if it's confirmed (or we can just keep in local until step 2)
   const handleConfirm = () => {
@@ -35,27 +65,11 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
   };
 
   const handleExport = (type: "txt" | "json") => {
-    const manifest = buildLocalExportManifest(selectedReports, `${matterName} (${clientRef})`);
-
     try {
       if (type === "json") {
         download("lawyes-matter-manifest.json", JSON.stringify(manifest, null, 2), "application/json");
       } else {
-        const text = [
-          `MATTER MANIFEST: ${manifest.createdFor}`,
-          `Date: ${new Date().toISOString().split('T')[0]}`,
-          `Kind: ${manifest.kind}`,
-          "",
-          "WARNINGS:",
-          ...manifest.warnings.map(w => `- ${w}`),
-          "",
-          "SELECTED MATERIALS:",
-          ...manifest.materials.map(m => `\nTitle: ${m.title}\nStatus: ${m.status}\nURL: ${m.sourceUrl}\nGap: ${m.verificationGap}`),
-          "",
-          "SOURCE GATEWAYS REQUIRED:",
-          ...manifest.sourceIds.map(id => `- ${id}`)
-        ].join("\n");
-        download("lawyes-matter-manifest.txt", text, "text/plain");
+        download("lawyes-matter-manifest.txt", manifestText, "text/plain");
       }
       setExportFeedback(`Exported ${type.toUpperCase()} successfully`);
     } catch {
@@ -211,32 +225,17 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
                     <div className="flex flex-col gap-2">
                       <span aria-live="polite" className="text-xs text-secondary font-medium text-right h-4">{exportFeedback}</span>
                       <div className="flex gap-2">
-                        <button onClick={() => handleExport("txt")} className="px-3 py-1.5 border border-border bg-white rounded text-xs font-bold hover:bg-muted transition-colors flex items-center gap-1.5"><Download size={14} /> TXT</button>
+                        <DraftExportButtons title={`${matterName} Matter Manifest`} content={manifestText} />
                         <button onClick={() => handleExport("json")} className="px-3 py-1.5 border border-border bg-white rounded text-xs font-bold hover:bg-muted transition-colors flex items-center gap-1.5"><Download size={14} /> JSON</button>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Purpose / Open Questions</h3>
-                      <p className="text-sm text-foreground/90 whitespace-pre-wrap">{matterTask}</p>
-                    </div>
-
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 border-b border-border pb-2">Selected Materials ({selectedReports.length})</h3>
-                      <div className="space-y-4">
-                        {selectedReports.map(r => (
-                          <div key={r.id} className="text-sm">
-                            <strong className="block text-foreground font-medium mb-1">{r.title}</strong>
-                            <div className="text-xs text-muted-foreground mb-1">{r.status} &middot; {r.citation || "No citation"} &middot; {r.jurisdiction}</div>
-                            <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-100 mt-2">
-                              <span className="font-bold">Gap:</span> {r.verificationGap}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="rounded-xl bg-muted/40 p-3 md:p-5">
+                    <DraftDocument
+                      content={`## Purpose / Open Questions\n${matterTask}\n\n${manifestText}`}
+                      style={{ width: "100%", minHeight: "auto" }}
+                    />
                   </div>
                 </div>
               </div>

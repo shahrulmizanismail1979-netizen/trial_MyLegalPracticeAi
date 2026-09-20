@@ -1,5 +1,4 @@
-import { DraftExportButtons } from "@workspace/draft-export/react";
-import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { DisclaimerNotice } from "@/components/DisclaimerNotice";
 import { SaveToVault } from "@/components/SaveToVault";
 
@@ -41,7 +40,7 @@ export function StreamOutput({
         />
       </div>
       <div className="bg-background/60 border border-border rounded-lg p-5 max-h-[60vh] overflow-y-auto">
-        <MarkdownRenderer content={output} />
+        <DraftDocument content={output} />
       </div>
       {disclaimer && <DisclaimerNotice disclaimer={disclaimer} />}
     </div>

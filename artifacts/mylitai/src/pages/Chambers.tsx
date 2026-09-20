@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui';
 import { FileUploadDropzone, buildContextFromFiles, type ExtractedFile } from '@/components/FileUploadDropzone';
 import { ExportButtons } from '@/components/ExportButtons';
+import { DraftDocument } from '@workspace/draft-export/react';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useToast } from '@/hooks/use-toast';
 import { usePersistentState } from '@/hooks/use-persistent-state';
@@ -179,6 +180,7 @@ function LegalOutput({ text, disclaimer, exportTitle }: { text: string; disclaim
       </p>
     );
   });
+  void rendered;
 
   return (
     <div className="mt-4">
@@ -196,7 +198,7 @@ function LegalOutput({ text, disclaimer, exportTitle }: { text: string; disclaim
         </div>
       </div>
       <div className="bg-background/60 border border-border rounded-lg p-5 max-h-[60vh] overflow-y-auto space-y-0.5 font-mono text-[13px] leading-relaxed">
-        {rendered}
+        <DraftDocument content={text} />
       </div>
       {disclaimer && (
         <div className="mt-3 flex gap-2 items-start p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">

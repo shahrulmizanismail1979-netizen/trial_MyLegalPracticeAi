@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SendHorizonal, X } from "lucide-react";
 import { AmaniAvatar } from "@workspace/paralegal-widget";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 type ChatRole = "user" | "assistant";
 
@@ -25,34 +26,6 @@ const SUGGESTIONS = [
 
 /** Strip [[goto:...|...]] section actions — those sections don't exist on the front door. */
 const GOTO_PATTERN = /\[\[goto:([a-z-]+)\|([^\]]+)\]\]/g;
-
-function renderContent(text: string) {
-  const clean = text.replace(GOTO_PATTERN, "").trim();
-  const lines = clean.split("\n").filter((l) => l.trim() !== "");
-  return lines.map((line, i) => {
-    const isBullet = line.trim().startsWith("- ");
-    const body = isBullet ? line.trim().slice(2) : line;
-    const parts = body.split(/\*\*(.+?)\*\*/g);
-    const rendered = parts.map((part, j) =>
-      j % 2 === 1 ? (
-        <strong key={j} className="font-semibold text-foreground">
-          {part}
-        </strong>
-      ) : (
-        <span key={j}>{part}</span>
-      ),
-    );
-    return isBullet ? (
-      <li key={i} className="ml-4 list-disc">
-        {rendered}
-      </li>
-    ) : (
-      <p key={i} className={i > 0 ? "mt-2" : undefined}>
-        {rendered}
-      </p>
-    );
-  });
-}
 
 export function FrontDoorAssistant({ workspace = false }: { workspace?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -217,7 +190,7 @@ export function FrontDoorAssistant({ workspace = false }: { workspace?: boolean 
                 </div>
               ) : (
                 <div key={i} className="flex justify-start">
-                  <div className="rounded-2xl rounded-tl-sm bg-secondary/60 border border-border/60 px-3 py-2.5 max-w-[92%] leading-relaxed text-muted-foreground">
+                  <div className="rounded-2xl rounded-tl-sm bg-secondary/60 border border-border/60 px-3 py-2.5 w-[92%] leading-relaxed text-muted-foreground">
                     {message.content === "" && streaming && i === messages.length - 1 ? (
                       <span className="inline-flex gap-1 items-center py-1">
                         <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:0ms]" />
@@ -225,7 +198,20 @@ export function FrontDoorAssistant({ workspace = false }: { workspace?: boolean 
                         <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:300ms]" />
                       </span>
                     ) : (
-                      renderContent(message.content)
+                      <>
+                        <DraftDocument
+                          content={message.content.replace(GOTO_PATTERN, "").trim()}
+                          style={{ width: "100%", minHeight: "auto", padding: "1rem" }}
+                        />
+                        {message.content &&
+                          !(streaming && i === messages.length - 1) && (
+                            <DraftExportButtons
+                              title="Amani guidance"
+                              content={message.content.replace(GOTO_PATTERN, "").trim()}
+                              className="mt-3 border-t border-border/60 pt-3"
+                            />
+                          )}
+                      </>
                     )}
                   </div>
                 </div>

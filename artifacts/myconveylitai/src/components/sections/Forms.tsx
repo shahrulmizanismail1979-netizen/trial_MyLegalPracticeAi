@@ -8,6 +8,7 @@ import { useGenerateDraft } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
 import { downloadDocx, downloadAndOpenInGoogleDocs } from '@/lib/exportDocx';
 import { hasTier, EXPORT_MIN_TIER, TIER_LABELS, requiredTierForTool } from '@/lib/tier';
+import { DraftDocument, DraftExportButtons } from '@workspace/draft-export/react';
 
 function FormCard({ form }: { form: FormDoc }) {
   const [open, setOpen] = useState(false);
@@ -280,14 +281,12 @@ function AIDrafterPanel() {
 
       {result && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs font-bold text-amber-500 uppercase tracking-wider">Generated Draft</p>
-            <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-gold-800 px-3 py-1.5 rounded-lg border border-gold-700 transition-colors">
-              <Copy className="w-3 h-3" /> Copy
-            </button>
+            <DraftExportButtons title="Conveyancing Draft" content={result} hideMarkdown />
           </div>
-          <div className="bg-gold-950 border border-gold-700 rounded-xl p-4">
-            <pre className="whitespace-pre-wrap font-serif text-sm text-slate-300 leading-relaxed">{result}</pre>
+          <div className="bg-gold-950 border border-gold-700 rounded-xl p-4 text-slate-300">
+            <DraftDocument content={result} />
           </div>
           <p className="text-xs text-slate-500 mt-2">Open the AI Drafter panel for the full template library with 170+ templates.</p>
           <button onClick={() => { setAiMode('drafter'); setIsAiPanelOpen(true); }} className="mt-2 text-xs text-amber-500 hover:text-amber-400 underline">

@@ -35,6 +35,7 @@ import { verifyMatterOwnership } from "./caseOwnership";
 import { aiRateLimit } from "./aiRateLimit";
 import { type Portal } from "./caseStages";
 import { logger } from "./logger";
+import { exportPlainText, normalizeExportLines, type ExportInline } from "../utils/exportFormatting";
 
 // Re-use billing settings (firm_name, firm_address, etc.) for letterhead.
 async function getLetterheadSettings(
@@ -145,10 +146,10 @@ function exportDraftPdf(draft: Row, settings: Record<string, string | null>): Pr
   doc.on("end", () => resolve(Buffer.concat(chunks)));
   doc.on("error", reject);
 
-  const firmName = settings.firm_name || "Legal Practice";
-  const firmAddr = settings.firm_address || "";
-  const firmPhone = settings.firm_phone || "";
-  const firmEmail = settings.firm_email || "";
+  const firmName = exportPlainText(settings.firm_name || "Legal Practice");
+  const firmAddr = exportPlainText(settings.firm_address || "");
+  const firmPhone = exportPlainText(settings.firm_phone || "");
+  const firmEmail = exportPlainText(settings.firm_email || "");
 
   // Letterhead
   doc.font("Helvetica-Bold").fontSize(14).text(firmName, { align: "center" });
@@ -165,22 +166,30 @@ function exportDraftPdf(draft: Row, settings: Record<string, string | null>): Pr
   });
   doc.font("Helvetica").fontSize(10).text(dateStr, { align: "right" });
   doc.moveDown(0.5);
-  doc.font("Helvetica-Bold").fontSize(13).text(String(draft.title), { align: "left" });
+  doc.font("Helvetica-Bold").fontSize(13).text(exportPlainText(String(draft.title)), { align: "left" });
   doc.moveDown(1);
 
-  // Body — render markdown-lite
-  const lines = String(draft.content ?? "").split("\n");
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line) { doc.moveDown(0.4); continue; }
-    if (line.startsWith("# ")) {
-      doc.font("Helvetica-Bold").fontSize(13).text(line.slice(2).trim());
-    } else if (line.startsWith("## ")) {
-      doc.font("Helvetica-Bold").fontSize(12).text(line.slice(3).trim());
-    } else if (line.startsWith("**") && line.endsWith("**")) {
-      doc.font("Helvetica-Bold").fontSize(11).text(line.slice(2, -2).trim());
+  // Body — render Markdown as presentation formatting without altering storage.
+  const writeRuns = (runs: ExportInline[], prefix = "") => {
+    if (prefix) doc.font("Helvetica").fontSize(11).text(prefix, { continued: true });
+    runs.forEach((run, index) => {
+      doc
+        .font(run.bold ? "Helvetica-Bold" : run.italics ? "Helvetica-Oblique" : "Helvetica")
+        .fontSize(11)
+        .text(run.text, { continued: index < runs.length - 1 });
+    });
+  };
+  for (const line of normalizeExportLines(String(draft.content ?? ""))) {
+    if (line.kind === "blank") { doc.moveDown(0.4); continue; }
+    if (line.kind === "heading") {
+      doc.font("Helvetica-Bold").fontSize(line.level === 1 ? 13 : 12)
+        .text(line.runs.map((run) => run.text).join(""));
+    } else if (line.kind === "bullet") {
+      writeRuns(line.runs, "•  ");
+    } else if (line.kind === "numbered") {
+      writeRuns(line.runs, `${line.marker} `);
     } else {
-      doc.font("Helvetica").fontSize(11).text(line, { align: "justify" });
+      writeRuns(line.runs);
     }
     doc.moveDown(0.3);
   }

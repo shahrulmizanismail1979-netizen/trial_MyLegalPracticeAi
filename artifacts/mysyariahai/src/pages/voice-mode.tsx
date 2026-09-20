@@ -13,6 +13,7 @@ import {
 import { consumeSse } from "@/lib/sse";
 import { api } from "@/lib/api";
 import { tierHasFeature } from "@/lib/tiers";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import UpgradePrompt from "@/components/upgrade-prompt";
 
 const API_BASE = "/api/sya";
@@ -771,8 +772,8 @@ export default function VoiceModePage() {
         <Card className="mt-6">
           <CardHeader><h2 className="font-semibold">{t("Trainer Feedback", "Maklum Balas Jurulatih")}</h2></CardHeader>
           <CardContent>
-            <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200" data-testid="voice-mode-feedback-output">
-              {feedback || t("Generating feedback…", "Menjana maklum balas…")}
+            <div className="space-y-3" data-testid="voice-mode-feedback-output">
+              {feedback ? <><DraftExportButtons title={t("Trainer Feedback", "Maklum Balas Jurulatih")} content={feedback} hideMarkdown /><DraftDocument content={feedback} /></> : t("Generating feedback…", "Menjana maklum balas…")}
             </div>
           </CardContent>
         </Card>

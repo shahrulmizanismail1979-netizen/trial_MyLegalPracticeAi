@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.tsx"
   },
+  "dependencies": {
+    "@workspace/draft-export": "workspace:*"
+  },
   "peerDependencies": {
     "react": ">=18"
   },

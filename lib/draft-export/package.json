@@ -7,11 +7,19 @@
     ".": "./src/index.ts",
     "./react": "./src/react.tsx"
   },
+  "scripts": {
+    "test": "vitest run"
+  },
   "peerDependencies": {
     "react": "*"
   },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "jspdf": "^4.2.1"
+  },
   "devDependencies": {
     "@types/react": "catalog:",
-    "react": "catalog:"
+    "react": "catalog:",
+    "vitest": "^4.1.9"
   }
 }

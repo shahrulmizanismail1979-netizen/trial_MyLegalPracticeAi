@@ -11,6 +11,7 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import ExportActions from "@/components/export-actions";
 import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { DraftDocument } from "@workspace/draft-export/react";
 
 function formatAnalyzerText(result: AnalysisResult, t: (en: string, bm: string) => string): string {
   const lines: string[] = [];
@@ -496,6 +497,7 @@ export default function AnalyzerPage() {
             <p className="text-xs text-muted-foreground italic text-center">{result.disclaimer}</p>
           )}
 
+          <DraftDocument content={formatAnalyzerText(result, ts)} />
           <ExportActions content={formatAnalyzerText(result, ts)} filenameBase={ts("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")} />
           <SaveToMatterPanel
             draftTitle={ts("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}

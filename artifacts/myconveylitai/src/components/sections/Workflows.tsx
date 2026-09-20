@@ -6,6 +6,7 @@ import { useApp } from '@/contexts/AppContext';
 import type { DocumentType } from '@/lib/data';
 import { useSendChatMessage } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
+import { DraftDocument, DraftExportButtons } from '@workspace/draft-export/react';
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   Basic: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -66,9 +67,12 @@ function StepAI({ step, workflow }: { step: WFStep; workflow: Workflow }) {
                   <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
                   <span>Consulting AI Legal Tutor...</span>
                 </div>
-              ) : (
-                <pre className="whitespace-pre-wrap font-sans text-xs text-slate-300 leading-relaxed">{response}</pre>
-              )}
+              ) : response ? (
+                <div className="space-y-3 text-slate-300">
+                  <DraftExportButtons title="Workflow Guidance" content={response} hideMarkdown />
+                  <DraftDocument content={response} />
+                </div>
+              ) : null}
             </div>
           </motion.div>
         )}

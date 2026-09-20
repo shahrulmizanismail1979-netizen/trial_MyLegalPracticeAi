@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
 import { usePersona, PERSONA_LABELS, PERSONA_DASHBOARD_FRAMING } from "@workspace/persona-client";
+import { DraftExportButtons } from "@workspace/draft-export/react";
 import { Badge } from "@/components/ui/badge";
 import PersonaSwitcher from "@/components/persona-switcher";
 import { motion } from "framer-motion";
@@ -198,7 +199,8 @@ function PrepareDialog({ matter, onClose }: { matter: MatterBriefing | null; onC
             )}
 
             {result != null && !prepare.isPending && !errMsg && (
-              <div className="border-t border-border pt-3">
+              <div className="border-t border-border pt-3 space-y-3">
+                <DraftExportButtons title="Matter Preparation" content={result} hideMarkdown />
                 <MarkdownRenderer content={result} />
               </div>
             )}

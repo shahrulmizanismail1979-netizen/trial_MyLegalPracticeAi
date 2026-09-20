@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SendHorizonal, ArrowDownRight } from "lucide-react";
 import { AmaniAvatar } from "@workspace/paralegal-widget";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 type ChatRole = "user" | "assistant";
 
@@ -38,34 +39,6 @@ function extractActions(text: string): { clean: string; actions: GotoAction[] } 
     })
     .trim();
   return { clean, actions };
-}
-
-/** Minimal markdown: **bold** and "- " bullet lines. */
-function renderContent(text: string) {
-  const lines = text.split("\n").filter((l) => l.trim() !== "");
-  return lines.map((line, i) => {
-    const isBullet = line.trim().startsWith("- ");
-    const body = isBullet ? line.trim().slice(2) : line;
-    const parts = body.split(/\*\*(.+?)\*\*/g);
-    const rendered = parts.map((part, j) =>
-      j % 2 === 1 ? (
-        <strong key={j} className="font-semibold text-foreground">
-          {part}
-        </strong>
-      ) : (
-        <span key={j}>{part}</span>
-      ),
-    );
-    return isBullet ? (
-      <li key={i} className="ml-4 list-disc">
-        {rendered}
-      </li>
-    ) : (
-      <p key={i} className={i > 0 ? "mt-2" : undefined}>
-        {rendered}
-      </p>
-    );
-  });
 }
 
 function scrollToSection(sectionId: string) {
@@ -206,7 +179,7 @@ export function ReceptionChat() {
             const isLast = i === messages.length - 1;
             return (
               <div key={i} className="flex justify-start">
-                <div className="rounded-2xl rounded-tl-sm bg-secondary/60 border border-border/60 px-4 py-3 max-w-[90%] leading-relaxed text-muted-foreground">
+                <div className="rounded-2xl rounded-tl-sm bg-secondary/60 border border-border/60 px-4 py-3 w-[90%] leading-relaxed text-muted-foreground">
                   {clean === "" && streaming && isLast ? (
                     <span className="inline-flex gap-1 items-center py-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:0ms]" />
@@ -215,7 +188,10 @@ export function ReceptionChat() {
                     </span>
                   ) : (
                     <>
-                      {renderContent(clean)}
+                      <DraftDocument
+                        content={clean}
+                        style={{ width: "100%", minHeight: "auto", padding: "1.25rem" }}
+                      />
                       {actions.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {actions.map((action) => (
@@ -231,6 +207,13 @@ export function ReceptionChat() {
                             </Button>
                           ))}
                         </div>
+                      )}
+                      {clean && !(streaming && isLast) && (
+                        <DraftExportButtons
+                          title="Amani reception response"
+                          content={clean}
+                          className="mt-3 border-t border-border/60 pt-3"
+                        />
                       )}
                     </>
                   )}

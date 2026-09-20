@@ -28,6 +28,7 @@ import {
   GoldButton,
   GhostButton,
 } from "@/components/cinematic";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 export default function Summary() {
   const params = useParams<{ id: string }>();
@@ -77,6 +78,15 @@ export default function Summary() {
   const s = session.data;
   const sm = summary.data;
   const accuracy = s.maxScore && s.maxScore > 0 ? (s.score ?? 0) / s.maxScore : 0;
+  const reportContent = [
+    `# Exam Result: ${sm?.passed ? "Passed" : "Not passed"}`,
+    sm?.verdict ?? "",
+    `Score: ${s.score ?? 0} / ${s.maxScore ?? 0}`,
+    `Trust score: ${s.trustScore}/100`,
+    sm?.strengths.length ? `## Strengths\n${sm.strengths.map((item) => `- ${item}`).join("\n")}` : "",
+    sm?.weaknesses.length ? `## Weaknesses\n${sm.weaknesses.map((item) => `- ${item}`).join("\n")}` : "",
+    sm?.recommendations ? `## Recommendations\n${sm.recommendations}` : "",
+  ].filter(Boolean).join("\n\n");
 
   return (
     <CinematicShell>
@@ -105,6 +115,10 @@ export default function Summary() {
       />
 
       <section className="container mx-auto px-6 pb-12 space-y-8">
+        <div className="space-y-3">
+          <DraftExportButtons title="Exam Result" content={reportContent} hideMarkdown />
+          <DraftDocument content={reportContent} />
+        </div>
         <div
           data-testid="ai-disclaimer"
           className="rounded-lg border border-amber-400/30 bg-amber-500/[0.06] px-4 py-3 text-xs md:text-sm text-amber-100/85 flex items-start gap-3"

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DraftDocument } from "@workspace/draft-export/react";
 
 const API_BASE = "/api/sya";
 
@@ -176,8 +177,8 @@ function ClientIntakePageInner() {
           <Card className="border-secondary/30">
             <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-secondary">{t("Generated Case Brief", "Ringkasan Kes Yang Dijana")}</h2></CardHeader>
             <CardContent>
-              <div className="bg-white/5 rounded-lg p-4 prose prose-sm prose-invert max-w-none overflow-auto max-h-[70vh]">
-                <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">{generatedBrief}</pre>
+              <div className="bg-white/5 rounded-lg p-4 overflow-auto max-h-[70vh]">
+                <DraftDocument content={generatedBrief} />
               </div>
               <p className="text-xs text-muted-foreground italic mt-3">{t("AI-generated case brief. Review and verify all details.", "Ringkasan kes dijana AI. Semak dan sahkan semua butiran.")}</p>
             </CardContent>

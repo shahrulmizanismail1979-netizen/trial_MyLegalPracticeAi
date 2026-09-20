@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExportActions from "@/components/export-actions";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { DraftDocument } from "@workspace/draft-export/react";
 
 export default function CausePapersPage() {
   const { t, mode } = useLanguage();
@@ -522,9 +523,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
                   speechLang="ms-MY"
                   className="mb-3"
                 />
-                <pre className="whitespace-pre-wrap text-xs font-mono text-foreground/90 bg-muted/30 p-4 rounded-md border border-border/50 leading-relaxed">
-                  {draftResult}
-                </pre>
+                <DraftDocument content={draftResult} />
                 <p className="text-xs text-muted-foreground mt-3 italic border-t border-border/50 pt-3">
                   {t(
                     "This is an AI-generated draft. All content must be reviewed and verified by a qualified Peguam Syarie before filing.",

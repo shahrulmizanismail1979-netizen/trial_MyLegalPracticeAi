@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { consumeSse } from "@/lib/sse";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 const API_BASE = "/api/sya";
 
@@ -237,11 +238,12 @@ function TafsirPageInner() {
               </p>
             )}
             <div
-              className={`whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed ${isRtl ? "rtl text-right" : ""}`}
+              className={`${isRtl ? "rtl text-right" : ""}`}
               dir={isRtl ? "rtl" : "ltr"}
               data-testid="tafsir-output"
             >
-              {output}
+              {output && !generating && <DraftExportButtons title="Tafsir Analysis" content={output} hideMarkdown />}
+              {output && <DraftDocument content={output} />}
               {generating && <span className="animate-pulse text-emerald-600">▋</span>}
             </div>
           </CardContent>

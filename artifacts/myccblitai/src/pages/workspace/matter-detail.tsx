@@ -260,7 +260,8 @@ function AiReviewCard({ matterId }: { matterId: number }) {
         </div>
         {review.isPending && <p className="text-sm text-muted-foreground animate-pulse">Generating case review and prioritised next actions… this can take up to a minute.</p>}
         {result != null && !review.isPending && (
-          <div className="border-t border-border pt-3">
+          <div className="border-t border-border pt-3 space-y-3">
+            <DraftExportButtons title="AI Case Review" content={result} hideMarkdown />
             <MarkdownRenderer content={result} />
           </div>
         )}

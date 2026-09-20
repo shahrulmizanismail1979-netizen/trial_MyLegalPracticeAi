@@ -4,7 +4,7 @@ import { useLocation, useParams, useSearchParams, Link } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PRACTITIONER_TOOLS } from "@/data/ai-tools-data";
 import { ArrowLeft, Send, Loader2, RotateCcw, Sparkles, Lock, Volume2, Square } from "lucide-react";
-import { DraftExportButtons } from "@workspace/draft-export/react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTier, canAccessTool, canUseVoice, minTierForTool } from "@/lib/tier";
@@ -480,7 +480,7 @@ export default function ToolDetailPage() {
             <ScrollArea className="flex-1 p-5">
               {output ? (
                 <div ref={outputRef} className="text-sm leading-relaxed">
-                  <OutputRenderer text={output} />
+                  <DraftDocument content={output} />
                 </div>
               ) : isLoading ? (
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">

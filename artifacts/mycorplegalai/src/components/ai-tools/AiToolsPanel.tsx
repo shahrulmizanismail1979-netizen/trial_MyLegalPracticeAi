@@ -9,7 +9,7 @@ import {
 import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiContext } from "@/contexts/AiContext";
 import { cn } from "@/lib/utils";
-import { DraftExportButtons } from "@workspace/draft-export/react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/SaveToMatterPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -405,7 +405,7 @@ export function AiToolsPanel() {
                         )}
                       >
                         {msg.role === "ai"
-                          ? <MarkdownLike text={msg.content} />
+                          ? (msg.isComplete ? <DraftDocument content={msg.content} /> : <MarkdownLike text={msg.content} />)
                           : <span className="whitespace-pre-wrap">{msg.content}</span>
                         }
                         {msg.role === "ai" &&

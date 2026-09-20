@@ -18,6 +18,7 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import ExportActions from "@/components/export-actions";
 import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { DraftDocument } from "@workspace/draft-export/react";
 
 const API_BASE = "/api/sya";
 
@@ -377,6 +378,7 @@ export default function CaseAnalysisPage() {
                 </CardContent>
               </Card>
 
+              <DraftDocument content={formatAnalysisText(result, t)} />
               <ExportActions content={formatAnalysisText(result, t)} filenameBase={t("Case Analysis", "Analisis Kes")} />
               <SaveToMatterPanel
                 draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}

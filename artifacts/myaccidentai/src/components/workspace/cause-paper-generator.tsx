@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileText, Copy, Download, Sparkles, Folder, Check } from "lucide-react";
 import { templates, defaultCase, type CaseDetails, type TemplateDef } from "./templates";
-import { DraftExportButtons } from "@workspace/draft-export/react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker } from "@/components/MatterPicker";
 import { type Matter } from "@/hooks/use-matters";
@@ -196,12 +196,9 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
                 <DraftExportButtons title={selected.name} content={generated} className="items-center" />
               </div>
             </div>
-            <pre
-              className="text-xs leading-relaxed font-mono whitespace-pre-wrap p-5 overflow-auto max-h-[70vh] bg-background"
-              data-testid="preview-document"
-            >
-              {generated}
-            </pre>
+            <div className="p-5 overflow-auto max-h-[70vh] bg-background" data-testid="preview-document">
+              <DraftDocument content={generated} />
+            </div>
           </div>
           <div className="mt-4">
             <SaveToMatterPanel

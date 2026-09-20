@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { tierHasFeature } from "@/lib/tiers";
 import UpgradePrompt from "@/components/upgrade-prompt";
 import ExportActions from "@/components/export-actions";
+import { DraftDocument } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -197,8 +198,8 @@ function LegalOpinionPageInner() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-white/5 rounded-lg p-4 prose prose-sm prose-invert max-w-none overflow-auto max-h-[75vh]">
-                  <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">{generatedOpinion}</pre>
+                <div className="bg-white/5 rounded-lg p-4 overflow-auto max-h-[75vh]">
+                  <DraftDocument content={generatedOpinion} />
                 </div>
                 <p className="text-xs text-muted-foreground italic mt-3">
                   {t("AI-generated legal opinion. Must be reviewed and verified by qualified counsel before use.", "Pendapat undang-undang dijana AI. Mesti disemak dan disahkan oleh peguam berkelayakan sebelum digunakan.")}

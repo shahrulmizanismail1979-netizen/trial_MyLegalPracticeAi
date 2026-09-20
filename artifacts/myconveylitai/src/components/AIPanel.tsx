@@ -15,6 +15,7 @@ import { type Matter, useMatter } from '@/lib/matters';
 import { useLocation } from 'wouter';
 import { downloadDocx, downloadAndOpenInGoogleDocs } from '@/lib/exportDocx';
 import { exportTxt, exportMarkdown, exportPdf } from '@workspace/draft-export';
+import { DraftDocument, DraftExportButtons } from '@workspace/draft-export/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useToast } from '@/hooks/use-toast';
@@ -483,6 +484,7 @@ function OutputBlock({
           </button>
           {canExport ? (
             <>
+              <DraftExportButtons title={title} content={content} hideMarkdown />
               <button
                 onClick={() => exportTxt({ title, text: content })}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-gold-800 hover:bg-gold-700 px-3 py-1.5 rounded-lg transition-colors"
@@ -537,10 +539,8 @@ function OutputBlock({
           )}
         </div>
       </div>
-      <div className="bg-gold-950 border border-gold-700 rounded-xl p-4 shadow-inner max-h-[420px] overflow-y-auto custom-scrollbar">
-        <pre className="whitespace-pre-wrap font-mono text-xs text-slate-300 leading-relaxed">
-          {content}
-        </pre>
+      <div className="bg-gold-950 border border-gold-700 rounded-xl p-4 text-slate-300 shadow-inner max-h-[420px] overflow-y-auto custom-scrollbar">
+        <DraftDocument content={content} />
       </div>
       <p className="text-[10px] text-slate-500 mt-2 italic">
         Word export uses Malaysian Land Office layout (A4, Times New Roman 12pt, MALAYSIA / Pejabat Tanah header, ref-no, signature & witness blocks). Verify before official use.

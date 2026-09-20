@@ -6,6 +6,7 @@ import {
   ChevronRight, Plus
 } from "lucide-react";
 import type { RouterState } from "./use-router-state";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 type Message = {
   id: string;
@@ -261,6 +262,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
           }
         }
       }
+      if (!assistantText) throw new Error("No reply received");
     } catch (err: any) {
        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: 'Error: ' + err.message, error: true } : m));
     } finally {
@@ -458,14 +460,14 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                   {renderComposer(false)}
                </div>
             ) : (
-               <div className="flex-1 flex flex-col w-full max-w-3xl mx-auto">
-                  <div className="flex-1 px-4 py-8 flex flex-col gap-6">
-                     {messages.map((m) => (
+                <div className="flex-1 flex flex-col w-full max-w-5xl mx-auto">
+                   <div className="flex-1 px-4 py-8 flex flex-col gap-6">
+                      {messages.map((m, messageIndex) => (
                        <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                         <div className={`max-w-[90%] md:max-w-[85%] rounded-2xl px-5 py-4 ${
+                          <div className={`rounded-2xl px-5 py-4 ${
                            m.role === 'user'
-                           ? 'bg-muted/50 text-foreground border border-border rounded-tr-sm shadow-sm'
-                           : 'bg-card text-foreground border border-border shadow-sm rounded-tl-sm'
+                            ? 'max-w-[90%] md:max-w-[85%] bg-muted/50 text-foreground border border-border rounded-tr-sm shadow-sm'
+                            : 'w-full max-w-full bg-muted/40 text-foreground border border-border shadow-sm rounded-tl-sm'
                          }`}>
                             {m.role === 'assistant' && (
                               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/50">
@@ -485,7 +487,11 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                                 ))}
                               </div>
                             )}
-                            <div className="text-[15px] prose-p:my-2 prose-ul:my-2 prose-li:my-1">{renderMessageContent(m.content)}</div>
+                             {m.role === "assistant" ? (
+                               <DraftDocument content={m.content} />
+                             ) : (
+                               <div className="text-[15px] prose-p:my-2 prose-ul:my-2 prose-li:my-1">{renderMessageContent(m.content)}</div>
+                             )}
                             {m.role === 'assistant' && m.content === '' && streaming && (
                               <div className="flex items-center gap-1 h-6 mt-2">
                                  <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -494,6 +500,16 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                               </div>
                             )}
                             {m.error && <div className="mt-3 text-sm text-destructive flex items-center gap-1.5 bg-destructive/10 p-2 rounded-md"><AlertCircle size={14} /> Failed to generate response</div>}
+                             {m.role === "assistant" &&
+                               m.content &&
+                               !m.error &&
+                               !(streaming && messageIndex === messages.length - 1) && (
+                                 <DraftExportButtons
+                                   title={`${selectedMode.name} response`}
+                                   content={m.content}
+                                   className="mt-4 border-t border-border/60 pt-3"
+                                 />
+                               )}
                          </div>
                        </div>
                      ))}

@@ -6,7 +6,6 @@ import {
   Header,
   Footer,
   AlignmentType,
-  HeadingLevel,
   PageNumber,
   UnderlineType,
   BorderStyle,
@@ -16,6 +15,7 @@ import {
   LevelFormat,
   convertInchesToTwip,
 } from "docx";
+import { exportPlainText, normalizeExportLines, type ExportLine } from "./exportFormatting";
 
 export interface ExportDocxInput {
   title: string;
@@ -30,39 +30,14 @@ export interface ExportDocxInput {
 
 const FONT = "Times New Roman";
 
-function toRuns(line: string): TextRun[] {
-  const runs: TextRun[] = [];
-  const re = /\*\*(.+?)\*\*|__(.+?)__|\*(.+?)\*|_(.+?)_/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(line))) {
-    if (m.index > last) {
-      runs.push(new TextRun({ text: line.slice(last, m.index), font: FONT, size: 24 }));
-    }
-    const bold = !!(m[1] ?? m[2]);
-    const text = m[1] ?? m[2] ?? m[3] ?? m[4] ?? "";
-    runs.push(new TextRun({ text, font: FONT, size: 24, bold, italics: !bold }));
-    last = m.index + m[0].length;
-  }
-  if (last < line.length) {
-    runs.push(new TextRun({ text: line.slice(last), font: FONT, size: 24 }));
-  }
-  if (runs.length === 0) runs.push(new TextRun({ text: "", font: FONT, size: 24 }));
-  return runs;
-}
-
-function makeBodyParagraph(line: string): Paragraph {
-  // Detect heading marks
-  const h1 = line.match(/^# +(.*)$/);
-  const h2 = line.match(/^## +(.*)$/);
-  const h3 = line.match(/^### +(.*)$/);
-  if (h1) {
+function makeBodyParagraph(line: ExportLine): Paragraph {
+  if (line.kind === "heading" && line.level === 1) {
     return new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 240, after: 160, line: 360, lineRule: LineRuleType.AUTO },
       children: [
         new TextRun({
-          text: h1[1].toUpperCase(),
+          text: line.runs.map((run) => run.text).join("").toUpperCase(),
           font: FONT,
           size: 28,
           bold: true,
@@ -71,61 +46,47 @@ function makeBodyParagraph(line: string): Paragraph {
       ],
     });
   }
-  if (h2) {
+  if (line.kind === "heading" && line.level === 2) {
     return new Paragraph({
       spacing: { before: 200, after: 120, line: 360, lineRule: LineRuleType.AUTO },
       children: [
-        new TextRun({ text: h2[1].toUpperCase(), font: FONT, size: 26, bold: true }),
+        new TextRun({ text: line.runs.map((run) => run.text).join("").toUpperCase(), font: FONT, size: 26, bold: true }),
       ],
     });
   }
-  if (h3) {
+  if (line.kind === "heading") {
     return new Paragraph({
       spacing: { before: 160, after: 100, line: 360, lineRule: LineRuleType.AUTO },
-      children: [new TextRun({ text: h3[1], font: FONT, size: 24, bold: true })],
+      children: [new TextRun({ text: line.runs.map((run) => run.text).join(""), font: FONT, size: 24, bold: true })],
     });
   }
 
   // Numbered list line: "1. text" or "(a) text"
-  const numbered = line.match(/^(\d+\.)\s+(.*)$/);
-  if (numbered) {
+  if (line.kind === "numbered") {
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: convertInchesToTwip(0.5), hanging: convertInchesToTwip(0.5) },
       spacing: { before: 80, after: 80, line: 360, lineRule: LineRuleType.AUTO },
       children: [
-        new TextRun({ text: `${numbered[1]}\t`, font: FONT, size: 24, bold: true }),
-        ...toRuns(numbered[2]),
+        new TextRun({ text: `${line.marker}\t`, font: FONT, size: 24, bold: true }),
+        ...line.runs.map((run) => new TextRun({ text: run.text, font: run.code ? "Courier New" : FONT, size: 24, bold: run.bold, italics: run.italics })),
       ],
     });
   }
-  const lettered = line.match(/^\(([a-z]|[ivx]+)\)\s+(.*)$/i);
-  if (lettered) {
-    return new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      indent: { left: convertInchesToTwip(1), hanging: convertInchesToTwip(0.5) },
-      spacing: { before: 60, after: 60, line: 360, lineRule: LineRuleType.AUTO },
-      children: [
-        new TextRun({ text: `(${lettered[1]})\t`, font: FONT, size: 24 }),
-        ...toRuns(lettered[2]),
-      ],
-    });
-  }
-  // Bullets
-  const bullet = line.match(/^[-*•]\s+(.*)$/);
-  if (bullet) {
+  if (line.kind === "bullet") {
     return new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: { left: convertInchesToTwip(0.5), hanging: convertInchesToTwip(0.25) },
       spacing: { before: 60, after: 60, line: 360, lineRule: LineRuleType.AUTO },
       children: [
         new TextRun({ text: "•\t", font: FONT, size: 24 }),
-        ...toRuns(bullet[1]),
+        ...line.runs.map((run) => new TextRun({ text: run.text, font: run.code ? "Courier New" : FONT, size: 24, bold: run.bold, italics: run.italics })),
       ],
     });
   }
   // Centred markers like _________ become signature lines
-  if (/^_{3,}\s*$/.test(line)) {
+  const plainText = line.runs.map((run) => run.text).join("");
+  if (/^_{3,}\s*$/.test(plainText)) {
     return new Paragraph({
       spacing: { before: 240, after: 0, line: 360, lineRule: LineRuleType.AUTO },
       children: [new TextRun({ text: "_______________________________", font: FONT, size: 24 })],
@@ -135,7 +96,13 @@ function makeBodyParagraph(line: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
     spacing: { before: 100, after: 100, line: 360, lineRule: LineRuleType.AUTO },
-    children: toRuns(line),
+    children: line.runs.map((run) => new TextRun({
+      text: run.text,
+      font: run.code ? "Courier New" : FONT,
+      size: 24,
+      bold: run.bold,
+      italics: run.italics,
+    })),
   });
 }
 
@@ -405,16 +372,21 @@ function buildSignatureBlock(): Paragraph[] {
 }
 
 export async function buildLandOfficeDocx(input: ExportDocxInput): Promise<Buffer> {
-  const opts = input;
+  const opts: ExportDocxInput = {
+    ...input,
+    title: exportPlainText(input.title),
+    refNo: input.refNo == null ? undefined : exportPlainText(input.refNo),
+    parties: input.parties == null ? undefined : exportPlainText(input.parties),
+    state: input.state == null ? undefined : exportPlainText(input.state),
+    district: input.district == null ? undefined : exportPlainText(input.district),
+    dateStr: input.dateStr == null ? undefined : exportPlainText(input.dateStr),
+  };
 
-  const bodyLines = (opts.content ?? "")
-    .replace(/\r\n/g, "\n")
-    .split("\n");
+  const bodyLines = normalizeExportLines(opts.content ?? "");
 
   const bodyParagraphs: Paragraph[] = [];
-  for (const raw of bodyLines) {
-    const line = raw.trimEnd();
-    if (line.trim() === "") {
+  for (const line of bodyLines) {
+    if (line.kind === "blank") {
       bodyParagraphs.push(
         new Paragraph({
           spacing: { before: 80, after: 80, line: 360, lineRule: LineRuleType.AUTO },

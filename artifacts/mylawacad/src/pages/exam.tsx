@@ -13,6 +13,7 @@ import {
   getListExamQuestionsQueryKey,
   setAttemptTokenGetter,
 } from "@/lib/api-client";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import {
   AlertTriangle,
   Check,
@@ -612,14 +613,15 @@ export default function Exam() {
                       })}
                     </div>
                   ) : null}
-                  {result.feedback ? (
-                    <p className="text-sm mb-2">{result.feedback}</p>
-                  ) : null}
-                  {result.modelAnswer ? (
-                    <p className="text-sm">
-                      <span className="font-semibold">Model answer: </span>
-                      {result.modelAnswer}
-                    </p>
+                  {result.feedback || result.modelAnswer ? (
+                    <div className="space-y-3">
+                      <DraftExportButtons
+                        title="Answer Feedback"
+                        content={[result.feedback, result.modelAnswer ? `# Model answer\n\n${result.modelAnswer}` : ""].filter(Boolean).join("\n\n")}
+                        hideMarkdown
+                      />
+                      <DraftDocument content={[result.feedback, result.modelAnswer ? `# Model answer\n\n${result.modelAnswer}` : ""].filter(Boolean).join("\n\n")} />
+                    </div>
                   ) : null}
                   {result.encouragement ? (
                     <p className="text-sm italic mt-2 text-muted-foreground">

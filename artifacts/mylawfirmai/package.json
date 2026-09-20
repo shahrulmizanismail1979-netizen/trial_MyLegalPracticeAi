@@ -78,6 +78,7 @@
   },
   "dependencies": {
     "@workspace/case-home-ui": "workspace:*",
+    "@workspace/draft-export": "workspace:*",
     "@uppy/aws-s3": "^5.1.0",
     "@uppy/core": "^5.2.0",
     "@uppy/dashboard": "^5.1.1",

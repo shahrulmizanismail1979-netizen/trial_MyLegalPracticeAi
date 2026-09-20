@@ -20,6 +20,7 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import ExportActions from "@/components/export-actions";
 import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { DraftDocument } from "@workspace/draft-export/react";
 
 const API_BASE = "/api/sya";
 
@@ -343,6 +344,7 @@ function ComplianceCheckPageInner() {
                 </CardContent>
               </Card>
 
+              <DraftDocument content={formatComplianceText(result, t)} />
               <ExportActions content={formatComplianceText(result, t)} filenameBase={t("Compliance Check", "Semakan Pematuhan")} />
               <SaveToMatterPanel
                 draftTitle={

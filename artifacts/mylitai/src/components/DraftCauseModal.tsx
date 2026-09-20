@@ -8,6 +8,7 @@ import { useSaveWork } from '@/hooks/use-saved-work';
 import { useToast } from '@/hooks/use-toast';
 import { SaveToMatterPanel, type PracticeMatterRef } from '@/components/SaveToMatterPanel';
 import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
+import { DraftDocument } from '@workspace/draft-export/react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type LegalForm = Record<string, any>;
@@ -226,8 +227,8 @@ export function DraftCauseModal({ form, onClose, practiceMatter, linkedMatterId 
                   </div>
                 )}
               </div>
-              <div className="bg-background border border-border rounded-xl p-6 font-mono text-xs leading-relaxed whitespace-pre-wrap max-h-[55vh] overflow-y-auto shadow-inner relative">
-                {draft}
+              <div className="bg-background border border-border rounded-xl p-6 text-sm leading-relaxed max-h-[55vh] overflow-y-auto shadow-inner relative">
+                <DraftDocument content={draft} />
                 {isStreaming && !isDone && (
                   <span className="inline-block w-2 h-4 bg-primary/70 animate-pulse ml-1 align-middle rounded-sm" />
                 )}

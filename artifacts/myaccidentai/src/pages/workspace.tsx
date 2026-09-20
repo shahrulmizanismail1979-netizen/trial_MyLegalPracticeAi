@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
-import { DraftExportButtons } from "@workspace/draft-export/react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { useLocation, useSearchParams, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccidentCheckSession, useAccidentLogout, getAccidentCheckSessionQueryKey } from "@workspace/api-client-react";
@@ -1189,10 +1189,10 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
 
         <div className="bg-card border border-border rounded-2xl p-5">
           <h3 className="text-sm font-semibold mb-3">Analysis</h3>
-          <div className="bg-background border border-border rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[450px] max-h-[600px] overflow-y-auto" data-testid="output-analysis">
+          <div className="bg-background border border-border rounded-lg p-4 text-sm leading-relaxed min-h-[450px] max-h-[600px] overflow-y-auto" data-testid="output-analysis">
             {loading && <span className="animate-pulse text-muted-foreground">Analyzing case facts and Malaysian authorities…</span>}
             {!loading && !analysis && <span className="text-muted-foreground">Analysis will appear here.</span>}
-            {analysis}
+            {analysis && <DraftDocument content={analysis} />}
           </div>
           {analysis && !loading && (
             <div className="mt-4">
@@ -1307,10 +1307,10 @@ function AiDrafterTab({ matter }: { matter?: Matter | null }) {
 
         <div className="bg-card border border-border rounded-2xl p-5">
           <h3 className="text-sm font-semibold mb-3">Generated Document</h3>
-          <div className="bg-background border border-border rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap font-mono min-h-[450px] max-h-[600px] overflow-y-auto" data-testid="output-doc">
+          <div className="bg-background border border-border rounded-lg p-4 text-sm leading-relaxed min-h-[450px] max-h-[600px] overflow-y-auto" data-testid="output-doc">
             {loading && <span className="animate-pulse text-muted-foreground">Drafting…</span>}
             {!loading && !output && <span className="text-muted-foreground">Generated document will appear here.</span>}
-            {output}
+            {output && <DraftDocument content={output} />}
           </div>
           {output && !loading && (
             <div className="mt-4">

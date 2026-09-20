@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-matters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import {
   Dialog,
   DialogContent,
@@ -214,8 +215,9 @@ function PrepareButton({ m }: { m: MatterBriefing }) {
 
           {!prepare.isPending && markdown != null && (
             <div className="space-y-3">
-              <div className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans p-4 bg-card/50 border border-border rounded max-h-[55vh] overflow-auto" data-testid={`my-case-prepare-output-${m.id}`}>
-                {markdown}
+              <DraftExportButtons title={ts("Matter Preparation", "Persediaan Kes")} content={markdown} hideMarkdown />
+              <div className="p-4 bg-card/50 border border-border rounded max-h-[55vh] overflow-auto" data-testid={`my-case-prepare-output-${m.id}`}>
+                <DraftDocument content={markdown} />
               </div>
               <Button size="sm" variant="outline" className="gap-2" onClick={run} data-testid={`my-case-prepare-rerun-${m.id}`}>
                 <RefreshCw className="h-4 w-4" /> {t("Re-run", "Jana semula")}

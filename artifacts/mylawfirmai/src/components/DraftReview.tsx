@@ -22,6 +22,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Loader2, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 type EditableDraft = TaskDraft & { _key: string };
 
@@ -102,11 +103,28 @@ export function DraftReview({ drafts, onCreated }: Props) {
     );
   };
 
+  const exportContent = items
+    .map((draft, index) =>
+      [
+        `# ${index + 1}. ${draft.title}`,
+        draft.description || "",
+        `Category: ${draft.category}`,
+        `Reason: ${draft.reason}`,
+        draft.dueAt ? `Due: ${draft.dueAt.slice(0, 10)}` : "",
+      ].filter(Boolean).join("\n\n"),
+    )
+    .join("\n\n---\n\n");
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
         <Sparkles className="h-3.5 w-3.5" />
         {t("draft.heading")}
+      </div>
+
+      <div className="space-y-3">
+        <DraftExportButtons title="AI Task Drafts" content={exportContent} hideMarkdown />
+        <DraftDocument content={exportContent} />
       </div>
 
       <div className="space-y-4">

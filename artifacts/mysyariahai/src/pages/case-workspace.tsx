@@ -13,6 +13,7 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { consumeSse } from "@/lib/sse";
 import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 const API_BASE = "/api/sya";
 
@@ -327,15 +328,15 @@ export default function CaseWorkspacePage() {
                   </Button>
                 </div>
                 {analyzer.error && <p className="text-sm text-red-600">{analyzer.error}</p>}
-                <div data-testid="cw-output-analyzer">{renderJsonOrText(analyzer.output) || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
+                <div data-testid="cw-output-analyzer">{analyzer.output ? <DraftDocument content={analyzer.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
                 {analyzer.output && analyzer.status !== "running" && (
-                  <SaveToMatterPanel
+                  <><DraftExportButtons title={t("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")} content={analyzer.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}
                     draftContent={analyzer.output}
                     parties={parties || undefined}
                     kind="analysis"
                     matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
-                  />
+                  /></>
                 )}
               </TabsContent>
 
@@ -352,15 +353,15 @@ export default function CaseWorkspacePage() {
                   </Button>
                 </div>
                 {caseAnalysis.error && <p className="text-sm text-red-600">{caseAnalysis.error}</p>}
-                <div data-testid="cw-output-case">{renderJsonOrText(caseAnalysis.output) || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
+                <div data-testid="cw-output-case">{caseAnalysis.output ? <DraftDocument content={caseAnalysis.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
                 {caseAnalysis.output && caseAnalysis.status !== "running" && (
-                  <SaveToMatterPanel
+                  <><DraftExportButtons title={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")} content={caseAnalysis.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}
                     draftContent={caseAnalysis.output}
                     parties={parties || undefined}
                     kind="analysis"
                     matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
-                  />
+                  /></>
                 )}
               </TabsContent>
 
@@ -377,17 +378,17 @@ export default function CaseWorkspacePage() {
                   </Button>
                 </div>
                 {legalOpinion.error && <p className="text-sm text-red-600">{legalOpinion.error}</p>}
-                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap" data-testid="cw-output-opinion">
-                  {legalOpinion.output || <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}
+                <div data-testid="cw-output-opinion">
+                  {legalOpinion.output ? <DraftDocument content={legalOpinion.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}
                 </div>
                 {legalOpinion.output && legalOpinion.status !== "running" && (
-                  <SaveToMatterPanel
+                  <><DraftExportButtons title={t("Legal Opinion", "Pendapat Undang-Undang")} content={legalOpinion.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("Legal Opinion", "Pendapat Undang-Undang")}
                     draftContent={legalOpinion.output}
                     parties={parties || undefined}
                     kind="opinion"
                     matterType={AREAS.find(a => a.id === area)?.titleEn || undefined}
-                  />
+                  /></>
                 )}
               </TabsContent>
             </Tabs>

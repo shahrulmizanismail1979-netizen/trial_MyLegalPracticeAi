@@ -8,95 +8,52 @@ import {
   AlignmentType,
 } from "docx";
 import { logger } from "../../lib/logger";
+import { exportPlainText, normalizeExportLines, type ExportInline } from "../../utils/exportFormatting";
 
 const router = Router();
 
-// A line that is nothing but repeated rule characters (dashes, asterisks,
-// underscores, equals, box-drawing) — optionally spaced out like "- - - - -".
-// The AI sometimes emits these as visual dividers; Word renders them as noise,
-// so we drop them and rely on blank lines for separation instead.
-function isHorizontalRule(line: string): boolean {
-  const stripped = line.replace(/\s+/g, "");
-  return stripped.length >= 3 && /^[-*_=─—–]+$/.test(stripped);
-}
-
-// Remove stray Markdown emphasis markers that survive as literal characters
-// (e.g. a lone "**" or "*" the model failed to close). parseInline handles
-// well-formed pairs; this cleans up the leftovers so no raw asterisks appear.
-function stripStrayEmphasis(text: string): string {
-  return text
-    // collapse any run of 2+ asterisks/underscores into nothing
-    .replace(/\*{2,}/g, "")
-    .replace(/_{2,}/g, "");
-}
-
 function buildParagraphs(content: string): Paragraph[] {
-  const lines = content.replace(/\r\n/g, "\n").split("\n");
   const paragraphs: Paragraph[] = [];
 
-  for (const rawLine of lines) {
-    const line = rawLine.replace(/\s+$/, "");
-
-    // Drop horizontal-rule / divider lines entirely — emit a blank line so the
-    // surrounding sections stay visually separated without the dash strand.
-    if (isHorizontalRule(line.trim())) {
+  for (const line of normalizeExportLines(content)) {
+    if (line.kind === "blank") {
       paragraphs.push(new Paragraph({ children: [new TextRun("")] }));
       continue;
     }
 
-    if (line.trim() === "") {
-      paragraphs.push(new Paragraph({ children: [new TextRun("")] }));
-      continue;
-    }
-
-    const h1 = line.match(/^#\s+(.+)$/);
-    const h2 = line.match(/^##\s+(.+)$/);
-    const h3 = line.match(/^###\s+(.+)$/);
-
-    if (h1) {
+    if (line.kind === "heading") {
+      const level = line.level === 1
+        ? HeadingLevel.HEADING_1
+        : line.level === 2
+          ? HeadingLevel.HEADING_2
+          : HeadingLevel.HEADING_3;
+      const size = line.level === 1 ? 32 : line.level === 2 ? 28 : 24;
       paragraphs.push(
         new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: h1[1], bold: true, size: 32 })],
-        }),
-      );
-      continue;
-    }
-    if (h2) {
-      paragraphs.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [new TextRun({ text: h2[1], bold: true, size: 28 })],
-        }),
-      );
-      continue;
-    }
-    if (h3) {
-      paragraphs.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_3,
-          children: [new TextRun({ text: h3[1], bold: true, size: 24 })],
+          heading: level,
+          children: line.runs.map((run) => new TextRun({
+            text: run.text, bold: true, italics: run.italics, size,
+          })),
         }),
       );
       continue;
     }
 
-    if (/^[-*•]\s+/.test(line)) {
+    if (line.kind === "bullet") {
       paragraphs.push(
         new Paragraph({
           bullet: { level: 0 },
-          children: parseInline(line.replace(/^[-*•]\s+/, "")),
+          children: toTextRuns(line.runs),
         }),
       );
       continue;
     }
 
-    const numbered = line.match(/^(\d+)\.\s+(.+)$/);
-    if (numbered) {
+    if (line.kind === "numbered" && /^\d+\.$/.test(line.marker ?? "")) {
       paragraphs.push(
         new Paragraph({
           numbering: { reference: "default-numbering", level: 0 },
-          children: parseInline(numbered[2]),
+          children: toTextRuns(line.runs),
         }),
       );
       continue;
@@ -104,7 +61,9 @@ function buildParagraphs(content: string): Paragraph[] {
 
     paragraphs.push(
       new Paragraph({
-        children: parseInline(line),
+        children: line.kind === "numbered"
+          ? [new TextRun(`${line.marker}\t`), ...toTextRuns(line.runs)]
+          : toTextRuns(line.runs),
       }),
     );
   }
@@ -112,24 +71,13 @@ function buildParagraphs(content: string): Paragraph[] {
   return paragraphs;
 }
 
-function parseInline(text: string): TextRun[] {
-  const tokens = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
-  const runs: TextRun[] = [];
-  for (const tok of tokens) {
-    if (!tok) continue;
-    if (/^\*\*[^*]+\*\*$/.test(tok)) {
-      runs.push(new TextRun({ text: tok.slice(2, -2), bold: true }));
-    } else if (/^\*[^*]+\*$/.test(tok)) {
-      runs.push(new TextRun({ text: tok.slice(1, -1), italics: true }));
-    } else if (/^`[^`]+`$/.test(tok)) {
-      runs.push(new TextRun({ text: tok.slice(1, -1), font: "Courier New" }));
-    } else {
-      // Plain text: scrub any leftover unmatched emphasis markers so raw
-      // asterisks/underscores never leak into the Word document.
-      runs.push(new TextRun(stripStrayEmphasis(tok)));
-    }
-  }
-  return runs.length > 0 ? runs : [new TextRun(stripStrayEmphasis(text))];
+function toTextRuns(runs: ExportInline[]): TextRun[] {
+  return runs.map((run) => new TextRun({
+    text: run.text,
+    bold: run.bold,
+    italics: run.italics,
+    font: run.code ? "Courier New" : undefined,
+  }));
 }
 
 function safeFilename(name: string): string {
@@ -153,7 +101,7 @@ router.post("/docx", async (req, res) => {
       return res.status(400).json({ error: "content is required" });
     }
 
-    const docTitle = (title && title.trim()) || "MyLitAi Document";
+    const docTitle = exportPlainText((title && title.trim()) || "MyLitAi Document");
 
     const headerParagraph = new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -205,6 +153,11 @@ router.post("/docx", async (req, res) => {
       },
       sections: [
         {
+          properties: {
+            page: {
+              size: { width: 11906, height: 16838 },
+            },
+          },
           children: [
             headerParagraph,
             metaParagraph,

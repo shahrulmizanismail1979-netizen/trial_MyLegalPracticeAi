@@ -293,6 +293,9 @@ importers:
       '@workspace/case-home-ui':
         specifier: workspace:*
         version: link:../../lib/case-home-ui
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../../lib/draft-export
       '@workspace/object-storage-web':
         specifier: workspace:*
         version: link:../../lib/object-storage-web
@@ -1761,6 +1764,9 @@ importers:
       '@workspace/case-home-ui':
         specifier: workspace:*
         version: link:../../lib/case-home-ui
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../../lib/draft-export
       '@workspace/paralegal-widget':
         specifier: workspace:*
         version: link:../../lib/paralegal-widget
@@ -1894,6 +1900,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: 'catalog:'
         version: 5.1.4(vite@7.3.6(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2))
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../../lib/draft-export
       '@workspace/persona-client':
         specifier: workspace:*
         version: link:../../lib/persona-client
@@ -1987,6 +1996,9 @@ importers:
       '@workspace/case-home-ui':
         specifier: workspace:*
         version: link:../../lib/case-home-ui
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../../lib/draft-export
       '@workspace/object-storage-web':
         specifier: workspace:*
         version: link:../../lib/object-storage-web
@@ -3277,6 +3289,13 @@ importers:
         version: 0.31.9
 
   lib/draft-export:
+    dependencies:
+      docx:
+        specifier: ^9.7.1
+        version: 9.7.1
+      jspdf:
+        specifier: ^4.2.1
+        version: 4.2.1
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -3284,6 +3303,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.1.0
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@25.3.5)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
   lib/entitlements:
     devDependencies:
@@ -3324,6 +3346,10 @@ importers:
         version: 25.3.5
 
   lib/letters-ui:
+    dependencies:
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../draft-export
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -3352,6 +3378,10 @@ importers:
         version: 19.2.14
 
   lib/paralegal-widget:
+    dependencies:
+      '@workspace/draft-export':
+        specifier: workspace:*
+        version: link:../draft-export
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -5680,6 +5710,7 @@ packages:
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}

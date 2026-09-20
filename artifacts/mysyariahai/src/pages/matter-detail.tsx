@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -991,8 +992,9 @@ function AiReviewButton({ matterId, mode }: { matterId: number; mode: string }) 
       )}
       {result != null && !review.isPending && (
         <Card className="border-border/50 bg-card/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans">{result}</p>
+          <CardContent className="p-4 space-y-3">
+            <DraftExportButtons title={t("AI Case Review", "Semakan Kes AI")} content={result} hideMarkdown />
+            <DraftDocument content={result} />
           </CardContent>
         </Card>
       )}

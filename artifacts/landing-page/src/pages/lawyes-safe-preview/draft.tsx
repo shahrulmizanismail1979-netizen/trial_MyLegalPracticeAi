@@ -1,15 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Check, Copy, Download, Printer, ChevronRight, FileText, AlertTriangle } from "lucide-react";
-import { PLAYBOOKS, SOURCES, type Playbook } from "@/fixtures/lawyes-preview";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Check, ChevronRight, FileText, AlertTriangle } from "lucide-react";
+import { PLAYBOOKS, SOURCES } from "@/fixtures/lawyes-preview";
 import type { RouterState } from "./use-router-state";
-import { download, docxDownload, copyToClipboard } from "./shared";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 export function DraftView({ state, updateState, navigate }: { state: RouterState; updateState: (updates: Partial<RouterState>, replace?: boolean) => void; navigate: (view: "home" | "matter") => void }) {
   const step = state.draftStep;
   const setStep = (newStep: number) => updateState({ draftStep: newStep });
 
-  const [copied, setCopied] = useState(false);
-  const [exportFeedback, setExportFeedback] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const selectedPlaybook = PLAYBOOKS.find(p => p.id === state.playbook) || null;
@@ -118,17 +116,6 @@ export function DraftView({ state, updateState, navigate }: { state: RouterState
 
     setGeneratedDraft(draft);
     setStep(3);
-  };
-
-  const doExport = (type: "txt" | "docx") => {
-    try {
-      if (type === "txt") download("lawyes-draft-template.txt", generatedDraft, "text/plain");
-      if (type === "docx") docxDownload(generatedDraft);
-      setExportFeedback(`Exported ${type.toUpperCase()} successfully`);
-    } catch {
-      setExportFeedback(`Failed to export ${type.toUpperCase()}`);
-    }
-    setTimeout(() => setExportFeedback(""), 3000);
   };
 
   return (
@@ -278,33 +265,14 @@ export function DraftView({ state, updateState, navigate }: { state: RouterState
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <FileText size={16} className="text-primary" />
                   {selectedPlaybook.title} (Draft Template)
-                  <span aria-live="polite" className="sr-only">{exportFeedback}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={async () => {
-                      const success = await copyToClipboard(generatedDraft);
-                      if (success) {
-                        setCopied(true);
-                        setExportFeedback("Copied to clipboard");
-                        setTimeout(() => { setCopied(false); setExportFeedback(""); }, 2000);
-                      } else {
-                        setExportFeedback("Failed to copy");
-                      }
-                    }}
-                    className="p-2 text-xs font-bold text-foreground hover:bg-muted border border-border rounded transition-colors flex items-center gap-1.5 min-h-[44px]" type="button"
-                  >
-                    <Copy size={14} /> {copied ? "Copied!" : "Copy"}
-                  </button>
-                  <button onClick={() => doExport("txt")} className="p-2 text-xs font-bold text-foreground hover:bg-muted border border-border rounded transition-colors flex items-center gap-1.5 min-h-[44px]" type="button"><Download size={14} /> TXT</button>
-                  <button onClick={() => doExport("docx")} className="p-2 text-xs font-bold text-foreground hover:bg-muted border border-border rounded transition-colors flex items-center gap-1.5 min-h-[44px]" type="button"><Download size={14} /> DOCX</button>
-                  <button onClick={() => { window.print(); setExportFeedback("Print dialog opened"); setTimeout(() => setExportFeedback(""), 3000); }} className="p-2 text-xs font-bold text-foreground hover:bg-muted border border-border rounded transition-colors flex items-center gap-1.5 min-h-[44px]" type="button"><Printer size={14} /> Print</button>
-                </div>
+                <DraftExportButtons
+                  title={`${selectedPlaybook.title} Draft Template`}
+                  content={generatedDraft}
+                />
               </div>
               <div className="p-6 md:p-8 bg-[#fafafa]">
-                <pre className="whitespace-pre-wrap font-mono text-xs md:text-sm text-foreground/90 max-w-[800px] mx-auto leading-relaxed border border-border p-8 bg-white shadow-sm">
-                  {generatedDraft}
-                </pre>
+                <DraftDocument content={generatedDraft} />
               </div>
               <div className="p-4 border-t border-border bg-muted/20 flex justify-between">
                 <button onClick={() => setStep(2)} className="px-4 py-2 border border-border bg-white rounded text-sm font-medium hover:bg-muted transition-colors">Edit inputs</button>

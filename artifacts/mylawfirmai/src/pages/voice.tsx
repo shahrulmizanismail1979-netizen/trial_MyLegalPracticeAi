@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Quote, MessageSquare, AlertCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 export default function VoicePage() {
   const t = useT();
@@ -94,9 +95,10 @@ export default function VoicePage() {
                 <MessageSquare className="h-3.5 w-3.5" />
                 {t("voice.assistantReply")}
               </h2>
-              <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 leading-relaxed text-foreground">
-                {result.assistantReply}
-              </p>
+              <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+                <DraftExportButtons title={t("voice.assistantReply")} content={result.assistantReply} hideMarkdown />
+                <DraftDocument content={result.assistantReply} />
+              </div>
             </section>
 
             {result.missing.length > 0 && (

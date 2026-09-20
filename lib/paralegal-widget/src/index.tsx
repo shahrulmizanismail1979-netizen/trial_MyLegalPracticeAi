@@ -11,6 +11,7 @@
  * it looks consistent regardless of each portal's Tailwind theme.
  */
 import { useEffect, useRef, useState } from "react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 // @ts-ignore — static asset; bundled by each portal's Vite
 import amaniAvatarSrc from "./amani-avatar.jpg";
 
@@ -136,6 +137,12 @@ const S = {
     fontSize: 14,
   } as React.CSSProperties,
 };
+
+const EXPORT_CSS = `
+.vp-export-actions{display:flex;flex-wrap:wrap;gap:4px}
+.vp-export-button{padding:4px 7px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+background:rgba(255,255,255,.08);color:inherit;font:600 10px/1.2 system-ui,sans-serif;cursor:pointer}
+.vp-export-button:hover{background:rgba(255,255,255,.14)}.vp-export-button:disabled{cursor:default;opacity:.5}`;
 
 /** Shared Amani portrait so every LAWYes assistant uses the same identity. */
 export function AmaniAvatar({
@@ -385,6 +392,7 @@ export function ParalegalWidget({
 
   return (
     <>
+      <style>{EXPORT_CSS}</style>
       {open && (
         <div style={S.panel} role="dialog" aria-label={`${assistantName} — virtual paralegal`}>
           <div style={S.header(accent)}>
@@ -411,11 +419,44 @@ export function ParalegalWidget({
           </div>
           <div ref={bodyRef} style={S.body}>
             <div style={S.bubble(false, accent)}>{hello}</div>
-            {messages.map((m, i) => (
-              <div key={i} style={S.bubble(m.role === "user", accent)}>
-                {m.content || (busy && i === messages.length - 1 ? "…" : m.content)}
-              </div>
-            ))}
+            {messages.map((m, i) => {
+              const pending = busy && i === messages.length - 1;
+              return (
+                <div key={i} style={S.bubble(m.role === "user", accent)}>
+                  {m.role === "assistant" && m.content ? (
+                    <>
+                      <DraftDocument
+                        content={m.content}
+                        ariaLabel={`${assistantName} reply`}
+                        style={{
+                          width: "100%",
+                          minHeight: 0,
+                          margin: 0,
+                          padding: 0,
+                          background: "transparent",
+                          color: "inherit",
+                          boxShadow: "none",
+                          font: "inherit",
+                        }}
+                      />
+                      {!pending && (
+                        <div style={{ marginTop: 8 }}>
+                          <DraftExportButtons
+                            title={`${assistantName} reply`}
+                            content={m.content}
+                            hideMarkdown
+                            className="vp-export-actions"
+                            buttonClassName="vp-export-button"
+                          />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    m.content || (pending ? "…" : m.content)
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div style={S.inputRow}>
             <input

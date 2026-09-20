@@ -13,7 +13,7 @@ import {
   useLawyesSaveOutput,
   uploadLawyesEvidence,
 } from "./api";
-import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, Copy, BookOpen, Download, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, Search, X } from "lucide-react";
+import { Loader2, FileText, Settings, AlertCircle, ArrowRight, CheckCircle2, BookOpen, Eye, PanelRight, Sparkles, Plus, Mail, HardDrive, Globe, Users, Save, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import type { ResourceDetail, ResourceItem, WorkspaceAggregate } from "./api";
 import { trackEvent } from "@/lib/analytics";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 export function MatterWorkspace({ matterId, onShareClick }: { matterId: string, onShareClick: () => void }) {
   const { data, isLoading, error } = useLawyesMatter(matterId);
@@ -681,23 +682,6 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
     );
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([workbenchContent], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(workbenchTitle || "document").replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(workbenchContent);
-    toast({ title: "Copied to clipboard" });
-  };
-
   const handleReset = () => {
     if (result) {
       setWorkbenchContent(result.content);
@@ -787,8 +771,8 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                       placeholder="Enter content..."
                     />
                   ) : (
-                    <div className="p-6 lg:p-10 prose prose-slate max-w-none text-[15px] leading-relaxed">
-                      <WorkbenchPreview content={workbenchContent} />
+                    <div className="bg-slate-100/70 p-4 lg:p-8">
+                      <DraftDocument content={workbenchContent} />
                     </div>
                   )}
                 </div>
@@ -801,16 +785,10 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
                         Reset
                       </Button>
                     )}
-                    {canWrite && (
-                      <>
-                        <Button variant="outline" size="sm" onClick={handleCopy} data-testid="workbench-action-copy" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
-                          <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleDownload} data-testid="workbench-action-download" className="h-8 text-xs font-medium text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900 border-slate-200">
-                          <Download className="w-3.5 h-3.5 mr-1.5" /> Download MD
-                        </Button>
-                      </>
-                    )}
+                    <DraftExportButtons
+                      title={workbenchTitle || "LAWYes matter output"}
+                      content={workbenchContent}
+                    />
                   </div>
                   {canWrite && (
                     <Button size="sm" onClick={handleSave} disabled={isSaving} data-testid="workbench-action-save" className="h-8 text-xs font-medium bg-primary hover:bg-primary/90 text-white shadow-sm px-5 rounded-lg">
@@ -1046,7 +1024,28 @@ function ResourceDetailContent({ detail }: { detail: ResourceDetail }) {
           </div>
         </section>
       )}
-      {detail.content && <section><DetailHeading>Record content</DetailHeading><div className="prose prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-5 text-sm leading-relaxed md:p-7"><WorkbenchPreview content={detail.content} /></div></section>}
+      {detail.content && (
+        <section>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <DetailHeading>Record content</DetailHeading>
+            {(detail.type === "saved-work" || detail.type === "draft") && (
+              <DraftExportButtons title={detail.title} content={detail.content} />
+            )}
+          </div>
+          {detail.type === "saved-work" || detail.type === "draft" ? (
+            <div className="rounded-xl bg-slate-100/70 p-3 md:p-5">
+              <DraftDocument
+                content={detail.content}
+                style={{ width: "100%", minHeight: "auto" }}
+              />
+            </div>
+          ) : (
+            <div className="prose prose-slate max-w-none rounded-xl border border-slate-200 bg-white p-5 text-sm leading-relaxed md:p-7">
+              <WorkbenchPreview content={detail.content} />
+            </div>
+          )}
+        </section>
+      )}
       {detail.derivedText && (
         <section>
           <div className="flex items-center justify-between gap-3"><DetailHeading>Machine-derived OCR / transcript</DetailHeading><Badge className={detail.evidenceVerified ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-800"}>{detail.evidenceVerified ? "Verified" : "Unverified"}</Badge></div>

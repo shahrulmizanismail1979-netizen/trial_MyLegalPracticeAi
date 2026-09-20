@@ -24,6 +24,7 @@
  *   GET  /:matterId/drafts
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 
 export type LettersRequest = (path: string, init?: RequestInit) => Promise<Response>;
 
@@ -98,6 +99,11 @@ const btn = (accent: string, secondary = false): React.CSSProperties => ({
   cursor: "pointer",
   flexShrink: 0,
 });
+const EXPORT_CSS = `
+.letters-export-actions{display:flex;flex-wrap:wrap;gap:6px}
+.letters-export-button{padding:6px 10px;border-radius:7px;border:1px solid rgba(128,128,128,.35);
+background:transparent;color:inherit;font:600 12px/1.2 system-ui,sans-serif;cursor:pointer}
+.letters-export-button:hover{border-color:currentColor}.letters-export-button:disabled{cursor:default;opacity:.5}`;
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -106,6 +112,17 @@ function fmtDate(v: string): string {
   return Number.isNaN(d.getTime())
     ? v
     : d.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** Compact list metadata only; the stored source remains byte-for-byte intact. */
+function plainPreview(content: string, maxLength: number): string {
+  return content
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`~#>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function downloadBlob(blob: Blob, name: string) {
@@ -143,6 +160,7 @@ export function LetterWriter({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState("");
+  const [editingGenerated, setEditingGenerated] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -158,6 +176,7 @@ export function LetterWriter({
     abortRef.current = ctrl;
     setGenerating(true);
     setGenerated("");
+    setEditingGenerated(false);
     setError(null);
     try {
       const r = await request("/letters/generate", {
@@ -228,6 +247,7 @@ export function LetterWriter({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 14 }}>
+      <style>{EXPORT_CSS}</style>
       <div style={box}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
           <div style={{ flex: "1 1 200px" }}>
@@ -303,9 +323,17 @@ export function LetterWriter({
         <div style={box}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontWeight: 700, fontSize: 13 }}>Generated letter</span>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               {!generating && (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => setEditingGenerated((value) => !value)}
+                    style={btn(accent, true)}
+                    data-testid="button-edit-letter-source"
+                  >
+                    {editingGenerated ? "Preview letter" : "Edit letter"}
+                  </button>
                   <button onClick={save} disabled={saving} style={btn(accent)} data-testid="button-save-letter">
                     {saving ? "Saving…" : "Save to Drafts"}
                   </button>
@@ -316,19 +344,44 @@ export function LetterWriter({
               )}
             </div>
           </div>
-          <textarea
-            value={generated}
-            onChange={(e) => setGenerated(e.target.value)}
-            rows={20}
-            style={{
-              ...inp,
-              resize: "vertical",
-              fontFamily: "'Courier New', monospace",
-              fontSize: 12,
-              lineHeight: 1.6,
-            }}
-            data-testid="textarea-letter-content"
-          />
+          {editingGenerated ? (
+            <textarea
+              value={generated}
+              onChange={(e) => setGenerated(e.target.value)}
+              rows={28}
+              style={{
+                ...inp,
+                resize: "vertical",
+                width: "min(100%, 210mm)",
+                minHeight: "297mm",
+                margin: "0 auto",
+                display: "block",
+                padding: "22mm 20mm",
+                background: "#fff",
+                color: "#111827",
+                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontSize: 14,
+                lineHeight: 1.65,
+                boxShadow: "0 3px 18px rgba(0,0,0,0.12)",
+              }}
+              aria-label="Edit generated letter source"
+              data-testid="textarea-letter-content"
+            />
+          ) : (
+            <DraftDocument content={generated} />
+          )}
+          {!generating && generated.trim() && (
+            <div style={{ marginTop: 10 }}>
+              <DraftExportButtons
+                title={letterTypes.find((type) => type.id === letterType)?.label ?? "Generated letter"}
+                content={generated}
+                bm={language === "bm"}
+                hideMarkdown
+                className="letters-export-actions"
+                buttonClassName="letters-export-button"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -475,6 +528,7 @@ export function DraftsPanel({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 14 }}>
+      <style>{EXPORT_CSS}</style>
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <button style={tabStyle(tab === "list")} onClick={() => setTab("list")}>
@@ -560,7 +614,7 @@ export function DraftsPanel({
                   </div>
                   {d.content && (
                     <div style={{ fontSize: 12, opacity: 0.55, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {d.content.slice(0, 120)}
+                      {plainPreview(d.content, 120)}
                     </div>
                   )}
                 </div>
@@ -650,9 +704,17 @@ export function DraftsPanel({
                 style={{
                   ...inp,
                   resize: "vertical",
-                  fontFamily: "'Courier New', monospace",
-                  fontSize: 12,
-                  lineHeight: 1.6,
+                  width: "min(100%, 210mm)",
+                  minHeight: "297mm",
+                  margin: "0 auto",
+                  display: "block",
+                  padding: "22mm 20mm",
+                  background: "#fff",
+                  color: "#111827",
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  fontSize: 14,
+                  lineHeight: 1.65,
+                  boxShadow: "0 3px 18px rgba(0,0,0,0.12)",
                 }}
                 data-testid="textarea-draft-content"
               />
@@ -665,18 +727,19 @@ export function DraftsPanel({
                 {viewDraft.kind === "letter" ? "Letter" : "Draft"}
                 {viewDraft.language === "bm" ? " · BM" : ""}
               </div>
-              <pre
-                style={{
-                  fontFamily: "'Courier New', monospace",
-                  fontSize: 12,
-                  lineHeight: 1.7,
-                  whiteSpace: "pre-wrap",
-                  margin: 0,
-                }}
-                data-testid="pre-draft-content"
-              >
-                {viewDraft.content}
-              </pre>
+              <div data-testid="document-draft-content">
+                <DraftDocument content={viewDraft.content} />
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <DraftExportButtons
+                  title={viewDraft.title}
+                  content={viewDraft.content}
+                  bm={viewDraft.language === "bm"}
+                  hideMarkdown
+                  className="letters-export-actions"
+                  buttonClassName="letters-export-button"
+                />
+              </div>
             </div>
           )}
 
@@ -715,7 +778,7 @@ export function DraftsPanel({
                     </span>
                     <span style={{ fontSize: 12, opacity: 0.7 }}>{fmtDate(v.created_at)}</span>
                     <span style={{ flex: 1, fontSize: 12, opacity: 0.55, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {v.content.slice(0, 80)}
+                      {plainPreview(v.content, 80)}
                     </span>
                     {v.id !== viewDraft.id && (
                       <button

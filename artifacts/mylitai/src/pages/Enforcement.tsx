@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { emitRateLimit, readRateLimitRemaining } from '@/lib/rate-limit-bus';
-import { DraftExportButtons } from '@workspace/draft-export/react';
+import { DraftDocument, DraftExportButtons } from '@workspace/draft-export/react';
 import {
   Gavel,
   Loader2,
@@ -176,7 +176,7 @@ function OutputBlock({
         <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">{title}</span>
         <DraftExportButtons title={title} content={output} />
       </div>
-      <LegalOutput text={output} />
+      <DraftDocument content={output} />
       {disclaimer && (
         <div className="flex gap-2 items-start p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />

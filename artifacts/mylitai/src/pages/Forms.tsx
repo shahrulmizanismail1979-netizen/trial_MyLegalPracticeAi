@@ -12,6 +12,7 @@ import { FileUploadDropzone, buildContextFromFiles, type ExtractedFile } from '@
 import { ExportButtons } from '@/components/ExportButtons';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useToast } from '@/hooks/use-toast';
+import { DraftDocument } from '@workspace/draft-export/react';
 
 // ─── Save draft ──────────────────────────────────────────────────────────────
 function SaveDraftButton({ title, matter, content }: { title: string; matter: string; content: string }) {
@@ -350,8 +351,8 @@ export default function Forms() {
                 </div>
 
                 {/* Document output */}
-                <div className="bg-background border border-border rounded-xl p-6 font-mono text-xs leading-relaxed whitespace-pre-wrap max-h-[55vh] overflow-y-auto shadow-inner relative">
-                  {draft}
+                <div className="bg-background border border-border rounded-xl p-6 text-sm leading-relaxed max-h-[55vh] overflow-y-auto shadow-inner relative">
+                  <DraftDocument content={draft} />
                   {isStreaming && !isDone && (
                     <span className="inline-block w-2 h-4 bg-primary/70 animate-pulse ml-1 align-middle rounded-sm" />
                   )}

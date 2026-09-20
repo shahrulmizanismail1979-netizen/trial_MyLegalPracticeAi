@@ -6,6 +6,7 @@ import {
   TextRun,
 } from "docx";
 import type { MeetingMinutes } from "../db";
+import { normalizeExportInline } from "../../utils/exportFormatting";
 
 type Labels = {
   attendees: string;
@@ -35,6 +36,15 @@ const LABELS: Record<"en" | "ms", Labels> = {
   },
 };
 
+function formattedRuns(value: string): TextRun[] {
+  return normalizeExportInline(value).map((run) => new TextRun({
+    text: run.text,
+    bold: run.bold,
+    italics: run.italics,
+    font: run.code ? "Courier New" : undefined,
+  }));
+}
+
 /** Build a Word (.docx) document from structured minutes; returns a Buffer. */
 export async function buildMinutesDocx(
   minutes: MeetingMinutes,
@@ -44,11 +54,11 @@ export async function buildMinutesDocx(
   const children: Paragraph[] = [];
 
   children.push(
-    new Paragraph({ text: minutes.title, heading: HeadingLevel.TITLE }),
+    new Paragraph({ children: formattedRuns(minutes.title), heading: HeadingLevel.TITLE }),
   );
 
   if (minutes.summary) {
-    children.push(new Paragraph({ children: [new TextRun(minutes.summary)] }));
+    children.push(new Paragraph({ children: formattedRuns(minutes.summary) }));
   }
 
   if (minutes.attendees.length > 0) {
@@ -56,7 +66,7 @@ export async function buildMinutesDocx(
       new Paragraph({ text: L.attendees, heading: HeadingLevel.HEADING_1 }),
     );
     for (const a of minutes.attendees) {
-      children.push(new Paragraph({ text: a, bullet: { level: 0 } }));
+      children.push(new Paragraph({ children: formattedRuns(a), bullet: { level: 0 } }));
     }
   }
 
@@ -66,15 +76,15 @@ export async function buildMinutesDocx(
     );
     for (const item of minutes.agenda) {
       children.push(
-        new Paragraph({ text: item.topic, heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ children: formattedRuns(item.topic), heading: HeadingLevel.HEADING_2 }),
       );
       if (item.discussion) {
         children.push(
-          new Paragraph({ children: [new TextRun(item.discussion)] }),
+          new Paragraph({ children: formattedRuns(item.discussion) }),
         );
       }
       for (const d of item.decisions) {
-        children.push(new Paragraph({ text: d, bullet: { level: 0 } }));
+        children.push(new Paragraph({ children: formattedRuns(d), bullet: { level: 0 } }));
       }
     }
   }
@@ -84,7 +94,7 @@ export async function buildMinutesDocx(
       new Paragraph({ text: L.decisions, heading: HeadingLevel.HEADING_1 }),
     );
     for (const d of minutes.decisions) {
-      children.push(new Paragraph({ text: d, bullet: { level: 0 } }));
+      children.push(new Paragraph({ children: formattedRuns(d), bullet: { level: 0 } }));
     }
   }
 
@@ -97,9 +107,11 @@ export async function buildMinutesDocx(
         new Paragraph({
           bullet: { level: 0 },
           children: [
-            new TextRun(a.text),
+            ...formattedRuns(a.text),
             new TextRun({
-              text: `  (${L.owner}: ${a.owner ?? L.unassigned})`,
+              text: `  (${L.owner}: ${normalizeExportInline(a.owner ?? L.unassigned)
+                .map((run) => run.text)
+                .join("")})`,
               italics: true,
             }),
           ],
@@ -108,6 +120,11 @@ export async function buildMinutesDocx(
     }
   }
 
-  const doc = new Document({ sections: [{ children }] });
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 11906, height: 16838 } } },
+      children,
+    }],
+  });
   return Packer.toBuffer(doc);
 }

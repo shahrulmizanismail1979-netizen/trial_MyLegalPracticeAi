@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Copy, RefreshCw, Sparkles, Loader2, StopCircle, FileText, Wand2 } from "lucide-react";
 import { isAuthenticated, getToken, authHeaders } from "@/lib/auth";
 import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
-import { DraftExportButtons } from "@workspace/draft-export/react";
+import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
 import { apiUrl } from "@/lib/api";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, mapMatterToFormValues } from "@/components/MatterPicker";
@@ -552,7 +552,7 @@ export default function ToolPage() {
                   </div>
                 ) : (
                   <div className="min-h-full">
-                    <MarkdownRenderer content={output} />
+                    <DraftDocument content={output} />
                     {isGenerating && (
                       <div className="flex items-center space-x-2 mt-4 text-primary">
                         <Loader2 className="w-4 h-4 animate-spin" />
