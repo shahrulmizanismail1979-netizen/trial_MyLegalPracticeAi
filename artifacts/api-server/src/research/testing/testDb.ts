@@ -29,6 +29,7 @@ const PHASE08_MIGRATION_PATHS = [
   // Current ingestion dedup and search backfill join Drive inventory even
   // when no Drive fixtures are present. Keep those joins schema-local.
   "0038-drive-headnotes-tables.sql",
+  "0044-research-metadata-unique-key.sql",
 ].map((fileName) =>
   path.resolve(__dirname, "../../../../../lib/db/sql/migrations", fileName),
 );
@@ -65,12 +66,6 @@ export async function createIsolatedTestDb(
         const migration = await readFile(migrationPath, "utf8");
         await pool.query(migration);
       }
-      // Present in the Drizzle contract, but absent from the historical
-      // phase08 migration. The real metadata processor's ON CONFLICT needs it.
-      await pool.query(`
-        CREATE UNIQUE INDEX research_case_metadata_judgment_field_version_uq
-        ON research_case_metadata (judgment_id, field_name, processor_version)
-      `);
     }
   } catch (err) {
     if (pool) {
