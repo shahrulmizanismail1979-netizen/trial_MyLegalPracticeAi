@@ -7,6 +7,12 @@ description: Research proof isolation and safeguards for remaining shared-databa
 
 Prefer a disposable schema for each proof-test worker, replacing the default database AND pool before service imports. Passing a scoped client only to the queue driver is insufficient: downstream services can use their own default database imports. Never add public to the isolated search path.
 
+Fresh-schema helpers must apply checked-in production migrations, not inline repair DDL.
+
+**Why:** A helper shared by isolation proofs and schema contracts can silently mask a missing migration if a parallel change adds a convenience column/index repair.
+
+**How to apply:** Put missing processor dependencies in additive migrations and include them once in the helper's migration chain; never repair them after applying that chain.
+
 **Why:** Queue claims against a shared database can dispatch another run's fixture to a worker whose in-memory storage does not contain its files. Polling/retrying cannot make that safe. Fresh schemas also expose drift between historical DDL and current service dependencies; include those dependencies rather than falling back to shared tables.
 
 **How to apply:** Use schema isolation for proof suites with private adapters. For legacy shared-database tests not yet isolated, the safeguards below remain relevant, but cannot prevent foreign storage reads.

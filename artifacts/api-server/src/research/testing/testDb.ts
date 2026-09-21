@@ -34,12 +34,24 @@ const PHASE08_MIGRATION_PATHS = [
   "0034-lawyes-editorial-intake.sql",
   "0036-lawyes-review-revisions.sql",
   "0044-research-metadata-unique-key.sql",
+  "0045-research-search-practice-area.sql",
 ].map((fileName) =>
   path.resolve(__dirname, "../../../../../lib/db/sql/migrations", fileName),
 );
 
+const CURRENT_RESEARCH_ADDITIONS = [
+  "0015-phase09-quotations.sql",
+  "0017-phase11a-authorities-legislation.sql",
+  "0019-phase12a-audit-indexes.sql",
+  "0020-phase12c-deletion-manifests.sql",
+  "0021-phase12c-manifest-body.sql",
+  "0022-upload-submitter-binding.sql",
+].map((fileName) =>
+  path.resolve(__dirname, "../../../../../lib/db/sql/migrations", fileName),
+);
 export interface IsolatedTestDbOptions {
   throughPhase08?: boolean;
+  currentResearch?: boolean;
 }
 
 export interface IsolatedTestDb {
@@ -65,18 +77,14 @@ export async function createIsolatedTestDb(
     const ddl = await readFile(DDL_PATH, "utf8");
     await pool.query(ddl);
 
-    if (options.throughPhase08) {
-      for (const migrationPath of PHASE08_MIGRATION_PATHS) {
+    if (options.throughPhase08 || options.currentResearch) {
+      const migrations = options.currentResearch
+        ? [...PHASE08_MIGRATION_PATHS, ...CURRENT_RESEARCH_ADDITIONS].sort()
+        : PHASE08_MIGRATION_PATHS;
+      for (const migrationPath of migrations) {
         const migration = await readFile(migrationPath, "utf8");
         await pool.query(migration);
       }
-      // Production boot adds these beyond the historical phase08 DDL.
-      // Reindex jobs must not rely on boot having altered the shared schema.
-      await pool.query(`
-        ALTER TABLE research_search_index ADD COLUMN IF NOT EXISTS practice_area text;
-        CREATE INDEX IF NOT EXISTS research_search_index_practice_area_idx
-          ON research_search_index (practice_area);
-      `);
     }
   } catch (err) {
     if (pool) {
