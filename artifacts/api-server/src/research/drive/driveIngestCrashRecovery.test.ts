@@ -8,7 +8,7 @@
  *    linking but before enqueueIngestJob) is recoverable via the batch-item
  *    reuse path.
  *
- * These tests use the live dev DB with RUN_ID-scoped seed rows.
+ * The Vitest setup supplies a disposable schema for both default db and pool.
  * Object-storage calls and Drive downloads are mocked.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";

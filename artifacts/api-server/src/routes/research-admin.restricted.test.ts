@@ -8,29 +8,17 @@
  * Per-asset tests use real DB calls scoped to rows created by this run.
  *
  * Bulk tests pass an explicit `ids` allowlist containing only fixture rows so
- * the operation never touches pre-existing protected content in the shared DB.
+ * the operation only touches the intended rows in the disposable test schema.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
+import express from "express";
+import cookieParser from "cookie-parser";
 
 process.env.ADMIN_PASSWORD = "research-restricted-test-password";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
-
-vi.mock("@clerk/express", () => ({
-  clerkMiddleware:
-    () =>
-    (_req: unknown, _res: unknown, next: () => void): void =>
-      next(),
-  getAuth: () => ({ userId: null }),
-  clerkClient: { users: { getUser: async () => { throw new Error("not used"); } } },
-}));
-
-vi.mock("../stripeClient", () => ({
-  getStripeSync: vi.fn().mockRejectedValue(new Error("Stripe unavailable")),
-  getUncachableStripeClient: vi.fn().mockRejectedValue(new Error("Stripe unavailable")),
-}));
 
 vi.mock("../lib/objectStorage", () => {
   class ObjectNotFoundError extends Error {
@@ -46,7 +34,13 @@ vi.mock("../lib/objectStorage", () => {
 
 // ── App + DB imports (after mocks) ───────────────────────────────────────────
 
-const { default: app } = await import("../app");
+// Mount the real router/auth without importing unrelated portal boot migrations.
+// Those portals' tables deliberately do not exist in the research-only schema.
+const { default: researchAdminRouter } = await import("./research-admin");
+const app = express();
+app.use(express.json());
+app.use(cookieParser("research-restricted-cookie-test-secret"));
+app.use("/api/research-admin", researchAdminRouter);
 const { db, driveAssets, researchJobs, researchUploadBatches, researchUploadBatchItems } = await import("@workspace/db");
 const { eq, inArray } = await import("drizzle-orm");
 

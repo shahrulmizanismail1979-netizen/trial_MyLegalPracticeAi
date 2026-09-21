@@ -10,7 +10,7 @@
  *     NOT insert any research_jobs rows.
  *  4. sourceClassification filter only touches matching assets.
  *
- * Uses the live dev DB with RUN_ID-scoped seed rows, cleaned up in afterAll.
+ * Uses a disposable schema supplied by Vitest setup, never the shared queue.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";

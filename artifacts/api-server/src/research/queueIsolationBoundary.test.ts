@@ -7,6 +7,16 @@ import { enqueue, registerProcessor, runNextJob } from "./processing";
 import { createIsolatedTestDb } from "./testing/testDb";
 import { isIsolatedQueueSuite } from "./testing/isolatedQueueSuites";
 
+it.each([
+  "/research/drive/driveIngestCrashRecovery.test.ts",
+  "/routes/research-admin.restricted.test.ts",
+  "/routes/research-admin-bulk-rights.test.ts",
+  "/routes/headnotes-search.test.ts",
+])("isolates audited producer %s before its service imports", suite => {
+  expect(isIsolatedQueueSuite(`/workspace/src${suite}`)).toBe(true);
+  expect(isIsolatedQueueSuite(`C:\\workspace\\src${suite.replaceAll("/", "\\")}`)).toBe(true);
+});
+
 it("default db and pool cannot dispatch a foreign queued job to a private processor", async () => {
   // Model the shared development queue in another disposable schema: never
   // plant a runnable sentinel in public where a real worker could claim it.

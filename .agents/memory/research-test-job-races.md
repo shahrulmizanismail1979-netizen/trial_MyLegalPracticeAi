@@ -17,6 +17,12 @@ Fresh-schema helpers must apply checked-in production migrations, not inline rep
 
 **How to apply:** Use schema isolation for proof suites with private adapters. For legacy shared-database tests not yet isolated, the safeguards below remain relevant, but cannot prevent foreign storage reads.
 
+Isolation applies to enqueue-only tests too, including HTTP approval routes.
+
+**Why:** A live development worker can claim synthetic jobs even when the test never runs a worker itself. Cleanup after the test cannot close that race.
+
+**How to apply:** Audit producers as well as consumers. For research-only route tests, mount the real router and required middleware rather than importing the whole app: unrelated portal boot migrations require tables deliberately absent from the disposable research schema.
+
 Model foreign/shared queue fixtures in a second disposable schema, not by planting runnable sentinel jobs in public.
 
 **Why:** A real development worker could claim a public sentinel during the proof, changing shared state or dispatching a synthetic payload to a real adapter.
