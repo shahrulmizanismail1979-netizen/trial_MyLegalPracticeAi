@@ -68,6 +68,7 @@ export default function VoiceModePage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [feedbackError, setFeedbackError] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const [micPrompting, setMicPrompting] = useState(false);
 
@@ -476,6 +477,7 @@ export default function VoiceModePage() {
     setInterim("");
     setError("");
     setFeedback("");
+    setFeedbackError("");
     setShowFeedback(false);
   }, [cancelListening, stopSpeaking]);
 
@@ -508,10 +510,10 @@ export default function VoiceModePage() {
             setFeedback(full);
           }
         },
-        onError: (msg) => setFeedback(prev => prev + `\n\n[error] ${msg}`),
+        onError: (msg) => setFeedbackError(msg),
       });
     } catch (e: any) {
-      if (e.name !== "AbortError") setFeedback("Failed: " + (e.message || "error"));
+      if (e.name !== "AbortError") setFeedbackError(e.message || "Failed to generate feedback");
     }
   }, [transcript, voiceMode, lang]);
 
@@ -773,7 +775,8 @@ export default function VoiceModePage() {
           <CardHeader><h2 className="font-semibold">{t("Trainer Feedback", "Maklum Balas Jurulatih")}</h2></CardHeader>
           <CardContent>
             <div className="space-y-3" data-testid="voice-mode-feedback-output">
-              {feedback ? <><DraftExportButtons title={t("Trainer Feedback", "Maklum Balas Jurulatih")} content={feedback} hideMarkdown /><DraftDocument content={feedback} /></> : t("Generating feedback…", "Menjana maklum balas…")}
+              {feedbackError && <p className="text-sm text-destructive">{feedbackError}</p>}
+              {feedback ? <>{!feedbackError && <DraftExportButtons title={t("Trainer Feedback", "Maklum Balas Jurulatih")} content={feedback} hideMarkdown />}<DraftDocument content={feedback} /></> : !feedbackError ? t("Generating feedback…", "Menjana maklum balas…") : null}
             </div>
           </CardContent>
         </Card>

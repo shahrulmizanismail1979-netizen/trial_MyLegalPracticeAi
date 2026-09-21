@@ -44,6 +44,7 @@ import {
   usePersona,
 } from "@workspace/persona-client";
 import { Check } from "lucide-react";
+import { requireGeneratedText } from "@/lib/ai-response";
 
 function tokenize(query: string): string[] {
   return query.toLowerCase().split(/[^a-z0-9]+/i).filter(t => t.length > 0);
@@ -911,7 +912,7 @@ function AssistantTab({ matter }: { matter?: Matter | null }) {
       const rl = readRateLimitRemaining(res);
       if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
-      setMessages([...next, { role: "assistant", content: j.reply || "(no response)" }]);
+       setMessages([...next, { role: "assistant", content: requireGeneratedText(j, "reply") }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -1109,7 +1110,7 @@ function CaseAnalyzerTab({
       const rl = readRateLimitRemaining(res);
       if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
-      setAnalysis(j.analysis || "(no response)");
+       setAnalysis(requireGeneratedText(j, "analysis", "Case analysis"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -1241,7 +1242,11 @@ function AiDrafterTab({ matter }: { matter?: Matter | null }) {
       const rl = readRateLimitRemaining(res);
       if (rl !== null) emitRateLimit(rl);
       const j = await res.json();
-      setOutput(j.letter || j.submissions || "(no response)");
+       setOutput(
+         mode === "demand-letter"
+           ? requireGeneratedText(j, "letter", "Demand letter")
+           : requireGeneratedText(j, "submissions", "Written submissions"),
+       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {

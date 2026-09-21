@@ -102,6 +102,7 @@ export default function Exam() {
   const [draftAnswer, setDraftAnswer] = useState<string>("");
   const [matchingMap, setMatchingMap] = useState<Record<string, string>>({});
   const [result, setResult] = useState<AnswerResult | null>(null);
+  const [answerError, setAnswerError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [proctorToast, setProctorToast] = useState<string | null>(null);
   const [examStartedAt, setExamStartedAt] = useState<number | null>(null);
@@ -192,6 +193,7 @@ export default function Exam() {
   useEffect(() => {
     setDraftAnswer("");
     setMatchingMap({});
+    setAnswerError(null);
     if (currentQuestion?.userAnswer) {
       setResult({
         isCorrect: !!currentQuestion.isCorrect,
@@ -271,6 +273,7 @@ export default function Exam() {
         ? JSON.stringify(matchingMap)
         : draftAnswer;
     if (!answer || answer === "{}") return;
+    setAnswerError(null);
     submitAnswer.mutate(
       { id: session.id, questionId: currentQuestion.id, data: { answer } },
       {
@@ -291,6 +294,13 @@ export default function Exam() {
           void qc.invalidateQueries({
             queryKey: getGetExamQueryKey(session.id),
           });
+        },
+        onError: (err) => {
+          setAnswerError(
+            err instanceof Error
+              ? err.message
+              : "Your answer could not be graded. It has not been submitted; please try again.",
+          );
         },
       },
     );
@@ -533,6 +543,16 @@ export default function Exam() {
                 onMatching={setMatchingMap}
                 disabled={!!result}
               />
+
+              {answerError ? (
+                <p
+                  className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+                  role="alert"
+                  data-testid="answer-submit-error"
+                >
+                  {answerError}
+                </p>
+              ) : null}
 
               {result ? (
                 <motion.div

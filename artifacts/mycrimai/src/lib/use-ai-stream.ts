@@ -8,6 +8,7 @@ interface UseAiStreamOptions {
 export function useAiStream(options?: UseAiStreamOptions) {
   const [response, setResponse] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -15,6 +16,7 @@ export function useAiStream(options?: UseAiStreamOptions) {
     async (url: string, body: Record<string, unknown>) => {
       setResponse("");
       setError(null);
+      setIsComplete(false);
       setIsStreaming(true);
 
       abortRef.current = new AbortController();
@@ -45,8 +47,33 @@ export function useAiStream(options?: UseAiStreamOptions) {
         const decoder = new TextDecoder();
         let fullText = "";
         let buffer = "";
+        let sawDone = false;
 
-        while (true) {
+        const processLine = (line: string) => {
+          if (!line.startsWith("data:")) return;
+
+          let data: { done?: boolean; complete?: boolean; content?: string; error?: string };
+          try {
+            data = JSON.parse(line.slice(5).trim());
+          } catch {
+            throw new Error("The AI response was malformed. Please try again.");
+          }
+
+          if (data.error) throw new Error(data.error);
+          if (data.done) {
+            if (data.complete === false) {
+              throw new Error("The AI response stopped before completion. Please try again.");
+            }
+            sawDone = true;
+            setIsComplete(true);
+            options?.onComplete?.(fullText);
+          } else if (data.content) {
+            fullText += data.content;
+            setResponse(fullText);
+          }
+        };
+
+        while (!sawDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -58,45 +85,28 @@ export function useAiStream(options?: UseAiStreamOptions) {
           for (const event of events) {
             const lines = event.split("\n");
             for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.done) {
-                    options?.onComplete?.(fullText);
-                  } else if (data.content) {
-                    fullText += data.content;
-                    setResponse(fullText);
-                  } else if (data.error) {
-                    setError(data.error);
-                  }
-                } catch {}
-              }
+              processLine(line);
             }
           }
         }
 
-        if (buffer.trim()) {
+        buffer += decoder.decode();
+        if (!sawDone && buffer.trim()) {
           const lines = buffer.split("\n");
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.done) {
-                  options?.onComplete?.(fullText);
-                } else if (data.content) {
-                  fullText += data.content;
-                  setResponse(fullText);
-                } else if (data.error) {
-                  setError(data.error);
-                }
-              } catch {}
-            }
+            processLine(line);
           }
+        }
+        if (!sawDone) {
+          throw new Error("The AI connection ended before completion. Partial output cannot be saved or exported; please try again.");
         }
       } catch (err: any) {
         if (err.name !== "AbortError") {
           setError(err.message || "Stream failed");
+        } else {
+          setError("Generation was cancelled. Partial output cannot be saved or exported.");
         }
+        setIsComplete(false);
       } finally {
         setIsStreaming(false);
         abortRef.current = null;
@@ -112,7 +122,8 @@ export function useAiStream(options?: UseAiStreamOptions) {
   const reset = useCallback(() => {
     setResponse("");
     setError(null);
+    setIsComplete(false);
   }, []);
 
-  return { response, isStreaming, error, stream, cancel, reset };
+  return { response, isStreaming, isComplete, error, stream, cancel, reset };
 }

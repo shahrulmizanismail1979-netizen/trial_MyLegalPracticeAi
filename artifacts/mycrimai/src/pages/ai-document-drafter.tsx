@@ -29,10 +29,10 @@ export function AiDocumentDrafterPage() {
   const [additionalInstructions, setAdditionalInstructions] = useState("");
   const [copied, setCopied] = useState(false);
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream();
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream();
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -134,7 +134,7 @@ export function AiDocumentDrafterPage() {
                   </CardTitle>
                   <div className="flex items-center gap-2 flex-wrap">
                     <VoiceControls voice={voice} responseText={response} compact />
-                    {!isStreaming && response && (
+                    {isComplete && response && (
                       <>
                         <Button variant="outline" size="sm" onClick={handleCopy}>
                           {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
@@ -147,7 +147,7 @@ export function AiDocumentDrafterPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!isStreaming && response && (
+                {isComplete && response && (
                   <SaveToMatterPanel
                     draftTitle={documentType || "Document"}
                     draftContent={response}

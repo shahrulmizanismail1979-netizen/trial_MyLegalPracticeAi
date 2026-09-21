@@ -16,14 +16,14 @@ export function AiSentencingPage() {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream({});
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({});
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [response]);
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -137,7 +137,7 @@ Mitigating: First offender, provocation by deceased, intoxication, young age, so
                 <VoiceControls voice={voice} responseText={response} />
               </div>
             )}
-            {response && !isStreaming && (
+            {response && isComplete && (
               <div className="mb-4 space-y-3">
                 <DraftExportButtons
                   title="Sentencing Prediction"

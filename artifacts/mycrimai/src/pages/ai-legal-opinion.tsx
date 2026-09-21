@@ -30,14 +30,14 @@ export function AiLegalOpinionPage() {
   const [specificQuestions, setSpecificQuestions] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream({});
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({});
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [response]);
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -157,7 +157,7 @@ ${specificQuestions ? `SPECIFIC QUESTIONS TO ADDRESS:\n${specificQuestions}` : "
                 <VoiceControls voice={voice} responseText={response} />
               </div>
             )}
-            {response && !isStreaming && (
+            {response && isComplete && (
               <div className="mb-4 space-y-3">
                 <DraftExportButtons
                   title={`Legal Opinion — ${OPINION_TYPES.find((t) => t.value === opinionType)?.label || "General Legal Opinion"}`}

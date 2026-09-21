@@ -18,6 +18,7 @@ import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { MatterPicker } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { consumeCompletionStream } from "@/lib/completion-stream";
 
 export default function StrategyPage() {
   const [, setLocation] = useLocation();
@@ -41,6 +42,7 @@ export default function StrategyPage() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [output, setOutput] = useState("");
+  const [outputComplete, setOutputComplete] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const endOfOutputRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +75,7 @@ export default function StrategyPage() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsGenerating(false);
+      setOutputComplete(false);
       toast({
         title: "Generation stopped",
         description: "The AI generation was manually stopped."
@@ -93,6 +96,7 @@ export default function StrategyPage() {
 
     setIsGenerating(true);
     setOutput("");
+    setOutputComplete(false);
     setStep(5); // Move to results view
     
     abortControllerRef.current = new AbortController();
@@ -122,45 +126,8 @@ export default function StrategyPage() {
       const rl = readRateLimitRemaining(response);
       if (rl !== null) emitRateLimit(rl);
 
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            if (dataStr === '[DONE]') continue;
-            
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.error) {
-                toast({
-                  title: "Generation error",
-                  description: data.error,
-                  variant: "destructive"
-                });
-                setIsGenerating(false);
-                return;
-              }
-              if (data.content) {
-                setOutput(prev => prev + data.content);
-              }
-            } catch (e) {
-              console.error("Error parsing SSE data", e);
-            }
-          }
-        }
-      }
+      await consumeCompletionStream(response, setOutput);
+      setOutputComplete(true);
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Generation aborted');
@@ -180,6 +147,7 @@ export default function StrategyPage() {
 
   const handleReset = () => {
     setOutput("");
+    setOutputComplete(false);
     setStep(1);
     setInputs({
       caseType: "",
@@ -502,11 +470,13 @@ export default function StrategyPage() {
                     </Button>
                   ) : (
                     <>
-                      <DraftExportButtons
-                        title={inputs.partiesInvolved ? `Case Strategy — ${inputs.partiesInvolved}` : "AI Case Strategy"}
-                        content={output}
-                        hideMarkdown
-                      />
+                      {outputComplete && (
+                        <DraftExportButtons
+                          title={inputs.partiesInvolved ? `Case Strategy — ${inputs.partiesInvolved}` : "AI Case Strategy"}
+                          content={output}
+                          hideMarkdown
+                        />
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -531,7 +501,12 @@ export default function StrategyPage() {
                       <span className="text-sm font-medium animate-pulse">Analyzing facts and synthesizing strategy...</span>
                     </div>
                   )}
-                  {output && !isGenerating && (
+                   {output && !isGenerating && !outputComplete && (
+                     <p className="mt-4 text-sm text-destructive" role="alert">
+                       This strategy is incomplete and cannot be saved or exported. Generate it again.
+                     </p>
+                   )}
+                   {output && !isGenerating && outputComplete && (
                     <div className="mt-6">
                       <SaveToMatterPanel
                         draftTitle={inputs.partiesInvolved ? `Case Strategy — ${inputs.partiesInvolved}` : "AI Case Strategy"}

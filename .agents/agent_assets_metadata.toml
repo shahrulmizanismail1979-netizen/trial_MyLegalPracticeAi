@@ -68,3 +68,17 @@ mtime_ms = 1788329266465
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b38dab63-c810-4e35-a3e2-aa65a296c8ac/a98be323-8cb1-4095-9c39-5cdde33554a8/473663b5-785a-4ea1-a475-c0a07f569122"
 storage_version_token = "1788329269116589"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "wc6bX2KpsLSnl2_nePhiZ"
+uri = "file://docs/qa/specialist-qa-summary.html"
+type = "html"
+title = "Specialist Portal QA Report"
+description = "Verified checks, repaired defects, per-portal coverage and outstanding blockers. Overall all-feature sign-off remains blocked."
+logical_id = "bdc9fff1-3e2a-466b-81b2-12edfebc8809"
+content_hash = "sha256:2999869fa28743561682d26c0b5851ec44f854fdb25a8c8dca92055540f5153e"
+size = 5996
+mtime_ms = 1789982186105
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b38dab63-c810-4e35-a3e2-aa65a296c8ac/bdc9fff1-3e2a-466b-81b2-12edfebc8809/b854d556-f8bf-4274-a397-ee4e7ec3ddb2"
+storage_version_token = "1789982263287426"
+content_type = "text/html"

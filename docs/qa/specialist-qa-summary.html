@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Specialist Portal QA Report</title>
+<style>body{max-width:1000px;margin:40px auto;padding:0 24px;color:#182333;font:16px/1.6 system-ui,sans-serif}h1,h2{line-height:1.2}h1{font-size:30px}.status{padding:18px;background:#fff3da;border-left:5px solid #b87900}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #d1d8df;padding:10px;text-align:left;vertical-align:top}th{background:#eef3f7}small{color:#506070}@page{size:A4;margin:20mm}@media print{body{margin:0;padding:0}tr{break-inside:avoid}}</style></head>
+<body><h1>Specialist Portal AI Completion QA</h1><p>Assessment date: 21 September 2026. Development environment only.</p>
+<p class="status"><strong>Overall status: NOT approved as “every feature passed”.</strong><br>Confirmed defects were repaired and focused checks passed. Provider-dependent and unverified end-to-end journeys remain explicit release limitations.</p>
+<h2>Verified evidence</h2><ul>
+<li>34 regression tests passed across seven suites: LAWYes API behavior, IRAC matter context, corporate matter context, firm isolation and document export formatting.</li>
+<li>3 CCB persistence/isolation tests passed, including rejected foreign deletion preserving the owner's messages and successful owner deletion.</li>
+<li>8 completion-contract tests passed for Lit, IRAC and Syariah.</li>
+<li>9 response/stream tests passed for Accident and CCB.</li>
+<li>Full workspace TypeScript validation passed.</li>
+<li>Managed preview services were restored after confirmed stale process collisions. MyCrimAI public-page screenshot loaded without visible runtime errors.</li>
+</ul>
+<h2>Portal findings</h2><table><thead><tr><th>Portal</th><th>Inspection / repair evidence</th><th>Not certified</th></tr></thead><tbody>
+<tr><td>MyLitAI</td><td>Shared and direct readers, Forms, Draft Cause, Chambers and oral/discussion completion handling audited; interrupted output no longer counts as terminal success.</td><td>Every individual tool's live generation, save, reopen and export journey.</td></tr>
+<tr><td>MyLitAI IRAC</td><td>Pipeline/enforcement terminal handling and malformed/partial stream cases checked; matter-context regressions passed.</td><td>Live selectable providers; dedicated ElevenLabs transcription/playback.</td></tr>
+<tr><td>MyCorpLegalAI</td><td>Existing terminal-completion safeguards inspected; specialist matter-context tests passed.</td><td>All tool-specific live journeys and provider-dependent narration.</td></tr>
+<tr><td>MyCorpCommBankLitAI</td><td>Chunk-safe parsing and completion gates repaired. Cross-tenant deletion bug fixed and persistence regression passed.</td><td>All browser generation-to-reopened-export paths and live provider behavior.</td></tr>
+<tr><td>MyConveyLitAI</td><td>JSON completion paths inspected; no confirmed partial-output bug found in this pass.</td><td>Full authenticated live task journeys, cloud exports and narration.</td></tr>
+<tr><td>MyCrimAI</td><td>Completion state added across eleven task pages; failed or partial output cannot be saved/exported as finished.</td><td>Browser run did not return a completed verdict; every live AI/oral-practice journey remains uncertified.</td></tr>
+<tr><td>MyAccidentAI</td><td>Missing/blank JSON output rejected; pure response validation tests passed.</td><td>All live task, save, reopen and download combinations.</td></tr>
+<tr><td>MySyariahAI</td><td>Shared and direct SSE consumers audited; task actions gated on terminal success; isolated contract checks passed.</td><td>All live tool journeys and ElevenLabs-backed voice/transcription.</td></tr>
+<tr><td>MyLawFirmAI</td><td>Workspace regression passed; stale voice result cleared before retry; JSON task handling inspected.</td><td>Live meeting diarization, provider generation and cloud export.</td></tr>
+<tr><td>MyLawAcad</td><td>JSON task contracts inspected; answer-grading failure now appears explicitly while retaining retry.</td><td>Live assessment-generation/marking and complete authenticated exam journeys in this pass.</td></tr>
+</tbody></table>
+<p>Sarawak20 is a subscription website with no specialist AI task flow identified; it is excluded from AI completion sign-off. Active research-task work was not modified.</p>
+<h2>Blocking dependencies and limits</h2><ul>
+<li>ElevenLabs has no usable connection. Several portals still depend on it for speech, recordings, diarization or oral-practice playback.</li>
+<li>OpenAI and Gemini integration configuration is present, but no live paid calls were performed. Configuration is not proof of successful generation.</li>
+<li>The optional direct OpenAI branch in IRAC lacks its direct provider key; the default Gemini configuration is separate.</li>
+<li>No live email, payment, cloud-provider write or production-data test was performed. Isolated mocks prove application handling, not external service availability or legal accuracy.</li>
+<li>The full browser generation → save → reopen → export attempt was stopped after prolonged timeouts; no completed browser verdict is counted. Exact browser fixture cleanup was requested and remains unconfirmed at report preparation.</li>
+</ul>
+<h2>Safety and sign-off</h2><p>No production migration or publishing was performed. Original saved legal content, subscription configuration and active research task files were not intentionally changed. Development fixture tests use scoped cleanup.</p><p>Final all-feature approval requires restoring or explicitly replacing unavailable voice capability, confirming live provider paths, and completing the remaining per-feature authenticated browser journeys. This report deliberately does not equate code inspection with an end-to-end pass.</p>
+<p><small>Detailed working records: specialist-completion-audit.md, specialist-other-completion-audit.md and specialist-persistence-audit.md in docs/qa.</small></p></body></html>

@@ -29,7 +29,7 @@ export function AiLegalResearchPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const voice = useVoice();
 
-  const { response, isStreaming, error, stream, reset } = useAiStream({
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({
     onComplete: (fullText) => {
       setMessages((prev) => [...prev, { role: "assistant", content: fullText }]);
       voice.speak(fullText);
@@ -89,7 +89,7 @@ export function AiLegalResearchPage() {
         </div>
       </div>
 
-      {!isStreaming && hasAssistantReply && (
+      {isComplete && hasAssistantReply && (
         <div className="mb-4 space-y-3">
           <DraftExportButtons
             title={researchTitle}

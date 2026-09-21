@@ -23,6 +23,8 @@ export async function consumeSse(res: Response, opts: ConsumeSseOptions): Promis
   if (!reader) throw new Error("No stream body");
   const decoder = new TextDecoder();
   let buffer = "";
+  let terminal = false;
+  let streamError: string | null = null;
 
   const flushFrame = (frame: string) => {
     const dataLines: string[] = [];
@@ -37,9 +39,14 @@ export async function consumeSse(res: Response, opts: ConsumeSseOptions): Promis
     try {
       const parsed = JSON.parse(payload) as SseEvent;
       opts.onEvent(parsed);
-      if (parsed.error && opts.onError) opts.onError(parsed.error);
+      if (parsed.done) terminal = true;
+      if (parsed.error) {
+        streamError = parsed.error;
+        opts.onError?.(parsed.error);
+      }
     } catch {
-      // Malformed event — ignore rather than throw.
+      streamError = "The AI response was malformed and was not marked complete. Please try again.";
+      opts.onError?.(streamError);
     }
   };
 
@@ -62,6 +69,12 @@ export async function consumeSse(res: Response, opts: ConsumeSseOptions): Promis
     }
     buffer += decoder.decode();
     if (buffer.trim()) flushFrame(buffer);
+    if (streamError) throw new Error(streamError);
+    if (!opts.signal?.aborted && !terminal) {
+      const message = "The AI connection ended before completion. Partial output cannot be saved or exported; please try again.";
+      opts.onError?.(message);
+      throw new Error(message);
+    }
   } finally {
     try { reader.releaseLock(); } catch {}
   }

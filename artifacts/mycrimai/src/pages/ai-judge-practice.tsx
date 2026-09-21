@@ -56,7 +56,7 @@ export function AiJudgePracticePage() {
   const { hasVoice } = useEntitlements();
   const eleven = useElevenVoice({ role: "judge", persona: judgeType });
 
-  const { response, isStreaming, error, stream, reset } = useAiStream({
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({
     onComplete: (fullText) => {
       setMessages((prev) => [...prev, { role: "assistant", content: fullText }]);
       if (hasVoice) {
@@ -361,7 +361,7 @@ export function AiJudgePracticePage() {
         )}
       </div>
 
-      {!isStreaming && hasJudgeReply && (
+      {isComplete && hasJudgeReply && (
         <div className="mt-4 space-y-3">
           <DraftExportButtons
             title={judgeTranscriptTitle}

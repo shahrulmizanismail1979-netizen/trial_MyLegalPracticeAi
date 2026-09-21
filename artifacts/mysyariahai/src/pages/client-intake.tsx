@@ -172,7 +172,7 @@ function ClientIntakePageInner() {
                 {t("Open in Case Workspace", "Buka dalam Ruang Kerja Kes")} →
               </Button>
             </div>
-            <ExportActions content={generatedBrief} filenameBase={t("Case Brief", "Ringkasan Kes")} />
+            {!generating && !error && <ExportActions content={generatedBrief} filenameBase={t("Case Brief", "Ringkasan Kes")} />}
           </div>
           <Card className="border-secondary/30">
             <CardHeader className="pb-3"><h2 className="font-serif font-semibold text-secondary">{t("Generated Case Brief", "Ringkasan Kes Yang Dijana")}</h2></CardHeader>

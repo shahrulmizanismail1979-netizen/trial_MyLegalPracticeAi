@@ -25,7 +25,7 @@ function parseIntParam(search: string, key: string): number | null {
 export function AiCaseAnalyzerPage() {
   const [facts, setFacts] = useState("");
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream();
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream();
 
   // --- matter context from URL ------------------------------------------------
   const search = typeof window !== "undefined" ? window.location.search : "";
@@ -51,7 +51,7 @@ export function AiCaseAnalyzerPage() {
   }, []); // run once on mount
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -147,7 +147,7 @@ export function AiCaseAnalyzerPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!isStreaming && response && (
+                {isComplete && response && (
                   <div className="space-y-3">
                     <DraftExportButtons
                       title="Case Fact Analysis"

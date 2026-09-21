@@ -242,7 +242,7 @@ function TafsirPageInner() {
               dir={isRtl ? "rtl" : "ltr"}
               data-testid="tafsir-output"
             >
-              {output && !generating && <DraftExportButtons title="Tafsir Analysis" content={output} hideMarkdown />}
+              {output && !generating && !error && <DraftExportButtons title="Tafsir Analysis" content={output} hideMarkdown />}
               {output && <DraftDocument content={output} />}
               {generating && <span className="animate-pulse text-emerald-600">▋</span>}
             </div>

@@ -365,7 +365,7 @@ function DocumentGeneratorPageInner() {
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3">
                   <h2 className="font-serif font-semibold text-secondary">{t("Generated Document", "Dokumen Yang Dijana")}</h2>
-                  {!generating && (
+                  {!generating && !error && (
                     <ExportActions
                       content={generatedDoc}
                       filenameBase={currentDocType ? (mode === "bm" ? currentDocType.titleBm : currentDocType.titleEn) : "document"}
@@ -381,7 +381,7 @@ function DocumentGeneratorPageInner() {
                 <p className="text-xs text-muted-foreground italic mt-3">
                   {t("This is an AI-generated draft. Review and amend before filing.", "Ini adalah draf yang dijana AI. Semak dan pinda sebelum memfailkan.")}
                 </p>
-                {!generating && (
+                {!generating && !error && (
                   <div className="mt-3">
                     <SaveToMatterPanel
                       draftTitle={currentDocType ? (mode === "bm" ? currentDocType.titleBm : currentDocType.titleEn) : ts("Generated Document", "Dokumen Dijana")}

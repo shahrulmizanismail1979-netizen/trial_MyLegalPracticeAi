@@ -18,6 +18,7 @@ import { emitRateLimit, readRateLimitRemaining } from "@/lib/rate-limit-bus";
 import { apiUrl } from "@/lib/api";
 import { format } from "date-fns";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
+import { consumeCompletionStream } from "@/lib/completion-stream";
 
 export default function ChatPage() {
   const [, setLocation] = useLocation();
@@ -172,47 +173,7 @@ export default function ChatPage() {
       const rl = readRateLimitRemaining(response);
       if (rl !== null) emitRateLimit(rl);
 
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullResponse = "";
-      
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            if (dataStr === '[DONE]') continue;
-            
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.error) {
-                toast({
-                  title: "Error",
-                  description: data.error,
-                  variant: "destructive"
-                });
-                setIsGenerating(false);
-                return;
-              }
-              if (data.content) {
-                fullResponse += data.content;
-                setStreamingResponse(fullResponse);
-              }
-            } catch (e) {
-              console.error("Error parsing SSE data", e);
-            }
-          }
-        }
-      }
+      await consumeCompletionStream(response, setStreamingResponse);
       
       // On complete, invalidate to get the canonical saved messages
       queryClient.invalidateQueries({ queryKey: ["ccb-conversation", activeConversationId] });

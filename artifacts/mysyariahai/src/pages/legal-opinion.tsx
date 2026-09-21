@@ -194,7 +194,7 @@ function LegalOpinionPageInner() {
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3">
                   <h2 className="font-serif font-semibold text-secondary">{t("Legal Opinion", "Pendapat Undang-Undang")}</h2>
-                  <ExportActions content={generatedOpinion} filenameBase={t("Legal Opinion", "Pendapat Undang-Undang")} />
+                  {!generating && !error && <ExportActions content={generatedOpinion} filenameBase={t("Legal Opinion", "Pendapat Undang-Undang")} />}
                 </div>
               </CardHeader>
               <CardContent>
@@ -204,7 +204,7 @@ function LegalOpinionPageInner() {
                 <p className="text-xs text-muted-foreground italic mt-3">
                   {t("AI-generated legal opinion. Must be reviewed and verified by qualified counsel before use.", "Pendapat undang-undang dijana AI. Mesti disemak dan disahkan oleh peguam berkelayakan sebelum digunakan.")}
                 </p>
-                {!generating && (
+                {!generating && !error && (
                   <div className="mt-3">
                     <SaveToMatterPanel
                       draftTitle={t("Legal Opinion", "Pendapat Undang-Undang")}

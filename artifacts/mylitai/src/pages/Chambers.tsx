@@ -129,13 +129,14 @@ async function streamFromEndpoint(
         if (data.error) { onError(data.error); return; }
         if (data.done) { onDone(data.disclaimer); return; }
         if (data.content) onChunk(data.content);
-      } catch {}
+      } catch { onError('The AI response was malformed. Please try again.'); return; }
     }
   }
+  onError('The AI connection ended before completion. Partial output cannot be saved or exported; please try again.');
 }
 
 // ─── Markdown-aware output renderer ──────────────────────────────────────────
-function LegalOutput({ text, disclaimer, exportTitle }: { text: string; disclaimer?: string; exportTitle?: string }) {
+function LegalOutput({ text, disclaimer, exportTitle, actionsEnabled }: { text: string; disclaimer?: string; exportTitle?: string; actionsEnabled: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -186,7 +187,7 @@ function LegalOutput({ text, disclaimer, exportTitle }: { text: string; disclaim
     <div className="mt-4">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">AI Output</span>
-        <div className="flex items-center gap-2 flex-wrap">
+        {actionsEnabled && <div className="flex items-center gap-2 flex-wrap">
           {exportTitle && <SaveToWorkButton title={exportTitle} content={text} />}
           {exportTitle ? (
             <ExportButtons title={exportTitle} content={text} />
@@ -195,7 +196,7 @@ function LegalOutput({ text, disclaimer, exportTitle }: { text: string; disclaim
               {copied ? <><Check className="h-3.5 w-3.5" />Copied</> : <><Copy className="h-3.5 w-3.5" />Copy</>}
             </Button>
           )}
-        </div>
+        </div>}
       </div>
       <div className="bg-background/60 border border-border rounded-lg p-5 max-h-[60vh] overflow-y-auto space-y-0.5 font-mono text-[13px] leading-relaxed">
         <DraftDocument content={text} />
@@ -427,7 +428,7 @@ function BriefWriter() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Skeleton Argument — ${plaintiff || 'Plaintiff'} v ${defendant || 'Defendant'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Skeleton Argument — ${plaintiff || 'Plaintiff'} v ${defendant || 'Defendant'}`} />}
     </div>
   );
 }
@@ -562,7 +563,7 @@ function DocumentAnalyser() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Document Analysis — ${docType || 'Legal Document'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Document Analysis — ${docType || 'Legal Document'}`} />}
     </div>
   );
 }
@@ -733,7 +734,7 @@ function LimitationCalculator() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Limitation Analysis — ${causeOfAction || 'Cause of Action'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Limitation Analysis — ${causeOfAction || 'Cause of Action'}`} />}
     </div>
   );
 }
@@ -874,7 +875,7 @@ function CaseLawResearcher() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Case Law Research — ${practiceArea || 'Legal Issue'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Case Law Research — ${practiceArea || 'Legal Issue'}`} />}
     </div>
   );
 }
@@ -1006,7 +1007,7 @@ function PleadingsReviewer() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Pleading Review — ${pleadingType || 'Pleading'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Pleading Review — ${pleadingType || 'Pleading'}`} />}
     </div>
   );
 }
@@ -1111,7 +1112,7 @@ function LegalOpinionGenerator() {
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
 
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Legal Opinion — ${clientQuery.slice(0, 60) || 'Matter'}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Legal Opinion — ${clientQuery.slice(0, 60) || 'Matter'}`} />}
     </div>
   );
 }
@@ -1189,7 +1190,7 @@ function CrossExamPlanner() {
         <RunButton onClick={run} loading={loading} label="Build Cross-Exam Plan" icon={<Swords className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Cross-Exam Plan — ${witnessName}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Cross-Exam Plan — ${witnessName}`} />}
     </div>
   );
 }
@@ -1280,7 +1281,7 @@ function AffidavitDrafter() {
         <RunButton onClick={run} loading={loading} label="Draft Affidavit" icon={<FileSignature className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Affidavit — ${deponentName}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Affidavit — ${deponentName}`} />}
     </div>
   );
 }
@@ -1356,7 +1357,7 @@ function QuantumEstimator() {
         <RunButton onClick={run} loading={loading} label="Estimate Quantum" icon={<Coins className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Quantum Assessment — ${claimType}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Quantum Assessment — ${claimType}`} />}
     </div>
   );
 }
@@ -1423,7 +1424,7 @@ function BundleIndexGenerator() {
         <RunButton onClick={run} loading={loading} label="Build Bundle Index" icon={<Library className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Bundle of Authorities — ${matterTitle.slice(0, 60)}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Bundle of Authorities — ${matterTitle.slice(0, 60)}`} />}
     </div>
   );
 }
@@ -1505,7 +1506,7 @@ function HearingPrep() {
         <RunButton onClick={run} loading={loading} label="Build Prep Checklist" icon={<CheckSquare className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Hearing Prep — ${hearingType}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Hearing Prep — ${hearingType}`} />}
     </div>
   );
 }
@@ -1569,7 +1570,7 @@ function CostsEstimator() {
         <RunButton onClick={run} loading={loading} label="Estimate Costs" icon={<Calculator className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Costs Estimate — ${matterType.slice(0, 60)}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Costs Estimate — ${matterType.slice(0, 60)}`} />}
     </div>
   );
 }
@@ -1639,7 +1640,7 @@ function SettlementAdvisor() {
         <RunButton onClick={run} loading={loading} label="Build Settlement Strategy" icon={<Handshake className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Settlement Strategy — ${matterType.slice(0, 60)}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Settlement Strategy — ${matterType.slice(0, 60)}`} />}
     </div>
   );
 }
@@ -1708,7 +1709,7 @@ function CauseOfActionBuilder() {
         <RunButton onClick={run} loading={loading} label="Map Causes of Action" icon={<Workflow className="h-4 w-4" />} />
         {output && <Button variant="ghost" size="sm" onClick={reset} className="mt-4 gap-1 text-muted-foreground"><RotateCcw className="h-3.5 w-3.5" />Reset</Button>}
       </div>
-      {output && <LegalOutput text={output} disclaimer={disclaimer} exportTitle={`Cause of Action — ${matterType.slice(0, 60)}`} />}
+      {output && <LegalOutput text={output} disclaimer={disclaimer} actionsEnabled={!loading && !error} exportTitle={`Cause of Action — ${matterType.slice(0, 60)}`} />}
     </div>
   );
 }

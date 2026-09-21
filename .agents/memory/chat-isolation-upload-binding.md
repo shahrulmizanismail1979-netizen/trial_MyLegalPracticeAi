@@ -15,6 +15,12 @@ description: How CCB/Lit chat isolation works and how research uploads are bound
 
 ## CCB chat isolation
 
+Ownership denial must be side-effect-free: authorize the parent within the deleting statement or transaction before deleting child messages.
+
+**Why:** A rejected cross-tenant DELETE can still erase another user's messages if children are deleted before the owner-scoped parent check. A 404 response alone does not prove isolation.
+
+**How to apply:** Prefer an owner-scoped parent deletion with an established cascade. Regression tests must confirm the owner's conversation and messages remain intact after a foreign DELETE, alongside successful owner deletion.
+
 `ccb_conversations.access_code_id` (nullable INTEGER FK → ccb_access_codes.id, ON DELETE CASCADE) — added by migration 0023.
 
 `requirePractitioner` in `ccb/routes/auth.ts` resolves the access code to a DB row ID and stores it on `res.locals["ccbAccessCodeId"]` (null for static/admin codes).

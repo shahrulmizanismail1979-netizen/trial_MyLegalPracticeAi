@@ -203,6 +203,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
   const [additionalContext, setAdditionalContext] = useState("");
   const [draftResult, setDraftResult] = useState("");
   const [isDrafting, setIsDrafting] = useState(false);
+  const [draftError, setDraftError] = useState("");
   const draftEndRef = useRef<HTMLDivElement>(null);
 
   const API_BASE = "/api/sya";
@@ -211,6 +212,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
     setSelectedPaper(paper);
     setFieldValues({});
     setDraftResult("");
+    setDraftError("");
     setAdditionalContext("");
   };
 
@@ -335,7 +337,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
 
       draftEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } catch (err) {
-      setDraftResult(mode === "bm"
+      setDraftError(mode === "bm"
         ? "Ralat berlaku semasa menjana draf. Sila cuba lagi."
         : "An error occurred while generating the draft. Please try again."
       );
@@ -501,7 +503,7 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
                 <h3 className="font-serif font-semibold text-sm text-secondary">
                   {t("AI-Generated Draft", "Draf Dijana AI")}
                 </h3>
-                <div className="flex gap-1">
+                {!isDrafting && !draftError && <div className="flex gap-1">
                   <Button variant="ghost" size="sm" className="text-xs h-7" onClick={handleCopyDraft} title={ts("Copy", "Salin")}>
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -514,15 +516,15 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
                       <rect x="6" y="14" width="12" height="8" />
                     </svg>
                   </Button>
-                </div>
+                </div>}
               </CardHeader>
               <CardContent>
-                <ExportActions
+                {!isDrafting && !draftError && <ExportActions
                   content={draftResult}
                   filenameBase={selectedPaper ? (mode === "bm" ? selectedPaper.titleBm : selectedPaper.titleEn) : "draft"}
                   speechLang="ms-MY"
                   className="mb-3"
-                />
+                />}
                 <DraftDocument content={draftResult} />
                 <p className="text-xs text-muted-foreground mt-3 italic border-t border-border/50 pt-3">
                   {t(
@@ -533,7 +535,8 @@ function AIDraftingPanel({ papers }: { papers: any[] }) {
               </CardContent>
             </Card>
           )}
-          {draftResult && !isDrafting && (
+          {draftError && <p className="text-sm text-destructive">{draftError}</p>}
+          {draftResult && !isDrafting && !draftError && (
             <SaveToMatterPanel
               draftTitle={selectedPaper ? (mode === "bm" ? selectedPaper.titleBm : selectedPaper.titleEn) : ts("AI Draft", "Draf AI")}
               draftContent={draftResult}

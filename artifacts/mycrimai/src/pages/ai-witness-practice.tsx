@@ -56,7 +56,7 @@ export function AiWitnessPracticePage() {
   const { hasVoice } = useEntitlements();
   const eleven = useElevenVoice({ role: "witness", persona: witnessType });
 
-  const { response, isStreaming, error, stream, reset } = useAiStream({
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({
     onComplete: (fullText) => {
       setMessages((prev) => [...prev, { role: "assistant", content: fullText }]);
       if (hasVoice) {
@@ -358,7 +358,7 @@ export function AiWitnessPracticePage() {
         )}
       </div>
 
-      {!isStreaming && hasWitnessReply && (
+      {isComplete && hasWitnessReply && (
         <div className="mt-4 space-y-3">
           <DraftExportButtons
             title={witnessTranscriptTitle}

@@ -16,14 +16,14 @@ export function AiAppealGroundsPage() {
   const [additionalContext, setAdditionalContext] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream({});
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream({});
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [response]);
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -145,7 +145,7 @@ The investigating officer admitted under cross-examination that the chain of cus
                 <VoiceControls voice={voice} responseText={response} />
               </div>
             )}
-            {response && !isStreaming && (
+            {response && isComplete && (
               <div className="mb-4 space-y-3">
                 <DraftExportButtons
                   title="Appeal Grounds Analysis"

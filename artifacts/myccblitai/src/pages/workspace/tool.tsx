@@ -18,6 +18,7 @@ import { apiUrl } from "@/lib/api";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, mapMatterToFormValues } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
+import { consumeCompletionStream } from "@/lib/completion-stream";
 
 /**
  * Explicit, field-name/label aware pre-fill for the editable single-purpose
@@ -120,6 +121,7 @@ export default function ToolPage() {
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [output, setOutput] = useState("");
+  const [outputComplete, setOutputComplete] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const endOfOutputRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +176,7 @@ export default function ToolPage() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsGenerating(false);
+      setOutputComplete(false);
       toast({
         title: "Generation stopped",
         description: "The AI generation was manually stopped."
@@ -198,6 +201,7 @@ export default function ToolPage() {
 
     setIsGenerating(true);
     setOutput("");
+    setOutputComplete(false);
     
     abortControllerRef.current = new AbortController();
     
@@ -226,63 +230,8 @@ export default function ToolPage() {
       const rl = readRateLimitRemaining(response);
       if (rl !== null) emitRateLimit(rl);
 
-      if (!response.body) {
-        throw new Error("No response body");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let lineBuffer = "";
-      
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        
-        // Append decoded chunk to any leftover partial line from the previous chunk
-        lineBuffer += decoder.decode(value, { stream: true });
-        const lines = lineBuffer.split('\n');
-        // Keep the last element (possibly an incomplete line) in the buffer
-        lineBuffer = lines.pop() ?? "";
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6);
-            if (dataStr === '[DONE]') continue;
-            
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.error) {
-                toast({
-                  title: "Generation error",
-                  description: data.error,
-                  variant: "destructive"
-                });
-                setIsGenerating(false);
-                return;
-              }
-              if (data.content) {
-                setOutput(prev => prev + data.content);
-              }
-            } catch (e) {
-              console.error("Error parsing SSE data", e);
-            }
-          }
-        }
-      }
-      // Process any remaining content in the buffer after the stream ends
-      if (lineBuffer.startsWith('data: ')) {
-        const dataStr = lineBuffer.slice(6);
-        if (dataStr !== '[DONE]') {
-          try {
-            const data = JSON.parse(dataStr);
-            if (data.content) {
-              setOutput(prev => prev + data.content);
-            }
-          } catch (e) {
-            console.error("Error parsing SSE data (tail)", e);
-          }
-        }
-      }
+      await consumeCompletionStream(response, setOutput);
+      setOutputComplete(true);
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Generation aborted');
@@ -310,6 +259,7 @@ export default function ToolPage() {
 
   const handleReset = () => {
     setOutput("");
+    setOutputComplete(false);
     const initialInputs: Record<string, string> = {};
     tool?.fields.forEach(field => {
       initialInputs[field.name] = "";
@@ -538,7 +488,9 @@ export default function ToolPage() {
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reset
                 </Button>
-                <DraftExportButtons title={tool?.name || "Result"} content={output} className="items-center" />
+                {outputComplete && (
+                  <DraftExportButtons title={tool?.name || "Result"} content={output} className="items-center" />
+                )}
               </div>
             </div>
             
@@ -559,7 +511,12 @@ export default function ToolPage() {
                         <span className="text-sm font-medium animate-pulse">Generating...</span>
                       </div>
                     )}
-                    {output && !isGenerating && (
+                    {output && !isGenerating && !outputComplete && (
+                      <p className="mt-4 text-sm text-destructive" role="alert">
+                        This output is incomplete and cannot be saved or exported. Generate it again.
+                      </p>
+                    )}
+                    {output && !isGenerating && outputComplete && (
                       <div className="mt-6">
                         <SaveToMatterPanel
                           key={`${tool.id}-${activeMatterId ?? 0}`}

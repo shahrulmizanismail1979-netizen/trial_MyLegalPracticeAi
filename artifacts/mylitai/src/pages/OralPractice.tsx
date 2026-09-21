@@ -138,10 +138,12 @@ async function streamRespond(
         if (data.done) return;
         if (data.content) onChunk(data.content);
       } catch {
-        /* ignore */
+        onError('The AI response was malformed. Please try again.');
+        return;
       }
     }
   }
+  onError('The AI connection ended before completion. Please try again.');
 }
 
 function OralPracticeInner() {
@@ -373,7 +375,7 @@ function OralPracticeInner() {
           });
         },
         (msg) => {
-          acc = acc || `⚠️ ${msg}`;
+          acc = `⚠️ ${msg}`;
           setTurns((prev) => {
             const copy = [...prev];
             copy[themIdx] = { speaker: 'them', text: acc };
@@ -530,7 +532,7 @@ function OralPracticeInner() {
             variant="outline"
             size="sm"
             onClick={handleSave}
-            disabled={saveWork.isPending || turns.length === 0}
+            disabled={saveWork.isPending || busy || turns.length === 0 || turns[turns.length - 1]?.text.startsWith('⚠️')}
             className="h-8 gap-1.5 text-xs"
           >
             {saved ? <Check className="h-3.5 w-3.5" /> : <BookmarkPlus className="h-3.5 w-3.5" />}

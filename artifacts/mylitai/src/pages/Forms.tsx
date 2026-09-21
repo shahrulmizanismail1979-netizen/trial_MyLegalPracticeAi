@@ -134,8 +134,9 @@ function useStreamingDraft() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let sawDone = false;
 
-      while (reader) {
+      while (reader && !sawDone) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -149,15 +150,17 @@ function useStreamingDraft() {
                 setDraft(prev => prev + data.content);
               }
               if (data.done) {
+                sawDone = true;
                 setIsDone(true);
                 if (data.disclaimer) setDisclaimer(data.disclaimer);
                 if (data.error) setError(data.error);
                 setIsStreaming(false);
               }
-            } catch { /* ignore parse errors */ }
+            } catch { throw new Error('Malformed AI response'); }
           }
         }
       }
+      if (!sawDone) throw new Error('AI connection ended before completion');
     } catch (err: any) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError('Failed to generate draft. Please try again.');

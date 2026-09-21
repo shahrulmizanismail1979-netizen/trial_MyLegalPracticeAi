@@ -99,7 +99,10 @@ router.delete("/gemini/conversations/:id", async (req, res): Promise<void> => {
           eq(ccbConversations.accessCodeId, accessId),
         )
       : eq(ccbConversations.id, params.data.id);
-  await db.delete(ccbMessages).where(eq(ccbMessages.conversationId, params.data.id));
+  // Delete the owner-scoped parent as the single atomic operation. The
+  // ccb_messages FK is ON DELETE CASCADE, so its messages disappear in the
+  // same database statement only when this caller can delete the conversation.
+  // A foreign/missing id therefore remains a side-effect-free 404.
   const [deleted] = await db
     .delete(ccbConversations)
     .where(filter)

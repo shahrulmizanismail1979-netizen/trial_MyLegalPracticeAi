@@ -95,7 +95,8 @@ export function useStreamingChat() {
       if (!reader) throw new Error('No stream available');
 
       let buffer = '';
-      while (true) {
+      let sawDone = false;
+      while (!sawDone) {
         const { done, value } = await reader.read();
         if (done) break;
         
@@ -107,7 +108,11 @@ export function useStreamingChat() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.done) break;
+               if (data.error) throw new Error(data.error);
+               if (data.done) {
+                 sawDone = true;
+                 break;
+               }
               if (data.content) {
                 setMessages(prev => {
                   const newMessages = [...prev];
@@ -115,13 +120,15 @@ export function useStreamingChat() {
                   return newMessages;
                 });
               }
-            } catch (e) {
-              console.error('Failed to parse stream chunk', e);
+            } catch {
+              throw new Error('The AI response was malformed. Please try again.');
             }
           }
         }
       }
+      if (!sawDone) throw new Error('The AI connection ended before completion. Please try again.');
     } catch (err) {
+      setMessages(prev => prev[prev.length - 1]?.role === 'model' ? prev.slice(0, -1) : prev);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsStreaming(false);

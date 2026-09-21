@@ -329,7 +329,7 @@ export default function CaseWorkspacePage() {
                 </div>
                 {analyzer.error && <p className="text-sm text-red-600">{analyzer.error}</p>}
                 <div data-testid="cw-output-analyzer">{analyzer.output ? <DraftDocument content={analyzer.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
-                {analyzer.output && analyzer.status !== "running" && (
+                {analyzer.output && analyzer.status === "done" && (
                   <><DraftExportButtons title={t("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")} content={analyzer.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("AI Cross-Reference Analysis", "Analisis Rujukan Silang AI")}
                     draftContent={analyzer.output}
@@ -354,7 +354,7 @@ export default function CaseWorkspacePage() {
                 </div>
                 {caseAnalysis.error && <p className="text-sm text-red-600">{caseAnalysis.error}</p>}
                 <div data-testid="cw-output-case">{caseAnalysis.output ? <DraftDocument content={caseAnalysis.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}</div>
-                {caseAnalysis.output && caseAnalysis.status !== "running" && (
+                {caseAnalysis.output && caseAnalysis.status === "done" && (
                   <><DraftExportButtons title={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")} content={caseAnalysis.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("Case Analysis & Prediction", "Analisis & Ramalan Kes")}
                     draftContent={caseAnalysis.output}
@@ -381,7 +381,7 @@ export default function CaseWorkspacePage() {
                 <div data-testid="cw-output-opinion">
                   {legalOpinion.output ? <DraftDocument content={legalOpinion.output} /> : <p className="text-gray-400 italic text-sm">{t("Not yet run.", "Belum dijalankan.")}</p>}
                 </div>
-                {legalOpinion.output && legalOpinion.status !== "running" && (
+                {legalOpinion.output && legalOpinion.status === "done" && (
                   <><DraftExportButtons title={t("Legal Opinion", "Pendapat Undang-Undang")} content={legalOpinion.output} hideMarkdown /><SaveToMatterPanel
                     draftTitle={t("Legal Opinion", "Pendapat Undang-Undang")}
                     draftContent={legalOpinion.output}

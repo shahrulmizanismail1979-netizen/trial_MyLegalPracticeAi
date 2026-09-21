@@ -81,7 +81,15 @@ export async function litAiStream(
   let finished = false;
 
   while (true) {
-    const { done, value } = await reader.read();
+    let result: ReadableStreamReadResult<Uint8Array>;
+    try {
+      result = await reader.read();
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      onError("The AI connection was interrupted before completion. Please try again.");
+      return;
+    }
+    const { done, value } = result;
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
@@ -99,9 +107,15 @@ export async function litAiStream(
         if (data.error) { finished = true; onError(data.error); return; }
         if (data.done) { finished = true; onDone(data.disclaimer); return; }
         if (data.content) onChunk(data.content);
-      } catch { /* ignore partial JSON */ }
+      } catch {
+        finished = true;
+        onError("The AI response was malformed and was not marked complete. Please try again.");
+        return;
+      }
     }
   }
 
-  if (!finished) onDone();
+  if (!finished) {
+    onError("The AI connection ended before completion. Partial output cannot be saved or exported; please try again.");
+  }
 }

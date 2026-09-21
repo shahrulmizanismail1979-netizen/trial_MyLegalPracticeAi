@@ -17,10 +17,10 @@ export function AiCrossExaminationPage() {
   const [witnessRole, setWitnessRole] = useState("");
   const [caseContext, setCaseContext] = useState("");
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream();
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream();
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -114,7 +114,7 @@ export function AiCrossExaminationPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!isStreaming && response && (
+                {isComplete && response && (
                   <div className="space-y-3">
                     <DraftExportButtons
                       title={witnessRole ? `Cross-Examination Questions — ${witnessRole}` : "Cross-Examination Questions"}

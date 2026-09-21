@@ -192,9 +192,11 @@ async function streamSSE(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let sawDone = false;
+  let failed = false;
 
   try {
-    while (true) {
+    while (!sawDone && !failed) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -211,17 +213,22 @@ async function streamSSE(
           const data = JSON.parse(payload);
           if (data.error) {
             handlers.onError?.(data.error);
-            continue;
+            failed = true;
+            break;
           }
           if (typeof data.content === "string") handlers.onContent(data.content);
           if (Array.isArray(data.citations)) handlers.onCitations?.(data.citations);
-          if (data.done)
+          if (data.done) {
+            sawDone = true;
             handlers.onDone?.({
               disclaimer: data.disclaimer,
               groundingWarning: Boolean(data.groundingWarning),
             });
+          }
         } catch {
-          // ignore malformed chunk
+          failed = true;
+          handlers.onError?.("The AI response was malformed. Please try again.");
+          break;
         }
       }
     }
@@ -229,6 +236,10 @@ async function streamSSE(
     if ((e as Error).name !== "AbortError") {
       handlers.onError?.("Stream interrupted. Please try again.");
     }
+    return;
+  }
+  if (!sawDone && !failed && !signal.aborted) {
+    handlers.onError?.("The AI connection ended before completion. Partial output cannot be saved or exported; please try again.");
   }
 }
 
@@ -680,8 +691,10 @@ async function streamRootSSE(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let sawDone = false;
+  let failed = false;
   try {
-    while (true) {
+    while (!sawDone && !failed) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
@@ -696,12 +709,18 @@ async function streamRootSSE(
           const data = JSON.parse(payload);
           if (data.error) {
             handlers.onError?.(data.error);
-            continue;
+            failed = true;
+            break;
           }
           if (typeof data.content === "string") handlers.onContent(data.content);
-          if (data.done) handlers.onDone?.(data.disclaimer);
+          if (data.done) {
+            sawDone = true;
+            handlers.onDone?.(data.disclaimer);
+          }
         } catch {
-          /* ignore malformed chunk */
+          failed = true;
+          handlers.onError?.("The AI response was malformed. Please try again.");
+          break;
         }
       }
     }
@@ -709,6 +728,10 @@ async function streamRootSSE(
     if ((e as Error).name !== "AbortError") {
       handlers.onError?.("Stream interrupted. Please try again.");
     }
+    return;
+  }
+  if (!sawDone && !failed && !signal.aborted) {
+    handlers.onError?.("The AI connection ended before completion. Partial output cannot be saved or exported; please try again.");
   }
 }
 

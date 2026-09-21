@@ -18,10 +18,10 @@ Bahawa kamu, pada 15 Mac 2024, jam lebih kurang 2.30 petang, di Jalan SS2/55, Pe
 export function AiChargeAnalyzerPage() {
   const [chargeSheet, setChargeSheet] = useState("");
   const voice = useVoice();
-  const { response, isStreaming, error, stream, reset } = useAiStream();
+  const { response, isStreaming, isComplete, error, stream, reset } = useAiStream();
 
   useEffect(() => {
-    if (!isStreaming && response) voice.speak(response);
+    if (isComplete && response) voice.speak(response);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
@@ -102,7 +102,7 @@ export function AiChargeAnalyzerPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!isStreaming && response && (
+                {isComplete && response && (
                   <div className="space-y-3">
                     <DraftExportButtons
                       title="Charge Sheet Analysis"

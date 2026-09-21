@@ -77,10 +77,10 @@ async function streamFromEndpoint(
         if (data.error) { finished = true; onError(data.error); return; }
         if (data.done) { finished = true; onDone(data.disclaimer); return; }
         if (data.content) onChunk(data.content);
-      } catch { /* ignore partial */ }
+      } catch { finished = true; onError('The AI response was malformed. Please try again.'); return; }
     }
   }
-  if (!finished) onDone();
+  if (!finished) onError('The AI connection ended before completion. Partial output cannot be saved or exported; please try again.');
 }
 
 // ─── Compact markdown renderer ───────────────────────────────────────────────
@@ -144,12 +144,14 @@ function OutputBlock({
   generating,
   kind,
   title,
+  complete,
 }: {
   output: string;
   disclaimer?: string;
   generating: boolean;
   kind: string;
   title: string;
+  complete: boolean;
 }) {
   const { data: matters } = useMatters();
   const { toast } = useToast();
@@ -174,7 +176,7 @@ function OutputBlock({
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">{title}</span>
-        <DraftExportButtons title={title} content={output} />
+        {complete && <DraftExportButtons title={title} content={output} />}
       </div>
       <DraftDocument content={output} />
       {disclaimer && (
@@ -183,7 +185,7 @@ function OutputBlock({
           <p className="text-xs text-amber-500/90 leading-relaxed">{disclaimer}</p>
         </div>
       )}
-      {!generating && (
+      {complete && !generating && (
         <div className="flex items-end gap-2 flex-wrap pt-1">
           <div className="flex-1 min-w-[180px]">
             <Label className="text-xs">Link to matter (optional)</Label>
@@ -320,7 +322,7 @@ export default function Enforcement() {
               {advGen ? <><Loader2 className="h-4 w-4 animate-spin" /> Advising…</> : <><Compass className="h-4 w-4" /> Recommend strategy</>}
             </Button>
             {advErr && <div className="flex items-center gap-2 text-sm text-destructive"><CircleAlert className="h-4 w-4" />{advErr}</div>}
-            {advOut && <OutputBlock output={advOut} disclaimer={advDisc} generating={advGen} kind="enforcement" title="Enforcement strategy" />}
+            {advOut && <OutputBlock output={advOut} disclaimer={advDisc} generating={advGen} complete={!advGen && !advErr} kind="enforcement" title="Enforcement strategy" />}
           </CardContent>
         </Card>
       )}
@@ -393,7 +395,7 @@ export default function Enforcement() {
               {bocGen ? <><Loader2 className="h-4 w-4 animate-spin" /> Drafting…</> : <><ScrollText className="h-4 w-4" /> Draft Bill of Costs</>}
             </Button>
             {bocErr && <div className="flex items-center gap-2 text-sm text-destructive"><CircleAlert className="h-4 w-4" />{bocErr}</div>}
-            {bocOut && <OutputBlock output={bocOut} disclaimer={bocDisc} generating={bocGen} kind="costs" title="Bill of Costs" />}
+            {bocOut && <OutputBlock output={bocOut} disclaimer={bocDisc} generating={bocGen} complete={!bocGen && !bocErr} kind="costs" title="Bill of Costs" />}
           </CardContent>
         </Card>
       )}

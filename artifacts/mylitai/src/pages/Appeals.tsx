@@ -81,10 +81,10 @@ async function streamFromEndpoint(
         if (data.error) { finished = true; onError(data.error); return; }
         if (data.done) { finished = true; onDone(data.disclaimer); return; }
         if (data.content) onChunk(data.content);
-      } catch { /* ignore partial */ }
+      } catch { finished = true; onError('The AI response was malformed. Please try again.'); return; }
     }
   }
-  if (!finished) onDone();
+  if (!finished) onError('The AI connection ended before completion. Partial output cannot be saved or exported; please try again.');
 }
 
 // ─── Compact markdown renderer ───────────────────────────────────────────────
@@ -513,7 +513,7 @@ export default function Appeals() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Draft</span>
-                  <DraftExportButtons title={draftFor ? `${draftFor.paper.name} — ${draftFor.pathway.shortName}` : 'Appeal'} content={output} />
+                  {!generating && !genError && <DraftExportButtons title={draftFor ? `${draftFor.paper.name} — ${draftFor.pathway.shortName}` : 'Appeal'} content={output} />}
                 </div>
                 <DraftDocument content={output} />
                 {disclaimer && (
@@ -522,7 +522,7 @@ export default function Appeals() {
                     <p className="text-xs text-amber-500/90 leading-relaxed">{disclaimer}</p>
                   </div>
                 )}
-                {!generating && (
+                {!generating && !genError && (
                   <div className="flex items-end gap-2 flex-wrap pt-1">
                     <div className="flex-1 min-w-[180px]">
                       <Label className="text-xs">Link to matter (optional)</Label>

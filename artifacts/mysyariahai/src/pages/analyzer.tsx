@@ -122,6 +122,7 @@ export default function AnalyzerPage() {
       const decoder = new TextDecoder();
       let buffer = "";
       let fullContent = "";
+      let sawDone = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -142,6 +143,7 @@ export default function AnalyzerPage() {
               return;
             }
             if (data.done) {
+              sawDone = true;
               let jsonStr = fullContent.trim();
               if (jsonStr.startsWith("```")) {
                 jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -160,9 +162,14 @@ export default function AnalyzerPage() {
               setStreamText(fullContent);
             }
           } catch {
-            continue;
+            throw new Error(mode === "bm" ? "Respons AI rosak. Sila cuba lagi." : "The AI response was malformed. Please try again.");
           }
         }
+      }
+      if (!sawDone) {
+        throw new Error(mode === "bm"
+          ? "Sambungan AI terputus sebelum selesai. Sila cuba lagi."
+          : "The AI connection ended before completion. Please try again.");
       }
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {

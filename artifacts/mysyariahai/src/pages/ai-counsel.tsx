@@ -198,9 +198,10 @@ export default function AICounselPage() {
       const decoder = new TextDecoder();
       let assistantContent = "";
       let buffer = "";
+      let sawDone = false;
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-      while (true) {
+      while (!sawDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -220,23 +221,20 @@ export default function AICounselPage() {
                   return updated;
                 });
               }
-              if (data.error) {
-                assistantContent += `\n\n[Error: ${data.error}]`;
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: "assistant", content: assistantContent };
-                  return updated;
-                });
-              }
-            } catch {}
+              if (data.error) throw new Error(data.error);
+              if (data.done) sawDone = true;
+            } catch {
+              throw new Error("Malformed AI response");
+            }
           }
         }
       }
+      if (!sawDone) throw new Error("AI connection ended before completion");
 
       refetchConversations();
     } catch {
       setMessages((prev) => [
-        ...prev,
+        ...(prev[prev.length - 1]?.role === "assistant" ? prev.slice(0, -1) : prev),
         { role: "assistant", content: mode === "bm" ? "Ralat berlaku. Sila cuba lagi." : "An error occurred. Please try again." },
       ]);
     } finally {

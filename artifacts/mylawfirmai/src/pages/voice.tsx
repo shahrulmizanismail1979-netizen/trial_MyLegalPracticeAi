@@ -23,6 +23,9 @@ export default function VoicePage() {
   const [result, setResult] = useState<VoiceParseResponse | null>(null);
 
   const handleProcess = (audio: RecordingResult) => {
+    // Never leave a prior completed instruction on screen while a new
+    // recording is pending or after that new recording fails.
+    setResult(null);
     parse.mutate(
       {
         data: {
