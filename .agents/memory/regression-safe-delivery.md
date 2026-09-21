@@ -8,3 +8,5 @@ Every feature change or bug fix must include a regression pass over the adjacent
 **Why:** Repeated cross-portal changes have caused previously working paths to regress, which creates customer disruption and makes the creator pay twice for work that should have remained settled.
 
 **How to apply:** Before delivery, identify the changed boundary, run the smallest meaningful browser/API checks for the new path and its neighboring paths, inspect workflow and browser logs, and do not recommend publishing until the relevant checks are green or the remaining blocker is explicit.
+
+Completion testing is required for every delivered feature, including secondary behavior. Keep the task in progress while required checks fail, preserve product decisions when correcting stale assertions, and report unresolved blockers rather than declaring success.

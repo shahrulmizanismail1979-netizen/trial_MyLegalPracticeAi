@@ -8,6 +8,7 @@
     "build": "GOMAXPROCS=1 node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test": "vitest run",
+    "test:research-isolation": "RESEARCH_ISOLATION_PROOF=1 vitest run src/research/queueIsolationA.test.ts src/research/queueIsolationB.test.ts --fileParallelism --maxWorkers=2",
     "test:payment-access": "vitest run src/routes/payment-access-regression.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:case-home": "playwright test --workers=1 e2e/case-home-handoffs.spec.ts e2e/irac-populated-matter.spec.ts e2e/amani-practice-gate.spec.ts e2e/lawyes-discussions.spec.ts e2e/large-native-download.spec.ts",

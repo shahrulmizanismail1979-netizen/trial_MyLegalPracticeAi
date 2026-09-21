@@ -5,8 +5,8 @@ import request from "supertest";
 
 // Phase 07 proof tests: publisher-content isolation, section classification,
 // completeness checking, isolation gate, editorial processor, and routes.
-// Pure-function tests run without DB. Integration tests use the live dev DB
-// with RUN_ID-scoped cleanup.
+// The suite uses a disposable per-file schema via isolateProofTests,
+// with additional RUN_ID-scoped cleanup.
 
 const RUN_ID = randomUUID();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");

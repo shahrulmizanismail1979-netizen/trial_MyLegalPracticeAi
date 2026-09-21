@@ -6,8 +6,8 @@ import AdmZip from "adm-zip";
 
 // Phase 03 proof tests: secure upload pipeline, failure isolation,
 // dead-letter/retry/cancel/restart, duplicate detection, and rights-gated
-// container inventory. Live dev DB, RUN_ID-scoped rows cleaned afterAll
-// (same convention as phase02.test.ts). Storage is an in-memory adapter —
+// container inventory. Disposable per-file schema via isolateProofTests;
+// RUN_ID cleanup also exercises fixture ownership. Storage is an in-memory adapter —
 // no object-storage traffic from tests.
 
 const RUN_ID = randomUUID();

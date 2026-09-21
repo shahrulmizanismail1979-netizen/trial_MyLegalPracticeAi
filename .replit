@@ -44,12 +44,12 @@ args = "pre-publish"
 name = "api-tests"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run test"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flock -x /tmp/workspace-completion-validation.lock bash -c 'pnpm --filter @workspace/api-server run test'"
 
 [[workflows.workflow]]
 name = "e2e-tests"
@@ -60,29 +60,29 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run test:e2e:corp-drafts && pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile && pnpm --filter @workspace/api-server run test:e2e:case-home"
+args = "flock -x /tmp/workspace-completion-validation.lock bash -c 'pnpm --filter @workspace/api-server run test:e2e:corp-drafts && pnpm --filter @workspace/api-server run test:e2e:fab && pnpm --filter @workspace/mylawacad run test:e2e:mobile && pnpm --filter @workspace/api-server run test:e2e:case-home'"
 
 [[workflows.workflow]]
 name = "payment-access"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run test:payment-access"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flock -x /tmp/workspace-completion-validation.lock bash -c 'pnpm --filter @workspace/api-server run test:payment-access'"
 
 [[workflows.workflow]]
 name = "pre-publish"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm run validate:prepublish"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flock -x /tmp/workspace-completion-validation.lock bash -c 'pnpm run validate:prepublish'"
 
 [agent]
 stack = "PNPM_WORKSPACE"

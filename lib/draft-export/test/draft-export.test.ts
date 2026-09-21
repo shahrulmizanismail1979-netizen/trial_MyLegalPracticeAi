@@ -34,6 +34,8 @@ describe("draft presentation", () => {
     expect(html).not.toContain("<script>");
     expect(html).toContain("second line");
     expect(html).toContain("<table>");
+    expect(html).toContain("<thead><tr><th>Name</th><th>Value</th></tr></thead>");
+    expect(html).toContain("<tbody><tr><td>A</td><td>B</td></tr></tbody>");
     expect(blocks.at(-1)?.type).toBe("table");
   });
 

@@ -94,6 +94,10 @@ async function expectExportDownload(page: Page, expectedContent: string): Promis
   expect(downloadPath).not.toBeNull();
   const exported = await fs.readFile(downloadPath!, "utf8");
   expect(exported).toContain(expectedContent);
+  expect(exported).toContain("Requirement\tOwner\tDeadline");
+  expect(exported).toContain("Board approval\tDirectors\t[●]");
+  expect(exported).not.toContain("# BOARD RESOLUTION");
+  expect(exported).not.toContain("| --- |");
 }
 
 async function installControlledDraftStream(
@@ -209,7 +213,7 @@ test("completed specialist draft renders legal structure and remains exportable"
   await expect(page.getByText("Signature: [●]", { exact: true })).toBeVisible();
   await expectHtmlTable(page, ["Requirement", "Owner", "Deadline"]);
   await expect(page.getByTestId("button-export-txt").last()).toBeVisible();
-  await expectExportDownload(page, "# BOARD RESOLUTION");
+  await expectExportDownload(page, "BOARD RESOLUTION");
 });
 
 test("completed shared AI Drafter response renders legal structure and remains exportable", async ({
@@ -231,7 +235,7 @@ test("completed shared AI Drafter response renders legal structure and remains e
   await expect(page.getByText("Signature: [●]", { exact: true })).toBeVisible();
   await expectHtmlTable(page, ["Requirement", "Owner", "Deadline"]);
   await expect(page.getByTestId("button-export-txt").last()).toBeVisible();
-  await expectExportDownload(page, "# BOARD RESOLUTION");
+  await expectExportDownload(page, "BOARD RESOLUTION");
 });
 
 test("interrupted shared AI Drafter response warns and exposes no partial export", async ({ page }) => {

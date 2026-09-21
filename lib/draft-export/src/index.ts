@@ -180,8 +180,9 @@ export function draftToHtml(text: string): string {
         const tag = block.ordered ? "ol" : "ul";
         return `<${tag}>${block.items.map((item) => `<li>${inlineHtml(item)}</li>`).join("")}</${tag}>`;
       }
-      return `<table><tbody>${block.rows
-        .map((row, rowIndex) => `<tr>${row.map((cell) => `<${rowIndex ? "td" : "th"}>${inlineHtml(cell)}</${rowIndex ? "td" : "th"}>`).join("")}</tr>`)
+      const [header, ...rows] = block.rows;
+      return `<table><thead><tr>${header.map((cell) => `<th>${inlineHtml(cell)}</th>`).join("")}</tr></thead><tbody>${rows
+        .map((row) => `<tr>${row.map((cell) => `<td>${inlineHtml(cell)}</td>`).join("")}</tr>`)
         .join("")}</tbody></table>`;
     })
     .join("\n");

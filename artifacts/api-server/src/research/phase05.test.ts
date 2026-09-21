@@ -6,7 +6,7 @@ import path from "node:path";
 import { readFileSync } from "node:fs";
 
 // Phase 05 proof tests: multi-case segmentation engine.
-// Tests use the live dev DB with RUN_ID-scoped cleanup (same convention
+// Tests use a disposable per-file schema with RUN_ID-scoped cleanup (same convention
 // as phase04.test.ts). Storage is in-memory; adapters are real but
 // extraction data is seeded directly (plain-text fixtures → DB rows).
 

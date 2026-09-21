@@ -8,8 +8,8 @@ import request from "supertest";
 // Phase 04 proof tests: page-level extraction (native text layer vs OCR),
 // page-image provenance, structured warnings, review routing (never guess),
 // immutable raw rows + append-only corrections, and the staff review web
-// layer. Live dev DB with RUN_ID-scoped rows cleaned afterAll (same
-// convention as phase03.test.ts). Storage is an in-memory adapter; the
+// layer. Disposable per-file schema via isolateProofTests, with additional
+// RUN_ID-scoped cleanup. Storage is an in-memory adapter; the
 // native-text/renderer/OCR/layout adapters are the REAL poppler + tesseract
 // implementations running on synthetic fixtures only.
 

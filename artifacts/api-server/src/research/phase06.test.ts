@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 
 // Phase 06 proof tests: coherence validation, human review actions,
 // cross-file relationship detection, and auto-start from segmentation.
-// Tests use the live dev DB with RUN_ID-scoped cleanup.
+// Tests use a disposable per-file schema with RUN_ID-scoped cleanup.
 
 const RUN_ID = randomUUID();
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");

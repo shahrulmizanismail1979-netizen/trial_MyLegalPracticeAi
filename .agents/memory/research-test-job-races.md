@@ -1,11 +1,15 @@
 ---
 name: Research test job-queue races
-description: Parallel vitest workers share the live research job queue; how to write drain/assert logic that survives job stealing and purges
+description: Research proof isolation and safeguards for remaining shared-database tests
 ---
 
 # Research test job-queue races
 
-Parallel vitest workers all poll the same live `research_jobs` table, so any worker's `runNextJob()` can claim another test file's job, and test helpers that force-fail "stale" RUNNING jobs can purge a job another worker is executing.
+Prefer a disposable schema for each proof-test worker, replacing the default database AND pool before service imports. Passing a scoped client only to the queue driver is insufficient: downstream services can use their own default database imports. Never add public to the isolated search path.
+
+**Why:** Queue claims against a shared database can dispatch another run's fixture to a worker whose in-memory storage does not contain its files. Polling/retrying cannot make that safe. Fresh schemas also expose drift between historical DDL and current service dependencies; include those dependencies rather than falling back to shared tables.
+
+**How to apply:** Use schema isolation for proof suites with private adapters. For legacy shared-database tests not yet isolated, the safeguards below remain relevant, but cannot prevent foreign storage reads.
 
 **Rules for job-driven assertions in research tests:**
 - Never assert entity state immediately after a `drainJobs()` call — poll (re-draining each iteration) until the entity settles or a timeout expires.
@@ -17,7 +21,7 @@ Parallel vitest workers all poll the same live `research_jobs` table, so any wor
 - Never purge or park another run's jobs to unblock a test. Stale-job repair must be restricted to proven run-owned fixtures.
 
 - drainSegmentationQueue-style loops that exit when runNextJob() returns null miss the case where a parallel worker is mid-run on your container's job — always follow with a state poll (leave PENDING) + re-drain loop.
-- Batch items dead-lettered by a contending worker can be revived via retryBatchItem() inside the poll loop (terminal item state is DEAD_LETTER, not FAILED).
+- Do not revive dead-lettered fixtures merely to make a test pass; preserve the failure for diagnosis.
 
 ## Preserve failure signals in ingestion success tests
 
