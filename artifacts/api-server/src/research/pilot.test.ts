@@ -18,8 +18,8 @@
  *   ✓ Duplicate detection fires without corrupting the original container
  *
  * Uses an in-memory storage adapter — no real object-storage traffic.
- * Requires the live dev Postgres DB (same as all other phase tests).
- * RUN_ID scopes all rows for cleanup in afterAll.
+ * Uses a disposable Postgres schema installed before service imports.
+ * RUN_ID scopes fixture cleanup; the setup hook drops the whole schema.
  */
 
 import { describe, it, expect, afterAll, beforeAll } from "vitest";

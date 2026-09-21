@@ -11,6 +11,12 @@ Prefer a disposable schema for each proof-test worker, replacing the default dat
 
 **How to apply:** Use schema isolation for proof suites with private adapters. For legacy shared-database tests not yet isolated, the safeguards below remain relevant, but cannot prevent foreign storage reads.
 
+Model foreign/shared queue fixtures in a second disposable schema, not by planting runnable sentinel jobs in public.
+
+**Why:** A real development worker could claim a public sentinel during the proof, changing shared state or dispatching a synthetic payload to a real adapter.
+
+**How to apply:** Assert the isolated default db and pool agree, exclude public from search_path, and verify that a sibling schema's colliding queued jobs remain unclaimed while the local processor runs.
+
 **Rules for job-driven assertions in research tests:**
 - Never assert entity state immediately after a `drainJobs()` call — poll (re-draining each iteration) until the entity settles or a timeout expires.
 - Any loop calling `runNextJob()` must tolerate `StateTransitionError` (err.name === "StateTransitionError") — it means a parallel worker purged/finished the claimed job mid-flight, which is harmless.

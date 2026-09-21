@@ -1,10 +1,11 @@
 import { afterAll, expect, vi } from "vitest";
+import { isIsolatedQueueSuite } from "./isolatedQueueSuites";
 
 // Install before the test module imports any services. Injecting only the
 // runNextJob client is insufficient: downstream services also use the default
 // db/pool. Never include public in search_path as a missing table must fail.
 const testPath = expect.getState().testPath?.replaceAll("\\", "/") ?? "";
-if (/\/research\/(?:phase0[3-8]|queueIsolation[AB])\.test\.ts$/.test(testPath)) {
+if (isIsolatedQueueSuite(testPath)) {
   const { createIsolatedTestDb } = await import("./testDb");
   const actual = await vi.importActual<typeof import("@workspace/db")>("@workspace/db");
   const isolated = await createIsolatedTestDb({ throughPhase08: true });

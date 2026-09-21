@@ -29,6 +29,10 @@ const PHASE08_MIGRATION_PATHS = [
   // Current ingestion dedup and search backfill join Drive inventory even
   // when no Drive fixtures are present. Keep those joins schema-local.
   "0038-drive-headnotes-tables.sql",
+  // Accepted headnotes reindexing reads the reviewed editorial report.
+  "0033-lawyes-editorial-reports.sql",
+  "0034-lawyes-editorial-intake.sql",
+  "0036-lawyes-review-revisions.sql",
   "0044-research-metadata-unique-key.sql",
 ].map((fileName) =>
   path.resolve(__dirname, "../../../../../lib/db/sql/migrations", fileName),
@@ -66,6 +70,13 @@ export async function createIsolatedTestDb(
         const migration = await readFile(migrationPath, "utf8");
         await pool.query(migration);
       }
+      // Production boot adds these beyond the historical phase08 DDL.
+      // Reindex jobs must not rely on boot having altered the shared schema.
+      await pool.query(`
+        ALTER TABLE research_search_index ADD COLUMN IF NOT EXISTS practice_area text;
+        CREATE INDEX IF NOT EXISTS research_search_index_practice_area_idx
+          ON research_search_index (practice_area);
+      `);
     }
   } catch (err) {
     if (pool) {

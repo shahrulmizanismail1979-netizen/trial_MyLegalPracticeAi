@@ -19,8 +19,8 @@
  *  D14  Failure isolation
  *
  * Uses an in-memory storage adapter — no real object-storage traffic.
- * Requires the live dev Postgres DB (same as all other phase tests).
- * RUN_ID scopes all rows for cleanup in afterAll.
+ * Uses a disposable Postgres schema installed before service imports.
+ * RUN_ID scopes fixture cleanup; the setup hook drops the whole schema.
  *
  * After running, writes measurements to stress-results.json and builds
  * stress-report.md at the repo root.
