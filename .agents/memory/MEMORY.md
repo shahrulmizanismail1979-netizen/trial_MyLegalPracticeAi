@@ -21,7 +21,7 @@
 - [Legacy MyConveyAI user import](convey-legacy-user-import.md) — imports skip existing accounts but may fill a missing password hash (never overwrite); prod import goes through the deployed admin endpoint.
 - [Donor-app portal integration](donor-portal-integration.md) — porting an external app into this monorepo: sya_-style table prefixing renames constraint names too; artifact-count limit workaround via hand-written artifact.toml + verifyAndReplaceArtifactToml.
 - [ElevenLabs STT WAF workaround](elevenlabs-stt-waf.md) — never send audio inline through the connector proxy; stage in object storage and pass `cloud_storage_url`, else Cloudflare 403s MP3/MP4.
-- [drizzle push rename trap](drizzle-push-rename-trap.md) — push may propose renaming unrelated firm_* tables when adding new ones; create new tables via direct SQL.
+- [SQL-owned schema safeguards](drizzle-push-rename-trap.md) — generic push can remove research safeguards even for unrelated portal changes; use reviewed additive SQL, never automatic pushes.
 - [Playwright e2e on Replit](playwright-e2e-replit.md) — use REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE (no browser download), baseURL localhost:80, staff auth can't be minted headlessly.
 - [Research platform access gating](research-access-gating.md) — role gates alone leak; per-container checks, 404-not-403 for invisible containers, restriction-aware filters, fail-closed processors.
 - [MS SSO code-email binding](ms-code-email-binding.md) — first Microsoft email to link a code owns it everywhere; claim atomically (advisory lock) BEFORE issuing session; new portal logins need both binding checks.
@@ -60,7 +60,7 @@
 - [MyCorpAI drafting contract](mycorp-ai-drafting-contract.md) — specialist tool identity and a terminal-completion stream are required before presenting a corporate draft as final.
 - [Private saved-draft upload safety](private-saved-draft-upload-safety.md) — direct-upload drafts must be attachment-only, atomically confirmed, and reclaim all redundant objects.
 - [Corp upload expiry cleanup](corp-upload-sweep.md) — delete storage first; classify missing objects as success and retain rows for transient failures.
-- [Post-merge setup under preview load](post-merge-setup-preview-load.md) — skip pnpm relinking for lockfile-stable merges and limit Drizzle/esbuild workers.
+- [Post-merge setup under preview load](post-merge-setup-preview-load.md) — skip pnpm relinking for lockfile-stable merges; avoid duplicate development process trees.
 - [Regression-safe delivery](regression-safe-delivery.md) — every change must protect adjacent working flows with targeted regression checks before it is called complete.
 - [Paid checkout capacity invariants](paid-checkout-capacity.md) — never release a slot after a payable remote session exists; delayed completion must count paid and live reserved allocations under one lock.
 - [Artifact-aware publish preflight](artifact-aware-publish-preflight.md) — recursive builds omit manifest env; validate each web build with its own PORT and BASE_PATH.

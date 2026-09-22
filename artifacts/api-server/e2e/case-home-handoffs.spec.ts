@@ -854,22 +854,22 @@ for (const portal of PORTALS) {
   test(`${portal.label} keeps the Case Home handoff scoped to its matter and artifact`, async ({
     page,
   }) => {
-    const masterCode = process.env.MASTER_ACCESS_CODE;
+  const masterCode = process.env.MASTER_ACCESS_CODE;
     if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
 
     if (portal.key === "acc") {
       await page.setViewportSize({ width: 390, height: 844 });
     }
 
-    const headers = await authenticate(page, portal.key, masterCode);
-    const matter = await createMatter(page, portal, headers);
+  const headers = await authenticate(page, portal.key, masterCode);
+  const matter = await createMatter(page, portal, headers);
 
     try {
       await exerciseHandoff(page, portal, matter.id, matter.title);
 
       if (portal.key === "acc") {
         await page.goto(`${BASE}${portal.detailPath(matter.id)}`);
-        const panel = page.getByLabel(`Case home for matter ${matter.id}`);
+    const panel = page.getByLabel(`Case home for matter ${matter.id}`);
         await expect(panel).toBeVisible({ timeout: 30_000 });
         const overflow = await panel.evaluate((element) => ({
           panel: element.scrollWidth - element.clientWidth,
@@ -890,7 +890,7 @@ test("MyLitAI matter deep links survive a hard reload and reload saved preparati
   const masterCode = process.env.MASTER_ACCESS_CODE;
   if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
 
-  const portal = PORTALS.find((candidate) => candidate.key === "lit")!;
+  const portal = PORTALS.find((candidate) => candidate.key === "acc")!;
   const headers = await authenticate(page, portal.key, masterCode);
   const matter = await createMatter(page, portal, headers);
   const preparation = `Reloaded preparation ${RUN_ID}`;
@@ -1049,35 +1049,26 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (isolationMatterIds.acc.length) {
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM acc_matters WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationMatterIds.acc],
+      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationCodeIds.ccb],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
-      [...isolationMatterIds.acc].sort((a, b) => a - b),
+      [...isolationCodeIds.acc].sort((a, b) => a - b),
     );
   }
-  if (isolationMatterIds.ccb.length) {
+  if (isolationCodeIds.ccb.length) {
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM ccb_matters WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationMatterIds.ccb],
+      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationCodeIds.ccb],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
-      [...isolationMatterIds.ccb].sort((a, b) => a - b),
+      [...isolationCodeIds.acc].sort((a, b) => a - b),
     );
   }
-
-  // Fire-and-forget task/timeline and checklist writers can finish after their
-  // originating request. Repeated scoped deletion must remain empty for a
-  // quiet window, so teardown converges instead of guessing with one sleep.
-  await drainTrackedCaseHomeRows();
-
-  if (isolationCodeIds.acc.length) {
-    await pool.query(`DELETE FROM access_code_usage WHERE access_code_id = ANY($1::int[])`, [
-      isolationCodeIds.acc,
-    ]);
+  if (isolationCodeIds.ccb.length) {
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM access_codes WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationCodeIds.acc],
+      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationCodeIds.ccb],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
       [...isolationCodeIds.acc].sort((a, b) => a - b),
@@ -1166,8 +1157,8 @@ test("a second Accident subscriber cannot read or mutate the first subscriber's 
   const owner = await ownerContext.newPage();
   const other = await otherContext.newPage();
   try {
-    const ownerHeaders = await authenticate(owner, "acc", isolationCodes.accA);
-    const otherHeaders = await authenticate(other, "acc", isolationCodes.accB);
+    const ownerHeaders = await authenticate(owner, "ccb", isolationCodes.ccbA);
+    const otherHeaders = await authenticate(other, "ccb", isolationCodes.ccbB);
     await assertSecondTenantCannotReadOrMutate(
       owner,
       other,

@@ -11,6 +11,7 @@ it.each([
   "/research/drive/driveIngestCrashRecovery.test.ts",
   "/routes/research-admin.restricted.test.ts",
   "/routes/research-admin-bulk-rights.test.ts",
+  "/routes/research-admin-headnotes-approval.test.ts",
   "/routes/headnotes-search.test.ts",
 ])("isolates audited producer %s before its service imports", suite => {
   expect(isIsolatedQueueSuite(`/workspace/src${suite}`)).toBe(true);

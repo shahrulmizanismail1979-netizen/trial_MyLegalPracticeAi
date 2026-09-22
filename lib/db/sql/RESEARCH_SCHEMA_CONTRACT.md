@@ -26,10 +26,50 @@ that reapplying the practice-area migration preserves existing rows.
 - The bootstrap's candidate partial unique key is present and must stay:
   `(run_id, container_id, start_page_id) WHERE start_page_id IS NOT NULL`.
 
+## Schema synchronization policy
+
+Research SQL is authoritative for physical database objects. Drizzle research
+declarations describe application queries; they are **not** a complete desired
+database state. Generic `drizzle-kit push` is therefore unsafe for this mixed
+schema, including when a change is to an unrelated portal.
+
+The installed push engine proposes dropping the candidate partial unique index,
+both generated search vectors and their GIN indexes, and the three audit indexes;
+it also replaces workspace collection cascades with `NO ACTION`. A column rename
+prompt is not a safe solution: `document`, `document_ms`, and `document_text` are
+three distinct columns. The probe also confirms removal of the undeclared
+annotation-kind CHECK constraint.
+
+Protection is explicit rather than duplicating SQL definitions:
+
+- `@workspace/db` scripts `push` and `push-force` fail closed before connecting.
+- `drizzle.config.ts` rejects direct configured push invocations as well.
+- Post-merge setup never pushes the schema. This applies to **all** tables because
+  a full-schema diff triggered by another portal can still damage research.
+- There is no environment-variable override. Do not bypass this policy with a
+  custom config or the raw Drizzle push API.
+
+To evolve the development database, write and review an additive SQL migration,
+test it in a disposable schema first, then apply the reviewed SQL in development.
+Changing only a Drizzle declaration no longer applies any DDL automatically.
+Managed production propagation remains the platform Publish flow, not a custom
+migration runner or startup hook. Inspect that flow's proposed changes as well;
+this guard protects repository commands, not external tools or arbitrary SQL.
+Never rewrite historical migrations or create duplicate indexes to match an
+inline UNIQUE constraint's name.
+
+`schemaPushProtection.test.ts` obtains a **plan only** from the installed raw
+push engine against representative tables in a disposable schema; it never
+applies the destructive plan. It exercises package/direct-command guards with
+an unreachable dummy database endpoint, snapshots the disposable SQL catalog,
+reapplies migrations 0008/0014/0018/0019 there, and verifies real candidate retries,
+FTS generation/update, invalid-value rejection, workspace cascades and inline
+unique keys. It does not modify shared rows.
+
 ## Boundaries
 
-This is a processor schema-availability contract, not full bidirectional
-schema synchronization. SQL contains additional checks, generated FTS
+The fresh-schema test is a processor schema-availability contract, not full
+bidirectional schema synchronization. SQL contains additional checks, generated FTS
 vectors, GIN/audit indexes and some cascading foreign-key actions that are
 not represented in Drizzle. The FTS vectors intentionally coexist with the
 plain `document_text` column; they are not renamed versions of it.
@@ -41,4 +81,5 @@ Run with:
 
 ```sh
 pnpm --filter @workspace/api-server exec vitest run src/research/freshSchemaContract.test.ts src/research/metadataMigration.test.ts
+pnpm --filter @workspace/api-server exec vitest run src/research/schemaPushProtection.test.ts
 ```

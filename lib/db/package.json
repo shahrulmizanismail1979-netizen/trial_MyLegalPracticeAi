@@ -11,8 +11,8 @@
     "./firm": "./src/schema/firm/index.ts"
   },
   "scripts": {
-    "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+    "push": "node ./schema-push-policy.cjs",
+    "push-force": "node ./schema-push-policy.cjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

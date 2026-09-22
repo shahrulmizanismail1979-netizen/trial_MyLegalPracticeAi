@@ -32,6 +32,15 @@ description: How browser e2e tests run here without downloading browsers, and au
 - **How to apply:** check workflow status and restart only the API plus the
   target artifact before rerunning a failed browser suite.
 
+- Repeated browser validation can exhaust the development API's in-memory
+  login rate limit even when individual suites pass.
+- **Why:** separate runs share the live API and proxy identity; fresh browser
+  contexts do not reset the server's login counters.
+- **How to apply:** inspect failed login status before changing auth code.
+  For a confirmed development-only 429 after repeated runs, let the cooldown
+  expire or restart the development API before a clean validation pass.
+  Never raise or bypass production limits to satisfy tests.
+
 - Native attachment downloads may not emit page response events or page CDP
   Network events in the provided Chromium.
 - **Why:** both response-listener approaches timed out despite successful
