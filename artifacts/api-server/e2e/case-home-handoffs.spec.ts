@@ -612,30 +612,33 @@ async function assertActualFilingTarget(
         evidenceNeeded: [],
       },
     };
-    const mockAnalysis = async (complete: boolean) => {
-      await page.route(
-        "**/api/sya/case-analysis/predict",
-        (route) =>
-          route.fulfill({
-            status: 200,
-            contentType: "text/event-stream",
-            body:
-              `data: ${JSON.stringify({ content: JSON.stringify(mockResult) })}\n\n` +
-              (complete ? `data: ${JSON.stringify({ done: true })}\n\n` : ""),
-          }),
-        { times: 1 },
-      );
-    };
+    let analysisRequestCount = 0;
+    await page.route(
+      "**/api/sya/case-analysis/predict",
+      (route) => {
+        analysisRequestCount += 1;
+        return route.fulfill({
+          status: 200,
+          contentType: "text/event-stream",
+          body:
+            `data: ${JSON.stringify({ content: JSON.stringify(mockResult) })}\n\n` +
+            (analysisRequestCount === 2
+              ? `data: ${JSON.stringify({ done: true })}\n\n`
+              : ""),
+        });
+      },
+      { times: 2 },
+    );
     const panel = page.getByTestId("save-to-matter-panel");
+    const analyzeButton = page.getByRole("button", { name: "Analyze Case" });
     // Valid JSON alone is not a completed AI response. Preserve the real
     // endpoint's terminal-event contract instead of weakening the safety gate.
-    await mockAnalysis(false);
-    await page.getByRole("button", { name: "Analyze Case" }).click();
+    await analyzeButton.click();
     await expect(page.getByText("The AI connection ended before completion.", { exact: false })).toBeVisible();
     await expect(panel).toHaveCount(0);
 
-    await mockAnalysis(true);
-    await page.getByRole("button", { name: "Analyze Case" }).click();
+    await expect(analyzeButton).toBeEnabled();
+    await analyzeButton.click();
     await expect(panel).toBeVisible({ timeout: 20_000 });
     await expect(panel.getByTestId("save-to-matter-select")).toContainText(title);
     await assertFilingRequest(
@@ -890,7 +893,7 @@ test("MyLitAI matter deep links survive a hard reload and reload saved preparati
   const masterCode = process.env.MASTER_ACCESS_CODE;
   if (!masterCode) throw new Error("MASTER_ACCESS_CODE env var is required");
 
-  const portal = PORTALS.find((candidate) => candidate.key === "acc")!;
+  const portal = PORTALS.find((candidate) => candidate.key === "lit")!;
   const headers = await authenticate(page, portal.key, masterCode);
   const matter = await createMatter(page, portal, headers);
   const preparation = `Reloaded preparation ${RUN_ID}`;
@@ -1049,26 +1052,35 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (isolationMatterIds.acc.length) {
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationCodeIds.ccb],
+      `DELETE FROM acc_matters WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationMatterIds.acc],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
-      [...isolationCodeIds.acc].sort((a, b) => a - b),
+      [...isolationMatterIds.acc].sort((a, b) => a - b),
     );
   }
-  if (isolationCodeIds.ccb.length) {
+  if (isolationMatterIds.ccb.length) {
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationCodeIds.ccb],
+      `DELETE FROM ccb_matters WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationMatterIds.ccb],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
-      [...isolationCodeIds.acc].sort((a, b) => a - b),
+      [...isolationMatterIds.ccb].sort((a, b) => a - b),
     );
   }
-  if (isolationCodeIds.ccb.length) {
+
+  // Fire-and-forget task/timeline and checklist writers can finish after their
+  // originating request. Repeated scoped deletion must remain empty for a
+  // quiet window, so teardown converges instead of guessing with one sleep.
+  await drainTrackedCaseHomeRows();
+
+  if (isolationCodeIds.acc.length) {
+    await pool.query(`DELETE FROM access_code_usage WHERE access_code_id = ANY($1::int[])`, [
+      isolationCodeIds.acc,
+    ]);
     const deleted = await pool.query<{ id: number }>(
-      `DELETE FROM ccb_access_codes WHERE id = ANY($1::int[]) RETURNING id`,
-      [isolationCodeIds.ccb],
+      `DELETE FROM access_codes WHERE id = ANY($1::int[]) RETURNING id`,
+      [isolationCodeIds.acc],
     );
     expect(deleted.rows.map((row) => row.id).sort((a, b) => a - b)).toEqual(
       [...isolationCodeIds.acc].sort((a, b) => a - b),
@@ -1157,8 +1169,8 @@ test("a second Accident subscriber cannot read or mutate the first subscriber's 
   const owner = await ownerContext.newPage();
   const other = await otherContext.newPage();
   try {
-    const ownerHeaders = await authenticate(owner, "ccb", isolationCodes.ccbA);
-    const otherHeaders = await authenticate(other, "ccb", isolationCodes.ccbB);
+    const ownerHeaders = await authenticate(owner, "acc", isolationCodes.accA);
+    const otherHeaders = await authenticate(other, "acc", isolationCodes.accB);
     await assertSecondTenantCannotReadOrMutate(
       owner,
       other,

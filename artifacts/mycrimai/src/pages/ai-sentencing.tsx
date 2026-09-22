@@ -154,7 +154,7 @@ Mitigating: First offender, provocation by deceased, intoxication, young age, so
             )}
             <div ref={scrollRef} className="max-h-[70vh] overflow-auto">
               {response ? (
-                <MarkdownRenderer content={response} />
+                <MarkdownRenderer content={response} exportReady={isComplete} />
               ) : (
                 <div className="flex items-center gap-2 text-primary">
                   <Loader2 className="h-5 w-5 animate-spin" />

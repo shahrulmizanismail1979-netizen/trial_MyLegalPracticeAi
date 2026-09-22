@@ -192,7 +192,7 @@ export function AiLegalResearchPage() {
           e.preventDefault();
           handleSend();
         }}
-        className="flex gap-2 mt-4"
+        className="flex gap-2 mt-4 pr-20 sm:pr-24"
       >
         <Input
           value={input}

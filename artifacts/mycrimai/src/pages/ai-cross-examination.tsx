@@ -129,7 +129,7 @@ export function AiCrossExaminationPage() {
                     />
                   </div>
                 )}
-                <MarkdownRenderer content={response} />
+                <MarkdownRenderer content={response} exportReady={isComplete} />
               </CardContent>
             </Card>
           ) : error ? (

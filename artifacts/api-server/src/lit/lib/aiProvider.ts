@@ -38,20 +38,37 @@ export function normalizeProvider(v: unknown): AIProvider {
   return isAIProvider(v) ? v : DEFAULT_PROVIDER;
 }
 
-/** True when an OpenAI API key is configured (user-supplied secret). */
+/** True when either a direct key or the workspace Replit proxy is configured. */
 export function openaiConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
+  return Boolean(
+    process.env.OPENAI_API_KEY ||
+      (process.env.AI_INTEGRATIONS_OPENAI_API_KEY &&
+        process.env.AI_INTEGRATIONS_OPENAI_BASE_URL),
+  );
 }
 
-let openaiClient: OpenAI | null = null;
+let directOpenAIClient: OpenAI | null = null;
+let replitOpenAIClient: OpenAI | null = null;
 function getOpenAI(): OpenAI {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not set");
+  if (process.env.OPENAI_API_KEY) {
+    if (!directOpenAIClient) {
+      directOpenAIClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    }
+    return directOpenAIClient;
   }
-  if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY &&
+    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL
+  ) {
+    if (!replitOpenAIClient) {
+      replitOpenAIClient = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+    }
+    return replitOpenAIClient;
   }
-  return openaiClient;
+  throw new Error("OpenAI is not configured");
 }
 
 /** True when a Perplexity API key is configured (user-supplied secret). */

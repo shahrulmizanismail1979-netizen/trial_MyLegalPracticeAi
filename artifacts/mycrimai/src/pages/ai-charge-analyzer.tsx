@@ -117,7 +117,7 @@ export function AiChargeAnalyzerPage() {
                     />
                   </div>
                 )}
-                <MarkdownRenderer content={response} />
+                <MarkdownRenderer content={response} exportReady={isComplete} />
               </CardContent>
             </Card>
           ) : error ? (

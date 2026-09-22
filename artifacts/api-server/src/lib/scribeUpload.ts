@@ -76,7 +76,13 @@ export async function stageRecordingForStt(
   const cleanup = async (): Promise<void> => {
     try {
       const delUrl = await signUrl(bucket, objectName, "DELETE");
-      await fetch(delUrl, { method: "DELETE", signal: AbortSignal.timeout(30_000) });
+      const deleted = await fetch(delUrl, {
+        method: "DELETE",
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!deleted.ok && deleted.status !== 404) {
+        throw new Error(`Failed to delete temporary STT recording (${deleted.status})`);
+      }
     } catch (e) {
       logger.warn({ err: e, objectName }, "Failed to delete temporary STT recording");
     }

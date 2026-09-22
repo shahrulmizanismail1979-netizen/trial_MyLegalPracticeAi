@@ -48,7 +48,7 @@ export async function transcribeWithDiarization(
       `Speaker-diarized transcription needs the ElevenLabs integration. Please connect ElevenLabs first. (${(err as Error).message})`,
     );
   } finally {
-    void staged.cleanup();
+    await staged.cleanup();
   }
 
   if (!res.ok) {
