@@ -612,18 +612,30 @@ async function assertActualFilingTarget(
         evidenceNeeded: [],
       },
     };
-    await page.route(
-      "**/api/sya/case-analysis/predict",
-      (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: "text/event-stream",
-          body: `data: ${JSON.stringify({ content: JSON.stringify(mockResult) })}\n\n`,
-        }),
-      { times: 1 },
-    );
-    await page.getByRole("button", { name: "Analyze Case" }).click();
+    const mockAnalysis = async (complete: boolean) => {
+      await page.route(
+        "**/api/sya/case-analysis/predict",
+        (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: "text/event-stream",
+            body:
+              `data: ${JSON.stringify({ content: JSON.stringify(mockResult) })}\n\n` +
+              (complete ? `data: ${JSON.stringify({ done: true })}\n\n` : ""),
+          }),
+        { times: 1 },
+      );
+    };
     const panel = page.getByTestId("save-to-matter-panel");
+    // Valid JSON alone is not a completed AI response. Preserve the real
+    // endpoint's terminal-event contract instead of weakening the safety gate.
+    await mockAnalysis(false);
+    await page.getByRole("button", { name: "Analyze Case" }).click();
+    await expect(page.getByText("The AI connection ended before completion.", { exact: false })).toBeVisible();
+    await expect(panel).toHaveCount(0);
+
+    await mockAnalysis(true);
+    await page.getByRole("button", { name: "Analyze Case" }).click();
     await expect(panel).toBeVisible({ timeout: 20_000 });
     await expect(panel.getByTestId("save-to-matter-select")).toContainText(title);
     await assertFilingRequest(
@@ -688,7 +700,7 @@ async function assertActualFilingTarget(
           contentType: "text/event-stream",
           body:
             `data: ${JSON.stringify({ content: `Mock CCB opinion ${RUN_ID}` })}\n\n` +
-            "data: [DONE]\n\n",
+            `data: ${JSON.stringify({ done: true })}\n\n`,
         }),
       { times: 1 },
     );

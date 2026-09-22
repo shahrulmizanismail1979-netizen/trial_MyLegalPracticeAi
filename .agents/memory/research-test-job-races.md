@@ -23,6 +23,12 @@ Isolation applies to enqueue-only tests too, including HTTP approval routes.
 
 **How to apply:** Audit producers as well as consumers. For research-only route tests, mount the real router and required middleware rather than importing the whole app: unrelated portal boot migrations require tables deliberately absent from the disposable research schema.
 
+Treat static queue reachability as a conservative warning, not proof that a suite enqueues. Never blanket-exempt all app/router tests or assume a partial mock disconnects the real database.
+
+**Why:** Eager router imports make unrelated portal suites queue-reachable, while route-mediated producers may never mention the queue API. Broad exclusions would hide the latter.
+
+**How to apply:** Require explicit, reasoned review for non-producing suites; move an exception into schema isolation before adding any producing behavior. Automatically accept only demonstrably full unit mocks.
+
 Model foreign/shared queue fixtures in a second disposable schema, not by planting runnable sentinel jobs in public.
 
 **Why:** A real development worker could claim a public sentinel during the proof, changing shared state or dispatching a synthetic payload to a real adapter.

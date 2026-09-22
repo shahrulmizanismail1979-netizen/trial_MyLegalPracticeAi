@@ -8,7 +8,10 @@ const testPath = expect.getState().testPath?.replaceAll("\\", "/") ?? "";
 if (isIsolatedQueueSuite(testPath)) {
   const { createIsolatedTestDb } = await import("./testDb");
   const actual = await vi.importActual<typeof import("@workspace/db")>("@workspace/db");
-  const isolated = await createIsolatedTestDb({ throughPhase08: true });
+  const isolated = await createIsolatedTestDb({
+    throughPhase08: true,
+    currentResearch: testPath.endsWith("/research/phase12d-security.test.ts"),
+  });
   vi.doMock("@workspace/db", () => ({
     ...actual,
     db: isolated.db,
