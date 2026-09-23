@@ -20,6 +20,75 @@ import { MatterPicker, mapMatterToFormValues } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
 import { consumeCompletionStream } from "@/lib/completion-stream";
 
+type PracticeGuide = {
+  inputs: string[];
+  structure: string[];
+  gaps: string[];
+  review: string[];
+};
+
+function getPracticeGuide(tool: { id: string; name: string; category: string }): PracticeGuide {
+  const key = `${tool.id} ${tool.name} ${tool.category}`.toLowerCase();
+  if (/plead|affidavit|submission|litig|injunction|application/.test(key)) {
+    return {
+      inputs: ["Complete pleadings and orders", "Dated chronology with disputed facts marked", "Relief sought, procedural posture and hearing purpose"],
+      structure: ["Case theory and issues", "Fact-to-evidence matrix", "Elements, responses and relief", "Authorities and next steps"],
+      gaps: ["Missing exhibit or source witness", "Allegation not tied to admissible evidence", "Procedural fact or court direction not confirmed"],
+      review: ["Match assertions to the evidential record", "Check relief against the live pleadings", "Verify every authority and quotation", "Apply current rules and registry practice"],
+    };
+  }
+  if (/bank|facility|security|debt|recovery|insolv/.test(key)) {
+    return {
+      inputs: ["Executed facilities, variations and securities", "Certified account history and reconciliation", "Notices, service evidence and enforcement status"],
+      structure: ["Facility and security map", "Default and notice chronology", "Amount reconciliation", "Options, dependencies and risks"],
+      gaps: ["Unsigned variation or guarantee", "Unexplained ledger entry or interest basis", "Notice or proof of service missing"],
+      review: ["Recalculate amounts independently", "Confirm parties and security particulars", "Check preconditions against each instrument", "Obtain current insolvency and enforcement advice"],
+    };
+  }
+  if (/share|director|company|corporate|fraud/.test(key)) {
+    return {
+      inputs: ["Constitution, registers and ownership history", "Board and member materials", "Challenged acts, communications and requested remedy"],
+      structure: ["Governance map", "Decision chronology", "Issue and remedy analysis", "Evidence requests and action plan"],
+      gaps: ["Authority of decision-maker unclear", "Incomplete register or resolution set", "Beneficial ownership or conflict evidence absent"],
+      review: ["Reconcile dates across corporate records", "Separate company and stakeholder interests", "Confirm approvals and execution", "Verify statutory analysis from primary materials"],
+    };
+  }
+  return {
+    inputs: ["Complete agreement and schedules", "Dated performance and communication chronology", "Parties' positions, loss material and desired outcome"],
+    structure: ["Executive issue map", "Contract and fact analysis", "Evidence and remedy table", "Prioritised next actions"],
+    gaps: ["Amendment or incorporated document absent", "Loss figure unsupported", "Assumption presented as an agreed fact"],
+    review: ["Check defined terms and cross-references", "Trace each conclusion to a source", "Stress-test counterarguments", "Verify law, procedure and forum independently"],
+  };
+}
+
+function PracticeGuidePanel({ tool }: { tool: { id: string; name: string; category: string; example?: Record<string, string>; sampleNote?: string } }) {
+  const guide = getPracticeGuide(tool);
+  const example = tool.example
+    ? Object.entries(tool.example).slice(0, 3).map(([label, value]) => `${label}: ${value}`).join(" · ")
+    : "State the event, date, source document, what is agreed or disputed, and the outcome counsel needs.";
+  return (
+    <details className="mb-5 rounded-lg border border-primary/20 bg-primary/5 p-3 group">
+      <summary className="cursor-pointer list-none text-sm font-semibold flex justify-between gap-3">
+        Matter preparation & quality guide
+        <span className="text-xs font-normal text-primary group-open:hidden">Open</span>
+        <span className="text-xs font-normal text-primary hidden group-open:inline">Close</span>
+      </summary>
+      <div className="grid sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-primary/15">
+        <MiniGuide title="Prepare" items={guide.inputs} />
+        <MiniGuide title="Expected output" items={guide.structure} />
+        <MiniGuide title="Evidence gaps" items={guide.gaps} />
+        <MiniGuide title="Review before use" items={guide.review} />
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground"><strong className="text-foreground">Example input:</strong> {example}</p>
+      <p className="mt-2 text-xs text-muted-foreground"><strong className="text-foreground">FAQ:</strong> If a fact is unknown, label it “not confirmed” and identify the document or witness needed. Treat the result as a working draft: do not file, send or advise from it until the record, calculations, authorities and current procedure have been checked.</p>
+    </details>
+  );
+}
+
+function MiniGuide({ title, items }: { title: string; items: string[] }) {
+  return <div><p className="text-[11px] font-semibold uppercase tracking-wide text-primary mb-1">{title}</p><ul className="space-y-1">{items.map(item => <li key={item} className="text-xs text-muted-foreground">• {item}</li>)}</ul></div>;
+}
+
 /**
  * Explicit, field-name/label aware pre-fill for the editable single-purpose
  * fields the generic `mapMatterToFormValues` helper deliberately skips
@@ -382,6 +451,7 @@ export default function ToolPage() {
               </div>
             )}
             <div className="p-4 overflow-y-auto flex-1">
+              <PracticeGuidePanel tool={tool} />
               <MatterPicker
                 onSelect={handleMatterSelectWithTrack}
                 defaultMatterId={defaultMatterId}

@@ -10,6 +10,7 @@ import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, matterToChargeRef } from "@/components/MatterPicker";
+import { CriminalToolGuidance } from "@/components/CriminalToolGuidance";
 
 const EXAMPLE_CHARGE = `PERTUDUHAN
 
@@ -42,6 +43,7 @@ export function AiChargeAnalyzerPage() {
           Paste any charge sheet (English or Bahasa Malaysia) for a complete breakdown — statutory provisions, essential elements the prosecution must prove, viable defences, sentencing guidelines with mandatory/discretionary ranges, bail analysis, prosecution strategy prediction, and defence tactical recommendations
         </p>
       </div>
+      <CriminalToolGuidance kind="charge" />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">

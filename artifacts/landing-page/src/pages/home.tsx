@@ -20,6 +20,7 @@ import { PoweredByBanner } from "@/components/powered-by-banner";
 import { usePersona } from "@/lib/persona";
 import { CaseCorpusStatus } from "@workspace/case-home-ui";
 import { LawyesNav } from "@/components/lawyes-nav";
+import { PublicContentGuide } from "@/components/public-content-guide";
 
 export default function Home({
   initialSearch = "",
@@ -141,6 +142,7 @@ export default function Home({
         )}
 
         <Security />
+        <PublicContentGuide />
         <Payment />
         <Trust />
         <TermsPrivacy />

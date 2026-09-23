@@ -6,7 +6,11 @@ export default {
   },
   test: {
     environment: "node",
-    include: ["src/fixtures/lawyes-preview.test.ts", "src/data/legal-reference-guide.test.ts"],
+    include: [
+      "src/fixtures/lawyes-preview.test.ts",
+      "src/data/legal-reference-guide.test.ts",
+      "src/data/public-content.test.ts",
+    ],
     maxWorkers: 1,
     fileParallelism: false,
   },

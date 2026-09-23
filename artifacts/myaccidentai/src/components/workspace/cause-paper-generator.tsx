@@ -88,6 +88,20 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
         </div>
       </div>
 
+      <details className="bg-card border border-border rounded-xl p-4 group">
+        <summary className="cursor-pointer list-none flex justify-between gap-3 text-sm font-semibold">
+          Cause paper preparation & filing review
+          <span className="text-xs text-primary font-normal group-open:hidden">Open</span><span className="text-xs text-primary font-normal hidden group-open:inline">Close</span>
+        </summary>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <GuideColumn title="Prepare" items={["Current court and suit details", "Verified party names, identifiers and addresses", "Pleadings, orders and evidence relevant to this document"]} />
+          <GuideColumn title="Draft structure" items={["Correct heading and party capacity", "Numbered material allegations or orders sought", "Signature, service and enclosure blocks where applicable"]} />
+          <GuideColumn title="Common gaps" items={["Placeholder left in the preview", "Fact not supported by a pleaded or exhibited source", "Document selected for the wrong stage or party"]} />
+          <GuideColumn title="Before filing" items={["Compare every field to the matter file", "Check internal numbering and referenced annexures", "Apply current rules, directions and registry formatting"]} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-3"><strong className="text-foreground">FAQ:</strong> The live preview is a drafting aid, not confirmation that a document is procedurally available or complete. Replace every placeholder and obtain practitioner approval before service or filing.</p>
+      </details>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <aside className="lg:col-span-4 space-y-4">
           <div className="bg-card border border-border rounded-xl p-4">
@@ -216,6 +230,10 @@ export function CausePaperGenerator({ initialTemplateId }: Props) {
       </div>
     </div>
   );
+}
+
+function GuideColumn({ title, items }: { title: string; items: string[] }) {
+  return <div><p className="font-semibold uppercase tracking-wide text-primary mb-1">{title}</p>{items.map(item => <p key={item} className="leading-relaxed">• {item}</p>)}</div>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

@@ -9,10 +9,10 @@ export function Trust() {
           About &amp; Credentials
         </div>
         <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6">
-          Trusted by <span className="text-primary">Malaysian Legal Professionals</span>
+          Built for <span className="text-primary">Malaysian Legal Work</span>
         </h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-justify">
-          AI Portals is built on deep Malaysian legal expertise, curated by a practitioner with decades of hands-on experience in the profession.
+          LAWYes combines practitioner-led curation with a review-first workflow. It is designed to help professionals organise work, not to replace their responsibility for the file, current law, procedure, or final advice.
         </p>
       </div>
 
@@ -38,7 +38,7 @@ export function Trust() {
             <div>
               <h3 className="font-serif text-xl font-semibold mb-2">Editorial Methodology</h3>
               <p className="text-muted-foreground leading-relaxed text-justify">
-                Every AI Portal is built around curated materials drawn from Malaysian statutes, case law, procedural rules, and practice guides. Content is structured to support professional legal practice, not general-purpose answers. Users must independently verify all legal authorities and AI outputs before reliance.
+                 Portal material is organised for Malaysian professional contexts rather than general-purpose questions. Research source status matters: reviewed library material and separately selected public-web material must remain distinguishable. Users must trace propositions to sources and independently verify authorities, quotations, law, procedure, dates, and suitability before reliance.
               </p>
             </div>
           </div>
@@ -103,6 +103,20 @@ export function Trust() {
                 <a href="/apps#privacy" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
           </div>
+        </div>
+      </div>
+      <div className="grid gap-5 rounded-2xl border border-border bg-card/50 p-6 md:grid-cols-3">
+        <div>
+          <h3 className="font-semibold text-foreground">Before the task</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Define the audience, purpose, jurisdiction, stage, output, source set, and matters the assistant must not assume.</p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">During review</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Separate file facts, client instructions, legal propositions, calculations, and recommendations. Check each category against its proper source.</p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-foreground">Before use</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Apply professional judgment, current authoritative material, confidentiality controls, document standards, and the responsible reviewer’s approval.</p>
         </div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/lib/language-context";
 import { useGate } from "@/lib/gate-context";
+import { SyariahToolGuidance } from "@/components/SyariahToolGuidance";
 
 type Gate = "civil" | "criminal" | "advisory";
 
@@ -67,6 +68,7 @@ export default function DraftingPage() {
           )}
         </p>
       </div>
+      <div className="mb-8"><SyariahToolGuidance kind="drafting" /></div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {tools.map((tool) => (

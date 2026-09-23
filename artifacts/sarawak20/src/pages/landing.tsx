@@ -301,6 +301,85 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="bg-white py-24" aria-labelledby="programme-playbook-title">
+          <div className="container mx-auto max-w-6xl px-4">
+            <div className="mx-auto mb-12 max-w-3xl text-center">
+              <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-lawyes-green">Participant playbook</p>
+              <h2 id="programme-playbook-title" className="text-3xl font-black uppercase text-lawyes-navy md:text-5xl">
+                Bring one workflow. Test it safely.
+              </h2>
+              <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+                A useful co-development session starts with a bounded task, representative inputs
+                and a clear test for success—not a live client file copied wholesale into a prototype.
+              </p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  step: "01",
+                  title: "Choose a task",
+                  body: "Example: turn an approved attendance note into an internal action list, or compare a draft against your firm's own checklist. State who starts, reviews and closes the task.",
+                },
+                {
+                  step: "02",
+                  title: "Prepare inputs",
+                  body: "Bring anonymised sample facts, the source type, expected output, formatting rules, exception examples and the review points your team already applies.",
+                },
+                {
+                  step: "03",
+                  title: "Interpret output",
+                  body: "Treat every result as a prototype. Identify omissions, unsupported assumptions, incorrect extraction, unclear provenance and any step that still needs professional judgment.",
+                },
+                {
+                  step: "04",
+                  title: "Record the test",
+                  body: "Note the input version, scenario, expected result, observed result, severity, reviewer and retest outcome. Keep product feedback separate from the client or matter record.",
+                },
+              ].map((item) => (
+                <div key={item.step} className="rounded-2xl border border-border bg-gray-50 p-6">
+                  <span className="text-sm font-black text-lawyes-green">{item.step}</span>
+                  <h3 className="mt-3 text-xl font-bold text-lawyes-navy">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-2xl bg-lawyes-navy p-7 text-white">
+                <h3 className="text-xl font-bold">Review gate before real-world use</h3>
+                <ul className="mt-4 grid gap-3 text-sm leading-relaxed text-white/80 sm:grid-cols-2">
+                  <li>• Reconcile names, dates, figures and extracted facts with the source.</li>
+                  <li>• Check the intended jurisdiction, forum, current primary material and local practice.</li>
+                  <li>• Have the responsible practitioner approve advice, correspondence, signature or filing.</li>
+                  <li>• Calculate every deadline independently; the programme supplies no deadline assurance.</li>
+                  <li>• Confirm the correct form, language, attachments, fees and submission channel directly.</li>
+                  <li>• Preserve the firm's approved record and version history outside product feedback.</li>
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-lawyes-orange/30 bg-lawyes-orange/5 p-7">
+                <h3 className="text-xl font-bold text-lawyes-navy">Privacy boundary</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  Use synthetic or properly anonymised examples wherever possible. Remove names,
+                  identity and contact numbers, account details, signatures, privileged strategy,
+                  unrelated correspondence and hidden document metadata. Confirm your firm's
+                  authority and internal policy before sharing any material.
+                </p>
+              </div>
+            </div>
+
+            <details className="mt-8 rounded-2xl border border-border p-6">
+              <summary className="cursor-pointer text-lg font-bold text-lawyes-navy">Programme FAQ</summary>
+              <div className="mt-5 grid gap-5 text-sm leading-relaxed text-muted-foreground md:grid-cols-2">
+                <p><strong className="text-lawyes-navy">Is a prototype a verified legal answer?</strong><br />No. It is a test output for practitioner review and may be incomplete, inaccurate or unsuitable for the matter.</p>
+                <p><strong className="text-lawyes-navy">What makes a useful bug report?</strong><br />Include a minimised input, exact steps, expected and actual result, impact, screenshot with sensitive data removed, and whether it repeats.</p>
+                <p><strong className="text-lawyes-navy">Can we submit our firm's precedent?</strong><br />Only if your firm authorises it. Prefer a sanitised excerpt and specify which structure or rule the test needs.</p>
+                <p><strong className="text-lawyes-navy">Where should legal work be retained?</strong><br />In your firm's approved matter and document systems. Product test notes do not replace the official file.</p>
+              </div>
+            </details>
+          </div>
+        </section>
+
         {/* COHORTS CHECKOUT SECTION */}
         <section id="cohorts-section" className="py-24 bg-gray-50">
           <div className="container mx-auto px-4 max-w-5xl">
@@ -745,6 +824,17 @@ function EligibilityModal({
           </DialogDescription>
         </DialogHeader>
 
+        <Alert className="mb-6 border-lawyes-green/30 bg-lawyes-green/5">
+          <ShieldCheck className="h-4 w-4 text-lawyes-green" />
+          <AlertTitle className="text-lawyes-navy">Have these details ready</AlertTitle>
+          <AlertDescription className="text-xs leading-relaxed text-muted-foreground">
+            Use the name and firm details that match the relevant professional record. Chambering
+            applicants should also have their pupil master name and commencement date. Optional
+            references can help identify a record but should not include passwords or unnecessary
+            identity documents.
+          </AlertDescription>
+        </Alert>
+
         {errorMsg && (
           <Alert variant="destructive" className="mb-6" aria-live="polite">
             <AlertCircle className="h-4 w-4" />
@@ -770,6 +860,12 @@ function EligibilityModal({
             </AlertDescription>
           </Alert>
         )}
+
+        <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+          Review every entry before submitting. Provide only the eligibility information requested
+          here; do not upload client material or place confidential matter facts in reference fields.
+          Verification confirms programme eligibility only, not the accuracy of any future product output.
+        </p>
 
         {isFirm ? (
           <Form {...firmForm}>

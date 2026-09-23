@@ -128,8 +128,8 @@ export function AppsGrid() {
                       <div className="flex items-start gap-2 rounded-lg bg-amber-400/5 border border-amber-400/20 p-3">
                         <Sparkles className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                         <p className="text-xs text-muted-foreground">
-                          Coming soon. Access will be granted as soon as the app is ready —
-                          we'll notify you the moment it launches.
+                          This portal is still in development. Availability, included
+                          features, and access details will be published if it launches.
                         </p>
                       </div>
                     </div>

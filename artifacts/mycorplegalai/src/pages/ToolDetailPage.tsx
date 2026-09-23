@@ -21,6 +21,96 @@ const TIER_LABELS: Record<string, string> = {
   legacy_full: "Full Access",
 };
 
+const TOOL_GUIDANCE: Record<string, {
+  preparation: string[];
+  structure: string[];
+  gaps: string[];
+  review: string[];
+}> = {
+  "legal-opinion": {
+    preparation: [
+      "Separate confirmed facts, client instructions and assumptions. Add the decision-maker, commercial objective and the precise questions to be answered.",
+      "Upload the complete instrument and amendments, not an isolated clause. Include the current constitution, approvals, correspondence and the authorities counsel has verified.",
+    ],
+    structure: ["Scope and executive answer", "Material facts and express assumptions", "Issue-by-issue analysis", "Options, risks and recommended next actions"],
+    gaps: ["Missing approval or ownership records", "Unclear chronology or transaction status", "Authority cited without an exact source passage"],
+    review: ["Reconcile every factual statement to the file", "Check defined terms and party names", "Verify legislation and authorities from primary sources", "Remove conclusions that depend on an unresolved assumption"],
+  },
+  "transaction-advisor": {
+    preparation: [
+      "Provide the signed term sheet or latest marked draft, ownership chart, asset and liability perimeter, funding plan, licences and the intended closing sequence.",
+      "State non-negotiables: assets or liabilities to exclude, required consents, employee treatment, tax advice already obtained and the target commercial outcome.",
+    ],
+    structure: ["Transaction perimeter and assumptions", "Side-by-side structure comparison", "Consent and diligence workstreams", "Conditions, sequencing and decision points"],
+    gaps: ["Beneficial ownership or authority not confirmed", "Change-of-control and assignment terms missing", "Tax, valuation or regulatory advice outstanding"],
+    review: ["Test the recommendation against the actual documents", "Confirm who owns each action and dependency", "Separate legal conclusions from specialist tax or accounting input", "Record open issues before selecting a structure"],
+  },
+  "dd-report": {
+    preparation: [
+      "Define the diligence scope, cut-off date, materiality threshold and transaction perimeter before uploading the indexed data-room set.",
+      "Include corporate records, material contracts, financing and security, disputes, licences, employment, property, IP and a current Q&A tracker where relevant.",
+    ],
+    structure: ["Scope, status and limitations", "Executive red-flag summary", "Topic findings with document references", "Open requests and proposed protections"],
+    gaps: ["Referenced schedule or amendment absent", "Unsigned or expired document", "Management statement unsupported by a record"],
+    review: ["Trace each finding to a named source", "Avoid treating silence as confirmation", "Distinguish completion conditions from post-completion actions", "Escalate high-impact gaps for specialist review"],
+  },
+  "contract-review": {
+    preparation: [
+      "Upload the execution version, all schedules and incorporated policies together with the brief, negotiation history and the party you represent.",
+      "State the commercial bargain, risk appetite, must-have protections and any known departures from the agreed term sheet.",
+    ],
+    structure: ["Commercial summary", "Clause-by-clause issue table", "Missing protections and inconsistencies", "Prioritised drafting recommendations"],
+    gaps: ["Undefined or inconsistent term", "Blank schedule or cross-reference", "Obligation with no owner, trigger or consequence"],
+    review: ["Read amendments in the context of the whole agreement", "Check dates, amounts, formulas and cross-references", "Confirm remedies align with the bargain", "Verify execution, approval and governing-law advice separately"],
+  },
+};
+
+function ToolPracticeGuide({ tool }: { tool: (typeof PRACTITIONER_TOOLS)[number] }) {
+  const guide = TOOL_GUIDANCE[tool.id] ?? {
+    preparation: [
+      "Provide a dated chronology, complete source documents, party roles, the client's objective and the exact decision or work product required.",
+      "Label disputed facts, privileged material, assumptions and information still awaited. Use neutral descriptions rather than filling gaps with inference.",
+    ],
+    structure: ["Scope and factual record", "Issues or tasks in priority order", "Analysis or drafting sections", "Open points and next actions"],
+    gaps: ["Missing source document or annexure", "Unconfirmed authority, amount or date", "Instruction that conflicts with the record"],
+    review: ["Check names, dates, figures and defined terms", "Trace key propositions to the supplied record", "Verify current law and procedure independently", "Have the responsible practitioner approve the final version"],
+  };
+
+  return (
+    <details className="bg-card border border-purple-500/15 rounded-xl p-4 group">
+      <summary className="cursor-pointer list-none flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Preparation, output & review guide</p>
+          <p className="text-xs text-muted-foreground mt-1">Open before generating to improve the quality of this {tool.shortName.toLowerCase()}.</p>
+        </div>
+        <span className="text-xs text-primary group-open:hidden">Show guide</span>
+        <span className="text-xs text-primary hidden group-open:inline">Hide guide</span>
+      </summary>
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
+        <GuideList title="Prepare the input" items={guide.preparation} />
+        <GuideList title="Expected structure" items={guide.structure} />
+        <GuideList title="Evidence gaps to flag" items={guide.gaps} />
+        <GuideList title="Practitioner review" items={guide.review} />
+      </div>
+      <div className="mt-4 rounded-lg bg-secondary/30 p-3 text-xs text-muted-foreground">
+        <strong className="text-foreground">Example framing:</strong> {tool.exampleScenario ?? `Identify the client, objective, material chronology, source documents, disputed points and the action required.`}
+        <span className="block mt-2"><strong className="text-foreground">FAQ:</strong> Can missing information be left blank? Yes—say that it is unknown and ask the output to list the consequence and follow-up request. Is the output ready to send? No; reconcile it to the file, verify authorities and adapt it to the transaction and house style.</span>
+      </div>
+    </details>
+  );
+}
+
+function GuideList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">{title}</h3>
+      <ul className="space-y-1.5">
+        {items.map((item) => <li key={item} className="text-xs text-muted-foreground leading-relaxed">• {item}</li>)}
+      </ul>
+    </div>
+  );
+}
+
 export default function ToolDetailPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
@@ -324,6 +414,8 @@ export default function ToolDetailPage() {
             <p className="text-sm text-muted-foreground">{tool.description}</p>
           </div>
         </div>
+
+        <ToolPracticeGuide tool={tool} />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Form Column */}

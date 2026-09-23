@@ -404,6 +404,19 @@ export function ChecklistsTab() {
         </div>
       </div>
 
+      <div className="grid sm:grid-cols-3 gap-3 mb-6">
+        {[
+          ["Use with the file", "Add matter-specific owners, source documents and status notes. A checked box should correspond to evidence in the file."],
+          ["Track gaps explicitly", "Add missing reports, receipts, witness details, insurer material and unanswered requests as custom items rather than assuming completion."],
+          ["Close-out review", "Before export, review unchecked items, verify figures and dates, and confirm current procedural requirements with the responsible practitioner."],
+        ].map(([title, text]) => (
+          <div key={title} className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs font-semibold text-primary mb-1">{title}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+
       {checklistData.map((checklist, i) => {
         const cs = getChecklistState(state, checklist.slug);
         const items = getVisibleItems(checklist, cs);

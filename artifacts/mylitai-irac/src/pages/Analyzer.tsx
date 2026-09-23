@@ -17,6 +17,7 @@ import { ScanSearch, Loader2, Copy, Check, FileText, RefreshCw, FolderOpen, Fold
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { ToolGuidance } from "@/components/ToolGuidance";
 
 interface AnalyzedSource {
   caseId: string;
@@ -150,6 +151,7 @@ export default function Analyzer() {
             {t("tool.analyzer.desc")}
           </p>
         </div>
+        <ToolGuidance kind="analyzer" />
 
         {/* Linked lit matter banner — shown when ?matter=<id> is present */}
         {linkedMatter && (

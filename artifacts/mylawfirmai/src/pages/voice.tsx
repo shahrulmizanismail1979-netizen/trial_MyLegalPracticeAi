@@ -65,6 +65,17 @@ export default function VoicePage() {
           </p>
         )}
 
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
+          <Card className="glass-card border-border/60 p-5">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{t("voice.guide.title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("voice.guide.body")}</p>
+          </Card>
+          <Card className="border-amber-500/30 bg-amber-500/10 p-5">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{t("manual.ops.privacy.title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("voice.privacy")}</p>
+          </Card>
+        </div>
+
         <Card className="glass-card border-border/60 p-6">
           <AudioRecorder
             hint={t("voice.record.hint")}
@@ -83,6 +94,9 @@ export default function VoicePage() {
 
         {result && (
           <div className="mt-8 space-y-6">
+            <p className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              {t("voice.result.review")}
+            </p>
             <section>
               <h2 className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <Quote className="h-3.5 w-3.5" />

@@ -703,6 +703,32 @@ function InstructionComposer({ matterId, canWrite }: { matterId: string; canWrit
               <p className="text-[15px] max-w-sm leading-relaxed text-slate-500">
                 Instruct the assistant to draft documents, summarize evidence, or answer questions based on this matter's context.
               </p>
+              <details className="mt-7 w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                  How to get a reviewable result
+                </summary>
+                <div className="mt-4 grid gap-5 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-600 sm:grid-cols-2">
+                  <div>
+                    <h4 className="font-bold uppercase tracking-wider text-slate-800">1. Define the task</h4>
+                    <p className="mt-1">Name the intended reader, document or question, matter stage, jurisdiction, relevant date, and desired structure. State what the assistant must not assume.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold uppercase tracking-wider text-slate-800">2. Point to the material</h4>
+                    <p className="mt-1">Identify the controlling pleading, order, correspondence, evidence, or chronology. Distinguish client instructions, admitted facts, disputed facts, and missing information.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold uppercase tracking-wider text-slate-800">3. Read the status</h4>
+                    <p className="mt-1">Check the research-mode label, citations, cited passages, verification guidance, and applied skills. Public-web sources remain unverified and are never a silent substitute for the verified library.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold uppercase tracking-wider text-slate-800">4. Review before saving</h4>
+                    <p className="mt-1">Trace facts to the file and independently check authorities, quotations, law, procedure, dates, calculations, names, relief, attachments, confidentiality, and suitability for the intended use.</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-3 sm:col-span-2">
+                    <strong className="text-slate-800">Example:</strong> “Using the defence and witness statements in this matter, create a table of each pleaded factual issue, the supporting passage and source, the opposing passage and source, and any evidence gap. Do not add facts or authorities.”
+                  </div>
+                </div>
+              </details>
             </div>
           )}
 

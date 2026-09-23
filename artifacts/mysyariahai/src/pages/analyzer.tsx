@@ -12,6 +12,7 @@ import ExportActions from "@/components/export-actions";
 import { MatterPicker, buildMatterSummary } from "@/components/MatterPicker";
 import type { Matter } from "@/hooks/use-matters";
 import { DraftDocument } from "@workspace/draft-export/react";
+import { SyariahToolGuidance } from "@/components/SyariahToolGuidance";
 
 function formatAnalyzerText(result: AnalysisResult, t: (en: string, bm: string) => string): string {
   const lines: string[] = [];
@@ -205,6 +206,7 @@ export default function AnalyzerPage() {
           )}
         </p>
       </div>
+      <SyariahToolGuidance kind="analyzer" />
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -132,6 +132,24 @@ export default function ManagePage() {
                 </Button>
               </form>
             </Form>
+            <div className="mt-7 space-y-4 border-t border-border pt-6 text-sm">
+              <div>
+                <h2 className="font-bold text-lawyes-navy">Before you continue</h2>
+                <ul className="mt-2 space-y-1.5 leading-relaxed text-muted-foreground">
+                  <li>• Use the billing email attached to the subscription.</li>
+                  <li>• Copy the access code exactly from the checkout confirmation.</li>
+                  <li>• Open the portal only on a device you trust, especially when changing payment details.</li>
+                </ul>
+              </div>
+              <details className="rounded-lg border border-border bg-gray-50 p-4">
+                <summary className="cursor-pointer font-bold text-lawyes-navy">Access and records FAQ</summary>
+                <div className="mt-3 space-y-3 leading-relaxed text-muted-foreground">
+                  <p><strong className="text-foreground">Why was access denied?</strong><br />Check for typing errors and confirm that the subscription is active. Do not repeatedly share or guess codes.</p>
+                  <p><strong className="text-foreground">What should I retain?</strong><br />Keep billing confirmations and receipts under your firm's normal financial-record process.</p>
+                  <p><strong className="text-foreground">Can support ask for my code?</strong><br />Treat the code as an account credential. Do not send it in public messages or screenshots.</p>
+                </div>
+              </details>
+            </div>
           </CardContent>
           <CardFooter className="bg-gray-50 border-t border-border flex justify-center py-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

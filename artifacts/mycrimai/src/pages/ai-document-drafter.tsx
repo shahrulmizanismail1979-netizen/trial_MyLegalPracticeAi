@@ -11,6 +11,7 @@ import { useVoice } from "@/lib/use-voice";
 import { DraftExportButtons } from "@workspace/draft-export/react";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, matterToCaseDetails } from "@/components/MatterPicker";
+import { CriminalToolGuidance } from "@/components/CriminalToolGuidance";
 
 const DOCUMENT_TYPES = [
   { value: "Bail Application (Permohonan Jaminan)", label: "Bail Application" },
@@ -59,6 +60,7 @@ export function AiDocumentDrafterPage() {
           Generate professional legal documents following Malaysian court formatting — bail applications, written submissions, mitigation pleas, notices of appeal, AG representations, criminal motions, stay applications, and revision applications with proper case numbering, statutory references, and prayer/relief sections
         </p>
       </div>
+      <CriminalToolGuidance kind="document" />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">

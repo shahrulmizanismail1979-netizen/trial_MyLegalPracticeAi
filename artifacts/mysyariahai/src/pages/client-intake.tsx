@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DraftDocument } from "@workspace/draft-export/react";
+import { SyariahToolGuidance } from "@/components/SyariahToolGuidance";
 
 const API_BASE = "/api/sya";
 
@@ -124,6 +125,7 @@ function ClientIntakePageInner() {
         <h1 className="text-2xl font-serif font-bold text-foreground">{t("Client Intake Assistant", "Pembantu Pengambilan Klien")}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t("Structured case intake forms that generate AI-powered case briefs", "Borang pengambilan kes berstruktur yang menjana ringkasan kes berkuasa AI")}</p>
       </div>
+      <SyariahToolGuidance kind="intake" />
 
       {error && (
         <Card className="border-destructive/30"><CardContent className="p-4 text-sm text-destructive">{error}</CardContent></Card>

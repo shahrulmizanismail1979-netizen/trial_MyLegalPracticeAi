@@ -127,6 +127,38 @@ export default function ManualPage() {
             </CardContent>
           </Card>
 
+          <Card className="glass-card shadow-sm">
+            <CardHeader>
+              <CardTitle className="font-serif text-xl">{t("manual.ops.title")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(["prepare", "review", "record"] as const).map((key, index) => (
+                  <div key={key} className="rounded-xl border border-border/60 bg-card/40 p-4">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-primary">{index + 1}</div>
+                    <h3 className="font-serif font-semibold text-foreground">{t(`manual.ops.${key}.title`)}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t(`manual.ops.${key}.body`)}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <h3 className="font-serif font-semibold text-foreground">{t("manual.ops.privacy.title")}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("manual.ops.privacy.body")}</p>
+              </div>
+              <details className="rounded-xl border border-border/60 p-4">
+                <summary className="cursor-pointer font-serif font-semibold text-foreground">{t("manual.ops.faq.title")}</summary>
+                <div className="mt-4 space-y-4">
+                  {(["ai", "deadline", "delete"] as const).map((key) => (
+                    <div key={key}>
+                      <p className="text-sm font-semibold text-foreground">{t(`manual.ops.faq.${key}.q`)}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t(`manual.ops.faq.${key}.a`)}</p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </CardContent>
+          </Card>
+
           {/* At a glance — colourful feature grid */}
           <section>
             <h2 className="font-serif text-xl mb-4 px-1">{t("manual.glance.title")}</h2>

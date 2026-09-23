@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useMatters } from '@/hooks/use-matters';
 import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
+import { PractitionerGuidance } from '@/components/PractitionerGuidance';
 import {
   useEnforcementMethods,
   debtorLabel,
@@ -255,6 +256,7 @@ export default function Enforcement() {
         title="Enforcement & Costs"
         description="Get a prioritised post-judgment enforcement strategy, draft an Order 59 Bill of Costs, and browse the enforcement methods library."
       />
+      <div className="mb-8"><PractitionerGuidance kind="enforcement" /></div>
 
       <div className="flex gap-2 mb-6 border-b border-border">
         {tabs.map((tb) => {

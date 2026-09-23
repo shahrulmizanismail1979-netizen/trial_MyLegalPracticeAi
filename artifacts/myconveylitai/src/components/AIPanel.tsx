@@ -68,6 +68,68 @@ interface ChatMessage {
   content: string;
 }
 
+const MODE_PRACTICE_GUIDES: Record<string, {
+  prepare: string[];
+  output: string[];
+  gaps: string[];
+  review: string[];
+}> = {
+  drafter: {
+    prepare: ["Latest title/search and complete bargain", "Party capacity, acting position and approved commercial variables", "Precedent context plus all schedules and incorporated documents"],
+    output: ["Operative draft with coherent definitions", "Assumptions and optional drafting choices", "Drafter notes identifying points for confirmation"],
+    gaps: ["Blank title, consent or completion particulars", "Inconsistent price, deposit or party description", "Missing schedule, plan or agreed exception"],
+    review: ["Read the clause in the whole-document context", "Check calculations and cross-references", "Confirm execution and registration mechanics locally"],
+  },
+  reviewer: {
+    prepare: ["Paste the entire clause and related definitions", "State who you act for and the commercial bargain", "Include the relevant schedule, amendment and negotiation context"],
+    output: ["Plain-language effect", "Risk and ambiguity table", "Prioritised amendments with alternative wording"],
+    gaps: ["Undefined term or missing cross-reference", "Remedy without trigger or procedure", "Conflict with another clause or schedule"],
+    review: ["Compare against the full agreement", "Test drafting for both parties' interpretations", "Verify current law and transaction-specific advice"],
+  },
+  duediligence: {
+    prepare: ["Current official search and title particulars", "SPA/offer, approvals, charges, caveats, tenancy and outgoings material", "Scope, cut-off date and purchaser concerns"],
+    output: ["Scope and source register", "Findings by workstream", "Red flags, open requisitions and proposed protections"],
+    gaps: ["Search or consent is stale or absent", "Original instrument not inspected", "Physical condition or occupation not independently checked"],
+    review: ["Trace every finding to a document", "Distinguish verified facts from client statements", "Confirm local land-office and financier requirements"],
+  },
+  checklist: {
+    prepare: ["Transaction type and title status", "Financing, consent, occupation and party-capacity facts", "Firm workflow and responsible persons"],
+    output: ["Sequenced tasks and dependencies", "Document/evidence owner for each task", "Open matters and completion handover list"],
+    gaps: ["Task has no owner or source document", "Dependency has no status", "Generic step not adapted to the matter"],
+    review: ["Reconcile against the SPA and financier instructions", "Replace assumed dates with verified dates", "Confirm current registry practice"],
+  },
+};
+
+function ModePracticeGuide({ mode }: { mode: string }) {
+  if (mode === 'tutor' || mode === 'quiz' || mode === 'mockexam' || mode === 'simulator') return null;
+  const guide = MODE_PRACTICE_GUIDES[mode] ?? {
+    prepare: ["Identify the property, parties, acting position and transaction stage", "Provide dated source material and the client's objective", "Mark disputed, missing or unverified information expressly"],
+    output: ["Matter-specific issue or task map", "Assumptions and evidence gaps", "Practical actions in priority order"],
+    gaps: ["Current search or source instrument absent", "Date, amount or authority not confirmed", "Advice depends on another professional's input"],
+    review: ["Reconcile the result to original documents", "Check names, title particulars, dates and figures", "Verify current law and registry/agency practice"],
+  };
+  return (
+    <details className="mx-5 mt-4 shrink-0 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 group">
+      <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-amber-300">
+        Preparation, evidence & review guide
+        <span className="group-open:hidden">Open</span><span className="hidden group-open:inline">Close</span>
+      </summary>
+      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-500/15">
+        <ModeGuideList title="Prepare" items={guide.prepare} />
+        <ModeGuideList title="Expected output" items={guide.output} />
+        <ModeGuideList title="Flag as gaps" items={guide.gaps} />
+        <ModeGuideList title="Review" items={guide.review} />
+      </div>
+      <p className="text-[11px] text-slate-400 mt-3"><strong className="text-slate-200">Example:</strong> “Official search dated [date] records [exact entry]; SPA clause [x] requires [step]; consent status is not confirmed; advise the purchaser on risks and next requests.”</p>
+      <p className="text-[11px] text-slate-400 mt-1"><strong className="text-slate-200">FAQ:</strong> Never invent a missing date or title fact. Label it, state why it matters and identify the record or person needed. Verify generated legal propositions and any deadline before use.</p>
+    </details>
+  );
+}
+
+function ModeGuideList({ title, items }: { title: string; items: string[] }) {
+  return <div><p className="text-[10px] uppercase tracking-wider text-amber-400 mb-1">{title}</p>{items.map(item => <p key={item} className="text-[11px] text-slate-400 leading-relaxed">• {item}</p>)}</div>;
+}
+
 // ─── Clause templates for the drafter ───────────────────────────────────────
 const CLAUSE_CATEGORIES = [
   {
@@ -1541,6 +1603,7 @@ export function AIPanel() {
           transition={{ duration: 0.2 }}
           className="flex-1 overflow-hidden relative flex flex-col"
         >
+          <ModePracticeGuide mode={aiMode} />
 
           {/* ── TUTOR ── */}
           {aiMode === 'tutor' && (

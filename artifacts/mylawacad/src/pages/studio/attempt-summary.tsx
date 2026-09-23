@@ -413,6 +413,40 @@ export default function AttemptSummary() {
                 please review with them before treating this as final.
               </span>
             </div>
+            <SpotlightCard className="no-print border-sky-500/20 bg-sky-950/10 p-6">
+              <div className="grid gap-5 md:grid-cols-3">
+                <div>
+                  <div className="text-[0.6rem] font-bold uppercase tracking-[0.25em] text-sky-300">Interpret</div>
+                  <p className="mt-2 text-sm leading-relaxed text-white/70">
+                    Read the overall score with the criterion breakdown. A percentage summarises this
+                    submission; it does not by itself explain which reasoning or skill needs work.
+                  </p>
+                </div>
+                <div>
+                  <div className="text-[0.6rem] font-bold uppercase tracking-[0.25em] text-sky-300">Review</div>
+                  <p className="mt-2 text-sm leading-relaxed text-white/70">
+                    Re-open the prompt, your response and the rubric comment together. Note any
+                    transcription issue, ambiguous prompt or feedback you do not understand for your educator.
+                  </p>
+                </div>
+                <div>
+                  <div className="text-[0.6rem] font-bold uppercase tracking-[0.25em] text-sky-300">Act</div>
+                  <p className="mt-2 text-sm leading-relaxed text-white/70">
+                    Choose one criterion to practise, rewrite a short answer against that criterion,
+                    and compare it with the released rubric. Keep the printed report only where it can
+                    be stored privately.
+                  </p>
+                </div>
+              </div>
+              <details className="mt-5 border-t border-white/10 pt-4">
+                <summary className="cursor-pointer text-sm font-semibold text-sky-200">Results FAQ and privacy</summary>
+                <div className="mt-4 space-y-3 text-sm leading-relaxed text-white/65">
+                  <p><strong className="text-white">Is this my final grade?</strong> Not necessarily. The notice above explains that an educator may regrade or override an item.</p>
+                  <p><strong className="text-white">Why can a strong answer still lose marks?</strong> Review each criterion: an answer may satisfy one dimension while missing another.</p>
+                  <p><strong className="text-white">What should I share?</strong> This report can contain your name, responses, scores and feedback. Share it only with people authorised by you or your institution.</p>
+                </div>
+              </details>
+            </SpotlightCard>
             {/* Hero panel */}
             <SpotlightCard data-testid="hero-panel" className="p-10 border-gold rounded-2xl">
               <div className="flex flex-col lg:flex-row gap-10 items-center lg:items-start">

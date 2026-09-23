@@ -51,6 +51,17 @@ export default function MeetingsPage() {
           <NewMeetingDialog />
         </header>
 
+        <div className="mb-8 grid gap-4 md:grid-cols-2">
+          <Card className="glass-card border-border/60 p-5">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{t("meetings.guide.title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("meetings.guide.body")}</p>
+          </Card>
+          <Card className="glass-card border-border/60 p-5">
+            <h2 className="font-serif text-lg font-semibold text-foreground">{t("meetings.review.title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("meetings.review.body")}</p>
+          </Card>
+        </div>
+
         {isLoading ? (
           <div className="space-y-4">
             {[0, 1, 2].map((i) => (

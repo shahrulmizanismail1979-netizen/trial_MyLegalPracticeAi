@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageSquareReply, Loader2, Copy, Check, FileText, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ToolGuidance } from "@/components/ToolGuidance";
 
 export default function Reply() {
   const { caseId, pathwayId, markReplied, sourceFiles } = useMatter();
@@ -109,6 +110,7 @@ export default function Reply() {
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">{t("tool.reply.desc")}</p>
           </div>
+          <ToolGuidance kind="reply" />
 
           {/* Opponent document */}
           <Card className="bg-card shadow-sm border-border">

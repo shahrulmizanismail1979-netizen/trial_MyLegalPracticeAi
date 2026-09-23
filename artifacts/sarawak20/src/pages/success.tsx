@@ -209,6 +209,30 @@ export default function SuccessPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="border-lawyes-orange/30 bg-lawyes-orange/5 shadow-sm rounded-2xl">
+                <CardContent className="p-7">
+                  <h3 className="font-bold text-lawyes-navy">Secure handover checklist</h3>
+                  <div className="mt-4 grid gap-4 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
+                    <div>
+                      <p className="font-semibold text-foreground">Protect access</p>
+                      <p>Store the code in your firm's approved password or access-management process. Share it only with authorised members and never place it in a public ticket or screenshot.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Keep records</p>
+                      <p>Retain the confirmation and receipt under your normal financial-record process. Record who administers the subscription and where access is managed.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Start with a safe example</p>
+                      <p>Use a synthetic or properly anonymised workflow first. Check the output and document your acceptance criteria before introducing real matter material.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Review every result</p>
+                      <p>Prototype outputs are not verified advice or filing-ready documents. The responsible practitioner must review sources, facts, dates and local requirements.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="mt-12 text-center">

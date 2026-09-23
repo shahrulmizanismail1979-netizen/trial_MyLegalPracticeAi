@@ -14,6 +14,12 @@ export type LegalReferenceDomain =
   | "conveyance-accident"
   | "syariah"
   | "academic-firm"
+  | "employment"
+  | "probate-estate"
+  | "judicial-review"
+  | "banking-disputes"
+  | "accident-claims"
+  | "property-jurisdictions"
   | "sarawak";
 
 export interface OfficialLegalSource {
@@ -349,15 +355,15 @@ export const legalReferenceGuides: LegalReferenceGuide[] = [
           "It does not provide an accident-reporting, insurer-notification, damages or limitation protocol. Those matters require current source and fact-specific verification.",
       },
       {
-        title: "e-Reporting PDRM",
+        title: "Cara Membuat Repot Polis",
         authority: "Royal Malaysia Police",
-        jurisdiction: "Malaysia — police e-reporting service",
-        sourceUrl: "https://ereporting.rmp.gov.my/index.aspx?lang=english",
+        jurisdiction: "Malaysia — police reports, including traffic reports",
+        sourceUrl: "https://www.rmp.gov.my/cara-membuat-repot-polis",
         checkedDate: CHECKED_DATE,
         verifiedUse:
-          "Search and page metadata identify an official e-reporting service; the service notice limits online reporting to specified categories and directs emergencies to police channels.",
+          "The fetched PDRM page explains oral and written police-report methods, states that reports may be made at a police station including for traffic cases, and gives general report-content guidance.",
         verificationLimit:
-          "Automated fetch was unavailable and the service is not treated here as an accident-reporting route. Confirm directly with PDRM how and where the particular incident must be reported.",
+          "The page does not establish compliance for a particular accident, current traffic-report timing, investigation outcome, insurer notice or evidential effect. Confirm the specific requirements directly with PDRM and counsel.",
       },
     ],
     practitionerChecklist: [
@@ -424,37 +430,16 @@ export const legalReferenceGuides: LegalReferenceGuide[] = [
       "Syariah enactments, rules, forms, practice directions and administration vary by state or Federal Territory. Never transplant a form or proposition from one jurisdiction to another.",
     sources: [
       {
-        title: "Pengkelasan Kes Mal",
-        authority: "Department of Syariah Judiciary Malaysia (JKSM)",
-        jurisdiction: "Malaysia — general JKSM public information",
-        sourceUrl: "https://www.jksm.gov.my/pengkelasan-kes-mal",
-        checkedDate: CHECKED_DATE,
-        verifiedUse:
-          "The official search result describes two categories used for registration of Mal cases and identifies JKSM as the coordinating federal department for Syariah legal/judicial administration.",
-        verificationLimit:
-          "Automated fetch was unavailable. Search metadata is not enough to classify or file a matter; confirm the live page and the competent state court.",
-      },
-      {
-        title: "Borang-Borang Mahkamah Syariah",
+        title: "Enakmen Tatacara Mal Mahkamah Syariah (Negeri Selangor) 2003",
         authority: "Selangor Syariah Judiciary Department (JAKESS)",
         jurisdiction: "Selangor only",
-        sourceUrl: "https://www.jakess.gov.my/rujukan/muat-turun-borang",
+        sourceUrl:
+          "https://www.jakess.gov.my/images/pdf/Enakmen%2C%20Kaedah%2C%20Peraturan/A-%20Enakmen/8/ENAKMEN-TATACARA-MAL-MAHKAMAH-SYARIAH-NEGERI-SELANGOR-2003.pdf",
         checkedDate: CHECKED_DATE,
         verifiedUse:
-          "Official search results identify the JAKESS court-form download area and describe it as access to current Syariah court forms.",
+          "The fetched official PDF identifies the Selangor enactment and contains its arrangement of sections, including commencement, parties, service, pleadings, disclosure, settlement and sulh.",
         verificationLimit:
-          "The searched path returned a not-found response when fetched. Do not use a cached/search copy; navigate from the JAKESS home page and confirm the current form and filing instructions.",
-      },
-      {
-        title: "Enakmen / Ordinen / Akta Mahkamah Syariah",
-        authority: "Selangor Syariah Judiciary Department (JAKESS)",
-        jurisdiction: "Selangor only",
-        sourceUrl: "https://www.jakess.gov.my/rujukan/akta-enakmen-odinen",
-        checkedDate: CHECKED_DATE,
-        verifiedUse:
-          "Official search results list Selangor Syariah enactment and rules categories, including civil procedure, criminal procedure and evidence materials.",
-        verificationLimit:
-          "The searched path returned a not-found response when fetched. Verify gazette text, amendments, commencement and a stable official location before citation.",
+          "A fetched historical enactment PDF is not proof of current consolidation, amendment status or the correct process for a matter. Confirm current gazette text, rules, practice directions and registry forms.",
       },
     ],
     practitionerChecklist: [
@@ -606,6 +591,514 @@ export const legalReferenceGuides: LegalReferenceGuide[] = [
       "No invented citation, case, quotation, pinpoint or reviewer status appears.",
       "The research trail is reproducible.",
       "The output distinguishes verified law from interpretation and open questions.",
+    ],
+  },
+  {
+    id: "employment",
+    title: "Employment and labour dispute preparation guide",
+    jurisdiction: "Malaysia; confirm the governing employment regime, workplace location and forum",
+    scopeNote:
+      "A neutral intake and evidence framework for workplace payment, discrimination, dismissal and industrial-relations issues. It does not decide employee status, coverage, forum, remedy or merits.",
+    caution:
+      "Employment routes and coverage are fact- and statute-specific, including distinct Sabah and Sarawak materials. Obtain prompt advice before resignation, dismissal, settlement, complaint or filing, and calculate every time limit from current primary sources.",
+    sources: [
+      {
+        title: "Labour Case",
+        authority: "Department of Labour Peninsular Malaysia (JTKSM)",
+        jurisdiction: "Peninsular Malaysia — Labour Court public guidance",
+        sourceUrl: "https://jtksm.mohr.gov.my/en/services/labour-case",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page describes Labour Court proceedings for specified monetary claims, lists examples of employee and employer claims, and flags coverage qualifications.",
+        verificationLimit:
+          "The page is a high-level service description, not a coverage opinion or complete claims procedure. Verify the current Act, schedule, regulations, forum guidance and facts; do not transplant it to Sabah or Sarawak.",
+      },
+      {
+        title: "Industrial Court of Malaysia",
+        authority: "Industrial Court of Malaysia",
+        jurisdiction: "Malaysia — industrial relations",
+        sourceUrl: "https://www.mp.gov.my/",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched official portal links e-filing, e-mention, case management, hearing schedules, awards, practice notes, forms, legislation and sample statement materials.",
+        verificationLimit:
+          "A portal link or sample does not establish jurisdiction, a right to commence proceedings, an applicable deadline or acceptance of a document. Verify the live route and governing law.",
+      },
+    ],
+    practitionerChecklist: [
+      "Verify the parties, employing entity, work location, role, status asserted, reporting lines and all contract or policy versions.",
+      "Build a dated chronology of recruitment, variations, pay, performance, complaints, discipline, leave, suspension, termination and post-employment events.",
+      "Reconcile payslips, bank credits, time records, leave records, statutory statements and claimed shortfalls without assuming legal entitlement.",
+      "Preserve letters, emails, messages, meeting notes, recordings and system exports lawfully, with provenance and access controls.",
+      "Identify each possible route separately: internal process, Labour Department, Industrial Court, civil court, regulator or negotiated resolution; ask counsel to verify coverage and forum.",
+      "Record comparators and alleged reasons neutrally in discrimination or retaliation issues; separate direct evidence, inference and disputed fact.",
+      "Calculate every complaint, representation, filing and appeal date only after recording the operative source, triggering event and reviewer.",
+      "Assess urgent income, immigration, confidentiality, data, safety, reference and return-of-property issues without threatening or destroying evidence.",
+    ],
+    templateTitle: "Employment dispute chronology and position note",
+    templateSections: [
+      {
+        heading: "Relationship and coverage",
+        prompts: [
+          "Record entity, workplace, duties, remuneration and contract versions from source documents.",
+          "List employee-status, statutory-coverage, territorial and forum questions for current-law review.",
+        ],
+      },
+      {
+        heading: "Events and process",
+        prompts: [
+          "Set out a source-linked chronology and identify each decision-maker.",
+          "Distinguish allegations, responses, findings, reasons given and procedural gaps without drawing a premature conclusion.",
+        ],
+      },
+      {
+        heading: "Claim and response matrix",
+        prompts: [
+          "For each possible issue, map required facts, supporting/adverse evidence, disputed calculations and requested outcome.",
+          "State the strongest opposing explanation and missing evidence.",
+        ],
+      },
+      {
+        heading: "Routes, deadlines and resolution",
+        prompts: [
+          "List possible internal, statutory, court and settlement routes as questions pending advice.",
+          "Record source-checked dates, preservation steps, non-monetary terms and tax/regulatory referrals.",
+        ],
+      },
+    ],
+    finalReview: [
+      "No forum, coverage, deadline or remedy is asserted from job title or salary alone.",
+      "Contemporaneous documents and adverse facts are included, not selectively summarised.",
+      "Any settlement draft addresses authority, scope, payment, confidentiality and independent review without coercive language.",
+    ],
+  },
+  {
+    id: "probate-estate",
+    title: "Probate and estate administration guide",
+    jurisdiction: "Malaysia; identify the deceased's domicile, asset locations, applicable personal law and competent route",
+    scopeNote:
+      "An estate-information and source-verification framework for probate or administration preparation. It is not a will-validity opinion, grant application, distribution calculation or authority to deal with assets.",
+    caution:
+      "Do not collect, transfer, sell or distribute estate assets without verified authority. Estate routes can differ by asset, value, religion, domicile and location, and Sarawak has its own official ordinance materials.",
+    sources: [
+      {
+        title: "Jurisdiction of High Court",
+        authority: "Malaysian Judiciary — Kuala Lumpur Court portal",
+        jurisdiction: "Malaysia — High Court public guidance",
+        sourceUrl: "https://kl.kehakiman.gov.my/en/jurisdiction-high-court",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page lists letters of administration and probate issues among the High Court's identified exclusive civil jurisdictions.",
+        verificationLimit:
+          "The page does not determine the correct registry, grant, filing steps, documents, priority, fees or law applicable to a particular estate.",
+      },
+      {
+        title: "Estate Administration",
+        authority: "Amanah Raya Berhad",
+        jurisdiction: "Malaysia — public trustee service information",
+        sourceUrl: "https://www.amanahraya.my/estate-administration",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page describes estate administration at a general level as compiling and managing assets, settling debts and distributing the balance, and describes AmanahRaya's estate-administration service.",
+        verificationLimit:
+          "Service-provider material is not independent legal advice and does not establish eligibility, exclusive route, time, fee or distribution outcome for a particular estate.",
+      },
+      {
+        title: "Laws of Sarawak — Full Listing",
+        authority: "Sarawak State Attorney-General's Chambers / Sarawak LawNet",
+        jurisdiction: "Sarawak",
+        sourceUrl: "https://lawnet.sarawak.gov.my/lawnet/Law/TLnetPublishedOrdList.jsp?LTyp=All",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched listing includes the Administration of Estates Ordinance and an expandable entry for probate and letters-of-administration rules.",
+        verificationLimit:
+          "Listing presence does not establish the current operative text, commencement, the correct grant route or interaction with federal and personal law.",
+      },
+    ],
+    practitionerChecklist: [
+      "Verify identity, death record, domicile/residence, family tree, religion where legally relevant, dependants and every name variation.",
+      "Secure the original alleged will and codicils without marking them; record discovery, custody, witnesses and any competing or revoked-looking instrument.",
+      "Create an asset-and-liability inventory with ownership form, location, account/title identifier, approximate date-of-death value and supporting record.",
+      "Distinguish sole estate property from jointly held, nominated, trust, partnership, company, insurance and disputed property; make no distribution assumption.",
+      "Record potential executors, administrators, beneficiaries, creditors, minors, persons lacking capacity and conflicts, without deciding priority.",
+      "Preserve property, insurance, tax, business and digital-asset access while avoiding unauthorised dealing or password use.",
+      "Identify the possible High Court, small-estate, AmanahRaya, Syariah or Sarawak route only for counsel/authority confirmation.",
+      "Maintain receipts and an administration ledger; require documented authority before payment, sale, assent or distribution.",
+    ],
+    templateTitle: "Estate inventory and grant-preparation memorandum",
+    templateSections: [
+      {
+        heading: "Deceased, family and governing connections",
+        prompts: [
+          "Record verified identity, death, domicile, residences, religion if relevant and family relationships.",
+          "Identify conflicts, foreign connections and missing persons or records.",
+        ],
+      },
+      {
+        heading: "Testamentary documents and authority",
+        prompts: [
+          "Index originals, copies, codicils, custody evidence, witnesses and validity concerns.",
+          "State expressly that no person may act merely because named in this working note.",
+        ],
+      },
+      {
+        heading: "Asset, liability and claim schedule",
+        prompts: [
+          "List ownership evidence, location, value source, encumbrance, income and preservation action for each item.",
+          "Create separate schedules for debts, expenses, tax questions, guarantees and disputed claims.",
+        ],
+      },
+      {
+        heading: "Route, distribution and next verification",
+        prompts: [
+          "Compare possible routes without selecting one until current eligibility and jurisdiction are verified.",
+          "Record consents, renunciations, notices, valuations, accounts and specialist advice still required.",
+        ],
+      },
+    ],
+    finalReview: [
+      "No asset is treated as estate property solely because the deceased used or mentioned it.",
+      "No entitlement, share or authority is represented as final before governing-law and grant review.",
+      "Original instruments, personal data and estate funds have controlled custody and a complete audit trail.",
+    ],
+  },
+  {
+    id: "judicial-review",
+    title: "Judicial review record and grounds guide",
+    jurisdiction: "Malaysia; identify the decision-maker, legal source of power and competent High Court",
+    scopeNote:
+      "A public-law issue-spotting and record-building aid. It does not determine reviewability, standing, leave, remedy, time, exhaustion or the merits of any challenge.",
+    caution:
+      "Judicial review can involve urgent and strict procedural requirements. Obtain specialist advice immediately and verify the current Rules of Court, legislation, practice directions and relief before any communication or filing.",
+    sources: [
+      {
+        title: "Rules of Court 2012 — Federal Government Gazette P.U. (A) 205",
+        authority: "Attorney General's Chambers of Malaysia",
+        jurisdiction: "Malaysia — civil procedure",
+        sourceUrl:
+          "https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20120702_RULES%20OF%20COURT%202012%20%28FINAL%29%20-%201%20July%202012.pdf",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched official Gazette PDF identifies itself as the Rules of Court 2012 and its arrangement of orders identifies Order 53 as applications for judicial review.",
+        verificationLimit:
+          "The fetched text is the 2012 gazetted instrument, not a certificate that it incorporates later amendments or supplies every applicable requirement. Verify current text, amendments and directions before use.",
+      },
+      {
+        title: "Procedures In Civil Cases",
+        authority: "Office of the Chief Registrar, Federal Court of Malaysia",
+        jurisdiction: "Malaysia — civil courts",
+        sourceUrl: "https://www.kehakiman.gov.my/en/procedures-civil-cases",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page provides general civil-case orientation and emphasises cause of action, limitation, evidence and costs before filing.",
+        verificationLimit:
+          "It is not judicial-review guidance and does not verify leave, time, service, standing, affidavit or remedy requirements.",
+      },
+    ],
+    practitionerChecklist: [
+      "Identify the exact decision, omission, policy or process challenged, the decision-maker and the asserted source of legal power.",
+      "Secure the operative decision, reasons, notice, record, correspondence, submissions, hearing materials and proof of receipt dates.",
+      "Build a chronology separating knowledge, decision, communication, internal review and continuing effects; escalate time calculation immediately.",
+      "Map each proposed ground to verified law and record evidence; distinguish legality review from disagreement with merits.",
+      "Identify affected persons, standing facts, necessary parties, alternative remedies and statutory appeal/review routes for counsel.",
+      "Record procedural fairness, relevant/irrelevant considerations, purpose, authority, reasons and rationality issues as questions, not conclusions.",
+      "Define practical relief and urgency, including whether interim protection is sought and the prejudice to all sides and the public.",
+      "Preserve the full administrative record; do not edit metadata, solicit improper material or present a selective bundle as complete.",
+    ],
+    templateTitle: "Judicial review pre-filing record memorandum",
+    templateSections: [
+      {
+        heading: "Decision and public authority",
+        prompts: [
+          "Quote the operative decision accurately and identify its date, communicator and asserted legal power.",
+          "State what is challenged and what is not.",
+        ],
+      },
+      {
+        heading: "Chronology, standing and routes",
+        prompts: [
+          "Record all knowledge and service dates with evidence and leave time as a source-checked calculation.",
+          "Identify the applicant's interest, affected parties and available appeal, complaint or review mechanisms.",
+        ],
+      },
+      {
+        heading: "Grounds-to-record matrix",
+        prompts: [
+          "For each possible ground, identify the legal proposition, supporting record, adverse record and missing material.",
+          "Avoid pleading factual inference as if it were an admitted reason.",
+        ],
+      },
+      {
+        heading: "Relief, procedure and public interest",
+        prompts: [
+          "List possible final and interim outcomes for counsel to verify against current law.",
+          "Address practicality, third-party effects, undertakings, service, evidence and costs.",
+        ],
+      },
+    ],
+    finalReview: [
+      "The operative decision and complete material record are identified by source and date.",
+      "Every deadline and procedural step is verified from current primary material, not this outline.",
+      "Draft language challenges legality with precision and does not allege bad faith without a proper factual basis.",
+    ],
+  },
+  {
+    id: "banking-disputes",
+    title: "Consumer banking dispute and escalation guide",
+    jurisdiction: "Malaysia; product, provider, regulator and dispute-scheme eligibility must be verified",
+    scopeNote:
+      "An evidence, complaint and route-comparison framework for consumer banking disputes. It is not a chargeback instruction, fraud response protocol, FMOS eligibility opinion or civil claim.",
+    caution:
+      "For suspected fraud, lost credentials or ongoing unauthorised activity, contact the financial institution through verified channels immediately. Scheme limits, eligible disputes and court rights must be checked live before election or settlement.",
+    sources: [
+      {
+        title: "Banking — Disputes",
+        authority: "Bank Negara Malaysia",
+        jurisdiction: "Malaysia — financial consumer information",
+        sourceUrl: "https://www.bnm.gov.my/faqs/banking/disputes",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched FAQ directs consumers disputing fees or duplicate/unrecognised card charges to contact the bank and links to financial-service-provider complaint units.",
+        verificationLimit:
+          "The FAQ is general information, not a finding on liability, reimbursement, evidence, response time or the correct escalation route for a specific product.",
+      },
+      {
+        title: "Enquiries or Complaints",
+        authority: "Bank Negara Malaysia — BNMLINK",
+        jurisdiction: "Malaysia — complaints against financial service providers",
+        sourceUrl: "https://bnmlink.bnm.gov.my/",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page provides separate official paths for enquiries/requests and complaints or appeals concerning financial service providers.",
+        verificationLimit:
+          "Availability of the channel does not establish BNM jurisdiction, admissibility, entitlement or suspension of any contractual or legal deadline.",
+      },
+      {
+        title: "Financial Markets Ombudsman Service launch announcement",
+        authority: "Bank Negara Malaysia and Securities Commission Malaysia",
+        jurisdiction: "Malaysia — financial consumer and investor dispute resolution",
+        sourceUrl: "https://www.bnm.gov.my/-/fmospr",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched 17 January 2025 announcement describes FMOS as a centralised dispute-resolution service formed by merging OFS and SIDREC, providing mediation and adjudication for eligible disputes.",
+        verificationLimit:
+          "A launch announcement is not the current scheme rules. Verify present membership, eligibility, exclusions, monetary scope, filing time and effect on other remedies directly with FMOS.",
+      },
+    ],
+    practitionerChecklist: [
+      "Verify customer, account/product, provider, transaction identifiers and authorised users using redacted working copies.",
+      "For active compromise, use independently verified contact details, secure credentials and preserve device/account evidence without circulating passwords or one-time codes.",
+      "Create a transaction chronology covering authorisation events, alerts, contact attempts, blocks, reports, reversals, fees and final-response communications.",
+      "Preserve statements, terms, disclosure sheets, application records, authentication logs available to the customer, messages and complaint references.",
+      "State each disputed amount and calculation separately; distinguish principal, fee, interest, consequential loss and requested correction.",
+      "Send a focused provider complaint requesting a reference, investigation, relevant reasons/records and final response; avoid unsupported fraud accusations.",
+      "Compare provider review, BNMLINK, FMOS and court routes only after verifying jurisdiction, eligibility, time, monetary scope and interaction.",
+      "Record settlement, confidentiality, credit-reporting, tax, subrogation and account-operation consequences for professional review.",
+    ],
+    templateTitle: "Banking dispute complaint and evidence pack",
+    templateSections: [
+      {
+        heading: "Account, product and disputed events",
+        prompts: [
+          "Identify provider, product and transaction references without exposing full credentials.",
+          "Set out the chronology and the customer's action or non-action for each event.",
+        ],
+      },
+      {
+        heading: "Terms, communications and evidence",
+        prompts: [
+          "Attach the operative terms/version and provider communications, preserving originals and metadata.",
+          "List records requested from the provider and evidence not available to the customer.",
+        ],
+      },
+      {
+        heading: "Amounts and requested resolution",
+        prompts: [
+          "Provide a reproducible schedule for each disputed sum and avoid double counting.",
+          "State requested investigation, correction, reimbursement, explanation or non-monetary action separately.",
+        ],
+      },
+      {
+        heading: "Escalation route review",
+        prompts: [
+          "Record complaint reference, final-response status and live checks of BNMLINK/FMOS eligibility.",
+          "Preserve all other deadline questions for legal advice and document any informed route election.",
+        ],
+      },
+    ],
+    finalReview: [
+      "Sensitive banking data is minimised, encrypted or access-restricted, and no credential appears in the pack.",
+      "The narrative distinguishes unauthorised, mistaken, duplicate, disputed-service and fee issues.",
+      "No regulator or ombudsman outcome, recovery or eligibility is promised.",
+    ],
+  },
+  {
+    id: "accident-claims",
+    title: "Road accident evidence and civil claim guide",
+    jurisdiction: "Malaysia; verify accident location, police district, parties, insurer terms and civil forum",
+    scopeNote:
+      "A post-incident evidence-preservation and claim-preparation framework. It does not determine fault, reporting compliance, insurance coverage, injury causation or damages.",
+    caution:
+      "Prioritise emergency care and safety. Confirm police reporting, insurer notice, medical evidence, limitation and court requirements immediately from current official/contractual sources; this guide supplies no deadline.",
+    sources: [
+      {
+        title: "Cara Membuat Repot Polis",
+        authority: "Royal Malaysia Police",
+        jurisdiction: "Malaysia — police reports, including traffic reports",
+        sourceUrl: "https://www.rmp.gov.my/cara-membuat-repot-polis",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched PDRM page explains oral and written police-report methods, states that reports may be made at a police station including for traffic cases, and provides general report-content guidance.",
+        verificationLimit:
+          "The page does not establish compliance for a particular accident, current traffic-report timing, investigation outcome, insurer notice or evidential effect. Confirm directly with PDRM and counsel.",
+      },
+      {
+        title: "Procedures In Civil Cases",
+        authority: "Office of the Chief Registrar, Federal Court of Malaysia",
+        jurisdiction: "Malaysia — civil courts",
+        sourceUrl: "https://www.kehakiman.gov.my/en/procedures-civil-cases",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched page lists motor-vehicle accident and personal-injury claims as civil-claim examples and identifies cause of action, limitation, evidence and costs as pre-filing considerations.",
+        verificationLimit:
+          "The page does not determine liability, forum for a particular value/type of claim, recoverable loss, limitation or pleading/evidence requirements.",
+      },
+    ],
+    practitionerChecklist: [
+      "Address emergency treatment and scene safety before evidence collection; do not obstruct responders or traffic.",
+      "Record exact time, location, direction, vehicles, drivers, occupants, road/weather/light conditions, signals and contemporaneous statements.",
+      "Preserve original photos, video, dashcam, telematics and device metadata; make working copies and document custodian and collection method.",
+      "Obtain and index police documents, vehicle/driver particulars, witness contacts, repair/tow records and insurer communications from lawful sources.",
+      "Maintain a treatment chronology linking each visit, diagnosis, restriction and expense to the underlying record; do not embellish symptoms.",
+      "Create separate schedules for vehicle/property damage, medical expense, income impact, care, travel and other asserted loss with proof and mitigation.",
+      "Identify possible drivers, owners, employers, contractors, road authorities and insurers as investigation leads, not conclusions on liability.",
+      "Ask counsel to verify reporting, notice, preservation, expert, limitation, forum, settlement and minor/incapacity requirements immediately.",
+    ],
+    templateTitle: "Road accident evidence and loss memorandum",
+    templateSections: [
+      {
+        heading: "Incident and participants",
+        prompts: [
+          "Describe only directly observed or source-identified facts and label estimates.",
+          "Record each participant and witness identifier, role and source without publishing unnecessary personal data.",
+        ],
+      },
+      {
+        heading: "Reports and physical/digital evidence",
+        prompts: [
+          "Index police, medical, scene, vehicle, camera and electronic records with dates and custodians.",
+          "List preservation requests and unavailable or overwritten material.",
+        ],
+      },
+      {
+        heading: "Causation, liability and contrary material",
+        prompts: [
+          "Map competing event sequences to evidence and identify technical/expert questions.",
+          "Include prior damage, prior symptoms, visibility issues and inconsistent accounts for counsel review.",
+        ],
+      },
+      {
+        heading: "Loss, insurance and next steps",
+        prompts: [
+          "Use a documented loss schedule separating paid, outstanding, estimated and continuing items.",
+          "Record policy/notice checks, source-verified deadlines, proposed experts and settlement authority.",
+        ],
+      },
+    ],
+    finalReview: [
+      "The file preserves originals and clearly labels reconstructions, estimates and hearsay accounts.",
+      "Medical causation and future loss are not asserted without appropriate evidence.",
+      "No admission, release, reporting statement or insurer election is drafted as routine without advice.",
+    ],
+  },
+  {
+    id: "property-jurisdictions",
+    title: "Malaysian property jurisdiction screening guide",
+    jurisdiction: "Malaysia — Peninsular, Sabah and Sarawak land systems must be screened separately",
+    scopeNote:
+      "A threshold source and due-diligence framework for identifying the relevant land administration before transaction or dispute drafting. It is not a title opinion, search, consent application or conveyancing precedent.",
+    caution:
+      "Never treat Peninsular guidance as Sabah or Sarawak law. Obtain current official title/registry evidence and local professional advice on tenure, restrictions, native interests, consent, duty/tax, registration and priority.",
+    sources: [
+      {
+        title: "Land Management FAQ",
+        authority: "Department of Director General of Lands and Mines (JKPTG)",
+        jurisdiction: "Peninsular Malaysia — land administration",
+        sourceUrl: "https://www.jkptg.gov.my/en/soalan-lazim-3/42-faq/pengurusan-tanah",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched official page is JKPTG's land-management FAQ and provides administrative guidance within its land-management remit.",
+        verificationLimit:
+          "Navigation and examples are not a transaction checklist or title opinion, and the source is not authority for Sabah or Sarawak land procedure.",
+      },
+      {
+        title: "Sabah Lands and Surveys Department official portal",
+        authority: "Sabah Lands and Surveys Department",
+        jurisdiction: "Sabah",
+        sourceUrl: "https://www.jtu.sabah.gov.my/",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched portal identifies Sabah-specific land services and links public systems for matters including quit-rent checks, land-acquisition enquiry, land development and land-application status.",
+        verificationLimit:
+          "Portal functionality does not prove title, payment, approval, consent, application status or legal entitlement. Use the correct live service and official certified records.",
+      },
+      {
+        title: "Laws of Sarawak — Full Listing",
+        authority: "Sarawak State Attorney-General's Chambers / Sarawak LawNet",
+        jurisdiction: "Sarawak",
+        sourceUrl: "https://lawnet.sarawak.gov.my/lawnet/Law/TLnetPublishedOrdList.jsp?LTyp=All",
+        checkedDate: CHECKED_DATE,
+        verifiedUse:
+          "The fetched official listing provides Sarawak ordinances and expandable subsidiary-material links, supplying a distinct Sarawak primary-source starting point.",
+        verificationLimit:
+          "The listing is not a land search, current-law certificate or proof that a linked text is the latest operative consolidation.",
+      },
+    ],
+    practitionerChecklist: [
+      "Identify the land's state, district, registry/land office, title number, lot, tenure and title system from current official evidence.",
+      "Obtain the correct official/certified search and compare proprietor, land description, category/use, conditions, restrictions, encumbrances and endorsements.",
+      "Investigate caveats, charges, leases, easements, acquisitions, planning/building status, occupation and pending applications through competent sources.",
+      "Verify party identity, capacity, beneficial/registered interest and execution authority; record trusts, nominees, estates, companies and powers separately.",
+      "For Sabah or Sarawak, replace every Peninsular assumption with local legislation, registry procedure and local advice; flag native interests where facts require.",
+      "Create a consent and approval matrix naming the issuing authority, source, condition, submission, fee and status without predicting approval.",
+      "Reconcile contract, finance, valuation, tax/duty advice, stakeholder funds, completion deliverables, presentation sequence and post-registration evidence.",
+      "For disputes, preserve title/search history, instruments, plans, possession evidence, payments, notices and communications with provenance.",
+    ],
+    templateTitle: "Property jurisdiction and title due-diligence note",
+    templateSections: [
+      {
+        heading: "Land identity and jurisdiction",
+        prompts: [
+          "Record title/lot, physical location, registry and the official evidence used to select Peninsular, Sabah or Sarawak sources.",
+          "List any mismatch in address, survey, title description or occupation.",
+        ],
+      },
+      {
+        heading: "Title and interests",
+        prompts: [
+          "Transcribe material search entries accurately and attach the dated official search.",
+          "Separate registered interests, contractual claims, occupation, alleged beneficial interests and unresolved native-interest questions.",
+        ],
+      },
+      {
+        heading: "Approvals and transaction dependencies",
+        prompts: [
+          "Map restrictions, consents, finance, planning, tax/duty and execution issues to current sources and responsible reviewers.",
+          "Mark every timing and completion assumption as pending calculation or evidence where unverified.",
+        ],
+      },
+      {
+        heading: "Completion or dispute plan",
+        prompts: [
+          "For a transaction, list reciprocal deliverables, funds control, presentation and registration evidence.",
+          "For a dispute, list preservation, searches, witnesses, site/survey evidence and interim-risk questions.",
+        ],
+      },
+    ],
+    finalReview: [
+      "The guide uses the source set for the actual land jurisdiction, not a Malaysia-wide shortcut.",
+      "Current official search evidence supports every title statement and all discrepancies are visible.",
+      "No approval, priority, registration, vacant possession or tax outcome is promised.",
     ],
   },
   {

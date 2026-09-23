@@ -11,6 +11,7 @@ import { useAiStream } from "@/lib/use-ai-stream";
 import { useVoice } from "@/lib/use-voice";
 import { SaveToMatterPanel } from "@/components/save-to-matter-panel";
 import { MatterPicker, matterToChargeRef } from "@/components/MatterPicker";
+import { CriminalToolGuidance } from "@/components/CriminalToolGuidance";
 
 export function AiCrossExaminationPage() {
   const [witnessStatement, setWitnessStatement] = useState("");
@@ -41,6 +42,7 @@ export function AiCrossExaminationPage() {
           Generate strategic cross-examination questions from witness statements — credibility attacks, inconsistency exploitation, material fact challenges, impeachment foundations under Section 145 Evidence Act, and expert/technical questions with strategic notes on tone and pacing
         </p>
       </div>
+      <CriminalToolGuidance kind="cross" />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">

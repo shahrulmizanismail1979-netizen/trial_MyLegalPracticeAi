@@ -226,19 +226,19 @@ export default function ContributePage({
           </h1>
           <p className="text-muted-foreground mt-3 max-w-2xl">
             {isJudgment
-              ? "Share written judgments and grounds of judgment from cases handled in your own legal practice. They are stored in the shared case repository used by all AI Portals apps. Upload in any format — PDF, Word, scans, or archives. Text is extracted automatically where possible."
-              : "Share soft-copy cause papers and legal documents to help every AI Portals app learn from real Malaysian legal practice. Upload documents in any format — PDF, Word, scans, or archives. Text is extracted automatically where possible."}
+              ? "Submit written judgments and grounds of judgment from cases handled in your own legal practice for editorial and rights review. Approved material may be prepared for the shared case repository. The upload flow accepts common documents, scans, and archives, and attempts text extraction where the format permits."
+              : "Submit soft-copy cause papers and legal-practice documents for editorial, rights, confidentiality, and relevance review. Approved material may be prepared for the shared knowledge base. The upload flow accepts common documents, scans, and archives, and attempts text extraction where the format permits."}
           </p>
         </div>
 
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-start gap-3 mb-8">
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-muted-foreground">
-            Contributions are reviewed before being adopted into the knowledge base.
-            Client confidentiality is protected automatically: all personal details are
-            removed and every real name is replaced with a fictitious one before any text
-            enters the shared knowledge base. The original file stays private to our
-            review team. Please only upload documents you are entitled to share.{" "}
+            Submission is only the start of review; it does not make a file part of the
+            knowledge base. Text intended for a shared corpus must pass the applicable
+            anonymisation and editorial process before adoption. Avoid unnecessary
+            personal data, and only upload documents you are entitled to share. Original
+            files remain restricted to the contribution-review workflow.{" "}
             <span className="text-foreground font-medium">
               Every approved contribution earns you a voucher for 1 month free — once your
               contribution is approved, our team will send the voucher code to the email
@@ -246,6 +246,37 @@ export default function ContributePage({
             </span>
           </p>
         </div>
+
+        <section className="mb-8 rounded-xl border border-border bg-card/70 p-6" aria-labelledby="contribution-preparation">
+          <h2 id="contribution-preparation" className="font-serif text-2xl font-semibold">Prepare a reviewable contribution</h2>
+          <div className="mt-5 grid gap-6 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
+            <div>
+              <h3 className="font-semibold text-foreground">Before selecting files</h3>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                <li>Confirm that you are entitled to share the document for this review purpose, including any client, court, contractual, copyright, or confidentiality restrictions.</li>
+                <li>Remove files that are unrelated, duplicated, corrupted, password-locked without reviewer instructions, or included only as convenience copies.</li>
+                <li>Where practical, use descriptive filenames and identify the operative or final version. Keep annexures with a clear parent-document reference.</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">What to put in the notes</h3>
+              <ul className="mt-2 list-disc space-y-2 pl-5">
+                <li>Describe the document type, practice area, approximate period, court or originating context, and whether the set is complete.</li>
+                <li>Flag scans, handwriting, poor image quality, missing pages, superseded versions, sealed material, or information reviewers should handle carefully.</li>
+                <li>Do not use the notes field to provide legal advice or unnecessary personal information about a client, witness, child, patient, employee, or third party.</li>
+              </ul>
+            </div>
+          </div>
+          <details className="mt-6 rounded-lg border border-border bg-background/60 p-4">
+            <summary className="cursor-pointer font-semibold text-foreground">What happens after submission?</summary>
+            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              <li>The upload and contribution record are sent for review; a successful upload does not mean that the document has been approved or published.</li>
+              <li>Reviewers may assess relevance, readability, authority to use, confidentiality risks, duplication, and whether further preparation is required.</li>
+              <li>Text intended for a shared corpus must pass the applicable anonymisation and editorial process. The original file remains separate from public corpus text.</li>
+              <li>If a contribution is approved, any voucher communication is sent using the email supplied in this form. Submission alone does not create a voucher entitlement.</li>
+            </ol>
+          </details>
+        </section>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -353,6 +384,9 @@ export default function ContributePage({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Notes (optional)</FormLabel>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Mention document type, context, completeness, version status, and any review issue. Avoid unnecessary personal data.
+                  </p>
                   <FormControl>
                     <Textarea
                       placeholder="Anything reviewers should know about these documents"
@@ -376,7 +410,7 @@ export default function ContributePage({
                 <UploadCloud className="w-8 h-8 text-muted-foreground" />
                 <span className="text-sm font-medium">Click to select files</span>
                 <span className="text-xs text-muted-foreground">
-                  Any format · multiple files · large uploads supported
+                  Multiple files · common documents, scans, and archives
                 </span>
               </button>
               <input

@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useSaveWork } from '@/hooks/use-saved-work';
 import { useMatters, useAddDeadlinesBulk } from '@/hooks/use-matters';
 import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
+import { PractitionerGuidance } from '@/components/PractitionerGuidance';
 import {
   useAppealPathways,
   appealTimelineToDeadlines,
@@ -259,6 +260,7 @@ export default function Appeals() {
         title="Appeals & Jurisdiction"
         description="Route a claim to the right court by value, then work the appeal ladder — Subordinate Court to High Court, High Court to Court of Appeal, Court of Appeal to Federal Court — with cause papers and strict time limits diarised against a matter."
       />
+      <div className="mb-8"><PractitionerGuidance kind="appeal" /></div>
 
       {/* Forum router */}
       <Card className="mb-8">

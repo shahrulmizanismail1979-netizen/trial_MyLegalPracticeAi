@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PenTool, Copy, Check, FileText, MessageSquareReply, ArrowRight, Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ToolGuidance } from "@/components/ToolGuidance";
 
 export default function Drafting() {
   const { caseId, pathwayId, markDrafted, sourceFiles } = useMatter();
@@ -118,6 +119,7 @@ export default function Drafting() {
               {t("tool.drafting.desc")}
             </p>
           </div>
+          <ToolGuidance kind="drafting" />
 
           <Card className="bg-card shadow-sm border-border">
             <CardHeader className="pb-4">

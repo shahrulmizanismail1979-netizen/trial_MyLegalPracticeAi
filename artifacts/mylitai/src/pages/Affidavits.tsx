@@ -34,6 +34,7 @@ import {
   type AffidavitField,
 } from '@/hooks/use-affidavits';
 import { MatterPicker, buildMatterSummary } from '@/components/MatterPicker';
+import { PractitionerGuidance } from '@/components/PractitionerGuidance';
 
 // ─── SSE streaming utility ────────────────────────────────────────────────────
 async function streamFromEndpoint(
@@ -242,6 +243,7 @@ export default function Affidavits() {
         title="Affidavits & Supporting Documents"
         description="Draft the deposition-based and ancillary documents that go with your cause papers — affidavits in support, reply and opposition, supplementary affidavits, affidavits verifying documents and of service, plus notices of demand and certificates of urgency."
       />
+      <div className="mb-8"><PractitionerGuidance kind="affidavit" /></div>
 
       {isLoading && (
         <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">

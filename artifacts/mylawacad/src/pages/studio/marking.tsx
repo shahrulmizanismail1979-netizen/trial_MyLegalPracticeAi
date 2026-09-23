@@ -178,6 +178,42 @@ export default function MarkingCentre() {
           />
         </div>
 
+        <SpotlightCard className="border-sky-500/20 bg-sky-950/10">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <div className="text-[0.65rem] font-bold uppercase tracking-[0.3em] text-sky-300">
+                Human review runbook
+              </div>
+              <h2 className="mt-2 font-display text-2xl font-bold text-white">Review the evidence, not only the total</h2>
+              <ol className="mt-4 space-y-3 text-sm leading-relaxed text-white/70">
+                <li><strong className="text-white">1. Triage:</strong> open flagged, low-confidence or unusual attempts first. A flag is a review prompt, not a finding of misconduct.</li>
+                <li><strong className="text-white">2. Compare:</strong> read the prompt, response, rubric and criterion comments together; check transcription or handwriting capture where relevant.</li>
+                <li><strong className="text-white">3. Decide:</strong> retain or override each score using the same standard across the cohort. Record concise reasons for material changes.</li>
+                <li><strong className="text-white">4. Close:</strong> verify the recomputed total, feedback and pass threshold, then sign off only when the record is ready for release.</li>
+              </ol>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/25 p-5">
+              <h3 className="font-display text-lg font-bold text-white">Before bulk regrade</h3>
+              <ul className="mt-3 space-y-2 text-sm leading-relaxed text-white/65">
+                <li>• Confirm the intended rubric and question versions are active.</li>
+                <li>• Export or note prior manual decisions that may need comparison.</li>
+                <li>• Sample several strong, borderline and weak responses after the run.</li>
+                <li>• Do not infer misconduct from snapshots, audio events or browser flags alone.</li>
+                <li>• Limit access to student responses and proctoring material to authorised reviewers.</li>
+              </ul>
+            </div>
+          </div>
+          <details className="mt-5 border-t border-white/10 pt-4">
+            <summary className="cursor-pointer text-sm font-semibold text-sky-200">Marking centre FAQ</summary>
+            <div className="mt-4 grid gap-4 text-sm leading-relaxed text-white/65 md:grid-cols-2">
+              <p><strong className="text-white">What does AI confidence mean?</strong><br />It is the grader's own signal, not proof that a score is correct. Review the underlying response.</p>
+              <p><strong className="text-white">When should I override?</strong><br />When your academic judgment, applied consistently to the rubric, supports a different score or feedback.</p>
+              <p><strong className="text-white">What belongs in the record?</strong><br />The released score, feedback, material overrides, reviewer identity and any moderation outcome.</p>
+              <p><strong className="text-white">Can students see changes?</strong><br />The page indicates updated scores are shown to students, so complete your release and notification process before sign-off.</p>
+            </div>
+          </details>
+        </SpotlightCard>
+
         <div className="flex flex-wrap gap-2" data-testid="marking-filters">
           {FILTERS.map((f) => (
             <button

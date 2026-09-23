@@ -133,6 +133,44 @@ function buildMatterSummary(m: Matter): string {
   return lines.join("\n");
 }
 
+function PracticeGuide({
+  kind,
+}: {
+  kind: "analysis" | "drafting";
+}) {
+  const content = kind === "analysis" ? {
+    prepare: ["Accident chronology and competing versions", "Police, scene, vehicle and witness material", "Treatment course, income proof and itemised loss documents"],
+    structure: ["Liability issues and alternative scenarios", "Injury and causation summary", "Head-by-head loss schedule", "Evidence plan, risks and next actions"],
+    gaps: ["Mechanism not supported by a sketch, image or witness", "Medical opinion does not address causation or prognosis", "Amount claimed lacks an invoice, receipt or earnings record"],
+    review: ["Check every date and amount to source", "Separate allegation from admitted fact", "Recalculate totals and avoid double recovery", "Verify authorities and procedure independently"],
+  } : {
+    prepare: ["Correct party and insurer details", "Dated accident, treatment and correspondence chronology", "Exact relief or response required and supporting documents"],
+    structure: ["Purpose and parties", "Concise material chronology", "Liability/quantum position tied to evidence", "Requested action, reservations and enclosures"],
+    gaps: ["Recipient or capacity not confirmed", "Claimed loss not particularised", "Referenced report or attachment missing"],
+    review: ["Match the draft to the selected document type", "Check tone, admissions and privilege", "Confirm names, figures and enclosures", "Verify citations and current procedure before use"],
+  };
+  return (
+    <details className="bg-card border border-primary/20 rounded-xl p-4 mb-5 group">
+      <summary className="cursor-pointer list-none flex justify-between gap-3 text-sm font-semibold">
+        Preparation, evidence & review guide
+        <span className="text-xs text-primary font-normal group-open:hidden">Open</span><span className="text-xs text-primary font-normal hidden group-open:inline">Close</span>
+      </summary>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-3 pt-3 border-t border-border">
+        <PracticeList title="Prepare" items={content.prepare} />
+        <PracticeList title="Expected output" items={content.structure} />
+        <PracticeList title="Evidence gaps" items={content.gaps} />
+        <PracticeList title="Review" items={content.review} />
+      </div>
+      <p className="text-xs text-muted-foreground mt-3"><strong className="text-foreground">Example input:</strong> “Client says vehicle B changed lane; police sketch and two photographs available; independent witness details not yet obtained; orthopaedic report dated [date]; analyse both parties' versions and list missing proof.”</p>
+      <p className="text-xs text-muted-foreground mt-2"><strong className="text-foreground">FAQ:</strong> Unknown facts should be labelled, not estimated. A generated range or draft is not a finding or filing-ready document; reconcile it to the evidence, pleadings and current primary sources.</p>
+    </details>
+  );
+}
+
+function PracticeList({ title, items }: { title: string; items: string[] }) {
+  return <div><p className="text-[11px] font-semibold uppercase tracking-wide text-primary mb-1">{title}</p>{items.map(item => <p key={item} className="text-xs text-muted-foreground leading-relaxed">• {item}</p>)}</div>;
+}
+
 export default function Workspace() {
   const [searchParams] = useSearchParams();
 
@@ -1134,6 +1172,7 @@ Defendant has third-party insurance only. Police report lodged same day. Defenda
       data-testid="case-home-handoff-target"
       data-matter-id={targetMatterId ?? undefined}
     >
+      <PracticeGuide kind="analysis" />
       <div className="bg-muted/30 rounded-xl p-4 border border-border mb-6">
         <div className="flex items-start gap-2">
           <Gavel className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -1256,6 +1295,7 @@ function AiDrafterTab({ matter }: { matter?: Matter | null }) {
 
   return (
     <div className="max-w-5xl">
+      <PracticeGuide kind="drafting" />
       <div className="bg-muted/30 rounded-xl p-4 border border-border mb-6">
         <div className="flex items-start gap-2">
           <FileEdit className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
