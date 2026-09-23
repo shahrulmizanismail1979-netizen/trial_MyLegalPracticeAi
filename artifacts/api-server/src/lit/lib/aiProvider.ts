@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db } from "@workspace/db";
 import { litAppSettings } from "@workspace/db";
@@ -71,21 +72,32 @@ function getOpenAI(): OpenAI {
   throw new Error("OpenAI is not configured");
 }
 
-/** True when a Perplexity API key is configured (user-supplied secret). */
-export function perplexityConfigured(): boolean {
-  return Boolean(process.env.PERPLEXITY_API_KEY);
+const connectors = new ReplitConnectors();
+
+/** Check the attached connection, not the obsolete direct-key secret. */
+export async function perplexityConfigured(): Promise<boolean> {
+  try {
+    const connections = await connectors.listConnections({ connector_names: "perplexity" });
+    return connections.some((connection) => connection.connector_name === "perplexity");
+  } catch {
+    return false;
+  }
 }
 
-// Perplexity exposes an OpenAI-compatible chat API at its own base URL.
+// Keep OpenAI's SSE parser while letting the connector manage authentication.
+// Never fall back to the rejected legacy key or silently select another provider.
 let perplexityClient: OpenAI | null = null;
 function getPerplexity(): OpenAI {
-  if (!process.env.PERPLEXITY_API_KEY) {
-    throw new Error("PERPLEXITY_API_KEY is not set");
-  }
   if (!perplexityClient) {
+    const proxyFetch = connectors.createProxyFetch("perplexity");
     perplexityClient = new OpenAI({
-      apiKey: process.env.PERPLEXITY_API_KEY,
+      apiKey: "connector-managed",
       baseURL: "https://api.perplexity.ai",
+      fetch: (input, init) => {
+        const headers = new Headers(init?.headers);
+        headers.delete("authorization");
+        return proxyFetch(input, { ...init, headers });
+      },
     });
   }
   return perplexityClient;
@@ -241,6 +253,9 @@ export async function* streamChat(
       if (fresh.length > 0) yield { citations: fresh };
     }
     if (pplxFinish === "length") yield { truncated: true };
+    else if (pplxFinish !== "stop") {
+      throw new Error("Perplexity response ended without successful completion");
+    }
     return;
   }
 
@@ -302,6 +317,10 @@ export async function generateChat(
       max_tokens: opts.maxOutputTokens,
       temperature: opts.temperature,
     });
+    const choice = resp.choices?.[0];
+    if (choice?.finish_reason !== "stop" || !choice.message?.content?.trim()) {
+      throw new Error("Perplexity response was empty or incomplete");
+    }
     const citations = perplexityCitations(resp, new Set<string>());
     return { text: resp.choices?.[0]?.message?.content ?? "", citations };
   }

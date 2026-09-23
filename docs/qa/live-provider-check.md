@@ -1,5 +1,17 @@
 # Live AI Provider Connectivity Check
 
+## Update — 23 September 2026: authorised Perplexity connector
+
+- The user authorised the Perplexity connection. Application requests now use the connector-managed transport instead of the rejected legacy direct key, preserving the OpenAI-compatible request/response and citation contract.
+- Connection discovery succeeded. A live `sonar-pro` non-stream request using a nonsensitive public-statute prompt returned HTTP 401: `You exceeded your current quota, add credits at https://console.perplexity.ai/project/billing.`
+- This supersedes the earlier invalid-key diagnosis for the active application path. Generation remains **blocked by provider quota**, not marked passed. The subsequent live streaming probe was not attempted after the first request failed.
+- 11 targeted tests passed: 9 Perplexity connector/parser/failure tests and 2 existing OpenAI selection tests. These use mocked provider responses. API typecheck passed.
+- API build/restart passed. Development health and provider-status routes returned HTTP 200; the latter reported the unchanged Gemini default and Perplexity connected. IRAC login rendered successfully.
+- No billing action, credential disclosure, default-provider change, production publication or customer-data mutation was performed.
+- Next live check requires the account owner to restore Perplexity credits. Repeating requests or reconnecting the same account does not establish that quota is restored.
+
+The remaining sections record the earlier checks and their historical results.
+
 **Checked:** 2026-09-22 14:36–14:43 UTC  
 **Scope:** Live, non-persisting provider checks from the API server workspace.
 

@@ -138,7 +138,7 @@ router.get("/ai-provider", async (_req, res) => {
     return res.json({
       provider,
       openaiConfigured: openaiConfigured(),
-      perplexityConfigured: perplexityConfigured(),
+      perplexityConfigured: await perplexityConfigured(),
     });
   } catch (err) {
     logger.error({ err }, "Get AI provider error");
@@ -154,10 +154,10 @@ router.post("/ai-provider", adminAuth, async (req, res) => {
       .status(400)
       .json({ error: "OPENAI_API_KEY is not configured on the server" });
   }
-  if (provider === "perplexity" && !perplexityConfigured()) {
+  if (provider === "perplexity" && !(await perplexityConfigured())) {
     return res
       .status(400)
-      .json({ error: "PERPLEXITY_API_KEY is not configured on the server" });
+      .json({ error: "Perplexity connection is not available on the server" });
   }
   try {
     await setDefaultProvider(provider);
