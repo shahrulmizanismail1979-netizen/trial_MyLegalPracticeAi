@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { runStage } from "./irac-api";
+import { getApiProvider, parseAIProvider, runStage, setApiProvider } from "./irac-api";
 
 function responseWith(body: string) {
   return new Response(body, {
@@ -41,5 +41,20 @@ describe("IRAC stream completion contract", () => {
     });
 
     await expect(done).resolves.toBeUndefined();
+  });
+});
+
+describe("AI provider selection", () => {
+  it("recognises current providers and rejects the obsolete Perplexity value", () => {
+    expect(parseAIProvider("openai")).toBe("openai");
+    expect(parseAIProvider("gemini")).toBe("gemini");
+    expect(parseAIProvider("anthropic")).toBe("anthropic");
+    expect(parseAIProvider("perplexity")).toBeNull();
+  });
+
+  it("keeps an explicitly selected provider without silently falling back", () => {
+    setApiProvider("anthropic");
+    expect(getApiProvider()).toBe("anthropic");
+    setApiProvider("openai");
   });
 });

@@ -10,16 +10,20 @@ const API_BASE = "/api/lit/irac";
 
 // ─── AI provider selection ────────────────────────────────────────────────────
 // The effective provider is resolved by the React provider-context
-// (user override → admin default → gemini) and pushed here. Every AI request
-// from this client carries it in the body so the server honours it. Defaults to
-// gemini so behaviour is unchanged until something explicitly switches it.
-export type AIProvider = "gemini" | "openai" | "perplexity";
+// (user override → admin default → OpenAI) and pushed here. Every AI request
+// from this client carries it in the body so the server honours it. OpenAI is
+// also the initial value, preventing requests from briefly using another model
+// while the admin setting is loading.
+export type AIProvider = "gemini" | "openai" | "anthropic";
 
-let currentProvider: AIProvider = "gemini";
+let currentProvider: AIProvider = "openai";
+
+export function parseAIProvider(value: unknown): AIProvider | null {
+  return value === "openai" || value === "gemini" || value === "anthropic" ? value : null;
+}
 
 export function setApiProvider(provider: AIProvider): void {
-  currentProvider =
-    provider === "openai" || provider === "perplexity" ? provider : "gemini";
+  currentProvider = provider;
 }
 
 export function getApiProvider(): AIProvider {
@@ -1555,14 +1559,19 @@ export async function restoreAccessCode(password: string, id: number): Promise<v
 export interface AiProviderStatus {
   provider: AIProvider;
   openaiConfigured: boolean;
-  perplexityConfigured?: boolean;
+  anthropicConfigured: boolean;
 }
 
-/** Public: read the admin-selected default provider + whether OpenAI is usable. */
+/** Public: read the admin-selected default provider and provider availability. */
 export async function getAdminAiProvider(): Promise<AiProviderStatus> {
   const res = await fetch(`${ROOT_API}/admin/ai-provider`);
   if (!res.ok) throw new Error("Could not load the AI provider setting.");
-  return res.json() as Promise<AiProviderStatus>;
+  const data = await res.json() as Partial<AiProviderStatus>;
+  return {
+    provider: parseAIProvider(data.provider) ?? "openai",
+    openaiConfigured: data.openaiConfigured === true,
+    anthropicConfigured: data.anthropicConfigured === true,
+  };
 }
 
 /** Admin-only: change the default provider for the IRAC tools. */

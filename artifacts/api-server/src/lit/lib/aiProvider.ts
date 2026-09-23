@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { generateAnthropic, streamAnthropic } from "./anthropicProvider";
+export { anthropicConfigured } from "./anthropicProvider";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db } from "@workspace/db";
 import { litAppSettings } from "@workspace/db";
@@ -15,27 +16,29 @@ import { logger } from "../../lib/logger";
 // generation runs on Gemini exactly as before, leaving that app unaffected.
 //
 // The IRAC artifact sends an explicit `provider` on each request (resolved on
-// its client from: user override → admin default → gemini), which is honoured
+// its client from: user override → admin default → openai), which is honoured
 // here. The stored admin default is intentionally NOT consulted server-side so
 // that shared routes (enforcement, banking-recovery, etc.) used by both apps
 // never change behaviour for the legal-platform unless a provider is explicitly
 // sent.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AIProvider = "gemini" | "openai" | "perplexity";
+export type AIProvider = "gemini" | "openai" | "anthropic";
 
 export const DEFAULT_PROVIDER: AIProvider = "gemini";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
-const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || "sonar-pro";
 
 export function isAIProvider(v: unknown): v is AIProvider {
-  return v === "gemini" || v === "openai" || v === "perplexity";
+  return v === "gemini" || v === "openai" || v === "anthropic";
 }
 
 /** Coerce arbitrary input (request body/query) to a valid provider. */
 export function normalizeProvider(v: unknown): AIProvider {
+  if (v === "perplexity") {
+    throw new Error("Perplexity has been replaced by Claude. Refresh and select an available provider.");
+  }
   return isAIProvider(v) ? v : DEFAULT_PROVIDER;
 }
 
@@ -70,66 +73,6 @@ function getOpenAI(): OpenAI {
     return replitOpenAIClient;
   }
   throw new Error("OpenAI is not configured");
-}
-
-const connectors = new ReplitConnectors();
-
-/** Check the attached connection, not the obsolete direct-key secret. */
-export async function perplexityConfigured(): Promise<boolean> {
-  try {
-    const connections = await connectors.listConnections({ connector_names: "perplexity" });
-    return connections.some((connection) => connection.connector_name === "perplexity");
-  } catch {
-    return false;
-  }
-}
-
-// Keep OpenAI's SSE parser while letting the connector manage authentication.
-// Never fall back to the rejected legacy key or silently select another provider.
-let perplexityClient: OpenAI | null = null;
-function getPerplexity(): OpenAI {
-  if (!perplexityClient) {
-    const proxyFetch = connectors.createProxyFetch("perplexity");
-    perplexityClient = new OpenAI({
-      apiKey: "connector-managed",
-      baseURL: "https://api.perplexity.ai",
-      fetch: (input, init) => {
-        const headers = new Headers(init?.headers);
-        headers.delete("authorization");
-        return proxyFetch(input, { ...init, headers });
-      },
-    });
-  }
-  return perplexityClient;
-}
-
-/** Perplexity attaches live-web sources to chunks; normalize them to Citations. */
-interface PerplexitySearchResult {
-  title?: string;
-  url?: string;
-}
-function perplexityCitations(
-  chunk: unknown,
-  seen: Set<string>,
-): Citation[] {
-  const c = chunk as {
-    search_results?: PerplexitySearchResult[];
-    citations?: string[];
-  };
-  const fresh: Citation[] = [];
-  for (const r of c.search_results ?? []) {
-    if (r.url && !seen.has(r.url)) {
-      seen.add(r.url);
-      fresh.push({ uri: r.url, title: r.title || r.url });
-    }
-  }
-  for (const uri of c.citations ?? []) {
-    if (uri && !seen.has(uri)) {
-      seen.add(uri);
-      fresh.push({ uri, title: uri });
-    }
-  }
-  return fresh;
 }
 
 export interface ChatMessage {
@@ -233,29 +176,8 @@ export async function* streamChat(
     return;
   }
 
-  if (provider === "perplexity") {
-    const client = getPerplexity();
-    const stream = await client.chat.completions.create({
-      model: PERPLEXITY_MODEL,
-      messages: toOpenAI(litMessages, opts),
-      max_tokens: opts.maxOutputTokens,
-      temperature: opts.temperature,
-      stream: true,
-    });
-    const seenUris = new Set<string>();
-    let pplxFinish: string | undefined;
-    for await (const chunk of stream) {
-      const choice = chunk.choices?.[0];
-      const text = choice?.delta?.content;
-      if (text) yield { text };
-      if (choice?.finish_reason) pplxFinish = choice.finish_reason;
-      const fresh = perplexityCitations(chunk, seenUris);
-      if (fresh.length > 0) yield { citations: fresh };
-    }
-    if (pplxFinish === "length") yield { truncated: true };
-    else if (pplxFinish !== "stop") {
-      throw new Error("Perplexity response ended without successful completion");
-    }
+  if (provider === "anthropic") {
+    yield* streamAnthropic(litMessages, opts);
     return;
   }
 
@@ -309,20 +231,8 @@ export async function generateChat(
     return { text: resp.choices?.[0]?.message?.content ?? "", citations: [] };
   }
 
-  if (provider === "perplexity") {
-    const client = getPerplexity();
-    const resp = await client.chat.completions.create({
-      model: PERPLEXITY_MODEL,
-      messages: toOpenAI(litMessages, opts),
-      max_tokens: opts.maxOutputTokens,
-      temperature: opts.temperature,
-    });
-    const choice = resp.choices?.[0];
-    if (choice?.finish_reason !== "stop" || !choice.message?.content?.trim()) {
-      throw new Error("Perplexity response was empty or incomplete");
-    }
-    const citations = perplexityCitations(resp, new Set<string>());
-    return { text: resp.choices?.[0]?.message?.content ?? "", citations };
+  if (provider === "anthropic") {
+    return generateAnthropic(litMessages, opts);
   }
 
   const { contents, config } = toGemini(litMessages, opts);
@@ -399,19 +309,22 @@ export async function generateContentCompat(
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin default provider — persisted in the DB, surfaced to the IRAC client.
 // ─────────────────────────────────────────────────────────────────────────────
-const PROVIDER_SETTING_KEY = "irac_ai_provider";
+// New preference namespace applies the requested OpenAI default on deployment
+// without changing legacy portals or mutating the old provider setting.
+const PROVIDER_SETTING_KEY = "irac_default_ai_provider";
+export const IRAC_DEFAULT_PROVIDER: AIProvider = "openai";
 
-/** Read the admin-selected default provider (falls back to Gemini). */
+/** Read the IRAC admin preference (OpenAI unless explicitly changed). */
 export async function getDefaultProvider(): Promise<AIProvider> {
   try {
     const [row] = await db
       .select()
       .from(litAppSettings)
       .where(eq(litAppSettings.key, PROVIDER_SETTING_KEY));
-    return normalizeProvider(row?.value);
+    return isAIProvider(row?.value) ? row.value : IRAC_DEFAULT_PROVIDER;
   } catch (err) {
-    logger.warn({ err }, "Failed to read default AI provider; using Gemini");
-    return DEFAULT_PROVIDER;
+    logger.warn({ err }, "Failed to read IRAC default AI provider; using OpenAI");
+    return IRAC_DEFAULT_PROVIDER;
   }
 }
 

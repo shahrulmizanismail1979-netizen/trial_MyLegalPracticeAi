@@ -1,5 +1,17 @@
 # Live AI Provider Connectivity Check
 
+## Latest update — 23 September 2026: OpenAI default, Claude alternative
+
+The user approved replacing Perplexity with Anthropic Claude while preferring OpenAI as default. This applies to IRAC; unspecified requests in other legacy portals continue using Gemini.
+
+- IRAC default resolved to `openai`, using a new preference namespace so the requested default also takes effect on publication without altering legacy settings.
+- Live OpenAI `gpt-4o` non-stream generation returned `QA_OK`.
+- Live Anthropic `claude-sonnet-5` non-stream generation returned `QA_OK`.
+- Live Claude streaming returned `QA_OK` and completed without truncation.
+- 14 backend tests and 4 frontend tests passed, covering provider selection, unchanged legacy Gemini behavior, completion, truncation, interrupted streams, configuration errors, and obsolete Perplexity rejection. API and IRAC typechecks passed.
+- No live web-search capability is claimed for Claude or OpenAI in this workflow. Citation arrays remain empty unless another retrieval layer supplies sources; IRAC disclaimers explicitly require primary-source verification.
+- Perplexity is no longer selectable or invoked by this workflow. Its historical quota blocker below is no longer a requirement for IRAC.
+
 ## Update — 23 September 2026: authorised Perplexity connector
 
 - The user authorised the Perplexity connection. Application requests now use the connector-managed transport instead of the rejected legacy direct key, preserving the OpenAI-compatible request/response and citation contract.

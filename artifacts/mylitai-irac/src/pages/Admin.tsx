@@ -56,9 +56,9 @@ export default function Admin() {
   } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const [aiProvider, setAiProvider] = useState<AIProvider>("gemini");
+  const [aiProvider, setAiProvider] = useState<AIProvider>("openai");
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
-  const [perplexityAvailable, setPerplexityAvailable] = useState(false);
+  const [anthropicAvailable, setAnthropicAvailable] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState<string | null>(null);
   const [aiErr, setAiErr] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export default function Admin() {
         .then((s) => {
           setAiProvider(s.provider);
           setOpenaiAvailable(s.openaiConfigured);
-          setPerplexityAvailable(Boolean(s.perplexityConfigured));
+          setAnthropicAvailable(s.anthropicConfigured);
         })
         .catch(() => {});
     }
@@ -220,12 +220,12 @@ export default function Admin() {
             banking-litigation platform.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(["openai", "gemini", "perplexity"] as const).map((p) => {
+            {(["openai", "gemini", "anthropic"] as const).map((p) => {
               const meta = PARALEGALS[p];
               const disabled =
                 aiBusy ||
                 (p === "openai" && !openaiAvailable) ||
-                (p === "perplexity" && !perplexityAvailable);
+                (p === "anthropic" && !anthropicAvailable);
               const active = aiProvider === p;
               return (
                 <button

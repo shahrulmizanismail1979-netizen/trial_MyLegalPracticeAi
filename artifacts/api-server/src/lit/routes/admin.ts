@@ -10,7 +10,8 @@ import {
   setDefaultProvider,
   normalizeProvider,
   openaiConfigured,
-  perplexityConfigured,
+  anthropicConfigured,
+  isAIProvider,
 } from "../lib/aiProvider";
 import { isAdminCredential } from "../../lib/masterAccess";
 
@@ -131,14 +132,14 @@ router.post("/codes/restore", adminAuth, async (req, res) => {
 
 // ─── IRAC AI provider selection ───────────────────────────────────────────────
 // PUBLIC read: the IRAC client fetches the admin default to resolve which
-// provider to send on each request. (Returns Gemini if nothing is stored.)
+// provider to send on each request. (Returns OpenAI if nothing is stored.)
 router.get("/ai-provider", async (_req, res) => {
   try {
     const provider = await getDefaultProvider();
     return res.json({
       provider,
       openaiConfigured: openaiConfigured(),
-      perplexityConfigured: await perplexityConfigured(),
+      anthropicConfigured: anthropicConfigured(),
     });
   } catch (err) {
     logger.error({ err }, "Get AI provider error");
@@ -148,16 +149,19 @@ router.get("/ai-provider", async (_req, res) => {
 
 // Admin-only write: change the IRAC default provider.
 router.post("/ai-provider", adminAuth, async (req, res) => {
+  if (!isAIProvider(req.body?.provider)) {
+    return res.status(400).json({ error: "Select OpenAI, Gemini or Anthropic Claude" });
+  }
   const provider = normalizeProvider(req.body?.provider);
   if (provider === "openai" && !openaiConfigured()) {
     return res
       .status(400)
       .json({ error: "OPENAI_API_KEY is not configured on the server" });
   }
-  if (provider === "perplexity" && !(await perplexityConfigured())) {
+  if (provider === "anthropic" && !anthropicConfigured()) {
     return res
       .status(400)
-      .json({ error: "Perplexity connection is not available on the server" });
+      .json({ error: "Anthropic Claude is not configured on the server" });
   }
   try {
     await setDefaultProvider(provider);

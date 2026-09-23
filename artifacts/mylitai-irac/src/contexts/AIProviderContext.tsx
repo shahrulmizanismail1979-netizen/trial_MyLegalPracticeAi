@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import {
   getAdminAiProvider,
+  parseAIProvider,
   setApiProvider,
   type AIProvider,
 } from "@/lib/irac-api";
 
 type AIProviderContextValue = {
-  /** The provider actually used for requests (override → admin default → gemini). */
+  /** The provider actually used for requests (override → admin default → OpenAI). */
   provider: AIProvider;
   /** The admin-configured default (what is used when the user has no override). */
   adminDefault: AIProvider;
@@ -14,8 +15,8 @@ type AIProviderContextValue = {
   override: AIProvider | null;
   /** True when the server has an OPENAI_API_KEY configured. */
   openaiAvailable: boolean;
-  /** True when the server has a PERPLEXITY_API_KEY configured. */
-  perplexityAvailable: boolean;
+  /** True when the server has an ANTHROPIC_API_KEY configured. */
+  anthropicAvailable: boolean;
   /** Set (or clear, with null) the user's override. */
   setOverride: (p: AIProvider | null) => void;
 };
@@ -27,13 +28,17 @@ const STORAGE_KEY = "irac.aiProvider.override";
 function readOverride(): AIProvider | null {
   if (typeof window === "undefined") return null;
   const v = window.localStorage.getItem(STORAGE_KEY);
-  return v === "openai" || v === "gemini" || v === "perplexity" ? v : null;
+  const provider = parseAIProvider(v);
+  if (v !== null && provider === null) {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+  return provider;
 }
 
 export function AIProviderProvider({ children }: { children: ReactNode }) {
-  const [adminDefault, setAdminDefault] = useState<AIProvider>("gemini");
+  const [adminDefault, setAdminDefault] = useState<AIProvider>("openai");
   const [openaiAvailable, setOpenaiAvailable] = useState(false);
-  const [perplexityAvailable, setPerplexityAvailable] = useState(false);
+  const [anthropicAvailable, setAnthropicAvailable] = useState(false);
   const [override, setOverrideState] = useState<AIProvider | null>(() => readOverride());
 
   // Fetch the admin default once on mount.
@@ -44,21 +49,19 @@ export function AIProviderProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setAdminDefault(status.provider);
         setOpenaiAvailable(status.openaiConfigured);
-        setPerplexityAvailable(Boolean(status.perplexityConfigured));
+        setAnthropicAvailable(status.anthropicConfigured);
       })
       .catch(() => {
-        /* keep gemini default on failure */
+        /* keep the OpenAI default on failure */
       });
     return () => {
       active = false;
     };
   }, []);
 
-  // The effective provider: user override wins, else the admin default.
-  // If OpenAI isn't actually available on the server, never resolve to it.
-  let provider: AIProvider = override ?? adminDefault;
-  if (provider === "openai" && !openaiAvailable) provider = "gemini";
-  if (provider === "perplexity" && !perplexityAvailable) provider = "gemini";
+  // The effective provider is never silently changed based on availability.
+  // A selected but unavailable provider should produce an explicit server error.
+  const provider: AIProvider = override ?? adminDefault;
 
   // Keep the api client's module-level provider in sync with the resolved value.
   useEffect(() => {
@@ -75,7 +78,7 @@ export function AIProviderProvider({ children }: { children: ReactNode }) {
 
   return (
     <AIProviderContext.Provider
-      value={{ provider, adminDefault, override, openaiAvailable, perplexityAvailable, setOverride }}
+      value={{ provider, adminDefault, override, openaiAvailable, anthropicAvailable, setOverride }}
     >
       {children}
     </AIProviderContext.Provider>

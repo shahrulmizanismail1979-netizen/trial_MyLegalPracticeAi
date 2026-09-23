@@ -3,7 +3,7 @@ import type { AIProvider } from "@/lib/irac-api";
 // User-facing personas for the three AI engines. The underlying provider is
 // never surfaced to practitioners — they simply choose a "paralegal" whose
 // described strengths suit the task.
-// Paralegal 1 → OpenAI, Paralegal 2 → Gemini, Paralegal 3 → Perplexity.
+// Paralegal 1 → OpenAI, Paralegal 2 → Gemini, Paralegal 3 → Anthropic Claude.
 export interface ParalegalProfile {
   name: string;
   role: string;
@@ -28,12 +28,12 @@ export const PARALEGALS: Record<AIProvider, ParalegalProfile> = {
     weaknesses:
       "More measured and concise in style, and can take a little longer while it verifies its sources.",
   },
-  perplexity: {
+  anthropic: {
     name: "Paralegal 3",
-    role: "The investigator",
+    role: "The analyst",
     strengths:
-      "Built around live web search — every answer draws on current sources with linked references, strong for fast-moving areas and fact-finding across the open web.",
+      "Careful analysis of lengthy, complex material with clear explanations and nuanced reasoning — strong for reviewing documents and testing arguments.",
     weaknesses:
-      "Leans on what it finds online, so its drafting is plainer — pair it with Paralegal 1 when you need polished prose.",
+      "Does not guarantee live web research or source citations, so verify every authority against current primary sources before relying on it.",
   },
 };

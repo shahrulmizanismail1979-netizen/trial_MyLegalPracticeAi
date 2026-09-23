@@ -1,10 +1,10 @@
 ---
-name: Perplexity managed authentication
-description: Why Perplexity uses managed connector authentication rather than the legacy direct key.
+name: IRAC provider choice
+description: User-approved OpenAI default and Claude replacement, scoped to IRAC.
 ---
 
-Use the user-authorised managed Perplexity connection; do not restore direct-key precedence as part of a general OpenAI-provider refactor. Do not silently substitute another research provider.
+IRAC defaults to OpenAI, with Claude replacing the optional Perplexity choice and Gemini remaining available. Keep other portals' existing provider defaults unchanged.
 
-**Why:** The legacy direct credential was rejected. The user explicitly authorised the connector to replace that failing path. OpenAI's separate direct-key precedence decision does not apply to Perplexity.
+**Why:** On 2026-09-23 the user approved replacing Perplexity with Anthropic, but explicitly preferred OpenAI as default. This supersedes the earlier managed-Perplexity repair decision. The agreed scope was IRAC, not a global change to every portal.
 
-**How to apply:** Preserve explicit provider selection, citations and completion checks. Distinguish connection discovery from a successful live generation; a connected account can still lack provider credits.
+**How to apply:** Preserve valid personal overrides and later admin choices. Never silently select another provider on a generation failure. Claude/OpenAI text without retrieval must not be described as live-source-verified legal research.

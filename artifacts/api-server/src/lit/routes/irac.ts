@@ -597,16 +597,16 @@ async function streamGenerate(
     // grounding at all, so a grounded request on OpenAI is expected to return
     // no citations: surface a clear provider note rather than the severe
     // grounding-failure warning.
-    const openaiUngrounded = provider === "openai" && grounded;
+    const providerUngrounded = provider === "openai" || provider === "anthropic";
     const groundingWarning =
       provider === "gemini" && grounded && citationList.length === 0;
     let doneDisclaimer: string;
     if (groundingWarning) {
       doneDisclaimer =
         "⚠️ No live sources could be verified for this output — the model did not return grounded citations. Treat every case, statute and section named here as UNVERIFIED and confirm against primary sources before any use.";
-    } else if (openaiUngrounded) {
+    } else if (providerUngrounded) {
       doneDisclaimer =
-        "ℹ️ Generated with OpenAI, which has no live Google Search grounding — citations are drawn from the model's training data and may be outdated or inaccurate. A qualified Malaysian Advocate & Solicitor MUST verify every case, statute, section and form against primary sources before any use.";
+        `ℹ️ Generated with ${provider === "anthropic" ? "Anthropic Claude" : "OpenAI"}, without live web-search grounding in this workflow. Authorities may come from supplied material or model training data and may be outdated or inaccurate. A qualified Malaysian Advocate & Solicitor MUST verify every case, statute, section and form against primary sources before any use.`;
     } else {
       doneDisclaimer =
         disclaimer ||
