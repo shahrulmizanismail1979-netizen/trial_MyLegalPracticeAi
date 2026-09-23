@@ -3,7 +3,7 @@ export const home = {
     "home.hero.createdBy": "Created by",
     "home.hero.affiliation": "Faculty of Law, Universiti Kebangsaan Malaysia",
     "home.hero.intro":
-      "The intelligent chambers companion for advocates & solicitors — upload your case documents, surface the legal issues, and draft court-ready cause papers, every step grounded in verified, current Malaysian law.",
+      "Prepare the chronology, pleadings, evidence and relief sought; use the guided workspace to identify issues and produce an editable IRAC analysis or first draft. A practitioner must verify facts, citations, current rules, court level and registry requirements before relying on or filing any output.",
     "home.hero.explore": "Explore the Library",
     "home.hero.platformTag": "AI-Powered Legal Practice Platform",
 
@@ -19,18 +19,18 @@ export const home = {
     "home.how.eyebrow": "How to use · Quick start manual",
     "home.how.title": "From brief to cause paper in 5 steps",
     "home.how.subtitle":
-      "Follow the guide below — each step takes you from your raw file to a court-ready draft.",
+      "Bring complete, legible documents and clear instructions. Each step turns the file into a reviewable working draft—not a filing-ready substitute for checking facts, authorities, deadlines and the applicable Malaysian jurisdiction.",
 
     "home.step1.title": "Pick a Pathway",
-    "home.step1.caption": "Choose your court & cause of action.",
+    "home.step1.caption": "Identify court level, jurisdiction, parties, relief and procedural stage.",
     "home.step2.title": "Upload Documents",
-    "home.step2.caption": "Drop in the cause papers & evidence.",
+    "home.step2.caption": "Add the latest pleadings, orders, chronology, evidence and correspondence.",
     "home.step3.title": "Analyze & Surface Issues",
-    "home.step3.caption": "Grounded breakdown of any document, in IRAC.",
+    "home.step3.caption": "Produce a working IRAC issue map with factual gaps flagged for review.",
     "home.step4.title": "Drafting Studio",
-    "home.step4.caption": "Draft & file court-ready cause papers.",
+    "home.step4.caption": "Generate an editable first draft; verify form, citations and filing rules.",
     "home.step5.title": "Reply to the Other Side",
-    "home.step5.caption": "Upload their papers, draft your response.",
+    "home.step5.caption": "Compare against the latest opposing papers, instructions and deadlines.",
 
     "home.tools.eyebrow": "Beyond the five steps",
     "home.tools.title": "Tools that plug into your workflow",
@@ -56,7 +56,7 @@ export const home = {
     "home.hero.createdBy": "Dihasilkan oleh",
     "home.hero.affiliation": "Fakulti Undang-Undang, Universiti Kebangsaan Malaysia",
     "home.hero.intro":
-      "Rakan kamar pintar untuk peguam bela & peguam cara — muat naik dokumen kes anda, kenal pasti isu undang-undang, dan draf kertas kausa sedia mahkamah, setiap langkah berpaksikan undang-undang Malaysia yang disahkan dan terkini.",
+      "Sediakan kronologi, pliding, keterangan dan relif yang dipohon; gunakan ruang kerja berpandu untuk mengenal pasti isu serta menghasilkan analisis IRAC atau draf pertama yang boleh disunting. Pengamal mesti menyemak fakta, petikan, kaedah semasa, peringkat mahkamah dan kehendak pendaftar sebelum bergantung pada atau memfailkan output.",
     "home.hero.explore": "Terokai Perpustakaan",
     "home.hero.platformTag": "Platform Amalan Guaman Berkuasa AI",
 
@@ -72,18 +72,18 @@ export const home = {
     "home.how.eyebrow": "Cara guna · Panduan mula pantas",
     "home.how.title": "Daripada ringkasan kepada kertas kausa dalam 5 langkah",
     "home.how.subtitle":
-      "Ikuti panduan di bawah — setiap langkah membawa anda daripada fail mentah kepada draf sedia mahkamah.",
+      "Bawa dokumen yang lengkap dan jelas serta arahan yang tepat. Setiap langkah menghasilkan draf kerja untuk semakan—bukan pengganti semakan fakta, autoriti, tarikh akhir dan bidang kuasa Malaysia yang terpakai.",
 
     "home.step1.title": "Pilih Laluan",
-    "home.step1.caption": "Pilih mahkamah & kausa tindakan anda.",
+    "home.step1.caption": "Kenal pasti peringkat mahkamah, bidang kuasa, pihak, relif dan tahap prosiding.",
     "home.step2.title": "Muat Naik Dokumen",
-    "home.step2.caption": "Masukkan kertas kausa & keterangan.",
+    "home.step2.caption": "Tambah pliding, perintah, kronologi, keterangan dan surat-menyurat terkini.",
     "home.step3.title": "Analisis & Kenal Pasti Isu",
-    "home.step3.caption": "Pecahan terperinci mana-mana dokumen, dalam format IRAC.",
+    "home.step3.caption": "Hasilkan peta isu IRAC kerja dengan jurang fakta ditanda untuk semakan.",
     "home.step4.title": "Studio Drafan",
-    "home.step4.caption": "Draf & fail kertas kausa sedia mahkamah.",
+    "home.step4.caption": "Jana draf pertama yang boleh disunting; semak borang, petikan dan kaedah pemfailan.",
     "home.step5.title": "Balas Pihak Lawan",
-    "home.step5.caption": "Muat naik kertas mereka, draf jawapan anda.",
+    "home.step5.caption": "Bandingkan dengan kertas lawan, arahan dan tarikh akhir yang terkini.",
 
     "home.tools.eyebrow": "Selain lima langkah",
     "home.tools.title": "Alat yang menyokong aliran kerja anda",

@@ -59,7 +59,7 @@ export function WorkspaceDashboard() {
   const heading = framing?.heading ?? "Dashboard";
   const subtitle =
     framing?.tagline ??
-    "Welcome to your criminal law practice command center. Browse the reference library, launch AI tools, or search across all resources.";
+    "Prepare the charge, agreed and disputed facts, investigation papers available to you, procedural stage and next court date. Use the tools for a working issue map, evidence checklist or editable draft, then verify every fact, authority, statutory version, court direction and deadline before professional use.";
 
   const categories = [
     { name: "Theory Topics", count: stats?.topicsCount, icon: BookOpen, href: "/workspace/topics", color: "text-red-400" },
@@ -111,7 +111,7 @@ export function WorkspaceDashboard() {
           <Sparkles className="h-6 w-6 text-primary" />
           AI-Powered Tools
         </h2>
-        <p className="text-sm text-muted-foreground">11 intelligent assistants trained on Malaysian criminal law, procedure, evidence, and sentencing practice.</p>
+        <p className="text-sm text-muted-foreground">Choose a tool only after removing irrelevant personal data and defining whether you act for the defence or prosecution. Treat each result as a reviewable draft: compare it with the actual charge and record, test assumptions, check current Malaysian primary sources and confirm the requirements of the court hearing the matter.</p>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[
             { name: "AI Legal Research", desc: "Multi-turn chat for Malaysian criminal law questions with statute citations and case references", icon: Brain, href: "/workspace/ai/research", color: "text-red-400" },

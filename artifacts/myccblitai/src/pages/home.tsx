@@ -106,7 +106,7 @@ export default function Home() {
           <div className="container mx-auto">
             <div className="text-center mb-16 md:mb-24">
               <h2 className="text-3xl md:text-5xl font-serif font-bold mb-6">The Three Pillars of Practice</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Built around the core domains of Malaysian corporate and commercial law, providing specialized analytical tools for each vertical.</p>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Start with a dated chronology, the complete pleadings or facility and corporate documents, the parties' positions, relief sought and next deadline. Each pillar produces a working issue map, risk checklist or editable draft for counsel to reconcile against the record and verify under the governing law, current court rules and registry practice.</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -114,17 +114,17 @@ export default function Home() {
                 {
                   title: "Corporate Litigation",
                   icon: Building,
-                  desc: "Tools for shareholder disputes, derivative actions, winding up, and directors' breach of fiduciary duties under the Companies Act 2016."
+                   desc: "Provide the constitution, registers, resolutions, ownership history, challenged conduct and relief sought. Review the resulting issues and draft against the complete company record, current legislation and the court's jurisdiction."
                 },
                 {
                   title: "Commercial Litigation",
                   icon: Briefcase,
-                  desc: "Contractual disputes, commercial fraud, torts, and complex cross-border commercial claims analysis and drafting."
+                   desc: "Provide the full contract and schedules, communications, performance chronology, loss evidence and governing-law clause. Use the output as an editable claim or defence map, then test every assumption, remedy and cross-border point."
                 },
                 {
                   title: "Banking Litigation",
                   icon: Landmark,
-                  desc: "Debt recovery, foreclosure, bankruptcy, and specialized Islamic banking dispute resolution frameworks."
+                   desc: "Provide executed facilities, securities, statements, notices, payment history and enforcement stage. Reconcile figures and documents, then verify notice, forum, insolvency and enforcement requirements before action."
                 }
               ].map((pillar, i) => (
                 <div key={i} className="p-8 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-colors group">

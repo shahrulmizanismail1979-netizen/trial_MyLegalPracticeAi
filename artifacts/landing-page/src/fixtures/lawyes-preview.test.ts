@@ -214,6 +214,22 @@ describe("LAWYes preview fixture", () => {
       expect(source).not.toMatch(forbiddenUserFacingTerms);
     }
   });
+  it("gives every public tool concrete inputs, outputs, examples, and review guidance", () => {
+    for (const capability of PUBLIC_CAPABILITY_REGISTRY) {
+      expect(capability.requiredInputs.length).toBeGreaterThanOrEqual(2);
+      expect(capability.outputTypes.length).toBeGreaterThanOrEqual(2);
+      expect(capability.examples.length).toBeGreaterThanOrEqual(2);
+      expect(capability.verification).toMatch(/review|verify|check|verification/i);
+      expect(capability.description.length).toBeGreaterThan(50);
+    }
+  });
+  it("uses practice-specific onboarding rather than generic centre copy", () => {
+    expect(new Set(PRACTICE_CENTRES.map((centre) => centre.workflowStages[0])).size).toBe(PRACTICE_CENTRES.length);
+    for (const centre of PRACTICE_CENTRES) {
+      expect(centre.suitableFor.join(" ")).toMatch(/record|mapping|preparing|checklist|questions/i);
+      expect(centre.examples[0]).toMatch(/do not/i);
+    }
+  });
   it("keeps the LAWYes navigation rail light and readable", () => {
     const css = readFileSync(fileURLToPath(new URL("../index.css", import.meta.url)), "utf8");
     expect(css).toContain("--lawyes-sidebar: 214 24% 95%");

@@ -245,9 +245,10 @@ export default function LandingPage() {
                 </span>
               </h2>
               <p className="text-lg text-white/80">
-                You aren't buying generic software. You're partnering with us to
-                build practical AI tools that actually work for local practice
-                in Sarawak.
+                Bring anonymised workflow examples, the inputs your team actually
+                receives, the output it needs and the review checkpoints it applies.
+                Together we can test practical tools for Sarawak practice without
+                treating prototypes as verified legal guidance.
               </p>
             </div>
 
@@ -260,9 +261,10 @@ export default function LandingPage() {
                   Sarawak-Specific Workflows
                 </h3>
                 <p className="text-white/70">
-                  Help us map out the exact procedures and processes you deal
-                  with daily in the High Court of Sabah and Sarawak. We build
-                  the automation; you guide the logic.
+                  Map the trigger, required documents, responsible role, hand-offs,
+                  expected output and exception paths. Your team then reviews the
+                  prototype against current High Court of Sabah and Sarawak directions,
+                  registry practice and the facts of each matter.
                 </p>
               </div>
 
@@ -274,9 +276,10 @@ export default function LandingPage() {
                   Your Firm's Templates
                 </h3>
                 <p className="text-white/70">
-                  Work directly with our engineers to teach the AI how to draft
-                  documents that match your firm's specific house style and
-                  formatting preferences.
+                  Supply approved, anonymised examples plus formatting rules and
+                  mandatory clauses. Outputs remain editable prototypes: compare them
+                  with the source file, check names and dates, and complete lawyer
+                  review before advice, signature or filing.
                 </p>
               </div>
 
@@ -288,9 +291,10 @@ export default function LandingPage() {
                   Direct Product Influence
                 </h3>
                 <p className="text-white/70">
-                  Get a direct line to our product team. What frustrates you
-                  most about your current workflow? Tell us, and watch it become
-                  a feature.
+                  Report the real input, desired output, failure mode and acceptance
+                  test—not only the frustration. Product feedback shapes priorities;
+                  it does not verify an authority, legal position or jurisdictional
+                  requirement.
                 </p>
               </div>
             </div>

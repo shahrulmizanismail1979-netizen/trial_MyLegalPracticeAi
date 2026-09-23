@@ -96,8 +96,8 @@ export function SkillsView({
             <h1 className="font-serif text-2xl font-bold text-foreground">LAWYes Tools</h1>
           </div>
           <p className="mb-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            Find the right LAWYes tool for your legal task. Search by what you need to do, or browse by practice area.
-              Demonstration tools can be tried here. Live tools open their dedicated LAWYes specialist service.
+            Find a tool by task or practice area, then check the information it needs, the work it produces, and what a practitioner must review.
+            Demonstration tools can be tried here; live tools open their dedicated specialist service.
           </p>
 
           <div className="mt-6 grid gap-3 md:grid-cols-[1fr_240px]">
@@ -187,13 +187,17 @@ export function SkillsView({
                             {capability.outputTypes.map((output) => <li key={output} className="flex gap-2 text-sm"><span className="text-secondary">•</span>{output}</li>)}
                           </ul>
                         </section>
+                        <section>
+                          <h3 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Before you rely on it</h3>
+                          <p className="text-sm leading-relaxed text-foreground/80">{capability.verification}</p>
+                        </section>
                       </div>
 
                       <div className="space-y-4">
                         <section className="rounded-lg border border-[#c7d0ca] bg-[#f8faf7] p-4">
                           <h3 className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#19514b]">Important</h3>
                           <p className="text-sm leading-relaxed text-[#425351]">
-                            LAWYes provides legal support tools, not legal advice. Review generated work and source material before relying on it.
+                             Treat each result as working material, not legal advice or a filing-ready document. Compare facts with the client file, open cited primary sources, confirm current law and procedure, and record the reviewing practitioner.
                           </p>
                         </section>
                         {capability.workspaceDestination ? (
@@ -248,6 +252,26 @@ export function SkillsView({
               <p className="text-sm">Try another task or practice area.</p>
             </div>
           )}
+
+          <section className="mt-8 rounded-xl border border-border bg-white p-6 shadow-sm" aria-labelledby="tools-help-heading">
+            <h2 id="tools-help-heading" className="font-serif text-xl font-semibold text-foreground">Using LAWYes tools safely</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              A useful instruction identifies the jurisdiction, task, relevant dates, parties, known facts, disputed facts, and the document or source for each important fact. Remove unnecessary personal data before adding material.
+            </p>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {[
+                ["Can I use an output as filed work?", "No. Check the correct court or agency, current form, rules, dates, names, exhibits, citations, and requested relief before a practitioner approves or files anything."],
+                ["What if a citation or source cannot be opened?", "Do not rely on it. Mark it unresolved, locate the primary source through an official gateway, and verify the text, date, court, paragraph and subsequent treatment."],
+                ["What should I keep with the reviewed result?", "Keep the instruction, source copies or links, access dates, unresolved questions, material edits, and the name and date of practitioner review."],
+                ["Where should confidential documents go?", "Use the authenticated matter workspace or the relevant specialist service. This public demonstration does not save a confidential matter or provide secure binary-document analysis."],
+              ].map(([question, answer]) => (
+                <details key={question} className="rounded-lg border border-border bg-muted/10 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-foreground">{question}</summary>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </div>

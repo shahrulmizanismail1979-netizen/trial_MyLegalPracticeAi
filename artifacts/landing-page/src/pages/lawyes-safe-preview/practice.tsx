@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Gavel, ShieldCheck, Landmark, BookOpen, FileText, Briefcase, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { PRACTICE_CENTRES, COVERAGE, AUDIT, CHECKLISTS, DECISION_TREES, RESOURCES, PLAYBOOKS } from "@/fixtures/lawyes-preview";
+import { PRACTICE_CENTRES, COVERAGE, AUDIT, CHECKLISTS, DECISION_TREES, PLAYBOOKS } from "@/fixtures/lawyes-preview";
 import type { RouterState } from "./use-router-state";
 import { SourceBadge, Provenance } from "./shared";
 
@@ -25,6 +25,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
           <div className="mb-10 text-center max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl font-serif text-foreground mb-4">Malaysia Practice &amp; State Sources</h1>
             <p className="text-lg text-foreground/70 leading-relaxed">Navigate Malaysian legal work nationwide, with jurisdiction-specific source paths and safeguards. Sarawak land, NCR and Native Law remain clearly identified specialist pathways.</p>
+            <p className="mt-3 text-sm text-muted-foreground">Choose a centre to see the facts and records to collect, a source-checking sequence, available working templates, and issues that require registry or practitioner confirmation.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -55,7 +56,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
 
           <div className="mt-16 bg-white border border-border rounded-xl p-6 md:p-8 flex flex-col items-center text-center">
             <h3 className="font-serif text-xl mb-2">Practice Centre source review</h3>
-            <p className="text-sm text-muted-foreground max-w-2xl mb-6">Every path remains verification-required and is not a completeness claim. No access record is upgraded without source, paragraph and human checks.</p>
+            <p className="text-sm text-muted-foreground max-w-2xl mb-6">Every path remains verification-required and is not a completeness claim. A gateway being available does not confirm that a rule, form, deadline, fee, or judgment is current or applicable to a matter.</p>
             <div className="flex flex-wrap justify-center gap-6">
               <div className="text-center">
                 <span className="block text-3xl font-serif text-primary mb-1">{COVERAGE.length}</span>
@@ -163,7 +164,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
           </div>
 
           <div className="p-6 bg-muted/20">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Workflow Stages</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Start-to-review workflow</h4>
             <div className="flex flex-wrap gap-2 md:gap-4">
               {centre.workflowStages.map((stage, i) => (
                 <div key={i} className="flex items-center gap-2 md:gap-4">
@@ -253,7 +254,7 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
           <AccordionHeader id="checklists" title="Checklists & Decision Trees" count={centreChecklists.length + centreTrees.length} />
           {expandedSection === "checklists" && (
             <div className="p-6 bg-background animate-in slide-in-from-top-2 duration-200">
-              <p className="text-sm text-muted-foreground mb-6">Procedural aides intended for orientation. Do not calculate deadlines, rights, or outcomes from these guides.</p>
+              <p className="text-sm text-muted-foreground mb-6">Use these aids to identify missing facts and the next verification action. They do not calculate deadlines, select a forum, determine rights, or predict outcomes.</p>
 
               {hasChecklists ? (
                 <div className="grid md:grid-cols-2 gap-6">
@@ -264,8 +265,10 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
                         <div key={c.id} className="bg-white border border-border p-4 rounded-lg">
                           <strong className="block text-sm mb-2">{c.title}</strong>
                           <ul className="space-y-1">
-                            {c.items.slice(0,3).map((item, i) => <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5"><span className="text-secondary font-bold shrink-0 mt-0.5">&middot;</span> {item}</li>)}
+                            {c.items.map((item, i) => <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5"><span className="text-secondary font-bold shrink-0 mt-0.5">&middot;</span> {item}</li>)}
                           </ul>
+                          <p className="mt-3 border-t border-border pt-3 text-xs font-medium text-amber-800">{c.deadlineNote}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">{c.practitionerReviewWarning}</p>
                         </div>
                       ))}
                     </div>
@@ -277,8 +280,10 @@ export function PracticeView({ state, updateState, navigate }: { state: RouterSt
                         <div key={c.id} className="bg-white border border-border p-4 rounded-lg">
                           <strong className="block text-sm mb-2">{c.title}</strong>
                           <ul className="space-y-1">
-                            {c.questions.slice(0,3).map((item, i) => <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5"><span className="text-secondary font-bold shrink-0 mt-0.5">?</span> {item}</li>)}
+                            {c.questions.map((item, i) => <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5"><span className="text-secondary font-bold shrink-0 mt-0.5">?</span> {item}</li>)}
                           </ul>
+                          <p className="mt-3 border-t border-border pt-3 text-xs font-medium text-amber-800">{c.disclaimer}</p>
+                          <p className="mt-2 text-xs text-muted-foreground">{c.practitionerReviewWarning}</p>
                         </div>
                       ))}
                     </div>

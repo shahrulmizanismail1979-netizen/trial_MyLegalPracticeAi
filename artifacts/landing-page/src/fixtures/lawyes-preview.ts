@@ -456,6 +456,39 @@ export const DECISION_TREES: readonly DecisionTree[] = Object.freeze(([
 ] as any).map(enrichDecisionTree));
 
 
+const practiceGuidance: Record<string, Pick<PracticeCentre, "suitableFor" | "workflowStages" | "examples">> = {
+  "civil-litigation": {
+    suitableFor: ["Mapping pleaded and disputed facts to supporting records.", "Preparing a source, deadline and cause-paper review list for counsel."],
+    workflowStages: ["Record parties, capacity, relief and material dates.", "Separate pleaded facts, evidence and assumptions.", "Check the current court, rules, directions and primary authorities.", "Confirm limitation, filing, service and form requirements with counsel."],
+    examples: ["Example: list affidavit facts that need an exhibit and authorities that need current-treatment checks; do not conclude that an application is procedurally valid."],
+  },
+  "criminal-litigation": {
+    suitableFor: ["Recording the charge, custody position, next date and evidence gaps.", "Preparing chronology, exhibit and hearing-readiness questions for counsel."],
+    workflowStages: ["Transcribe the charge and court details from the current record.", "Record custody, next date, instructions and evidence sources.", "Check current legislation, procedure and relied-on authorities.", "Escalate liberty or urgency issues and obtain counsel review."],
+    examples: ["Example: organise a charge chronology and list missing court-file documents; do not predict bail, sentence or outcome."],
+  },
+  "conveyancing-land": {
+    suitableFor: ["Building a title, party, instrument, consent and search checklist.", "Recording state-specific questions before transaction drafting."],
+    workflowStages: ["Record title identifiers, parties, capacity and transaction objective.", "Obtain current searches, plans, instruments and consent records.", "Check the applicable state law, land category and registry requirements.", "Resolve title, fee, tax, consent and execution questions with the responsible practitioner."],
+    examples: ["Example: identify records needed for a stated title and transaction; do not infer ownership, land category, consent or validity."],
+  },
+  "ncr-native-law": {
+    suitableFor: ["Identifying an expressly raised NCR or Native Law issue and missing evidence.", "Preparing focused questions for a Sarawak practitioner or relevant registry."],
+    workflowStages: ["Record the asserted right, community, location and title details without reclassification.", "List oral, documentary, map and registry evidence said to support it.", "Locate the applicable Sarawak sources and current official records.", "Obtain specialist review of jurisdiction, evidence and legal effect."],
+    examples: ["Example: prepare an evidence and source request list for an asserted NCR issue; do not determine NCR status or customary-law effect."],
+  },
+  "probate-estates": {
+    suitableFor: ["Recording death, relationship, will, asset and representation details.", "Preparing a document and jurisdiction checklist for estate review."],
+    workflowStages: ["Record the deceased, relevant dates, family and any will exactly as supplied.", "List assets, liabilities, grants, caveats and missing originals.", "Check the applicable succession law, court or registry and current forms.", "Have a practitioner confirm capacity, entitlement, procedure and deadlines."],
+    examples: ["Example: organise the documents needed to review an estate; do not determine validity of a will, beneficiary entitlement or distribution."],
+  },
+  "professional-practice": {
+    suitableFor: ["Separating client instructions, undertakings and file evidence.", "Preparing supervision, conflict, confidentiality and deadline questions."],
+    workflowStages: ["Define the client, scope, responsible practitioner and instruction source.", "Record conflicts, confidentiality, undertakings and material dates.", "Check current professional rules, court directions and firm controls.", "Document supervision, approvals, unresolved risk and the final reviewer."],
+    examples: ["Example: create a file-closing or supervision question list; do not treat association guidance as binding law or proof of compliance."],
+  },
+};
+
 export const PRACTICE_CENTRES: readonly PracticeCentre[] = Object.freeze([
   ["civil-litigation", "Civil Litigation", ["civil", "public"]],
   ["criminal-litigation", "Criminal Litigation", ["criminal"]],
@@ -471,15 +504,16 @@ export const PRACTICE_CENTRES: readonly PracticeCentre[] = Object.freeze([
     : id === "conveyancing-land"
       ? "Malaysia-wide practice area. The current state-source examples emphasize Sarawak land pathways and must not be generalized to other states."
       : "Malaysia-wide practice area. Current preview records are illustrative and are not a completeness claim for every court, state, or territory.";
+  const guidance = practiceGuidance[id as string];
   return {
     id: id as string, name: name as string, jurisdiction, scopeNote,
     overview: jurisdiction === "Sarawak"
       ? `${name} is a Sarawak specialist workspace for finding applicable sources, recording instructions, and routing practitioner verification.`
       : `${name} is a Malaysia-wide orientation workspace for finding sources, recording instructions, and routing jurisdiction-specific verification.`,
-    suitableFor: ["Building a source-and-document checklist.", "Preparing questions for practitioner or registry review."],
+    suitableFor: guidance.suitableFor,
     limits: ["It is not legal advice and does not determine rights, procedure, forum, deadline, or outcome.", "Coverage paths are not a completeness claim."],
-    workflowStages: ["Record instructions and client reference.", "Locate the relevant gateway and underlying item.", "Verify currency, provenance, and applicability.", "Record gaps and obtain practitioner review."],
-    examples: [`Example: use the ${name} path to list records to obtain; do not treat the list as an authoritative answer.`],
+    workflowStages: guidance.workflowStages,
+    examples: guidance.examples,
     sourceNotes: rows.map((row) => `${row.label}: ${sourceName(row.sourceId)} gateway; ${row.coverageNote}`),
     gapNotices: rows.map((row) => `${row.label}: substantive content remains withheld pending item-level verification.`),
     updatedOn: "30 August 2026", verificationStatus: "Verification required",

@@ -5,27 +5,27 @@ const steps = [
   {
     icon: UserPlus,
     title: "Access Platform",
-    desc: "Login to your secure practitioner workspace."
+    desc: "Sign in, open the correct matter and confirm who you act for, the accident date, forum and next deadline."
   },
   {
     icon: Search,
     title: "Search & Research",
-    desc: "Query the AI for cases and legal principles."
+    desc: "Prepare the police report, chronology, liability evidence, medical records, earnings proof and complete special-damages documents."
   },
   {
     icon: FileEdit,
     title: "Generate Documents",
-    desc: "Draft precise cause papers and letters."
+    desc: "Generate an editable liability analysis, evidence checklist, correspondence or first draft—not a filing-ready document."
   },
   {
     icon: Calculator,
     title: "Calculate Damages",
-    desc: "Assess general and special damages instantly."
+    desc: "Produce an indicative damages schedule, then reconcile every figure, date, receipt, treatment item and assumption."
   },
   {
     icon: PlayCircle,
     title: "Follow Workflows",
-    desc: "Track case progress from intake to trial."
+    desc: "Review with the client record and verify limitation, procedure, authorities, medical evidence and court or registry requirements for the applicable Malaysian jurisdiction."
   }
 ];
 
@@ -39,7 +39,7 @@ export function HowItWorks() {
         <div className="text-center max-w-3xl mx-auto mb-20">
           <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">How It Works</h2>
           <p className="text-muted-foreground text-lg">
-            A seamless integration of legal research, drafting, and case management designed for the modern practitioner.
+            Move from complete source materials to a reviewable working output. Keep originals available and apply practitioner judgment before advice, negotiation or filing.
           </p>
         </div>
 

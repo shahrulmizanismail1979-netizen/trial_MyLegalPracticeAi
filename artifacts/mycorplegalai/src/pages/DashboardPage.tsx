@@ -116,7 +116,7 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground">
                 {role
                   ? PERSONA_DASHBOARD_FRAMING[role].tagline
-                  : "Corporate matter management · AI-powered practice"}
+                  : "Prepare the transaction or dispute chronology, entities, governing documents, approvals, obligations and deadlines. Tools produce editable issue lists and first drafts; review assumptions, source documents, execution formalities and the applicable Malaysian or foreign governing law before use."}
               </p>
             </div>
           </div>
@@ -265,10 +265,10 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { href: "/tools/legal-opinion", label: "Legal Opinion", desc: "Draft opinions & advice letters" },
-              { href: "/tools/dd-report", label: "DD Report", desc: "Due diligence reports" },
-              { href: "/tools/contract-review", label: "Contract Review", desc: "Analyse contracts for risk" },
-              { href: "/tools/board-resolution", label: "Resolutions", desc: "Board & shareholder resolutions" },
+              { href: "/tools/legal-opinion", label: "Legal Opinion", desc: "Add facts, question and governing law; review the editable advice draft and cited sources" },
+              { href: "/tools/dd-report", label: "DD Report", desc: "Provide scope and complete data-room records; reconcile exceptions and missing documents" },
+              { href: "/tools/contract-review", label: "Contract Review", desc: "Provide full agreement, schedules and commercial position; verify clause and jurisdiction risks" },
+              { href: "/tools/board-resolution", label: "Resolutions", desc: "Provide entity, constitution and approvals; check authority, quorum and execution formalities" },
             ].map((t) => (
               <Link key={t.href} href={t.href}>
                 <Card className="hover:border-primary/40 transition-colors cursor-pointer h-full">

@@ -40,7 +40,7 @@ const steps = [
     num: '03',
     icon: LayoutDashboard,
     title: 'Explore the Dashboard',
-    description: 'Access 6 comprehensive reference sections covering substantive law, conveyancing workflows, statutory forms, landmark cases, costs & fees, and legal terminology.',
+    description: 'Before opening a tool, assemble the complete SPA or facility, title and search results, party details, transaction type, acting capacity, key dates, state and land-office location.',
     color: 'text-amber-400',
     bg: 'bg-amber-500/10',
     border: 'border-amber-500/20',
@@ -49,7 +49,7 @@ const steps = [
     num: '04',
     icon: Brain,
     title: 'Use 39 AI-Powered Tools',
-    description: 'Select any AI tool from the dashboard — from document drafting to compliance checking — all powered by advanced AI tailored for Malaysian conveyancing law.',
+    description: 'Select the tool that matches the intended output: issue list, clause review, checklist, calculation or editable draft. Reconcile the result against the source documents and client instructions, then verify current state rules, consent thresholds, tax treatment, prescribed forms and land-office practice before use.',
     color: 'text-violet-400',
     bg: 'bg-violet-500/10',
     border: 'border-violet-500/20',
@@ -394,7 +394,7 @@ export function Home() {
               How To Use MyConveyLitAI
             </h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Access requires a valid account. Follow these steps to get started with the platform.
+              Follow the steps from secure access to prepared inputs, a clearly defined working output and practitioner review. Conveyancing requirements vary by transaction, state authority and land office.
             </p>
           </motion.div>
 

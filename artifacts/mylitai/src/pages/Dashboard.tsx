@@ -111,7 +111,7 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <PageHeader 
         title={framing ? framing.heading : "Dashboard Overview"} 
-        description={framing ? framing.tagline : "Welcome to MyLitAi. Access your primary modules below or use the AI Senior Counsel for immediate guidance."}
+        description={framing ? framing.tagline : "Start with the matter chronology, parties, relief sought, current pleadings and next deadline. Use the modules to produce a working checklist or first draft, then review every fact, citation, rule version and filing requirement against the applicable Malaysian court and registry before use."}
         action={role ? <Badge variant="secondary">{PERSONA_LABELS[role]}</Badge> : undefined}
       />
 
@@ -124,7 +124,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="font-serif font-bold text-lg text-primary">Your Online LA — Work by Matter</p>
-              <p className="text-sm text-muted-foreground mt-1">Pick the file you are handling — Civil Litigation, Insolvency, Banking &amp; Recovery or Enforcement — and get its workflow, checklist, cause papers and AI drafting on one page.</p>
+              <p className="text-sm text-muted-foreground mt-1">Pick the file you are handling and bring the latest orders, pleadings, correspondence, chronology and deadline instructions. The workspace organises a workflow, evidence checklist and editable draft; confirm client instructions, authorities, limitation dates, court level and registry practice before filing.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {['Civil Litigation', 'Insolvency', 'Banking & Recovery', 'Enforcement'].map(a => (

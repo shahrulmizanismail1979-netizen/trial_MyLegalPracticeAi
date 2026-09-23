@@ -311,7 +311,7 @@ export default function ExaminerDashboard() {
             icon: <Sparkles className="w-6 h-6" />,
             body: (
               <>
-                <p>This is your studio. Every exam template you author lives here, with attempts, leaderboard, and trust scores.</p>
+                <p>This is your studio. Before authoring, prepare the learning outcomes, candidate level, permitted materials, duration, marking standard and jurisdiction or syllabus version. Every exam template lives here with attempts, leaderboard and trust scores.</p>
                 <p className="text-muted-foreground">Tip: tap <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-xs">→</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-xs">←</kbd> to navigate. Click anywhere outside to skip.</p>
               </>
             ),
@@ -330,8 +330,8 @@ export default function ExaminerDashboard() {
             accentClass: "bg-purple-500/10 border-purple-500/30 text-purple-300",
             body: (
               <>
-                <p>Describe the exam in plain language and let AI draft sections, questions, and rubric weights for you.</p>
-                <p>Edit anything — the blueprint is a starting point you remain in control of.</p>
+                <p>Describe the outcomes, topic boundaries, difficulty, question formats and marks allocation so AI can draft sections, questions and rubric weights.</p>
+                <p>The blueprint is an editable starting point. Review ambiguity, accessibility, answerability, mark totals, source accuracy and alignment with the current syllabus or applicable jurisdiction before opening the exam.</p>
               </>
             ),
           },
@@ -361,7 +361,7 @@ export default function ExaminerDashboard() {
             body: (
               <>
                 <p>Click any template card to see attempts, AI-graded scores, trust scores, and per-question heatmaps.</p>
-                <p>The global <strong>Leaderboard</strong> ranks top performers across every exam you've authored.</p>
+                <p>Moderate sampled scripts, investigate flags in context and confirm rubric application before releasing or relying on results. The global <strong>Leaderboard</strong> ranks top performers across every exam you've authored.</p>
               </>
             ),
           },

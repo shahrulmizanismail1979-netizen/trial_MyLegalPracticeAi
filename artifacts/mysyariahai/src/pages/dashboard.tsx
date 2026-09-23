@@ -148,7 +148,7 @@ export default function DashboardPage() {
                   {t("How to Use MySyariahAI", "Cara Menggunakan MySyariahAI")}
                 </h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t("Step-by-step guide to all platform features", "Panduan langkah demi langkah untuk semua ciri platform")}
+                  {t("Prepare the right inputs, understand each output, and complete the required practitioner review", "Sediakan input yang betul, fahami setiap output, dan lengkapkan semakan pengamal yang diperlukan")}
                 </p>
               </div>
             </div>
@@ -321,8 +321,8 @@ export default function DashboardPage() {
                     icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                     title={t("Case Workspace (start here)", "Ruang Kerja Kes (mula di sini)")}
                     desc={t(
-                      "Enter your case facts once and AI runs the three core analyses together — cross-references, case strength & prediction, and a draft legal opinion. Replaces running the separate analyser tools one by one.",
-                      "Masukkan fakta kes anda sekali dan AI menjalankan tiga analisis teras serentak — rujukan silang, kekuatan & ramalan kes, dan draf pendapat undang-undang. Menggantikan penggunaan alat analisis berasingan satu demi satu."
+                      "Prepare a dated chronology, parties, relief sought, procedural stage, available orders and evidence. The workspace produces cross-references, an indicative issue-and-risk analysis and an editable opinion draft. Review factual gaps and verify every source, current state enactment, court level, form and local filing requirement before use.",
+                      "Sediakan kronologi bertarikh, pihak, relif yang dipohon, tahap prosiding, perintah dan keterangan yang tersedia. Ruang kerja menghasilkan rujukan silang, analisis isu dan risiko indikatif serta draf pendapat yang boleh disunting. Semak jurang fakta dan sahkan setiap sumber, enakmen negeri semasa, peringkat mahkamah, borang dan kehendak pemfailan tempatan sebelum digunakan."
                     )}
                     color="text-yellow-300"
                     highlight

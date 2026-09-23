@@ -214,7 +214,7 @@ const en: Dict = {
 
   // Dashboard page
   "dashboard.title": "Manager Dashboard",
-  "dashboard.subtitle": "System-wide metrics and team velocity.",
+  "dashboard.subtitle": "Review urgent and stale work against the client file, owner, last update and actual deadline. Use these metrics to plan follow-up—not as a substitute for the court diary, governing jurisdiction or responsible lawyer's review.",
   "dashboard.unack": "Unacknowledged",
   "dashboard.unack.caption": "Urgent & unseen",
   "dashboard.stale": "Stale Tasks",
@@ -1374,7 +1374,7 @@ const ms: Dict = {
 
   // Dashboard page
   "dashboard.title": "Papan Pemuka Pengurus",
-  "dashboard.subtitle": "Metrik seluruh sistem dan kelajuan pasukan.",
+  "dashboard.subtitle": "Semak kerja segera dan terbengkalai dengan fail klien, pemilik, kemas kini terakhir dan tarikh akhir sebenar. Gunakan metrik ini untuk merancang tindakan susulan—bukan sebagai ganti diari mahkamah, bidang kuasa terpakai atau semakan peguam bertanggungjawab.",
   "dashboard.unack": "Belum Diperakui",
   "dashboard.unack.caption": "Segera & belum dilihat",
   "dashboard.stale": "Tugas Terbengkalai",

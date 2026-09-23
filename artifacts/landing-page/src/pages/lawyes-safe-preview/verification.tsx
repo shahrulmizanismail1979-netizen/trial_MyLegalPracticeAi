@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, CheckCircle, ShieldAlert, FileSearch, History,
 import { SOURCES, AUDIT } from "@/fixtures/lawyes-preview";
 import type { RouterState } from "./use-router-state";
 import { SourceBadge } from "./shared";
+import { LegalReferenceGuide } from "@/components/legal-reference-guide";
 
 export function VerificationView({ navigate }: { navigate: (view: "home") => void }) {
   const [selectedSource, setSelectedSource] = useState(SOURCES[0]?.id || "");
@@ -24,6 +25,8 @@ export function VerificationView({ navigate }: { navigate: (view: "home") => voi
             <div className="text-sm font-medium">{AUDIT.reviewedOn} &middot; {AUDIT.sourcesReviewed} sources reviewed</div>
           </div>
         </div>
+
+        <LegalReferenceGuide />
 
         <div className="grid md:grid-cols-3 gap-6 h-[calc(100vh-180px)] min-h-[500px]">
           <div className="md:col-span-1 space-y-2 overflow-y-auto pr-2 no-scrollbar h-full">

@@ -92,6 +92,7 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
           </button>
           <h1 className="text-3xl md:text-4xl font-serif text-foreground leading-tight mb-2">Matter Workspace</h1>
           <p className="text-foreground/70">{MATTER_WORKFLOW.localOnlyNotice}</p>
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">This public workspace creates a review manifest: an internal reference, purpose, selected research records, source links, and known verification gaps. For persistent confidential files, conversations and outputs, sign in to My Matters.</p>
         </div>
 
         {step === 1 && (
@@ -99,6 +100,9 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
             <div className="md:col-span-3 space-y-6">
               <div className="bg-white border border-border shadow-sm rounded-xl p-6 md:p-8">
                 <h2 className="text-xl font-serif text-foreground mb-6">Matter Details</h2>
+                <div className="mb-6 rounded-lg border border-border bg-muted/20 p-4 text-sm leading-relaxed text-muted-foreground">
+                  Use non-sensitive internal references where possible. State the precise research or drafting question, identify the jurisdiction and relevant date, and distinguish client instructions from facts supported by a document.
+                </div>
 
                 <div className="space-y-5">
                   <div>
@@ -211,6 +215,7 @@ export function MatterView({ state, updateState, navigate }: { state: RouterStat
               <div>
                 <strong className="block text-base mb-1">Workspace Local Manifest Generated</strong>
                 <p>This manifest is local to your browser session. It has not been saved to any server.</p>
+                <p className="mt-1">Before handoff, open each source, confirm currency and applicability, identify missing documents, and record practitioner review outside this demonstration.</p>
               </div>
             </div>
 

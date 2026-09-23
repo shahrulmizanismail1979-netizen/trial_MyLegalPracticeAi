@@ -127,13 +127,16 @@ export function DraftView({ state, updateState, navigate }: { state: RouterState
             <ArrowLeft size={16} /> Back to Home
           </button>
           <h1 className="text-3xl md:text-4xl font-serif text-foreground leading-tight">Drafting Studio</h1>
-          <p className="mt-2 text-foreground/70">Select a workflow pack to generate a practitioner-review template based on verified logic paths.</p>
+          <p className="mt-2 max-w-3xl text-foreground/70">Select a working pack, enter only known instructions, and acknowledge its safeguards. The result organises an intake record, source manifest, open questions, risks and drafting headings; it is not a prescribed form or completed cause paper.</p>
         </div>
 
         {/* Step 1: Select Playbook */}
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h2 className="text-xl font-medium text-foreground mb-4">Select a practitioner pack</h2>
+            <div className="rounded-lg border border-border bg-white p-4 text-sm text-muted-foreground">
+              <strong className="text-foreground">Before you start:</strong> have the internal matter reference, exact party or charge details, relevant dates, the requested task, and supporting records ready. Enter “Not stated” rather than filling a gap with an assumption.
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               {PLAYBOOKS.map(pack => (
                 <button
@@ -165,6 +168,7 @@ export function DraftView({ state, updateState, navigate }: { state: RouterState
               <div className="p-6 md:p-8 space-y-10">
                 <section>
                   <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-5">Matter Details</h3>
+                  <p className="-mt-3 mb-5 max-w-2xl text-sm leading-relaxed text-muted-foreground">Record supplied information exactly. This form does not verify identity, ownership, title, forum, urgency, dates, or procedural compliance.</p>
                   <div className="space-y-5">
                     {selectedPlaybook.intakeFields.map(field => (
                       <div key={field.id} className="max-w-2xl">
@@ -257,6 +261,7 @@ export function DraftView({ state, updateState, navigate }: { state: RouterState
               <div>
                 <strong className="block text-base mb-1">Practitioner review strictly required</strong>
                 <p>This draft is an unverified local template. It has not been reviewed by counsel and is not a finalized document. Ensure you independently verify all cited legislation, rules of court, and precedents before any reliance.</p>
+                <p className="mt-2">Also compare every fact and name with the file, confirm the current form and registry requirements, check dates and calculations independently, resolve every flagged gap, and record the reviewer and review date.</p>
               </div>
             </div>
 
