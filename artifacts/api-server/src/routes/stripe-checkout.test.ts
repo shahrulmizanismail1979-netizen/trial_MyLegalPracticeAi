@@ -403,6 +403,24 @@ describe("POST /api/stripe/checkout carries the plan tier", () => {
     expect(state.sessionsCreated).toHaveLength(0);
   });
 
+  it("returns legacy MyCrimAI checkouts to the integrated portal without changing entitlement metadata", async () => {
+    const res = await request(app)
+      .post("/api/stripe/checkout")
+      .send({ tier: "single", appUrl: "https://mycrimai.life/" });
+
+    expect(res.status).toBe(200);
+    expect(state.sessionsCreated).toHaveLength(1);
+    expect(state.sessionsCreated[0]?.success_url).toMatch(
+      /\/\?checkout=success&session_id=\{CHECKOUT_SESSION_ID\}&redirect=%2Fmycrimai%2F$/,
+    );
+    expect(state.sessionsCreated[0]).toMatchObject({
+      metadata: {
+        tier: "single",
+        appUrl: "https://mycrimai.life/",
+      },
+    });
+  });
+
   it("rejects a missing tier with a 4xx", async () => {
     const res = await request(app).post("/api/stripe/checkout").send({});
     expect(res.status).toBe(400);

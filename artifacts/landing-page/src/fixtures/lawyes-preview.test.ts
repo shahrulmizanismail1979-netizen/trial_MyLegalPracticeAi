@@ -341,4 +341,23 @@ describe("LAWYes navigation destinations", () => {
       expect(source).toContain("/apps#pricing");
     }
   });
+
+  it("keeps new and legacy MyCrimAI checkout returns on the integrated portal", async () => {
+    const pricing = readSource("../components/pricing.tsx");
+    const checkoutSuccess = readSource("../components/checkout-success.tsx");
+    const { canonicalPortalRedirect } = await import("../lib/portal-redirect");
+
+    expect(pricing).toContain(
+      '{ name: "MyCrimAI — Criminal Law", url: "/mycrimai/" }',
+    );
+    expect(pricing).not.toContain("https://mycrimai.life/");
+    expect(checkoutSuccess).not.toContain('"https://mycrimai.life/"');
+    expect(canonicalPortalRedirect("/mycrimai/")).toBe("/mycrimai/");
+    expect(canonicalPortalRedirect("https://mycrimai.life/")).toBe(
+      "/mycrimai/",
+    );
+    expect(canonicalPortalRedirect("https://mylitai.life")).toBe(
+      "https://mylitai.life",
+    );
+  });
 });

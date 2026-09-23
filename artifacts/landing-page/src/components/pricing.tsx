@@ -25,7 +25,7 @@ const PORTAL_CHOICES: Array<{ name: string; url: string }> = [
   { name: "MySyalitAI — Syariah Litigation", url: "https://mysyalitai.life" },
   { name: "MyCorpAI — Corporate Secretary", url: "https://mycorpai.life" },
   { name: "MyConveyAI — Conveyancing", url: "https://myconveyai.life" },
-  { name: "MyCrimAI — Criminal Law", url: "https://mycrimai.life/" },
+  { name: "MyCrimAI — Criminal Law", url: "/mycrimai/" },
   { name: "MyCCBLitAI — Construction Law", url: "https://myccblitai.life/" },
   { name: "MyAccidentAI — Accident Claims", url: "https://myaccidentai.life/" },
 ];

@@ -12,3 +12,9 @@ Spelling variants: admin UI historically saved "MyAccidentAi", "MyCorpCommBankLi
 Legacy gap: old prod subscriber rows have an EMPTY `apps` array (created before per-app tracking), so the boot backfill and sync skip them — their codes exist in `subscribers` but not in any portal table, producing "Invalid access code" on re-login. Fix pattern: portal logins should self-heal — on a missing/inactive/expired code row, look up the code in `subscribers`; if confirmed + unexpired and apps includes the portal OR is empty, upsert via the portal's sync fn and proceed (implemented in sya auth; replicate for other portals if reported).
 
 **How to apply:** when adding a new portal or a new subscriber-mutation path, extend `syncPortalAccessCodes` and its per-app include check; never re-add per-path sync blocks.
+
+Portal destination is a separate diagnostic from provisioning.
+
+**Why:** A reported MyCrimAI trial rejection coincided with checkout linking to the independently hosted mycrimai.life, while recent production subscribers all had active integrated portal rows. Repairing provisioning would not fix a customer visiting the other installation.
+
+**How to apply:** Check the actual destination and production mirror state before changing authentication. Route integrated purchases to the integrated portal; do not assume legacy custom domains share its database or redirect automatically.

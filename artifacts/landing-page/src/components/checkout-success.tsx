@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Copy, Check, ExternalLink, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { canonicalPortalRedirect } from "@/lib/portal-redirect";
 
 const ALLOWED_REDIRECTS = new Set([
   "https://mylitai.life",
@@ -11,7 +12,6 @@ const ALLOWED_REDIRECTS = new Set([
   "/mycorplegalai/",
   "https://myconveyai.life",
   "/myconveylitai/",
-  "https://mycrimai.life/",
   "/mycrimai/",
   "https://myccblitai.life/",
   "https://myaccidentai.life/",
@@ -43,7 +43,7 @@ export function CheckoutSuccess() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") !== "success") return;
 
-    const redirectParam = params.get("redirect");
+    const redirectParam = canonicalPortalRedirect(params.get("redirect"));
     if (redirectParam && ALLOWED_REDIRECTS.has(redirectParam)) {
       setRedirect(redirectParam);
     }

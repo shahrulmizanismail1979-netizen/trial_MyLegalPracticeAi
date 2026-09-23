@@ -130,6 +130,14 @@ const ALLOWED_APP_REDIRECTS = new Set([
 ]);
 
 /**
+ * Preserve legacy MyCrimAI appUrl metadata for entitlement provisioning while
+ * returning customers to the integrated portal rather than the standalone build.
+ */
+function checkoutReturnRedirect(appUrl: string): string {
+  return appUrl === "https://mycrimai.life/" ? "/mycrimai/" : appUrl;
+}
+
+/**
  * Canonical origin for Stripe return URLs. Derived only from the server
  * environment — never from the client-supplied Origin header — so a public
  * checkout request cannot redirect the post-payment flow to an attacker domain.
@@ -591,7 +599,9 @@ router.post("/checkout", async (req, res) => {
   // it with the real session id. URLSearchParams would percent-encode the braces.
   const successUrl =
     `${origin}/?checkout=success&session_id={CHECKOUT_SESSION_ID}` +
-    (appUrl ? `&redirect=${encodeURIComponent(appUrl)}` : "");
+    (appUrl
+      ? `&redirect=${encodeURIComponent(checkoutReturnRedirect(appUrl))}`
+      : "");
 
   const buildSessionParams = (resolvedPriceId: string) => ({
     mode: "subscription" as const,
