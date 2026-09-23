@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  Search, FileText, Briefcase, Gavel, ArrowUp, ShieldAlert,
-  Sparkles, Layers, Mic, MicOff, Paperclip, X,
+  Search, FileText, Briefcase, ArrowUp, ShieldAlert,
+  Sparkles, Mic, MicOff, X,
   ChevronDown, MessageSquare, AlertCircle, FolderOpen,
-  ChevronRight, Plus
+  Plus
 } from "lucide-react";
 import type { RouterState } from "./use-router-state";
 import { DraftDocument, DraftExportButtons } from "@workspace/draft-export/react";
@@ -351,22 +351,6 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
 
         {!isActive && (
           <>
-            {/* Utility Row */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 px-1 animate-in fade-in slide-in-from-bottom-2">
-              <a href="/lawyes" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="link-composer-matters">
-                 <Briefcase size={14} /> My Matters
-              </a>
-              <button type="button" onClick={triggerFileSelect} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-composer-files">
-                 <Paperclip size={14} /> Files
-              </button>
-              <button type="button" onClick={() => navigate("skills")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-composer-tools">
-                 <Layers size={14} /> Legal tools
-              </button>
-              <a href="/lawyes" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="link-composer-full-workspace">
-                 <FolderOpen size={14} /> Open full workspace
-              </a>
-            </div>
-
             {/* Starters and Recent Work */}
             <div className="w-full mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 px-1 animate-in fade-in slide-in-from-bottom-4">
                <div>
@@ -389,13 +373,7 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                      <button onClick={() => navigate("matter")} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 text-sm text-left group transition-all focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-action-matter">
                         <div className="flex items-center gap-3">
                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0"><Briefcase size={14} /></div>
-                           <span className="font-medium text-foreground group-hover:text-primary transition-colors">Work on a Matter</span>
-                        </div>
-                     </button>
-                     <button onClick={() => navigate("practice")} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 text-sm text-left group transition-all focus:outline-none focus:ring-2 focus:ring-primary/20" data-testid="button-action-practice">
-                        <div className="flex items-center gap-3">
-                           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0"><Gavel size={14} /></div>
-                           <span className="font-medium text-foreground group-hover:text-primary transition-colors">Practice Centres</span>
+                           <span className="font-medium text-foreground group-hover:text-primary transition-colors">Prepare a matter</span>
                         </div>
                      </button>
                   </div>
@@ -412,9 +390,6 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
                      <div className="mt-auto pt-2 flex flex-col items-start gap-3">
                         <a href="/sign-in" className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                            Sign In
-                        </a>
-                        <a href="/lawyes" className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-sm">
-                           Open My Matters <ChevronRight size={12} />
                         </a>
                      </div>
                   </div>
@@ -439,11 +414,6 @@ export function HomeView({ state, navigate }: { state: RouterState; navigate: (v
 
          <div className="h-14 border-b border-border flex items-center px-4 justify-between shrink-0 bg-background/80 backdrop-blur-md z-30 sticky top-0">
             <ModeSelector selectedMode={selectedMode} setSelectedMode={setSelectedMode} />
-            <div className="flex items-center gap-2">
-               <a href="/lawyes" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/50">
-                  <FolderOpen size={14} /> My Matters
-               </a>
-            </div>
          </div>
 
          <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth flex flex-col" ref={scrollRef}>

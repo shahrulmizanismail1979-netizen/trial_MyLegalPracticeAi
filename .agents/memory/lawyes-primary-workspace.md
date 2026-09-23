@@ -19,7 +19,13 @@ LAWYes should translate the ChatGPT Work interaction model into legal work: proj
 
 **Why:** The user explicitly rejected a prompt-box imitation and required the work features themselves—conversation, legal modes, files, voice, tools, and real recent work—adapted to practice workflows.
 
-**How to apply:** Keep the composer directly under the primary question, compact work actions beneath it, and active conversations as a real streamed thread. Public unsaved work must say so; confidential persistence and binary document analysis belong to authenticated My Matters until a secure owner- and matter-bound bridge is implemented.
+**How to apply:** Keep the composer directly under the primary question and active conversations as a real streamed thread. Public unsaved work must say so; confidential persistence and binary document analysis belong to authenticated My Matters until a secure owner- and matter-bound bridge is implemented.
+
+Simplify homepage navigation without removing capabilities: use the sidebar as the primary My Matters and Legal Tools entry, retain composer attachments and dictation, and avoid a duplicate utility row or top-right My Matters link. Keep practice preparation accessible under Legal Tools.
+
+**Why:** On 2026-09-23 the user explicitly approved removing overlapping homepage controls, subject to preserving working features. This supersedes the earlier preference for compact utility buttons beneath the composer.
+
+**How to apply:** Preserve destinations and handlers when removing duplicate entry points. Do not relabel a preparation/demo screen as “Create a matter” unless it actually creates a saved matter.
 
 The primary workspace should use the official LAWYes logo prominently and derive its colours from the logo’s navy and fresh green. Avoid dark forest-green treatments, which the user finds somber and depressing; keep the main canvas airy and optimistic.
 

@@ -186,7 +186,7 @@ test("desktop navigation, composer, submit, and quick actions are keyboard reach
   await expect(page.getByTestId("button-submit-instruction")).toBeFocused();
 
   const quickActionTabStops: string[] = [];
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 3; index += 1) {
     await page.keyboard.press("Tab");
     quickActionTabStops.push(await page.evaluate(() => (document.activeElement as HTMLElement)?.dataset.testid ?? ""));
   }
@@ -194,18 +194,45 @@ test("desktop navigation, composer, submit, and quick actions are keyboard reach
     "button-action-search",
     "button-action-draft",
     "button-action-matter",
-    "button-action-practice",
   ]);
 
-  const quickActions = ["search", "draft", "matter", "practice"];
+  const quickActions = ["search", "draft", "matter"];
   for (const action of quickActions) {
     await page.goto("/lawyes-safe-preview");
     const button = page.getByTestId(`button-action-${action}`);
     await button.focus();
-    await page.keyboard.press(action === "draft" || action === "practice" ? " " : "Enter");
+    await page.keyboard.press(action === "draft" ? " " : "Enter");
     await expect(page).toHaveURL(new RegExp(`view=${action}`));
   }
 });
+
+for (const width of [1280, 390]) {
+  test(`simplified homepage preserves navigation and attachments at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "My Matters", exact: true })).toHaveCount(1);
+    await expect(page.getByTestId("link-composer-full-workspace")).toHaveCount(0);
+    await expect(page.getByTestId("button-composer-files")).toHaveCount(0);
+    await expect(page.getByTestId("button-composer-tools")).toHaveCount(0);
+    await expect(page.getByTestId("button-action-practice")).toHaveCount(0);
+    await expect(page.getByTestId("button-action-matter")).toHaveText("Prepare a matter");
+    await expect(page.getByTestId("button-dictate")).toBeVisible();
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByTestId("button-attach-file").click();
+    await (await chooser).setFiles({ name: "navigation-check.txt", mimeType: "text/plain", buffer: Buffer.from("Synthetic attachment check.") });
+    await expect(page.getByText("navigation-check.txt", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("button-submit-instruction")).toBeEnabled();
+    if (width < 768) await page.getByTestId("button-open-sidebar").click();
+    await expect(page.getByTestId("link-sidebar-my-matters")).toBeVisible();
+    await expect(page.getByTestId("link-sidebar-my-matters")).toHaveAttribute("href", "/lawyes");
+    await expect(page.getByTestId("button-new-workspace")).toHaveAttribute("aria-label", "New conversation");
+    await page.getByTestId("button-toggle-tools").click();
+    await expect(page.getByTestId("button-sidebar-skills")).toBeVisible();
+    await page.getByTestId("button-sidebar-practice").click();
+    await expect(page).toHaveURL(/view=practice/);
+    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", width);
+  });
+}
 
 test("restores valid URL state and safely falls back from an invalid view", async ({ page }) => {
   await page.goto("/lawyes-safe-preview?view=search&q=Maria&jurisdiction=Malaysia&sort=date");

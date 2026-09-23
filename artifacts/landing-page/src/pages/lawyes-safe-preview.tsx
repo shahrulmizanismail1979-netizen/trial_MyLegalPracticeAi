@@ -110,8 +110,8 @@ export default function LawYesSafePreview() {
              <button
                 onClick={startNewWorkspace}
                 className="p-2 text-[hsl(var(--lawyes-sidebar-text))]/80 hover:text-[hsl(var(--lawyes-sidebar-text))] hover:bg-[hsl(var(--lawyes-sidebar-hover))] rounded-lg transition-all duration-200 hover:scale-[1.05] active:scale-[0.95]"
-                aria-label="Start a new workspace"
-                title="Start a new workspace"
+                aria-label="New conversation"
+                title="New conversation"
                data-testid="button-new-workspace"
              >
                <Plus size={18} />
@@ -141,7 +141,7 @@ export default function LawYesSafePreview() {
               aria-label="Open current conversation"
             >
               <MessageSquare size={16} />
-              <span className="truncate">New legal workspace</span>
+              <span className="truncate">Current conversation</span>
             </button>
 
             {/* Context awareness */}
@@ -169,7 +169,7 @@ export default function LawYesSafePreview() {
                  data-testid="button-toggle-tools"
               >
                 <Wrench size={16} />
-                <span className="flex-1 text-left">Tools</span>
+                <span className="flex-1 text-left">Legal Tools</span>
                 <ChevronDown size={14} className={`transition-transform ${toolsOpen ? "rotate-180" : ""}`} />
               </button>
               <div
