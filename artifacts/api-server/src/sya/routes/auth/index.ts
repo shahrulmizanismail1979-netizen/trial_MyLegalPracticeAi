@@ -409,6 +409,7 @@ router.post("/auth/sso", async (req, res): Promise<void> => {
     res.status(404).json({ authenticated: false, needsLink: true });
     return;
   }
+  res.locals.portalSignInCode = codeToUse;
   const bindErr = await ssoBindingError(email, codeToUse);
   if (bindErr) {
     res.status(403).json({ error: bindErr });

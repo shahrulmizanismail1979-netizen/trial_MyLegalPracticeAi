@@ -20,6 +20,7 @@ import { handleConveyStripeEvent } from "./lib/conveyStripe";
 import { attachUser } from "./middlewares/conveyAuth";
 import { resetLoginRateLimitForE2e } from "./lib/loginRateLimit";
 import { invalidateCatalogPriceCache } from "./routes/stripe";
+import { portalSignInSignalObserver } from "./lib/portalSignInSignals";
 
 const app: Express = express();
 
@@ -307,6 +308,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SESSION_SECRET ?? "dev-cookie-secret"));
 app.use(restoreMatterDownload);
+// Passive only: observes exact sign-in routes after body parsing, then records
+// recognized outcomes after the response. It neither authenticates nor limits.
+app.use(portalSignInSignalObserver);
 
 if (process.env.NODE_ENV !== "production") {
   app.post("/api/internal/e2e/login-rate-limit/reset", (req, res) => {

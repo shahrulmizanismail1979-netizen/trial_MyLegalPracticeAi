@@ -256,6 +256,7 @@ router.post("/sso", loginRateLimit, async (req, res) => {
     if (!codeToUse) {
       return res.status(404).json({ needsLink: true });
     }
+    res.locals.portalSignInCode = codeToUse;
     if (LAWYES_PERSONAL_CODE.test(codeToUse.toUpperCase())) {
       return res.status(400).json({
         error: "Personal LAWYes codes cannot be linked to Microsoft. Sign in with the personal code instead.",

@@ -79,3 +79,4 @@
 - [Matter rail file opening](matter-rail-file-opening.md) — open private rail files through the host portal's authenticated request adapter, never raw storage or artifact-rebased API links.
 - [Managed workflow name collisions](managed-workflow-name-collisions.md) — duplicate legacy entries can occupy managed artifact ports while workflow status reports only the failing managed service.
 - [MyLawFirmAi workspace ownership](firm-workspace-ownership.md) — legacy records stay owner-private; subscribing firms get isolated workspaces, never access to the owner's connected accounts.
+- [Portal sign-in alert policy](portal-signin-alert-policy.md) — passive known-subscriber monitoring; quiet periods are not proof of recovery and must not reset warning cooldown.

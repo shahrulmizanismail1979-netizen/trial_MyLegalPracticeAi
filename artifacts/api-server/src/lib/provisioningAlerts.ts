@@ -66,20 +66,22 @@ export function provisioningAlertContent(
   };
 }
 
-async function deliverProvisioningAlert(kind: ProvisioningAlertKind, state: ProvisioningAlertState, now: Date) {
-  const detectedAt = now.toISOString();
-  const content = provisioningAlertContent(kind, state, detectedAt);
+export async function deliverPrivacySafePortalAlert(
+  content: { subject: string; html: string },
+  detectedAt: string,
+  eventLabel: string,
+): Promise<void> {
   let gmailOk = false;
   try {
     const adminEmail = await getOwnerEmail();
     if (!adminEmail) {
-      recordAlertAttempt("gmail", "skipped", `Portal access ${kind}: admin email unavailable`);
+      recordAlertAttempt("gmail", "skipped", `${eventLabel}: admin email unavailable`);
     } else {
       gmailOk = await sendEmail({ to: adminEmail, ...content });
-      recordAlertAttempt("gmail", gmailOk ? "success" : "failure", `Portal access ${kind} alert ${gmailOk ? "delivered" : "not delivered"}`);
+      recordAlertAttempt("gmail", gmailOk ? "success" : "failure", `${eventLabel} alert ${gmailOk ? "delivered" : "not delivered"}`);
     }
   } catch {
-    recordAlertAttempt("gmail", "failure", `Portal access ${kind} alert delivery threw`);
+    recordAlertAttempt("gmail", "failure", `${eventLabel} alert delivery threw`);
   }
   if (!gmailOk) {
     try {
@@ -88,11 +90,17 @@ async function deliverProvisioningAlert(kind: ProvisioningAlertKind, state: Prov
         detectedAt,
         server: process.env.REPLIT_DEPLOYMENT ?? "production",
       });
-      recordAlertAttempt("webhook", ok ? "success" : (process.env.ALERT_WEBHOOK_URL ? "failure" : "skipped"), `Portal access ${kind} webhook ${ok ? "delivered" : "not delivered"}`);
+      recordAlertAttempt("webhook", ok ? "success" : (process.env.ALERT_WEBHOOK_URL ? "failure" : "skipped"), `${eventLabel} webhook ${ok ? "delivered" : "not delivered"}`);
     } catch {
-      recordAlertAttempt("webhook", "failure", `Portal access ${kind} webhook threw`);
+      recordAlertAttempt("webhook", "failure", `${eventLabel} webhook threw`);
     }
   }
+}
+
+async function deliverProvisioningAlert(kind: ProvisioningAlertKind, state: ProvisioningAlertState, now: Date) {
+  const detectedAt = now.toISOString();
+  const content = provisioningAlertContent(kind, state, detectedAt);
+  await deliverPrivacySafePortalAlert(content, detectedAt, `Portal access ${kind}`);
 }
 
 async function loadState(): Promise<ProvisioningAlertState> {
@@ -222,6 +230,13 @@ export function startProvisioningAccessAlertWorker(): void {
         // query parameters or credentials and this monitor must never leak them.
         logger.error({ event: "portalAccessAlertCycleFailed" }, "Portal access alert cycle failed");
       });
+      // Login incidents are intentionally maintained separately from the
+      // read-only provisioning sweep: a healthy sweep can never close one.
+      await import("./portalSignInSignals")
+        .then(({ runPortalSignInSignalMaintenance }) => runPortalSignInSignalMaintenance())
+        .catch(() => {
+          logger.error({ event: "portalSignInSignalMaintenanceFailed" }, "Portal sign-in signal maintenance failed");
+        });
       // Schedule only after the async cycle settles: ticks cannot overlap even
       // when a database or mail provider takes longer than the normal cadence.
       schedule();

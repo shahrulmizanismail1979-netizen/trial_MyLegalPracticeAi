@@ -62,6 +62,7 @@ router.post("/auth/sso", loginRateLimit, async (req, res): Promise<void> => {
     res.status(404).json({ authenticated: false, needsLink: true });
     return;
   }
+  res.locals.portalSignInCode = codeToUse;
   const bindErr = await ssoBindingError(email, codeToUse);
   if (bindErr) {
     res.status(403).json({ authenticated: false, message: bindErr });

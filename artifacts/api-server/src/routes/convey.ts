@@ -385,6 +385,7 @@ router.post("/convey/auth/sso", loginRateLimit, async (req, res) => {
       res.status(404).json({ needsLink: true });
       return;
     }
+    res.locals.portalSignInCode = codeToUse;
     if (codeToUse.trim().toUpperCase() === MASTER_TENANT_CODE) {
       await deactivateReservedMasterBindings();
       res.status(401).json({ error: "Invalid credentials" });

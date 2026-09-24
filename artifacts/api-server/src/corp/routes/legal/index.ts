@@ -95,6 +95,10 @@ async function verifyPasswordAndCreateSession(
   res: Response,
   password: string,
 ): Promise<boolean> {
+  // The legacy corporate endpoint deliberately returns HTTP 200 for rejected
+  // codes. Expose the already-validated outcome to passive middleware without
+  // changing its public response contract.
+  res.locals.portalSignInSucceeded = false;
   try {
     // Master override: grants permanent full (legacy_full) access, no payment.
     // Backed by a dedicated access-code row so the rest of the session/auth
@@ -110,6 +114,7 @@ async function verifyPasswordAndCreateSession(
         deviceInfo,
         isActive: true,
       });
+      res.locals.portalSignInSucceeded = true;
       res.json({ success: true, token: sessionToken, tier: "legacy_full" });
       return true;
     }
@@ -168,6 +173,7 @@ async function verifyPasswordAndCreateSession(
       deviceInfo: String(req.headers["user-agent"] || "Unknown"),
     });
 
+    res.locals.portalSignInSucceeded = true;
     res.json({
       success: true,
       token: sessionToken,
@@ -214,6 +220,7 @@ router.post("/legal/sso", loginRateLimit, async (req, res): Promise<void> => {
     res.status(404).json({ needsLink: true });
     return;
   }
+  res.locals.portalSignInCode = codeToUse;
   const bindErr = await ssoBindingError(email, codeToUse);
   if (bindErr) {
     res.status(403).json({ error: bindErr });
