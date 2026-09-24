@@ -2,7 +2,7 @@
 // Generates an access code, records the subscriber, and emails the
 // access code to the customer plus a notification to the site owner (Gmail integration).
 import { randomBytes, randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, and, or, isNull, gt, desc } from "drizzle-orm";
 import Stripe from "stripe";
 import {
   db,
@@ -22,6 +22,8 @@ import { getUncachableStripeClient } from "../stripeClient";
 import { sendEmail, getOwnerEmail } from "./mailer";
 import { sendSms, accessCodeSmsBody, type SmsResult } from "./sms";
 import { logger } from "./logger";
+import { portalLoginHtml } from "./portal-delivery";
+import { portalRowAccessible } from "./portal-access-check";
 import {
   cancelSarawak20Enrollment,
   consumeSarawak20Reservation,
@@ -29,34 +31,8 @@ import {
   SARAWAK20_TIER,
 } from "./sarawak20";
 
-export const APP_NAME_BY_URL: Record<string, string> = {
-  "https://mylitai.life": "MyLitAI",
-  "https://mylitai.life/irac/": "MyLitAI (Versi 2)",
-  "https://mysyalitai.life": "MySyalitAI",
-  "https://mycorpai.life": "MyCorpAI",
-  // The hosted MyCorpLegalAI app (rebranded MyCorpAI) — keeps the canonical
-  // "MyCorpAI" app name so admin stats/filters stay on one bucket.
-  "/mycorplegalai/": "MyCorpAI",
-  "https://myconveyai.life": "MyConveyAI",
-  // The hosted MyConveyLitAI app (rebranded MyConveyAI) — keeps the canonical
-  // "MyConveyAI" app name so admin stats/filters stay on one bucket.
-  "/myconveylitai/": "MyConveyAI",
-  "https://mycrimai.life/": "MyCrimAI",
-  // The hosted MyCrimAI app — same canonical "MyCrimAI" bucket.
-  "/mycrimai/": "MyCrimAI",
-  "https://myccblitai.life/": "MyCCBLitAI",
-  "https://myaccidentai.life/": "MyAccidentAI",
-  // The hosted MyAccidentAI app — keeps the canonical "MyAccidentAI" app
-  // name so admin stats/filters stay on one bucket.
-  "/myaccidentai/": "MyAccidentAI",
-  // The hosted MyLawFirmAi firm-management portal.
-  "/mylawfirmai/": "MyLawFirmAi",
-  // Hosted relative portal paths (same canonical buckets as their domains).
-  "/mylitai/": "MyLitAI",
-  "/mylitai-irac/": "MyLitAI (Versi 2)",
-  "/mysyariahai/": "MySyalitAI",
-  "/myccblitai/": "MyCCBLitAI",
-};
+export { PORTAL_APP_BY_URL as APP_NAME_BY_URL } from "@workspace/entitlements";
+import { PORTAL_APP_BY_URL as APP_NAME_BY_URL } from "@workspace/entitlements";
 
 export const ALL_APP_NAMES = [
   "MyLitAI",
@@ -157,7 +133,6 @@ async function syncConveyUser(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyConveyLitAI user for landing purchase",
     );
   } catch (err) {
@@ -206,7 +181,6 @@ async function syncAccidentAccessCode(params: {
         set: { isActive: true, expiresAt: params.expiresAt ?? null, maxUsers },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyAccidentAI access code for landing purchase",
     );
   } catch (err) {
@@ -257,7 +231,6 @@ async function syncCrimAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyCrimAI access code for landing purchase",
     );
   } catch (err) {
@@ -308,7 +281,6 @@ async function syncCorpAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyCorpLegalAI access code for landing purchase",
     );
   } catch (err) {
@@ -361,7 +333,6 @@ async function syncLitAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyLitAI access code for landing purchase",
     );
   } catch (err) {
@@ -408,7 +379,6 @@ export async function syncSyaAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MySyalitAI access code for landing purchase",
     );
   } catch (err) {
@@ -458,7 +428,6 @@ async function syncCcbAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyCCBLitAI access code for landing purchase",
     );
   } catch (err) {
@@ -508,7 +477,6 @@ async function syncFirmAccessCode(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyLawFirmAi access code for landing purchase",
     );
   } catch (err) {
@@ -517,6 +485,43 @@ async function syncFirmAccessCode(params: {
       "Failed to sync MyLawFirmAi access code for landing purchase",
     );
   }
+}
+
+/** Read-only, bounded sample for staff diagnostics. No code, name or contact data leaves this function. */
+export async function checkRecentPortalAccess() {
+  const now = new Date();
+  const subscribers = await db.select().from(subscribersTable).where(and(
+    eq(subscribersTable.paymentStatus, "confirmed"),
+    or(isNull(subscribersTable.subscriptionExpiry), gt(subscribersTable.subscriptionExpiry, now)),
+  )).orderBy(desc(subscribersTable.id)).limit(25);
+  const gaps: Array<{ subscriberId: number; portal: string }> = [];
+  let unknownIntent = 0;
+  for (const sub of subscribers) {
+    if (!sub.apps.length) { unknownIntent++; continue; }
+    const code = sub.accessCode ?? "";
+    const checks: Array<[string, boolean, () => Promise<boolean>]> = [
+      ["MyCrimAI", includesCrimApp(sub.apps), async () => portalRowAccessible((await db.select().from(crimAccessCodesTable).where(eq(crimAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyCorpAI", includesCorpApp(sub.apps), async () => portalRowAccessible((await db.select().from(corpAccessCodesTable).where(eq(corpAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyLitAI", includesLitApp(sub.apps), async () => portalRowAccessible((await db.select().from(litAccessCodesTable).where(eq(litAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MySyalitAI", includesSyaApp(sub.apps), async () => portalRowAccessible((await db.select().from(syaAccessCodesTable).where(eq(syaAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyCCBLitAI", includesCcbApp(sub.apps), async () => portalRowAccessible((await db.select().from(ccbAccessCodesTable).where(eq(ccbAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyAccidentAI", includesAccidentApp(sub.apps), async () => portalRowAccessible((await db.select().from(accessCodesTable).where(eq(accessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyLawFirmAi", includesFirmApp(sub.apps), async () => portalRowAccessible((await db.select().from(firmAccessCodesTable).where(eq(firmAccessCodesTable.code, code)).limit(1))[0], now)],
+      ["MyConveyAI", includesConveyApp(sub.apps), async () => {
+        const row = (await db.select().from(usersTable).where(eq(usersTable.accessCode, code)).limit(1))[0];
+        return !!row && portalRowAccessible({ isActive: row.isActive, expiresAt: row.currentPeriodEnd }, now);
+      }],
+      ["MyLawAcad", includesAcadApp(sub.apps), async () => {
+        const row = (await db.select().from(acadUsersTable).where(eq(acadUsersTable.accessCode, code)).limit(1))[0];
+        return !!row && row.status === "active" && (!row.accessCodeExpiresAt || row.accessCodeExpiresAt > now);
+      }],
+    ];
+    if (!checks.some(([, intended]) => intended)) { unknownIntent++; continue; }
+    for (const [portal, intended, check] of checks) {
+      if (intended && (!sub.accessCode || !await check())) gaps.push({ subscriberId: sub.id, portal });
+    }
+  }
+  return { sampleLimit: 25, sampled: subscribers.length, unknownIntent, gaps };
 }
 
 /**
@@ -811,7 +816,6 @@ async function syncAcadUser(params: {
         },
       });
     logger.info(
-      { accessCode: params.accessCode },
       "Synced MyLawAcad account for landing purchase",
     );
   } catch (err) {
@@ -910,6 +914,7 @@ function customerEmailHtml(params: {
 }): string {
   const { name, accessCode, apps, trial, tier } = params;
   const bundle = tier ? BUNDLE_TIER_CATALOG[tier] : undefined;
+  const loginLinks = portalLoginHtml(apps);
   const appsText =
     apps.length > 0
       ? apps.join(", ")
@@ -926,6 +931,7 @@ function customerEmailHtml(params: {
     <p><b>Your plan:</b> ${bundle.name}<br/>
     <b>Licensed users:</b> ${bundle.licenses}</p>
     <p><b>One code for your whole team.</b> This single access code covers all ${bundle.licenses} of your licensed team members across every portal in your subscription: ${appsText}.</p>
+    ${loginLinks}
     <p><b>How to add your teammates:</b></p>
     <ol style="padding-left:20px;margin:8px 0">
       <li>Share the access code above with each team member (up to ${bundle.licenses} people).</li>
@@ -942,6 +948,7 @@ function customerEmailHtml(params: {
     <h2 style="color:#1B3A6B">Welcome to LAWYes</h2>
     <p>Dear ${name},</p>
     <p>Thank you for subscribing${trial ? " to the 7-day free trial" : ""}. Here is your access code:</p>
+    ${loginLinks}
     <div style="background:#EEF3FF;border:2px solid #1B3A6B;border-radius:8px;padding:16px;text-align:center;margin:20px 0">
       <span style="font-size:24px;font-weight:bold;letter-spacing:2px;font-family:monospace">${accessCode}</span>
     </div>
@@ -988,6 +995,7 @@ export function deliverAccessCode(params: {
         phone,
         accessCodeSmsBody({
           accessCode,
+          apps,
           trial,
           licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
         }),
@@ -1081,6 +1089,7 @@ export async function resendAccessCodeSms(params: {
     phone,
     accessCodeSmsBody({
       accessCode,
+      apps: subscriber?.apps ?? [],
       trial,
       licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
     }),
@@ -1321,6 +1330,7 @@ export async function provisionFromCheckoutSession(
         phone,
         accessCodeSmsBody({
           accessCode,
+          apps,
           trial,
           licenses: tier ? BUNDLE_TIER_CATALOG[tier]?.licenses : undefined,
         }),

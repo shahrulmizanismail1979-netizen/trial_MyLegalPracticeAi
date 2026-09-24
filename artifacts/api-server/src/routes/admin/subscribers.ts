@@ -6,6 +6,7 @@ import {
   normalizeAppNames,
   generateAccessCode,
   deliverAccessCode,
+  checkRecentPortalAccess,
 } from "../../lib/provisioning";
 import {
   CreateSubscriberBody,
@@ -24,6 +25,11 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// Registered before parameter routes. Existing admin authentication applies.
+router.get("/subscribers/portal-access-check", async (_req, res) => {
+  res.json(await checkRecentPortalAccess());
+});
 
 /**
  * Sync each subscriber's payment_amount from the latest PAID Stripe invoice

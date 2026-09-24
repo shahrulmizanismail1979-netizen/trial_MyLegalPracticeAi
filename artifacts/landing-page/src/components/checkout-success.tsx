@@ -4,25 +4,6 @@ import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
 import { canonicalPortalRedirect } from "@/lib/portal-redirect";
 
-const ALLOWED_REDIRECTS = new Set([
-  "https://mylitai.life",
-  "https://mylitai.life/irac/",
-  "https://mysyalitai.life",
-  "https://mycorpai.life",
-  "/mycorplegalai/",
-  "https://myconveyai.life",
-  "/myconveylitai/",
-  "/mycrimai/",
-  "https://myccblitai.life/",
-  "https://myaccidentai.life/",
-  "/myaccidentai/",
-  "/mylitai/",
-  "/mylitai-irac/",
-  "/mysyariahai/",
-  "/myccblitai/",
-  "/mylawfirmai/",
-]);
-
 interface SessionInfo {
   accessCode: string | null;
   apps: string[];
@@ -44,7 +25,7 @@ export function CheckoutSuccess() {
     if (params.get("checkout") !== "success") return;
 
     const redirectParam = canonicalPortalRedirect(params.get("redirect"));
-    if (redirectParam && ALLOWED_REDIRECTS.has(redirectParam)) {
+    if (redirectParam) {
       setRedirect(redirectParam);
     }
 

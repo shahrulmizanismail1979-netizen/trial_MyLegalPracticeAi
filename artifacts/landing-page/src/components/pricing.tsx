@@ -1,3 +1,4 @@
+import { canonicalPortalRedirect } from "@workspace/entitlements";
 import { useRef, useState } from "react";
 import { Check, AlertCircle, Sparkles, Loader2, Clock, Zap, Crown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,7 +90,7 @@ export function Pricing() {
         body: JSON.stringify({
           tier,
           ...(trial ? { trial: true } : {}),
-          ...(appUrl ? { appUrl } : {}),
+          ...(appUrl ? { appUrl: canonicalPortalRedirect(appUrl) } : {}),
           checkoutIntentId,
         }),
       });

@@ -42,6 +42,7 @@ function signInAs(userId: string, email: string): void {
 }
 
 const ADMIN_ENDPOINTS: Array<[string, string]> = [
+  ["get", "/api/admin/subscribers/portal-access-check"],
   ["get", "/api/admin/dashboard"],
   ["get", "/api/admin/subscribers"],
   ["get", "/api/admin/kohorts"],

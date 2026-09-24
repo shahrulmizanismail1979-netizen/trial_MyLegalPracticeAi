@@ -77,6 +77,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@workspace/entitlements": "workspace:*",
     "@workspace/case-home-ui": "workspace:*",
     "@workspace/draft-export": "workspace:*",
     "@workspace/paralegal-widget": "workspace:*",

@@ -105,36 +105,15 @@ function readCheckoutIntentId(value: unknown): string {
  * Allowlist of app URLs that can be used as post-checkout redirect targets.
  * Only URLs in this list are accepted — the client cannot supply arbitrary URLs.
  */
-const ALLOWED_APP_REDIRECTS = new Set([
-  "https://mylitai.life",
-  "https://mylitai.life/irac/",
-  "https://mysyalitai.life",
-  "https://mycorpai.life",
-  "/mycorplegalai/",
-  "https://myconveyai.life",
-  "/myconveylitai/",
-  "https://mycrimai.life/",
-  "/mycrimai/",
-  "https://myccblitai.life/",
-  "https://myaccidentai.life/",
-  "/myaccidentai/",
-  // Relative portal paths used by the landing page apps grid. Every portal the
-  // landing page can offer for subscription MUST be listed here, otherwise the
-  // checkout request is rejected with "Invalid appUrl" and the Subscribe
-  // button silently fails for that portal.
-  "/mylitai/",
-  "/mylitai-irac/",
-  "/mysyariahai/",
-  "/myccblitai/",
-  "/mylawfirmai/",
-]);
+import { PORTAL_APP_BY_URL, canonicalPortalRedirect } from "@workspace/entitlements";
+const ALLOWED_APP_REDIRECTS = new Set(Object.keys(PORTAL_APP_BY_URL));
 
 /**
- * Preserve legacy MyCrimAI appUrl metadata for entitlement provisioning while
+ * Preserve legacy appUrl metadata for entitlement provisioning while
  * returning customers to the integrated portal rather than the standalone build.
  */
 function checkoutReturnRedirect(appUrl: string): string {
-  return appUrl === "https://mycrimai.life/" ? "/mycrimai/" : appUrl;
+  return canonicalPortalRedirect(appUrl)!;
 }
 
 /**

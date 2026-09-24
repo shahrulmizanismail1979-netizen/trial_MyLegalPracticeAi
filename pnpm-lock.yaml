@@ -281,6 +281,9 @@ importers:
 
   artifacts/landing-page:
     dependencies:
+      '@workspace/entitlements':
+        specifier: workspace:*
+        version: link:../../lib/entitlements
       '@uppy/aws-s3':
         specifier: ^5.1.0
         version: 5.1.0(@uppy/core@5.2.0)

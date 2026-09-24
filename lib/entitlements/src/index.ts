@@ -1,3 +1,4 @@
+export * from "./portals";
 /**
  * Shared entitlements: subscription tiers, feature gating, and pricing.
  * Imported by both the API server (gating) and the web client (pricing UI,

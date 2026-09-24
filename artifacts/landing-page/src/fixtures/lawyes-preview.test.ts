@@ -357,7 +357,7 @@ describe("LAWYes navigation destinations", () => {
       "/mycrimai/",
     );
     expect(canonicalPortalRedirect("https://mylitai.life")).toBe(
-      "https://mylitai.life",
+      "/mylitai/",
     );
   });
 });

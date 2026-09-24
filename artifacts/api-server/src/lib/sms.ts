@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { portalLoginLinks } from "./portal-delivery";
 
 export type SmsResult = "sent" | "failed" | "not_configured";
 
@@ -26,13 +27,16 @@ export function accessCodeSmsBody(params: {
   trial: boolean;
   /** Licensed seat count for team bundles — changes the copy to team wording. */
   licenses?: number;
+  apps?: readonly string[];
 }): string {
   const { accessCode, trial, licenses } = params;
+  const links = portalLoginLinks(params.apps ?? []);
+  const login = links.length ? `Sign in: ${links.join(" ")}. ` : "";
   if (licenses != null) {
     return (
       `LAWYes: your team access code is ${accessCode}. ` +
       `One code covers all ${licenses} licensed users on every portal — share it with your team. ` +
-      "Help: shahrulmizan@ukm.edu.my"
+      login + "Help: shahrulmizan@ukm.edu.my"
     );
   }
   return (
@@ -40,7 +44,7 @@ export function accessCodeSmsBody(params: {
     (trial
       ? "Your 7-day free trial is active now — sign in with this code. "
       : "Your subscription is active — sign in with this code. ") +
-    "Help: shahrulmizan@ukm.edu.my"
+    login + "Help: shahrulmizan@ukm.edu.my"
   );
 }
 

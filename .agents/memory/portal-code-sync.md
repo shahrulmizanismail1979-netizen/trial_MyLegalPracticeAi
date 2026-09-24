@@ -18,3 +18,9 @@ Portal destination is a separate diagnostic from provisioning.
 **Why:** A reported MyCrimAI trial rejection coincided with checkout linking to the independently hosted mycrimai.life, while recent production subscribers all had active integrated portal rows. Repairing provisioning would not fix a customer visiting the other installation.
 
 **How to apply:** Check the actual destination and production mirror state before changing authentication. Route integrated purchases to the integrated portal; do not assume legacy custom domains share its database or redirect automatically.
+
+Keep legacy checkout URL aliases mapped to their historical entitlement names even when navigation moves to integrated paths.
+
+**Why:** Old Stripe sessions can return after a link correction; changing the product identity as well as the destination risks granting the wrong portal or losing access. Standalone customers must not be migrated implicitly.
+
+**How to apply:** Canonicalize navigation separately from entitlement metadata. Customer delivery links must use the verified published origin, never a workspace development domain.

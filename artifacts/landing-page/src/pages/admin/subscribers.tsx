@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PortalAccessCheck } from "@/components/admin/portal-access-check";
 import { AdminLayout } from "@/components/admin/layout";
 import { 
   useListSubscribers, 
@@ -130,6 +131,7 @@ export default function SubscribersPage() {
           <SubscriberDialog mode="add" />
         </div>
 
+        <PortalAccessCheck />
         <div className="flex flex-col sm:flex-row gap-4 items-center bg-card p-4 rounded-md border border-border">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
