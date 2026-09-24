@@ -2,7 +2,7 @@
 // Generates an access code, records the subscriber, and emails the
 // access code to the customer plus a notification to the site owner (Gmail integration).
 import { randomBytes, randomUUID } from "node:crypto";
-import { eq, and, or, isNull, gt, desc } from "drizzle-orm";
+import { eq, and, or, isNull, gt, desc, asc, lte } from "drizzle-orm";
 import Stripe from "stripe";
 import {
   db,
@@ -487,6 +487,52 @@ async function syncFirmAccessCode(params: {
   }
 }
 
+type PortalAccessSubscriber = typeof subscribersTable.$inferSelect;
+
+/** Check one subscriber without returning their code, name, or contact details. */
+async function checkSubscriberPortalAccess(sub: PortalAccessSubscriber, now: Date) {
+  const gaps: Array<{ subscriberId: number; portal: string }> = [];
+  if (!sub.apps.length) return { gaps, unknownIntent: 1, unknownSubscriberId: sub.id };
+  const code = sub.accessCode ?? "";
+  const checks: Array<[string, boolean, () => Promise<boolean>]> = [
+    ["MyCrimAI", includesCrimApp(sub.apps), async () => portalRowAccessible((await db.select().from(crimAccessCodesTable).where(eq(crimAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyCorpAI", includesCorpApp(sub.apps), async () => portalRowAccessible((await db.select().from(corpAccessCodesTable).where(eq(corpAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyLitAI", includesLitApp(sub.apps), async () => portalRowAccessible((await db.select().from(litAccessCodesTable).where(eq(litAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MySyalitAI", includesSyaApp(sub.apps), async () => portalRowAccessible((await db.select().from(syaAccessCodesTable).where(eq(syaAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyCCBLitAI", includesCcbApp(sub.apps), async () => portalRowAccessible((await db.select().from(ccbAccessCodesTable).where(eq(ccbAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyAccidentAI", includesAccidentApp(sub.apps), async () => portalRowAccessible((await db.select().from(accessCodesTable).where(eq(accessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyLawFirmAi", includesFirmApp(sub.apps), async () => portalRowAccessible((await db.select().from(firmAccessCodesTable).where(eq(firmAccessCodesTable.code, code)).limit(1))[0], now)],
+    ["MyConveyAI", includesConveyApp(sub.apps), async () => {
+      const row = (await db.select().from(usersTable).where(eq(usersTable.accessCode, code)).limit(1))[0];
+      return !!row && portalRowAccessible({ isActive: row.isActive, expiresAt: row.currentPeriodEnd }, now);
+    }],
+    ["MyLawAcad", includesAcadApp(sub.apps), async () => {
+      const row = (await db.select().from(acadUsersTable).where(eq(acadUsersTable.accessCode, code)).limit(1))[0];
+      return !!row && row.status === "active" && (!row.accessCodeExpiresAt || row.accessCodeExpiresAt > now);
+    }],
+  ];
+  if (!checks.some(([, intended]) => intended)) {
+    return { gaps, unknownIntent: 1, unknownSubscriberId: sub.id };
+  }
+  for (const [portal, intended, check] of checks) {
+    if (intended && (!sub.accessCode || !await check())) gaps.push({ subscriberId: sub.id, portal });
+  }
+  return { gaps, unknownIntent: 0, unknownSubscriberId: null };
+}
+
+async function checkPortalAccessSubscribers(subscribers: PortalAccessSubscriber[], now: Date) {
+  const gaps: Array<{ subscriberId: number; portal: string }> = [];
+  let unknownIntent = 0;
+  const unknownSubscriberIds: number[] = [];
+  for (const sub of subscribers) {
+    const result = await checkSubscriberPortalAccess(sub, now);
+    gaps.push(...result.gaps);
+    unknownIntent += result.unknownIntent;
+    if (result.unknownSubscriberId != null) unknownSubscriberIds.push(result.unknownSubscriberId);
+  }
+  return { gaps, unknownIntent, unknownSubscriberIds };
+}
+
 /** Read-only, bounded sample for staff diagnostics. No code, name or contact data leaves this function. */
 export async function checkRecentPortalAccess() {
   const now = new Date();
@@ -494,34 +540,43 @@ export async function checkRecentPortalAccess() {
     eq(subscribersTable.paymentStatus, "confirmed"),
     or(isNull(subscribersTable.subscriptionExpiry), gt(subscribersTable.subscriptionExpiry, now)),
   )).orderBy(desc(subscribersTable.id)).limit(25);
-  const gaps: Array<{ subscriberId: number; portal: string }> = [];
-  let unknownIntent = 0;
-  for (const sub of subscribers) {
-    if (!sub.apps.length) { unknownIntent++; continue; }
-    const code = sub.accessCode ?? "";
-    const checks: Array<[string, boolean, () => Promise<boolean>]> = [
-      ["MyCrimAI", includesCrimApp(sub.apps), async () => portalRowAccessible((await db.select().from(crimAccessCodesTable).where(eq(crimAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyCorpAI", includesCorpApp(sub.apps), async () => portalRowAccessible((await db.select().from(corpAccessCodesTable).where(eq(corpAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyLitAI", includesLitApp(sub.apps), async () => portalRowAccessible((await db.select().from(litAccessCodesTable).where(eq(litAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MySyalitAI", includesSyaApp(sub.apps), async () => portalRowAccessible((await db.select().from(syaAccessCodesTable).where(eq(syaAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyCCBLitAI", includesCcbApp(sub.apps), async () => portalRowAccessible((await db.select().from(ccbAccessCodesTable).where(eq(ccbAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyAccidentAI", includesAccidentApp(sub.apps), async () => portalRowAccessible((await db.select().from(accessCodesTable).where(eq(accessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyLawFirmAi", includesFirmApp(sub.apps), async () => portalRowAccessible((await db.select().from(firmAccessCodesTable).where(eq(firmAccessCodesTable.code, code)).limit(1))[0], now)],
-      ["MyConveyAI", includesConveyApp(sub.apps), async () => {
-        const row = (await db.select().from(usersTable).where(eq(usersTable.accessCode, code)).limit(1))[0];
-        return !!row && portalRowAccessible({ isActive: row.isActive, expiresAt: row.currentPeriodEnd }, now);
-      }],
-      ["MyLawAcad", includesAcadApp(sub.apps), async () => {
-        const row = (await db.select().from(acadUsersTable).where(eq(acadUsersTable.accessCode, code)).limit(1))[0];
-        return !!row && row.status === "active" && (!row.accessCodeExpiresAt || row.accessCodeExpiresAt > now);
-      }],
-    ];
-    if (!checks.some(([, intended]) => intended)) { unknownIntent++; continue; }
-    for (const [portal, intended, check] of checks) {
-      if (intended && (!sub.accessCode || !await check())) gaps.push({ subscriberId: sub.id, portal });
-    }
-  }
+  const { gaps, unknownIntent } = await checkPortalAccessSubscribers(subscribers, now);
   return { sampleLimit: 25, sampled: subscribers.length, unknownIntent, gaps };
+}
+
+/**
+ * Cursor-based counterpart used by the automatic monitor. The upper bound is
+ * fixed for a complete sweep, so a burst of newer signups can never starve
+ * older rows. This function is strictly read-only.
+ */
+export async function checkPortalAccessBatch(params: {
+  afterId: number;
+  throughId: number;
+  limit: number;
+  now?: Date;
+}) {
+  const now = params.now ?? new Date();
+  const subscribers = await db.select().from(subscribersTable).where(and(
+    eq(subscribersTable.paymentStatus, "confirmed"),
+    or(isNull(subscribersTable.subscriptionExpiry), gt(subscribersTable.subscriptionExpiry, now)),
+    gt(subscribersTable.id, params.afterId),
+    lte(subscribersTable.id, params.throughId),
+  )).orderBy(asc(subscribersTable.id)).limit(params.limit);
+  const result = await checkPortalAccessSubscribers(subscribers, now);
+  return {
+    ...result,
+    sampled: subscribers.length,
+    lastId: subscribers.at(-1)?.id ?? params.afterId,
+    complete: subscribers.length < params.limit || subscribers.at(-1)?.id === params.throughId,
+  };
+}
+
+export async function getPortalAccessScanUpperBound(now = new Date()): Promise<number> {
+  const rows = await db.select({ id: subscribersTable.id }).from(subscribersTable).where(and(
+    eq(subscribersTable.paymentStatus, "confirmed"),
+    or(isNull(subscribersTable.subscriptionExpiry), gt(subscribersTable.subscriptionExpiry, now)),
+  )).orderBy(desc(subscribersTable.id)).limit(1);
+  return rows[0]?.id ?? 0;
 }
 
 /**

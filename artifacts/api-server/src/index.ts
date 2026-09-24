@@ -30,6 +30,7 @@ import { seedLawyesEditorialIntake } from "./research/editorial/lawyesIntake";
 import { ensureMatterPreparationSchema } from "./lit/lib/ensureMatterPreparationSchema";
 import { ensureConversationMatterSchema } from "./lit/lib/ensureConversationMatterSchema";
 import { startLawyesEvidenceUploadSweepWorker } from "./lib/lawyesEvidenceUploads";
+import { startProvisioningAccessAlertWorker } from "./lib/provisioningAlerts";
 
 // ── Research background job worker ──────────────────────────────────────────
 // All research pipeline processors (ingest → extract → segment → validate →
@@ -329,6 +330,10 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 });
+
+// Read-only, cursor-based provisioning health sweeps. Each tick is bounded and
+// alerts are persisted/deduplicated across restarts.
+startProvisioningAccessAlertWorker();
 
 // Start the research background job worker after the server is up.
 // Best-effort: a crash in the worker loop logs + retries; it never takes

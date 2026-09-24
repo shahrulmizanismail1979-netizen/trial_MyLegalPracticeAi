@@ -87,6 +87,17 @@ describe("bounded portal access diagnostic route (database mocked)", () => {
     expect(result.body.gaps).toHaveLength(gaps);
   });
 
+  it.each([
+    [{ active: false, expiresAt: null }, 1],
+    [{ active: true, expiresAt: null }, 0],
+  ])("uses the actual CCB `active` database column: %j", async (row, gaps) => {
+    state.subscribers = [{ id: 8, accessCode: "PRIVATE", apps: ["MyCCBLitAI"] }];
+    state.mirrors.ccb_access_codes = [row];
+    const result = await request(app).get("/api/admin/subscribers/portal-access-check");
+    expect(result.status).toBe(200);
+    expect(result.body.gaps).toHaveLength(gaps);
+  });
+
   it("reports unknown intent separately and detects absent subscriber credentials without mirror lookup", async () => {
     state.subscribers = [{ id: 1, apps: [], accessCode: "PRIVATE" }, { id: 2, apps: ["MyCrimAI"], accessCode: null }];
     const result = await request(app).get("/api/admin/subscribers/portal-access-check");

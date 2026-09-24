@@ -96,7 +96,12 @@ describe("provisioning sends the access code by SMS", () => {
     const [to, body] = vi.mocked(sendSms).mock.calls[0]!;
     expect(to).toBe(PHONE);
     expect(body).toBe(
-      accessCodeSmsBody({ accessCode, trial: true, licenses: undefined }),
+      accessCodeSmsBody({
+        accessCode,
+        trial: true,
+        licenses: undefined,
+        apps: ["MyLitAI"],
+      }),
     );
     expect(body).toContain(accessCode);
     expect(body).toContain("7-day free trial");

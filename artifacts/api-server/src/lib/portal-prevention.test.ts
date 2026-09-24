@@ -84,12 +84,13 @@ describe("customer delivery links", () => {
 describe("portal provisioning health predicate", () => {
   const now = new Date("2026-01-01");
   it("detects missing, inactive and expired rows", () => {
-    for (const row of [undefined, { isActive: false }, { status: "inactive" }, { expiresAt: now }]) {
+    for (const row of [undefined, { isActive: false }, { active: false }, { status: "inactive" }, { expiresAt: now }]) {
       expect(portalRowAccessible(row, now)).toBe(false);
     }
   });
   it("accepts active unexpired and legacy unlimited rows", () => {
     expect(portalRowAccessible({ status: "active", expiresAt: new Date("2027-01-01") }, now)).toBe(true);
     expect(portalRowAccessible({ isActive: true, expiresAt: null }, now)).toBe(true);
+    expect(portalRowAccessible({ active: true, expiresAt: null }, now)).toBe(true);
   });
 });

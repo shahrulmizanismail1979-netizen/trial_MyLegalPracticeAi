@@ -34,7 +34,9 @@ export async function sendWebhookAlert(payload: {
       server: payload.server,
     });
 
-    logger.info({ webhookUrl }, "Attempting webhook alert fallback...");
+    // Webhook URLs commonly embed bearer tokens in their path/query. Never log
+    // the configured URL or fetch exception (which can echo that URL).
+    logger.info("Attempting webhook alert fallback...");
 
     const res = await fetch(webhookUrl, {
       method: "POST",
@@ -44,18 +46,18 @@ export async function sendWebhookAlert(payload: {
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => "(unreadable body)");
+      await res.text().catch(() => "");
       logger.error(
-        { status: res.status, body: text },
+        { status: res.status },
         "Webhook alert fallback returned non-2xx status",
       );
       return false;
     }
 
-    logger.info({ webhookUrl, status: res.status }, "Webhook alert fallback succeeded.");
+    logger.info({ status: res.status }, "Webhook alert fallback succeeded.");
     return true;
-  } catch (err) {
-    logger.error({ err }, "Error sending webhook alert fallback");
+  } catch {
+    logger.error("Error sending webhook alert fallback");
     return false;
   }
 }
@@ -85,8 +87,8 @@ export async function getOwnerEmail(): Promise<string | null> {
     }
     const profile = (await res.json()) as { emailAddress?: string };
     return profile.emailAddress ?? null;
-  } catch (err) {
-    logger.error({ err }, "Error fetching Gmail profile");
+  } catch {
+    logger.error("Error fetching Gmail profile");
     return null;
   }
 }
@@ -123,9 +125,11 @@ export async function sendEmail(options: {
         body: JSON.stringify({ raw: base64UrlEncode(mime) }),
       });
       if (!res.ok) {
-        const body = await res.text();
+        // Consume the body for connection reuse, but do not log it: connector
+        // error bodies may echo request or authentication material.
+        await res.text();
         logger.error(
-          { status: res.status, body, to, attempt: attempt + 1, willRetry: !lastAttempt },
+          { status: res.status, attempt: attempt + 1, willRetry: !lastAttempt },
           "Gmail send failed",
         );
         // 4xx other than 429 will not succeed on retry.
@@ -134,9 +138,9 @@ export async function sendEmail(options: {
       }
       logger.info({ to, subject }, "Email sent via Gmail");
       return true;
-    } catch (err) {
+    } catch {
       logger.error(
-        { err, to, attempt: attempt + 1, willRetry: !lastAttempt },
+        { attempt: attempt + 1, willRetry: !lastAttempt },
         "Error sending email via Gmail",
       );
     }
