@@ -1,0 +1,29 @@
+# Use a lightweight Node.js environment
+FROM node:20-slim
+
+# Install native Linux OCR dependencies
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    ocrad \
+    gocr \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Enable pnpm package manager
+RUN corepack enable
+
+# Copy package configurations and install dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy the rest of the application code
+COPY . .
+
+# Build the project (if your framework requires it)
+RUN pnpm run build
+
+# Expose the standard port and define the startup command
+EXPOSE 3000
+CMD ["pnpm", "start"]
