@@ -5,7 +5,9 @@ packages:
   - scripts
 
 allowBuilds:
+  '@clerk/shared': true
   '@google/genai': true
+  core-js: true
   esbuild: true
   protobufjs: true
 

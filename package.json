@@ -19,8 +19,12 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
+    "elevenlabs": "^1.59.0",
+    "googleapis": "^182.0.0",
+    "openai": "^7.23.0",
     "stripe": "^22.3.0",
-    "stripe-replit-sync": "^1.0.0"
+    "stripe-replit-sync": "^1.0.0",
+    "twilio": "^6.1.1"
   },
   "pnpm": {
     "overrides": {
