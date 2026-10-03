@@ -4,6 +4,8 @@ export const elevenlabs = new ElevenLabsClient({
   apiKey: process.env.ELEVENLABS_API_KEY,
 });
 
+export const DEFAULT_VOICE_ID = "ErXwobaYiN019PkySvjV";
+
 export async function listVoices() {
   try {
     const response = await elevenlabs.voices.getAll();
@@ -14,7 +16,7 @@ export async function listVoices() {
   }
 }
 
-export async function textToSpeech(text: string, voiceId: string = "ErXwobaYiN019PkySvjV"): Promise<Buffer> {
+export async function textToSpeech(text: string, voiceId: string = DEFAULT_VOICE_ID): Promise<Buffer> {
   try {
     const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
       text,
