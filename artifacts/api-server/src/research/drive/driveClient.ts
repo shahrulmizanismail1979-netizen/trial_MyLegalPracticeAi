@@ -9,3 +9,16 @@ const auth = new google.auth.GoogleAuth({
 });
 
 export const driveClient = google.drive({ version: 'v3', auth });
+
+export async function downloadDriveFile(fileId: string): Promise<Buffer | null> {
+  try {
+    const response = await driveClient.files.get(
+      { fileId: fileId, alt: 'media' },
+      { responseType: 'arraybuffer' }
+    );
+    return Buffer.from(response.data as ArrayBuffer);
+  } catch (error) {
+    console.error("Failed to download file from Drive:", error);
+    return null;
+  }
+}
