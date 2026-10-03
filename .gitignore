@@ -68,3 +68,4 @@ stress-results.json
 
 # Playwright error artifacts are transient runtime output.
 artifacts/api-server/test-results/
+.env
