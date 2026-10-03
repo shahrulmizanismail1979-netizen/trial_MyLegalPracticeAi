@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { ElevenLabsClient } from "elevenlabs";
 import { requireSubscription } from "./billing";
 import { streamChat, normalizeProvider } from "../lib/aiProvider";
 
@@ -8,7 +8,7 @@ const router: IRouter = Router();
 // Oral Advocacy is a premium feature — gate every route here.
 router.use(requireSubscription);
 
-const connectors = new ReplitConnectors();
+const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
 
 type Scenario =
   | "oral_submission"
@@ -18,13 +18,10 @@ type Scenario =
 
 type PersonaRole = "judge" | "witness" | "opposing_counsel";
 
-// ElevenLabs premade voice IDs (available to every account). These are sensible
-// defaults per persona; if any are unavailable the API still returns audio for a
-// valid voice id, otherwise /tts surfaces the error.
 const VOICE_BY_ROLE: Record<PersonaRole, string> = {
-  judge: "pNInz6obpgDQGcFmaJgB", // Adam — deep, authoritative
-  witness: "21m00Tcm4TlvDq8ikWAM", // Rachel — neutral, measured
-  opposing_counsel: "ErXwobaYiN019PkySvjV", // Antoni — assertive
+  judge: "pNInz6obpgDQGcFmaJgB", // Adam
+  witness: "21m00Tcm4TlvDq8ikWAM", // Rachel
+  opposing_counsel: "ErXwobaYiN019PkySvjV", // Antoni
 };
 
 const ROLE_BY_SCENARIO: Record<Scenario, PersonaRole> = {
@@ -141,7 +138,7 @@ router.post("/respond", async (req, res) => {
   }
 });
 
-// ─── Text-to-speech via ElevenLabs (returns mp3 audio) ────────────────────────
+// ─── Text-to-speech via ElevenLabs SDK (returns mp3 audio) ────────────────────
 router.post("/tts", async (req, res) => {
   const { text, role, scenario } = req.body ?? {};
   if (!text || typeof text !== "string") {
@@ -161,29 +158,22 @@ router.post("/tts", async (req, res) => {
   const voiceId = VOICE_BY_ROLE[personaRole];
 
   try {
-    const response = await connectors.proxy(
-      "elevenlabs",
-      `/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: text.slice(0, 5000),
-          model_id: "eleven_turbo_v2_5",
-          voice_settings: { stability: 0.45, similarity_boost: 0.8 },
-        }),
+    const audioStream = await elevenlabs.textToSpeech.convert(voiceId, {
+      text: text.slice(0, 5000),
+      modelId: "eleven_turbo_v2_5",
+      outputFormat: "mp3_44100_128",
+      voiceSettings: {
+        stability: 0.45,
+        similarityBoost: 0.8,
       },
-    );
+    });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      res
-        .status(502)
-        .json({ error: "Text-to-speech failed", detail: detail.slice(0, 300) });
-      return;
+    const chunks: Buffer[] = [];
+    for await (const chunk of audioStream) {
+      chunks.push(Buffer.from(chunk));
     }
+    const buffer = Buffer.concat(chunks);
 
-    const buffer = Buffer.from(await response.arrayBuffer());
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Cache-Control", "no-store");
     res.send(buffer);

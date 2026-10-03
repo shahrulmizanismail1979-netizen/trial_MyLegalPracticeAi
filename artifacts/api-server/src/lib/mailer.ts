@@ -1,17 +1,11 @@
-// Gmail integration via Replit connectors (google-mail connection).
-// Sends transactional emails (access codes, admin notifications) from the
-// owner's connected Gmail account.
-import { ReplitConnectors } from "@replit/connectors-sdk";
+// Gmail integration via standard Google APIs (Service Account / OAuth2)
+// Sends transactional emails (access codes, admin notifications).
+
+import { google } from 'googleapis';
 import { logger } from "./logger";
 
 /**
  * Sends an alert to the configurable ALERT_WEBHOOK_URL (if set) as a JSON POST.
- * Used as a secondary notification channel when the Gmail connector is unavailable.
- *
- * The payload shape is intentionally simple so it can be consumed by generic
- * webhook receivers (Slack incoming webhooks, n8n, Make, custom endpoints, etc.).
- *
- * Returns true when the webhook responded with a 2xx status, false otherwise.
  */
 export async function sendWebhookAlert(payload: {
   subject: string;
@@ -34,8 +28,6 @@ export async function sendWebhookAlert(payload: {
       server: payload.server,
     });
 
-    // Webhook URLs commonly embed bearer tokens in their path/query. Never log
-    // the configured URL or fetch exception (which can echo that URL).
     logger.info("Attempting webhook alert fallback...");
 
     const res = await fetch(webhookUrl, {
@@ -62,7 +54,16 @@ export async function sendWebhookAlert(payload: {
   }
 }
 
-const connectors = new ReplitConnectors();
+// Initialize standard Google Gmail client
+const auth = new google.auth.GoogleAuth({
+  credentials: {
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  },
+  scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
+});
+
+const gmail = google.gmail({ version: 'v1', auth });
 
 function base64UrlEncode(input: string): string {
   return Buffer.from(input, "utf-8")
@@ -78,23 +79,14 @@ function encodeSubject(subject: string): string {
 
 export async function getOwnerEmail(): Promise<string | null> {
   try {
-    const res = await connectors.proxy("google-mail", "/gmail/v1/users/me/profile", {
-      method: "GET",
-    });
-    if (!res.ok) {
-      logger.error({ status: res.status }, "Failed to fetch Gmail profile");
-      return null;
-    }
-    const profile = (await res.json()) as { emailAddress?: string };
-    return profile.emailAddress ?? null;
+    const res = await gmail.users.getProfile({ userId: 'me' });
+    return res.data.emailAddress ?? null;
   } catch {
     logger.error("Error fetching Gmail profile");
     return null;
   }
 }
 
-// Retry a few times — connector credential fetches can transiently return
-// 429 right after checkout when several credential lookups happen at once.
 const SEND_RETRY_DELAYS_MS = [0, 5000, 15000];
 
 export async function sendEmail(options: {
@@ -119,30 +111,21 @@ export async function sendEmail(options: {
     }
     const lastAttempt = attempt === SEND_RETRY_DELAYS_MS.length - 1;
     try {
-      const res = await connectors.proxy("google-mail", "/gmail/v1/users/me/messages/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ raw: base64UrlEncode(mime) }),
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: base64UrlEncode(mime),
+        },
       });
-      if (!res.ok) {
-        // Consume the body for connection reuse, but do not log it: connector
-        // error bodies may echo request or authentication material.
-        await res.text();
-        logger.error(
-          { status: res.status, attempt: attempt + 1, willRetry: !lastAttempt },
-          "Gmail send failed",
-        );
-        // 4xx other than 429 will not succeed on retry.
-        if (res.status !== 429 && res.status < 500) return false;
-        continue;
-      }
       logger.info({ to, subject }, "Email sent via Gmail");
       return true;
-    } catch {
+    } catch (error: any) {
+      const status = error?.status || 500;
       logger.error(
-        { attempt: attempt + 1, willRetry: !lastAttempt },
+        { status, attempt: attempt + 1, willRetry: !lastAttempt },
         "Error sending email via Gmail",
       );
+      if (status !== 429 && status < 500) return false;
     }
   }
   return false;

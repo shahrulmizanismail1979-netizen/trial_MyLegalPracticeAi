@@ -1,8 +1,11 @@
-import { ai } from "@workspace/integrations-gemini-ai";
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { GoogleGenAI } from "@google/genai";
+import { ElevenLabsClient } from "elevenlabs";
 import { stageRecordingForStt } from "./scribeUpload";
 
-const connectors = new ReplitConnectors();
+// Initialize standard official SDKs
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY });
+const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+
 export const IMAGE_EVIDENCE_MAX_BYTES = 14 * 1024 * 1024;
 export const RECORDING_EVIDENCE_MAX_BYTES = 200 * 1024 * 1024;
 
@@ -51,19 +54,25 @@ async function extractImage(
   if (buffer.length > IMAGE_EVIDENCE_MAX_BYTES) {
     throw new Error("Image is too large for secure OCR. Maximum size is 14MB.");
   }
+  
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: [{
-      role: "user",
-      parts: [
-        { inlineData: { mimeType: asImageType(contentType)!, data: buffer.toString("base64") } },
-        { text: `Extract all visible text verbatim and assess legibility. Return strict JSON only:
+    contents: [
+      {
+        inlineData: {
+          mimeType: asImageType(contentType)!,
+          data: buffer.toString("base64"),
+        },
+      },
+      {
+        text: `Extract all visible text verbatim and assess legibility. Return strict JSON only:
 {"text":"string","confidence":0-100,"warnings":["specific uncertainty or verification warning"]}
-Never infer obscured text. Add a warning for handwriting, blur, cropping, glare, low resolution, uncertain reading order, or any confidence below 85.` },
-      ],
-    }],
+Never infer obscured text. Add a warning for handwriting, blur, cropping, glare, low resolution, uncertain reading order, or any confidence below 85.`,
+      },
+    ],
     config: { responseMimeType: "application/json", maxOutputTokens: 8192 },
   });
+
   const parsed = JSON.parse(cleanJson(response.text ?? "{}")) as {
     text?: unknown;
     confidence?: unknown;
@@ -84,7 +93,7 @@ Never infer obscured text. Add a warning for handwriting, blur, cropping, glare,
     confidence,
     warnings: [...new Set(warnings)],
     provenance: {
-      provider: "Replit AI Integrations",
+      provider: "Google Gemini",
       model: "gemini-2.5-flash",
       sourceObjectPath,
       extractedAt: new Date().toISOString(),
@@ -105,18 +114,15 @@ async function extractRecording(
   }
   const staged = await stageRecordingForStt(buffer, fileName, contentType);
   try {
-    const form = new FormData();
-    form.append("model_id", "scribe_v1");
-    form.append("diarize", "true");
-    form.append("tag_audio_events", "true");
-    form.append("timestamps_granularity", "word");
-    form.append("cloud_storage_url", staged.url);
-    const response = await connectors.proxy("elevenlabs", "/v1/speech-to-text", {
-      method: "POST",
-      body: form,
+    // Use official ElevenLabs SDK for speech-to-text / Scribe
+    const transcription = await elevenlabs.speechToText.convert({
+      file: new Blob([buffer]),
+      modelId: "scribe_v1",
+      tagAudioEvents: true,
+      timestampsGranularity: "word",
     });
-    if (!response.ok) throw new Error(`Secure transcription failed (${response.status}).`);
-    const data = await response.json() as {
+
+    const data = transcription as {
       text?: string;
       words?: Array<{
         text?: string;
@@ -126,6 +132,7 @@ async function extractRecording(
         type?: string;
       }>;
     };
+
     const timestamps = (data.words ?? [])
       .filter((word) =>
         word.type !== "spacing"
@@ -145,18 +152,20 @@ async function extractRecording(
         text: word.text!.trim(),
       }))
       .filter((word) => word.text.length > 0);
+
     const text = (data.text ?? timestamps.map((word) => word.text).join(" ")).trim();
     if (!text) throw new Error("The recording contained no transcribable speech.");
     if (timestamps.length === 0) {
       throw new Error("The transcription returned no reliable timestamps.");
     }
+
     return {
       kind,
       text,
       confidence: null,
       warnings: ["Machine transcription is unverified; check speakers, timestamps, names, numbers, and inaudible passages against the original recording."],
       provenance: {
-        provider: "ElevenLabs via Replit Connectors",
+        provider: "ElevenLabs",
         model: "scribe_v1",
         sourceObjectPath,
         extractedAt: new Date().toISOString(),
