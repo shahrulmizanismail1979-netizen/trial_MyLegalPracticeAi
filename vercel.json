@@ -1,17 +1,15 @@
 {
-  "services": {
-    "api": {
-      "runtime": "container",
-      "root": ".",
-      "entrypoint": "Dockerfile.vercel"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": {
-        "service": "api"
-      }
+      "src": "dist/index.mjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/dist/index.mjs"
     }
   ]
 }
